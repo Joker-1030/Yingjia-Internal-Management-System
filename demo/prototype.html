@@ -5363,7 +5363,7 @@
           effectiveDate: "2026-08-15",
           operator: "李娜",
           handover: [],
-          reason: "直接维护员工部门与人工系统角色。",
+          reason: "直接维护员工部门与系统角色。",
           status: "已生效",
           approvalId: null,
           approver: "无需审批",
@@ -10192,7 +10192,7 @@
             const phone = displayEmployeePhone(e);
             const roleNames = employeeRoleNames(e);
             const department = organizationDepartments.find((item) => item.name === departmentName);
-            return `<tr data-dept-name="${departmentName}" data-role="${roleNames.join("|") || "未关联业务角色"}" data-status="${e.status}" data-account-status="${e.accountStatus}" data-search="${e.name}${e.code}${phone.slice(-4)}"><td><div class="person"><div class="avatar">${e.name[0]}</div><strong>${e.name}</strong>${department?.supervisorCode === e.code ? ' <span class="tag">本部门主管</span>' : ""}</div></td><td><span class="tag">${e.code}</span></td><td>${departmentPath(department)}</td><td>${employeeDepartmentNames(e).map((name) => `<span class="tag">${name}</span>`).join(" ") || "—"}</td><td>${roleNames.map((role) => `<span class="tag blue">${role}${e.automaticRoleSources?.[role]?.length ? "（自动）" : ""}</span>`).join(" ") || '<span class="tag">未关联</span>'}</td><td>${phone}</td><td><span class="tag ${e.status === "在职" ? "green" : "yellow"}">${e.status}</span></td>${currentUser.fullAccess ? `<td><span class="tag ${e.accountStatus === "启用" ? "green" : "red"}">${e.accountStatus}</span></td>` : ""}${currentUser.fullAccess ? `<td>${e.lastLogin}</td>` : ""}<td><button class="link" data-action="employee-detail" data-id="${i}">详情</button>${e.role !== "系统管理员" && canEmployeeAction("employees.edit_employee") && e.name !== currentUser.name ? ` · <button class="link" data-action="employee-edit" data-id="${i}">编辑员工</button>` : ""}${e.role !== "系统管理员" && canEmployeeAction("employees.suspend_employee") && e.name !== currentUser.name && e.status === "在职" ? ` · <button class="link" data-action="employee-suspend" data-id="${i}">停用</button>` : ""}${e.role !== "系统管理员" && canEmployeeAction("employees.restore_employee") && e.status === "停用" ? ` · <button class="link" data-action="employee-restore" data-id="${i}">恢复</button>` : ""}${e.role !== "系统管理员" && canEmployeeAction("employees.reset_password") && e.name !== currentUser.name ? ` · <button class="link" data-action="reset-password" data-id="${i}">重置密码</button>` : ""}</td></tr>`;
+            return `<tr data-dept-name="${departmentName}" data-role="${roleNames.join("|") || "未关联业务角色"}" data-status="${e.status}" data-account-status="${e.accountStatus}" data-search="${e.name}${e.code}${phone.slice(-4)}"><td><div class="person"><div class="avatar">${e.name[0]}</div><strong>${e.name}</strong>${department?.supervisorCode === e.code ? ' <span class="tag">主管</span>' : ""}</div></td><td><span class="tag">${e.code}</span></td><td>${departmentPath(department)}</td><td>${employeeDepartmentNames(e).map((name) => `<span class="tag">${name}</span>`).join(" ") || "—"}</td><td>${roleNames.map((role) => `<span class="tag blue">${role}</span>`).join(" ") || '<span class="tag">未关联</span>'}</td><td>${phone}</td><td><span class="tag ${e.status === "在职" ? "green" : "yellow"}">${e.status}</span></td>${currentUser.fullAccess ? `<td><span class="tag ${e.accountStatus === "启用" ? "green" : "red"}">${e.accountStatus}</span></td>` : ""}${currentUser.fullAccess ? `<td>${e.lastLogin}</td>` : ""}<td><button class="link" data-action="employee-detail" data-id="${i}">详情</button>${e.role !== "系统管理员" && canEmployeeAction("employees.edit_employee") && e.name !== currentUser.name ? ` · <button class="link" data-action="employee-edit" data-id="${i}">编辑员工</button>` : ""}${e.role !== "系统管理员" && canEmployeeAction("employees.suspend_employee") && e.name !== currentUser.name && e.status === "在职" ? ` · <button class="link" data-action="employee-suspend" data-id="${i}">停用</button>` : ""}${e.role !== "系统管理员" && canEmployeeAction("employees.restore_employee") && e.status === "停用" ? ` · <button class="link" data-action="employee-restore" data-id="${i}">恢复</button>` : ""}${e.role !== "系统管理员" && canEmployeeAction("employees.reset_password") && e.name !== currentUser.name ? ` · <button class="link" data-action="reset-password" data-id="${i}">重置密码</button>` : ""}</td></tr>`;
           })
           .join("")}</tbody></table></div></div></section>`;
         const changes = [
@@ -10229,7 +10229,7 @@
           })),
         ]
           .sort((a, b) => b.date.localeCompare(a.date));
-        const changePanel = `<section class="panel" style="margin-top:14px"><div class="panel-head"><div><div class="panel-title">人员/组织变动记录</div><div class="panel-sub">员工部门/人工角色编辑及停用/恢复均由 HR/admin 直接生效，不创建审批或交接</div></div><span class="spacer"></span><span class="tag blue">${changes.length}</span></div><div class="table-wrap"><table style="min-width:1780px"><thead><tr><th>操作时间</th><th>对象</th><th>变动类型</th><th>变更与影响</th><th>操作人</th><th>生效方式</th><th>流程编号</th><th>状态</th><th>计划生效日期</th><th>实际生效时间</th><th>操作</th></tr></thead><tbody>${changes.map((item) => `<tr><td>${item.date}</td><td><strong>${item.object}</strong></td><td><span class="tag blue">${item.type}</span></td><td>${item.detail}</td><td>${item.operator}</td><td>${item.approver}</td><td><strong>${item.flowCode}</strong></td><td><span class="tag ${personnelChangeStatusTone(item.status)}">${item.status}</span></td><td>${item.plannedEffectiveDate}</td><td>${item.actualEffectiveAt}</td><td>${item.approvalId ? item.canViewApproval ? `<button type="button" class="link" data-change-approval="${item.approvalId}">查看审批</button>` : '<span class="list-sub">无权查看审批</span>' : `<button type="button" class="link" data-change-audit="${item.id}">查看审计</button>`}</td></tr>`).join("") || '<tr><td colspan="11"><div class="empty">暂无变动记录</div></td></tr>'}</tbody></table></div></section>`;
+        const changePanel = `<section class="panel" style="margin-top:14px"><div class="panel-head"><div><div class="panel-title">人员/组织变动记录</div><div class="panel-sub">员工部门/系统角色编辑及停用/恢复均由 HR/admin 直接生效，不创建审批或交接</div></div><span class="spacer"></span><span class="tag blue">${changes.length}</span></div><div class="table-wrap"><table style="min-width:1780px"><thead><tr><th>操作时间</th><th>对象</th><th>变动类型</th><th>变更与影响</th><th>操作人</th><th>生效方式</th><th>流程编号</th><th>状态</th><th>计划生效日期</th><th>实际生效时间</th><th>操作</th></tr></thead><tbody>${changes.map((item) => `<tr><td>${item.date}</td><td><strong>${item.object}</strong></td><td><span class="tag blue">${item.type}</span></td><td>${item.detail}</td><td>${item.operator}</td><td>${item.approver}</td><td><strong>${item.flowCode}</strong></td><td><span class="tag ${personnelChangeStatusTone(item.status)}">${item.status}</span></td><td>${item.plannedEffectiveDate}</td><td>${item.actualEffectiveAt}</td><td>${item.approvalId ? item.canViewApproval ? `<button type="button" class="link" data-change-approval="${item.approvalId}">查看审批</button>` : '<span class="list-sub">无权查看审批</span>' : `<button type="button" class="link" data-change-audit="${item.id}">查看审计</button>`}</td></tr>`).join("") || '<tr><td colspan="11"><div class="empty">暂无变动记录</div></td></tr>'}</tbody></table></div></section>`;
         return (
           pageHead(
             "组织与员工",
@@ -14123,17 +14123,11 @@
         const selectedLevels = new Set(ruleLevelValues(r));
         const selectedHolidayIds = new Set(r?.holidayIds || []);
         openModal(
-          `<div class="modal-head"><div class="modal-title">编辑自动任务规则（预置）</div><button class="icon-btn close" data-close>×</button></div><form id="ruleForm"><div class="modal-body"><div class="section-title">触发来源</div><div class="form-grid"><div class="form-group"><label class="form-label">规则类型 *</label><select class="input" id="ruleType" disabled><option value="birthday" ${r?.type !== "holiday" ? "selected" : ""}>生日关怀</option><option value="holiday" ${r?.type === "holiday" ? "selected" : ""}>节假日关怀</option></select></div><div class="form-group"><label class="form-label">规则名称 *</label><input class="input" id="ruleName" minlength="2" maxlength="100" value="${r?.name || ""}" required></div><div class="form-group full"><label class="form-label">数据来源</label><input class="input" id="ruleSource" disabled></div><div class="form-group full" id="ruleHolidayGroup"><label class="form-label">关联节假日 * <span class="panel-sub">下拉多选；只有选中的节假日生成任务</span></label><select class="input" id="ruleHolidaySelect"><option value="">从下拉中选择节假日添加…</option>${holidayCalendar.holidays.filter((holiday) => !selectedHolidayIds.has(holiday.id)).map((holiday) => `<option value="${holiday.id}">${holiday.name} · ${holiday.year} · ${holiday.startDate} 至 ${holiday.endDate}</option>`).join("")}</select><div id="ruleHolidayTags" style="margin-top:8px;display:flex;flex-wrap:wrap;gap:6px"></div></div></div><div class="section-title">目标与时点</div><div class="form-grid"><div class="form-group full"><label class="form-label">适用职级 *</label><div class="checkbox-grid">${["一级", "二级", "三级", "四级"].map((level) => `<label class="check-row"><input type="checkbox" data-rule-level value="${level}" ${selectedLevels.has(level) ? "checked" : ""}><span>${level}</span></label>`).join("")}</div></div><div class="form-group"><label class="form-label">提前生成（天） *</label><input class="input" id="ruleLead" type="number" min="0" max="60" value="${r?.lead ?? 7}" required></div><div class="form-group"><label class="form-label">截止时间</label><input class="input" value="事件日当天 23:59:59（固定）" disabled></div><div class="form-group"><label class="form-label">站内提醒节点 *</label><input class="input" id="ruleReminders" value="${r?.reminders || "3,1,0"}" placeholder="例如：3,1,0"><div class="list-sub">0 至提前生成天数，最多 10 个</div></div><div class="form-group"><label class="form-label">允许逾期补完成</label><input class="input" value="否（固定）" disabled><div class="list-sub">生日/节假日任务越过截止即记录曾经逾期并进入已过期未完成，不可开启</div></div></div><div class="section-title">任务内容</div><div class="form-grid"><div class="form-group full"><label class="form-label">任务标题模板 *</label><input class="input" id="ruleTitle" minlength="2" maxlength="100" value="${r?.title || "【{{事件名称}}关怀】{{关键人姓名}}"}" required></div><div class="form-group full"><label class="form-label">执行要求 *</label><textarea class="input" id="ruleContent" minlength="5" maxlength="1000" required>${r?.content || "完成客户关怀并记录沟通结果。"}</textarea></div></div><div class="role-note" id="ruleAutomationNote"></div></div><div class="modal-foot"><button class="btn" type="button" data-close>取消</button><button class="btn btn-primary" type="submit">保存并启用</button></div></form>`,
+          `<div class="modal-head"><div class="modal-title">编辑自动任务规则（预置）</div><button class="icon-btn close" data-close>×</button></div><form id="ruleForm"><div class="modal-body"><div class="section-title">触发来源</div><div class="form-grid"><div class="form-group"><label class="form-label">规则类型 *</label><select class="input" id="ruleType" disabled><option value="birthday" ${r?.type !== "holiday" ? "selected" : ""}>生日关怀</option><option value="holiday" ${r?.type === "holiday" ? "selected" : ""}>节假日关怀</option></select></div><div class="form-group"><label class="form-label">规则名称 *</label><input class="input" id="ruleName" minlength="2" maxlength="100" value="${r?.name || ""}" required></div><div class="form-group full" id="ruleHolidayGroup"><label class="form-label">关联节假日 * <span class="panel-sub">下拉多选；只有选中的节假日生成任务</span></label><select class="input" id="ruleHolidaySelect"><option value="">从下拉中选择节假日添加…</option>${holidayCalendar.holidays.filter((holiday) => !selectedHolidayIds.has(holiday.id)).map((holiday) => `<option value="${holiday.id}">${holiday.name} · ${holiday.year} · ${holiday.startDate} 至 ${holiday.endDate}</option>`).join("")}</select><div id="ruleHolidayTags" style="margin-top:8px;display:flex;flex-wrap:wrap;gap:6px"></div></div></div><div class="section-title">目标与时点</div><div class="form-grid"><div class="form-group full"><label class="form-label">适用职级 *</label><div class="checkbox-grid">${["一级", "二级", "三级", "四级"].map((level) => `<label class="check-row"><input type="checkbox" data-rule-level value="${level}" ${selectedLevels.has(level) ? "checked" : ""}><span>${level}</span></label>`).join("")}</div></div><div class="form-group"><label class="form-label">提前生成（天） *</label><input class="input" id="ruleLead" type="number" min="0" max="60" value="${r?.lead ?? 7}" required></div><div class="form-group"><label class="form-label">截止时间</label><input class="input" value="事件日当天 23:59:59（固定）" disabled></div><div class="form-group full"><label class="form-label">站内提醒节点 * <span class="panel-sub">至少选择 1 项</span></label><div class="choice-grid" id="ruleReminderChoices"></div></div><div class="form-group"><label class="form-label">允许逾期补完成</label><input class="input" value="否（固定）" disabled><div class="list-sub">生日/节假日任务越过截止即记录曾经逾期并进入已过期未完成，不可开启</div></div></div><div class="section-title">任务内容</div><div class="form-grid"><div class="form-group full"><label class="form-label">任务标题模板 *</label><input class="input" id="ruleTitle" minlength="2" maxlength="100" value="${r?.title || "【{{事件名称}}关怀】{{关键人姓名}}"}" required></div><div class="form-group full"><label class="form-label">执行要求 *</label><textarea class="input" id="ruleContent" minlength="5" maxlength="1000" required>${r?.content || "完成客户关怀并记录沟通结果。"}</textarea></div></div></div><div class="modal-foot"><button class="btn" type="button" data-close>取消</button><button class="btn btn-primary" type="submit">保存并启用</button></div></form>`,
         );
         const refresh = () => {
           const birthday = $("#ruleType").value === "birthday";
           $("#ruleHolidayGroup").classList.toggle("hidden", birthday);
-          $("#ruleSource").value = birthday
-            ? "关键人档案中的公历月日"
-            : "年度法定节假日日历（每年自动同步）";
-          $("#ruleAutomationNote").innerHTML = birthday
-            ? "系统按规则、关键人和生日年度幂等生成；02-29 在非闰年按 02-28 折算并保留标记。省公司由所属区域总监执行，市/区县公司由当前 PM 执行。"
-            : `系统仅为已选节假日按规则、节日、关键人和年度幂等生成。当前 ${holidayCalendar.year} 年数据：${holidayCalendar.status}，版本 ${holidayCalendar.version}。`;
         };
         $("#ruleType").onchange = refresh;
         const renderHolidayTags = () => {
@@ -14181,12 +14175,41 @@
         };
         renderHolidayTags();
         refresh();
+        const reminderCandidates = [0, 1, 2, 3, 5, 7, 10, 15, 30];
+        const reminderSet = new Set(
+          String(r?.reminders || "3,1,0")
+            .split(",")
+            .map((value) => Number(value))
+            .filter((value) => reminderCandidates.includes(value)),
+        );
+        const renderReminders = () => {
+          const lead = Number($("#ruleLead")?.value ?? r?.lead ?? 7);
+          [...reminderSet].forEach((day) => {
+            if (day > lead) reminderSet.delete(day);
+          });
+          const box = $("#ruleReminderChoices");
+          if (!box) return;
+          box.innerHTML = reminderCandidates
+            .filter((day) => day <= lead)
+            .map((day) => {
+              const label = day === 0 ? "截止日" : `提前 ${day} 天`;
+              return `<label class="choice-item"><input type="checkbox" data-rule-reminder value="${day}" ${reminderSet.has(day) ? "checked" : ""}><span>${label}</span></label>`;
+            })
+            .join("");
+        };
+        $("#ruleLead").oninput = renderReminders;
+        $("#ruleReminderChoices").onchange = (event) => {
+          const input = event.target.closest("[data-rule-reminder]");
+          if (!input) return;
+          if (input.checked) reminderSet.add(Number(input.value));
+          else reminderSet.delete(Number(input.value));
+        };
+        renderReminders();
         $("#ruleForm").onsubmit = (e) => {
           e.preventDefault();
-          const reminders = $("#ruleReminders")
-            .value.split(",")
-            .map((x) => x.trim())
-            .filter(Boolean);
+          const reminders = [...document.querySelectorAll("[data-rule-reminder]:checked")].map(
+            (input) => input.value,
+          );
           const type = $("#ruleType").value;
           const lead = Number($("#ruleLead").value);
           const levels = [...document.querySelectorAll("[data-rule-level]:checked")].map(
@@ -14209,17 +14232,12 @@
           if (!levels.length) return toast("请至少选择一个适用职级");
           if (type === "holiday" && !holidayIds.length)
             return toast("节假日规则必须选择至少一个关联节假日");
-          if (
-            !Number.isInteger(lead) ||
-            lead < 0 ||
-            lead > 60 ||
-            reminders.length < 1 ||
-            reminders.length > 10 ||
-            reminders.some(
-              (value) => !/^\d+$/.test(value) || Number(value) > lead,
-            )
-          )
-            return toast(`提醒节点须为 0-${lead}，最多 10 个`);
+          if (!Number.isInteger(lead) || lead < 0 || lead > 60)
+            return toast("提前生成天数须为 0-60 天");
+          if (reminders.length < 1)
+            return toast("请至少选择一个站内提醒节点");
+          if (reminders.some((value) => !reminderCandidates.includes(Number(value)) || Number(value) > lead))
+            return toast(`站内提醒节点不能超过提前生成天数 ${lead}`);
           const allowedVariables = [
             "{{关键人姓名}}",
             "{{客户单位}}",
@@ -15376,6 +15394,35 @@
         return "已配置";
       }
 
+      function regionConfigurationAnomaly(region) {
+        const department = organizationDepartments.find(
+          (item) => item.regionId === region?.id && item.status === "启用",
+        );
+        const director = departmentSupervisor(department);
+        const invalidCities = regionCityRows(region).filter(
+          (city) =>
+            city.customers > 0 &&
+            (!city.pm ||
+              !regionPmEmployees(region).some(
+                (employee) => employee.name === city.pm,
+              )),
+        );
+        const reasons = [];
+        const guidance = [];
+        if (!director) {
+          reasons.push("区域中心主管待设置");
+          guidance.push("请到“组织与员工”维护区域中心主管");
+        } else if (!employeeHasRole(director, "区域总监")) {
+          reasons.push(`${director.name} 未具备区域总监角色`);
+          guidance.push("请到“组织与员工”维护区域中心主管");
+        }
+        if (invalidCities.length) {
+          reasons.push(`${invalidCities.length} 个地市存在客户但缺少有效负责人`);
+          guidance.push("请在地市负责人配置中分配或直接调整负责人");
+        }
+        return { reasons, guidance };
+      }
+
       function renderRegions() {
         const employee = employees.find((item) => item.name === currentUser.name);
         const employeeRegion = organizationRegionForEmployee(employee);
@@ -15408,6 +15455,13 @@
         );
         const assignedCount = regionCities.filter((city) => city.pm).length;
         const unassignedCount = regionCities.length - assignedCount;
+        const regionStatus = regionConfigurationStatus(region);
+        const anomaly =
+          regionStatus === "配置异常" ? regionConfigurationAnomaly(region) : null;
+        const anomalyHtml =
+          anomaly && anomaly.reasons.length
+            ? `<div class="role-note danger-note" style="margin:0 0 12px"><strong>配置异常</strong>：${anomaly.reasons.join("；")}。${[...new Set(anomaly.guidance)].join("；")}。</div>`
+            : "";
         if (currentUser.role === "pm") regionAssignmentView = "city";
         const viewSwitch = `<div class="assignment-view-switch" role="group" aria-label="地市分配查看视角"><button class="tab ${regionAssignmentView === "city" ? "active" : ""}" type="button" data-region-assignment-view="city">按地市</button>${currentUser.role === "pm" ? "" : `<button class="tab ${regionAssignmentView === "pm" ? "active" : ""}" type="button" data-region-assignment-view="pm">按 PM</button>`}</div>`;
         const cityView = `<div class="panel-head" style="padding:10px 0"><div><div class="panel-title">${currentUser.role === "pm" ? "本人地市责任" : "地市负责人配置"}</div><div class="panel-sub">${currentUser.role === "pm" ? `本人负责 ${regionCities.length} 个地市` : `全部 ${regionCities.length} 个地市 · 已分配 ${assignedCount} · 未分配 ${unassignedCount}`}</div></div><div class="spacer"></div>${viewSwitch}${canAssignCities ? '<button class="btn btn-primary" type="button" id="openInitialCityAssignment">分配</button>' : ""}</div><div class="toolbar" style="padding-left:0;padding-right:0"><select class="input" id="regionCityProvince"><option value="">全部省份</option>${provinces.map((province) => `<option>${province}</option>`).join("")}</select><input class="input" id="regionCityKeyword" maxlength="100" placeholder="城市 / PM 姓名 / 工号"><select class="input" id="regionCityStatus"><option value="">全部分配状态</option><option value="assigned">已分配</option><option value="unassigned">未分配</option><option value="handover">交接中</option></select><button class="btn" type="button" id="queryRegionCities">查询</button><button class="btn" type="button" id="resetRegionCities">重置</button><span class="spacer"></span><span class="panel-sub">目标 PM 不审批、不接收，仅在交接生效后收到通知</span></div>${canAssignCities ? "" : '<div class="role-note">当前角色按权限范围只读查看；地市交接仅原负责 PM 本人可发起，区域总监和 admin 使用直接调整。</div>'}<div class="table-wrap"><table style="min-width:1120px"><thead><tr><th>省份</th><th>城市</th><th>当前负责人</th><th>工号</th><th>部门</th><th>负责起始时间</th><th>状态</th><th>操作</th></tr></thead><tbody id="regionCityBody">${regionCities.map((city) => {
@@ -15453,7 +15507,7 @@
             const department = organizationDepartments.find((entry) => entry.regionId === item.id);
             const status = regionConfigurationStatus(item);
             return `<button class="master-item ${item.id === region.id ? "active" : ""}" data-region-select="${item.id}" data-search="${item.name}${department?.code || ""}${item.director}" data-provinces="${regionProvinceList(item).join("|")}"><div class="avatar">区</div><div class="master-item-main"><div class="master-item-title">${item.name}</div><div class="master-item-sub">${department?.code || "待同步编码"} · ${item.director || "主管待配置"}</div><div class="master-item-sub">${regionProvinceList(item).length} 省 · 驻地 ${item.base || "待配置"} · <span class="tag ${status === "已配置" ? "green" : status === "配置异常" ? "red" : "yellow"}">${status}</span></div></div><span>›</span></button>`;
-          }).join("")}</div></aside><div class="detail-pane"><div class="region-detail-head"><div class="region-detail-head-main"><div class="region-detail-name">${region.name}</div><div class="region-detail-director">区域总监 ${region.director || "待配置"} · 部门编码 ${organizationDepartments.find((item) => item.regionId === region.id)?.code || "待同步"}</div></div><div class="region-detail-actions">${canEditRegion ? `<button class="btn btn-primary" data-action="edit-region" data-id="${region.id}">编辑区域配置</button>` : ""}</div></div><div class="region-detail-summary"><div class="overview-item"><label>关联省份</label><div>${provinces.length}</div></div><div class="overview-item"><label>驻地</label><div>${region.base || "待配置"}</div></div><div class="overview-item"><label>已分配地市</label><div>${currentUser.role === "pm" ? regionCities.length : `${assignedCount}/${regionCities.length}`}</div></div><div class="overview-item"><label>地市客户</label><div>${customerCount}</div></div><div class="overview-item"><label>关键人</label><div>${contactCount}</div></div></div><div class="region-provinces"><span class="region-provinces-label">关联省份</span>${provinces.map((province) => `<span class="tag blue">${province}</span>`).join("") || '<span class="tag yellow">待配置</span>'}</div>${regionAssignmentView === "pm" ? pmView : cityView}</div></div></section>`
+          }).join("")}</div></aside><div class="detail-pane"><div class="region-detail-head"><div class="region-detail-head-main"><div class="region-detail-name">${region.name}</div><div class="region-detail-director">区域总监 ${region.director || "待配置"} · 部门编码 ${organizationDepartments.find((item) => item.regionId === region.id)?.code || "待同步"}</div></div><div class="region-detail-actions">${canEditRegion ? `<button class="btn btn-primary" data-action="edit-region" data-id="${region.id}">编辑区域配置</button>` : ""}</div></div>${anomalyHtml}<div class="region-detail-summary"><div class="overview-item"><label>关联省份</label><div>${provinces.length}</div></div><div class="overview-item"><label>驻地</label><div>${region.base || "待配置"}</div></div><div class="overview-item"><label>已分配地市</label><div>${currentUser.role === "pm" ? regionCities.length : `${assignedCount}/${regionCities.length}`}</div></div><div class="overview-item"><label>地市客户</label><div>${customerCount}</div></div><div class="overview-item"><label>关键人</label><div>${contactCount}</div></div></div><div class="region-provinces"><span class="region-provinces-label">关联省份</span>${provinces.map((province) => `<span class="tag blue">${province}</span>`).join("") || '<span class="tag yellow">待配置</span>'}</div>${regionAssignmentView === "pm" ? pmView : cityView}</div></div></section>`
         );
       }
 
@@ -16216,17 +16270,16 @@
               + "<td><div class='choice-grid' style='gap:4px;flex-wrap:wrap'>" + tags + "</div></td>"
               + "<td><input id='lt-" + lv + "' class='input level-title' data-level='" + lv + "' maxlength='100' value='" + (maintenanceConfig.titles[lv] || "") + "' style='min-width:210px' " + readOnlyAttribute + ">"
               + "<textarea id='lr-" + lv + "' class='input level-requirement' data-level='" + lv + "' maxlength='1000' style='min-width:210px;margin-top:6px' " + readOnlyAttribute + ">" + (maintenanceConfig.requirements[lv] || "") + "</textarea></td>"
-              + "<td>" + (currentUser.fullAccess ? maintenanceConfig.version : "\u2014") + "</td>"
               + "<td>" + (canEditSettings ? "<button class='btn btn-primary' type='button' style='padding:4px 12px;font-size:12px' data-action='save-level-config' data-id='" + lv + "'>\u4fdd\u5b58</button>" : "\u2014") + "</td></tr>";
           }).join("");
-          content = `<section class="panel"><div class="panel-head"><div><div class="panel-title">\u804c\u7ea7\u4e0e\u5e38\u89c4\u7ef4\u7cfb\u5468\u671f</div><div class="panel-sub">${currentUser.fullAccess ? `\u914d\u7f6e\u7248\u672c ${maintenanceConfig.version} \u00b7 ` : ""}\u6bcf\u884c\u72ec\u7acb\u4fdd\u5b58\uff1b\u5df2\u5b58\u5728\u4efb\u52a1\u4e0d\u53d7\u5f71\u54cd\uff0c\u65b0\u4efb\u52a1\u6309\u65b0\u89c4\u5219\u8ba1\u7b97</div></div></div><div class="table-wrap"><table><thead><tr><th>\u804c\u7ea7</th><th>\u5468\u671f\uff08\u5929\uff09</th><th>\u63d0\u9192\u8282\u70b9\uff08\u52fe\u9009\uff09</th><th>\u6807\u9898\u6a21\u677f / \u6267\u884c\u8981\u6c42</th><th>\u914d\u7f6e\u7248\u672c</th><th>\u64cd\u4f5c</th></tr></thead><tbody>${maintenanceRows}</tbody></table></div></section><section class="panel" style="margin-top:14px"><div class="panel-head"><div><div class="panel-title">\u903e\u671f\u5347\u7ea7\u63d0\u9192</div><div class="panel-sub">\u5e38\u89c4\u4efb\u52a1\u65e0\u8865\u5b8c\u6210\u622a\u6b62\uff0c\u903e\u671f\u540e\u6301\u7eed\u6807\u7ea2\u76f4\u81f3\u8865\u5b8c\u6210\u6216\u53d7\u63a7\u5173\u95ed</div></div></div><div class="panel-body"><div class="form-grid"><div class="form-group"><label class="form-label">\u901a\u77e5\u533a\u57df\u603b\u76d1\uff08\u903e\u671f\u5929\u6570\uff09</label><input class="input" id="directorEscalation" type="number" min="1" max="365" value="${maintenanceConfig.directorEscalation}" ${readOnlyAttribute}></div><div class="form-group"><label class="form-label">\u901a\u77e5\u5e02\u573a\u526f\u603b\uff08\u903e\u671f\u5929\u6570\uff09</label><input class="input" id="vpEscalation" type="number" min="1" max="365" value="${maintenanceConfig.vpEscalation}" ${readOnlyAttribute}></div><div class="form-group full"><div class="role-note">\u4e24\u7ea7\u5347\u7ea7\u90fd\u53ea\u53d1\u9001\u6d88\u606f\u4e2d\u5fc3\u901a\u77e5\uff0c\u4e0d\u4ea7\u751f\u5f85\u529e\u3001\u5ba1\u6279\u6216\u6284\u9001\u5173\u7cfb\u3002</div></div><div class="form-group" style="align-self:end">${canEditSettings ? '<button class="btn btn-primary" type="button" data-action="save-escalation">\u4fdd\u5b58\u5347\u7ea7\u63d0\u9192</button>' : ""}</div></div></div></section>`;
+          content = `<section class="panel"><div class="panel-head"><div><div class="panel-title">\u804c\u7ea7\u4e0e\u5e38\u89c4\u7ef4\u7cfb\u5468\u671f</div><div class="panel-sub">\u6bcf\u884c\u72ec\u7acb\u4fdd\u5b58\uff1b\u5df2\u5b58\u5728\u4efb\u52a1\u4e0d\u53d7\u5f71\u54cd\uff0c\u65b0\u4efb\u52a1\u6309\u65b0\u89c4\u5219\u8ba1\u7b97</div></div></div><div class="table-wrap"><table><thead><tr><th>\u804c\u7ea7</th><th>\u5468\u671f\uff08\u5929\uff09</th><th>\u63d0\u9192\u8282\u70b9\uff08\u52fe\u9009\uff09</th><th>\u6807\u9898\u6a21\u677f / \u6267\u884c\u8981\u6c42</th><th>\u64cd\u4f5c</th></tr></thead><tbody>${maintenanceRows}</tbody></table></div></section><section class="panel" style="margin-top:14px"><div class="panel-head"><div><div class="panel-title">\u903e\u671f\u5347\u7ea7\u63d0\u9192</div><div class="panel-sub">\u5e38\u89c4\u4efb\u52a1\u65e0\u8865\u5b8c\u6210\u622a\u6b62\uff0c\u903e\u671f\u540e\u6301\u7eed\u6807\u7ea2\u76f4\u81f3\u8865\u5b8c\u6210\u6216\u53d7\u63a7\u5173\u95ed</div></div></div><div class="panel-body"><div class="form-grid"><div class="form-group"><label class="form-label">\u901a\u77e5\u533a\u57df\u603b\u76d1\uff08\u903e\u671f\u5929\u6570\uff09</label><input class="input" id="directorEscalation" type="number" min="1" max="365" value="${maintenanceConfig.directorEscalation}" ${readOnlyAttribute}></div><div class="form-group"><label class="form-label">\u901a\u77e5\u5e02\u573a\u526f\u603b\uff08\u903e\u671f\u5929\u6570\uff09</label><input class="input" id="vpEscalation" type="number" min="1" max="365" value="${maintenanceConfig.vpEscalation}" ${readOnlyAttribute}></div><div class="form-group full"><div class="role-note">\u4e24\u7ea7\u5347\u7ea7\u90fd\u53ea\u53d1\u9001\u6d88\u606f\u4e2d\u5fc3\u901a\u77e5\uff0c\u4e0d\u4ea7\u751f\u5f85\u529e\u3001\u5ba1\u6279\u6216\u6284\u9001\u5173\u7cfb\u3002</div></div><div class="form-group" style="align-self:end">${canEditSettings ? '<button class="btn btn-primary" type="button" data-action="save-escalation">\u4fdd\u5b58\u5347\u7ea7\u63d0\u9192</button>' : ""}</div></div></div></section>`;
         }
 
         if (settingsSection === "tree")
           content = renderCustomerOrgSettings(canEditSettings);
 
         if (settingsSection === "automation")
-          content = `<section class="panel"><div class="panel-head"><div><div class="panel-title">生日 / 节日自动任务规则</div><div class="panel-sub">规则集合系统预置，不提供新增；只有规则明确关联的节假日生成任务；省公司关键人由区域总监执行</div></div><div class="spacer"></div>${canEditSettings ? '<span class="tag blue">预置规则 · 仅可编辑与启停</span>' : '<span class="tag blue">只读</span>'}</div><div class="company-overview"><div class="overview-item"><label>年度节假日数据</label><div>${holidayCalendar.year} 年 · ${holidayCalendar.holidays.length} 个节日</div></div><div class="overview-item"><label>数据来源 / 版本</label><div>${holidayCalendar.source}<div class="list-sub">版本 ${holidayCalendar.version}</div></div></div><div class="overview-item"><label>最近同步</label><div>${holidayCalendar.syncedAt}</div></div><div class="overview-item"><label>同步状态</label><div><span class="tag green">${holidayCalendar.status}</span>${canEditSettings ? ' <button class="link" type="button" data-action="sync-holidays">立即同步</button>' : ""}</div></div></div><div class="toolbar"><input class="input" id="ruleConfigKeyword" placeholder="搜索规则名称"><select class="input" id="ruleConfigType"><option value="">全部类型</option><option value="birthday">生日关怀</option><option value="holiday">节假日关怀</option></select><select class="input" id="ruleConfigStatus"><option value="">全部状态</option><option>启用</option><option>停用</option></select><span class="spacer"></span><span class="panel-sub" id="ruleConfigCount">共 ${ruleData.length} 条</span></div><div class="role-note">同步失败时继续使用最近成功版本，不删除已生成任务；生日与节假日规则都会校验职级和事件重叠，避免同一关键人同一事件重复生成。</div><div class="table-wrap"><table><thead><tr><th>规则 / 更新时间</th><th>类型 / 关联节假日</th><th>适用职级</th><th>生成 / 截止</th><th>提醒节点</th><th>状态</th><th>操作</th></tr></thead><tbody id="ruleConfigBody">${ruleData
+          content = `<section class="panel"><div class="panel-head"><div><div class="panel-title">生日 / 节日自动任务规则</div><div class="panel-sub">规则集合系统预置，不提供新增；只有规则明确关联的节假日生成任务；省公司关键人由区域总监执行</div></div><div class="spacer"></div>${canEditSettings ? '<span class="tag blue">预置规则 · 仅可编辑与启停</span>' : '<span class="tag blue">只读</span>'}</div><div class="company-overview"><div class="overview-item"><label>年度节假日数据</label><div>${holidayCalendar.year} 年 · ${holidayCalendar.holidays.length} 个节日</div></div><div class="overview-item"><label>最近同步</label><div>${holidayCalendar.syncedAt}</div></div><div class="overview-item"><label>同步状态</label><div><span class="tag green">${holidayCalendar.status}</span>${canEditSettings ? ' <button class="link" type="button" data-action="sync-holidays">立即同步</button>' : ""}</div></div></div><div class="toolbar"><input class="input" id="ruleConfigKeyword" placeholder="搜索规则名称"><select class="input" id="ruleConfigType"><option value="">全部类型</option><option value="birthday">生日关怀</option><option value="holiday">节假日关怀</option></select><select class="input" id="ruleConfigStatus"><option value="">全部状态</option><option>启用</option><option>停用</option></select><span class="spacer"></span><span class="panel-sub" id="ruleConfigCount">共 ${ruleData.length} 条</span></div><div class="role-note">同步失败时继续使用最近成功版本，不删除已生成任务；生日与节假日规则都会校验职级和事件重叠，避免同一关键人同一事件重复生成。</div><div class="table-wrap"><table><thead><tr><th>规则 / 更新时间</th><th>类型 / 关联节假日</th><th>适用职级</th><th>生成 / 截止</th><th>提醒节点</th><th>状态</th><th>操作</th></tr></thead><tbody id="ruleConfigBody">${ruleData
             .map(
               (item) =>
                 `<tr data-config-row data-keyword="${item.name}${item.title}" data-type="${item.type}" data-status="${item.status}"><td><strong>${item.name}</strong><div class="list-sub">${item.updatedAt || "—"}</div></td><td><span class="tag ${item.type === "birthday" ? "blue" : "orange"}">${item.type === "birthday" ? "生日关怀" : "节假日关怀"}</span><div class="list-sub">${item.type === "holiday" ? ruleHolidayNames(item) || "未选择" : "关键人公历生日"}</div></td><td>${item.levels}</td><td>提前 ${item.lead} 天<div class="list-sub">事件日当天 23:59:59 截止</div></td><td>${item.reminders
@@ -16269,6 +16322,9 @@
         const selected = new Set(regionProvinceList(region));
         const original = new Set(selected);
         const allProvinces = Object.keys(administrativeDivisions);
+        const allCities = Object.values(administrativeDivisions).flatMap(
+          (cities) => Object.keys(cities),
+        );
         openModal(
           `<div class="modal-head"><div class="modal-title">编辑区域配置</div><button class="icon-btn close" data-close>×</button></div><form id="regionForm"><div class="modal-body"><div class="form-grid"><div class="form-group"><label class="form-label">区域中心名称 / 编码</label><input class="input" value="${department.name} / ${department.code}" disabled><div class="list-sub">组织基础信息须在“组织与员工”中修改</div></div><div class="form-group"><label class="form-label">区域总监</label><input class="input" value="${supervisor ? `${supervisor.name} / ${supervisor.code}` : "主管待配置"}" disabled><div class="list-sub">区域中心主管即区域总监</div></div><div class="form-group full"><label class="form-label">关联省份 *</label><div class="multi-select" id="regionProvinceSelect"><button class="multi-select-trigger" id="regionProvinceTrigger" type="button"><span id="regionProvinceText"></span><span>⌄</span></button><div class="multi-select-menu hidden" id="regionProvinceMenu"><input class="input" id="regionProvinceSearch" placeholder="搜索省份"><div id="regionProvinceOptions">${allProvinces
             .map((province) => {
@@ -16281,7 +16337,7 @@
             })
             .join(
               "",
-            )}</div></div></div></div><div class="form-group"><label class="form-label">驻地城市 *</label><select class="input" id="regBase" required></select><div class="list-sub">系统管理员与市场副总可修改</div></div><div class="form-group full"><label class="form-label">备注</label><textarea class="input" id="regRemark" maxlength="500" placeholder="选填，最多 500 字">${region.remark || ""}</textarea></div><div class="form-group full"><label class="form-label">映射影响预览</label><div class="role-note" id="regionImpactPreview"></div></div></div><div class="role-note">这里只维护区域业务映射。部门名称、编码、区域中心标记和主管统一在“组织与员工”维护，保存后按组织主管重新计算省公司负责人和数据范围。</div></div><div class="modal-foot"><button class="btn" type="button" data-close>取消</button><button class="btn btn-primary" type="submit">保存区域配置</button></div></form>`,
+            )}</div></div></div></div><div class="form-group"><label class="form-label">驻地城市 *</label><select class="input" id="regBase" required></select><div class="list-sub">系统管理员与市场副总可修改</div></div><div class="form-group full"><label class="form-label">备注</label><textarea class="input" id="regRemark" maxlength="500" placeholder="选填，最多 500 字">${region.remark || ""}</textarea></div></div><div class="role-note">这里只维护区域业务映射。部门名称、编码、区域中心标记和主管统一在“组织与员工”维护，保存后按组织主管重新计算省公司负责人和数据范围。</div></div><div class="modal-foot"><button class="btn" type="button" data-close>取消</button><button class="btn btn-primary" type="submit">保存区域配置</button></div></form>`,
         );
         const provinceChecks = () =>
           Array.from(
@@ -16292,37 +16348,16 @@
           $("#regionProvinceText").textContent = values.length
             ? values.join("、")
             : "请选择关联省份";
-          const cities = values.flatMap((province) =>
-            Object.keys(administrativeDivisions[province] || {}),
-          );
           const baseSelect = $("#regBase");
           if (baseSelect) {
             const current = baseSelect.value;
-            const existingMatch = cities.find(
+            const existingMatch = allCities.find(
               (city) =>
                 city === region.base || city.replace(/市$/, "") === region.base,
             );
             baseSelect.innerHTML =
-              `<option value="">请选择驻地城市</option>${cities.map((city) => `<option ${city === (current || existingMatch) ? "selected" : ""}>${city}</option>`).join("")}`;
+              `<option value="">请选择驻地城市</option>${allCities.map((city) => `<option ${city === (current || existingMatch) ? "selected" : ""}>${city}</option>`).join("")}`;
           }
-          const added = values.filter((province) => !original.has(province));
-          const removed = [...original].filter(
-            (province) => !values.includes(province),
-          );
-          const affectedCities = cityOwners.filter((item) =>
-            removed.includes(item.province),
-          );
-          const affectedCustomers = customers.filter((item) =>
-            removed.includes(item.province),
-          );
-          const affectedContacts = contacts.filter((person) =>
-            affectedCustomers.some((company) => company.name === person.company),
-          );
-          const affectedTasks = tasks.filter((task) =>
-            affectedCustomers.some((company) => company.name === task.company),
-          );
-          $("#regionImpactPreview").innerHTML =
-            `<strong>新增省份：</strong>${added.join("、") || "无"}<br><strong>移除省份：</strong>${removed.join("、") || "无"}<br><strong>移除影响：</strong>地市责任 ${affectedCities.length} 条、客户单位 ${affectedCustomers.length} 家、关键人 ${affectedContacts.length} 人、任务 ${affectedTasks.length} 条。${affectedCities.length || affectedCustomers.length ? '<br><span style="color:var(--red)">存在有效业务引用，当前不能移除；请先完成地市责任和客户迁移。</span>' : ""}`;
         };
         $("#regionProvinceTrigger").onclick = () =>
           $("#regionProvinceMenu").classList.toggle("hidden");
@@ -16345,7 +16380,7 @@
           event.preventDefault();
           const provinces = provinceChecks().map((input) => input.value);
           if (!provinces.length) return toast("请至少选择一个关联省份");
-          if ($("#regBase") && !$("#regBase").value) return toast("请选择关联省份内的驻地城市");
+          if ($("#regBase") && !$("#regBase").value) return toast("请选择驻地城市");
           const conflict = regionsData.find(
             (item) =>
               item.id !== region.id &&
@@ -16368,19 +16403,26 @@
             return toast(
               `不能移除：仍有 ${blockingCities.length} 条地市责任和 ${blockingCustomers.length} 家客户，请先迁移`,
             );
-          Object.assign(region, {
-            name: department.name,
-            scope: department.name.replace(/区域运营中心$/, "区域"),
-            director: supervisor?.name || "",
-            provinces: provinces.join("、"),
-            base: $("#regBase")?.value || region.base,
-            remark: $("#regRemark").value.trim(),
-            updatedAt: recordCreatedAt(),
-          });
-          selectedRegionId = region.id;
-          closeOverlay();
-          renderPage();
-          toast("区域配置已保存，业务责任将按组织主管重新计算");
+          const base = $("#regBase")?.value || region.base;
+          const remark = $("#regRemark").value.trim();
+          openModal(
+            `<div class="modal-head"><div class="modal-title">确认保存区域配置</div><button class="icon-btn close" data-close>×</button></div><div class="modal-body"><div class="role-note danger-note"><strong>请核对后再确认</strong><br>关联省份：${provinces.join("、")}<br>驻地城市：${base}<br>备注：${remark || "无"}<br>保存后按组织主管重新计算省公司负责人和数据范围。</div></div><div class="modal-foot"><button class="btn" type="button" data-close>取消</button><button class="btn btn-primary" type="button" id="confirmRegionSave">确认保存</button></div>`,
+          );
+          $("#confirmRegionSave").onclick = () => {
+            Object.assign(region, {
+              name: department.name,
+              scope: department.name.replace(/区域运营中心$/, "区域"),
+              director: supervisor?.name || "",
+              provinces: provinces.join("、"),
+              base,
+              remark,
+              updatedAt: recordCreatedAt(),
+            });
+            selectedRegionId = region.id;
+            closeOverlay();
+            renderPage();
+            toast("区域配置已保存，业务责任将按组织主管重新计算");
+          };
         };
       }
 
@@ -16568,7 +16610,7 @@
         ["employees.set_supervisor", "employees", "设置部门主管"],
         ["employees.create_employee", "employees", "新增员工与账号"],
         ["employees.edit_employee", "employees", "编辑员工档案"],
-        ["employees.change_employee", "employees", "维护员工部门与人工角色"],
+        ["employees.change_employee", "employees", "维护员工部门与系统角色"],
         ["employees.suspend_employee", "employees", "直接停用员工"],
         ["employees.restore_employee", "employees", "直接恢复员工"],
         ["employees.reset_password", "employees", "重置他人密码（仅 admin）"],
@@ -16837,14 +16879,14 @@
         const currentDepartments = employeeDepartmentNames(employee);
         const currentManualRoles = employee.manualRoles || employee.roles || [];
         openModal(
-          `<div class="modal-head"><div class="modal-title">编辑员工</div><button class="icon-btn close" data-close>×</button></div><form id="employeeEditForm"><div class="modal-body"><div class="form-grid"><div class="form-group"><label class="form-label">姓名 *</label><input class="input" id="eeName" value="${employee.name}" minlength="2" maxlength="50" required></div><div class="form-group"><label class="form-label">工号</label><input class="input" value="${employee.code}" disabled><div class="list-sub">永久唯一，不可修改</div></div><div class="form-group"><label class="form-label">当前手机号</label><input class="input" value="${displayEmployeePhone(employee)}" disabled></div><div class="form-group"><label class="form-label">新手机号</label><input class="input" id="eeNewPhone" inputmode="numeric" pattern="1[3-9][0-9]{9}" maxlength="11" placeholder="不修改请留空"></div><div class="form-group"><label class="form-label">企业邮箱</label><input class="input" id="eeEmail" type="email" maxlength="254" value="${employee.email || ""}"></div><div class="form-group"><label class="form-label">入职日期 *</label><input class="input" id="eeHireDate" type="date" max="${DEMO_TODAY}" value="${employee.hireDate}" required></div><div class="form-group full"><label class="form-label">所属部门 * <span class="panel-sub">可多选，不设主部门</span></label><div class="choice-grid">${organizationDepartments.filter((item) => item.status === "启用").map((department) => `<label class="choice-item"><input type="checkbox" data-edit-department value="${department.name}" ${currentDepartments.includes(department.name) ? "checked" : ""}><span>${department.name}</span></label>`).join("")}</div></div><div class="form-group full"><label class="form-label">人工系统角色 * <span class="panel-sub">1-5 个</span></label><div class="choice-grid">${["总裁", "市场副总", "区域总监", "PM", "HR/人事"].map((role) => `<label class="choice-item"><input type="checkbox" data-edit-role value="${role}" ${currentManualRoles.includes(role) ? "checked" : ""}><span>${role}</span></label>`).join("")}</div>${Object.keys(employee.automaticRoleSources || {}).length ? `<div class="list-sub">自动角色：${Object.keys(employee.automaticRoleSources).join("、")}（由区域中心主管关系维护，不占人工上限）</div>` : ""}</div><div class="form-group full"><label class="form-label">更正原因 *</label><textarea class="input" id="eeReason" minlength="5" maxlength="500" required></textarea></div></div><div class="role-note">部门关系平级；保存后立即生效并记录前后值，不创建调岗流程、审批、待办或抄送。</div></div><div class="modal-foot"><button class="btn" type="button" data-close>取消</button><button class="btn btn-primary" type="submit">保存并立即生效</button></div></form>`,
+          `<div class="modal-head"><div class="modal-title">编辑员工</div><button class="icon-btn close" data-close>×</button></div><form id="employeeEditForm"><div class="modal-body"><div class="form-grid"><div class="form-group"><label class="form-label">姓名 *</label><input class="input" id="eeName" value="${employee.name}" minlength="2" maxlength="50" required></div><div class="form-group"><label class="form-label">工号</label><input class="input" value="${employee.code}" disabled><div class="list-sub">永久唯一，不可修改</div></div><div class="form-group"><label class="form-label">当前手机号</label><input class="input" value="${displayEmployeePhone(employee)}" disabled></div><div class="form-group"><label class="form-label">新手机号</label><input class="input" id="eeNewPhone" inputmode="numeric" pattern="1[3-9][0-9]{9}" maxlength="11" placeholder="不修改请留空"></div><div class="form-group"><label class="form-label">企业邮箱</label><input class="input" id="eeEmail" type="email" maxlength="254" value="${employee.email || ""}"></div><div class="form-group"><label class="form-label">入职日期 *</label><input class="input" id="eeHireDate" type="date" max="${DEMO_TODAY}" value="${employee.hireDate}" required></div><div class="form-group full"><label class="form-label">所属部门 * <span class="panel-sub">可多选，不设主部门</span></label><div class="choice-grid">${organizationDepartments.filter((item) => item.status === "启用").map((department) => `<label class="choice-item"><input type="checkbox" data-edit-department value="${department.name}" ${currentDepartments.includes(department.name) ? "checked" : ""}><span>${department.name}</span></label>`).join("")}</div></div><div class="form-group full"><label class="form-label">系统角色 * <span class="panel-sub">1-5 个</span></label><div class="choice-grid">${["总裁", "市场副总", "区域总监", "PM", "HR/人事"].map((role) => `<label class="choice-item"><input type="checkbox" data-edit-role value="${role}" ${currentManualRoles.includes(role) ? "checked" : ""}><span>${role}</span></label>`).join("")}</div></div><div class="form-group full"><label class="form-label">更正原因 *</label><textarea class="input" id="eeReason" minlength="5" maxlength="500" required></textarea></div></div><div class="role-note">部门关系平级；保存后立即生效并记录前后值，不创建调岗流程、审批、待办或抄送。</div></div><div class="modal-foot"><button class="btn" type="button" data-close>取消</button><button class="btn btn-primary" type="submit">保存并立即生效</button></div></form>`,
         );
         document.querySelectorAll("[data-edit-role]").forEach(
           (input) =>
             (input.onchange = (event) => {
               if (document.querySelectorAll("[data-edit-role]:checked").length > 5) {
                 event.target.checked = false;
-                toast("人工系统角色最多选择 5 个");
+                toast("系统角色最多选择 5 个");
               }
             }),
         );
@@ -16853,7 +16895,7 @@
           const departments = [...document.querySelectorAll("[data-edit-department]:checked")].map((input) => input.value);
           const manualRoles = [...document.querySelectorAll("[data-edit-role]:checked")].map((input) => input.value);
           if (!departments.length) return toast("请至少选择一个所属部门");
-          if (!manualRoles.length) return toast("请至少选择一个人工系统角色");
+          if (!manualRoles.length) return toast("请至少选择一个系统角色");
           const newPhone = $("#eeNewPhone").value.trim();
           const phone = newPhone || employee.phone;
           const email = $("#eeEmail").value.trim().toLowerCase();
@@ -16863,7 +16905,7 @@
             return toast("手机号已被其他员工或历史账号使用");
           if (email && employees.some((item) => item.code !== employee.code && item.email?.toLowerCase() === email))
             return toast("企业邮箱已被其他员工使用");
-          const before = `${employee.name}；部门 ${currentDepartments.join("、")}；人工角色 ${currentManualRoles.join("、") || "无"}`;
+          const before = `${employee.name}；部门 ${currentDepartments.join("、")}；系统角色 ${currentManualRoles.join("、") || "无"}`;
           Object.assign(employee, {
             name: $("#eeName").value.trim(),
             phone,
@@ -16880,13 +16922,13 @@
             date: recordCreatedAt(),
             object: `${employee.name} · ${employee.code}`,
             type: "员工档案与组织关系编辑",
-            detail: `${before} → ${employee.name}；部门 ${departments.join("、")}；人工角色 ${manualRoles.join("、")}；原因：${$("#eeReason").value.trim()}`,
+            detail: `${before} → ${employee.name}；部门 ${departments.join("、")}；系统角色 ${manualRoles.join("、")}；原因：${$("#eeReason").value.trim()}`,
             operator: currentUser.name,
             status: "已生效",
           });
           closeOverlay();
           renderPage();
-          toast("员工档案、部门和人工角色已立即生效");
+          toast("员工档案、部门和系统角色已立即生效");
         };
       }
 
@@ -16894,7 +16936,7 @@
         if (!canEmployeeAction("employees.create_employee"))
           return toast("当前角色对组织与员工仅有只读权限");
         openModal(
-          `<div class="modal-head"><div class="modal-title">新增员工</div><button class="icon-btn close" data-close>×</button></div><form id="employeeForm"><div class="modal-body"><div class="form-grid"><div class="form-group"><label class="form-label">姓名 *</label><input class="input" id="efName" required minlength="2" maxlength="50"></div><div class="form-group"><label class="form-label">工号</label><input class="input" value="保存后自动生成" disabled><div class="list-sub">YJ + 4 位公司流水，不可修改</div></div><div class="form-group"><label class="form-label">手机号（登录账号）*</label><input class="input" id="efPhone" required inputmode="numeric" autocomplete="tel" pattern="1[3-9][0-9]{9}" maxlength="11" placeholder="11 位手机号"></div><div class="form-group"><label class="form-label">企业邮箱</label><input class="input" id="efEmail" type="email" maxlength="254" placeholder="name@company.com"></div><div class="form-group"><label class="form-label">入职日期 *</label><input class="input" id="efHireDate" type="date" max="${DEMO_TODAY}" value="${DEMO_TODAY}" required></div><div class="form-group full"><label class="form-label">所属部门 * <span class="panel-sub">可多选，不设主部门</span></label><div class="choice-grid">${organizationDepartments.filter((item) => item.status === "启用").map((department) => `<label class="choice-item"><input type="checkbox" data-employee-department value="${department.name}"><span>${department.name}</span></label>`).join("")}</div></div><div class="form-group full"><label class="form-label">人工系统角色 * <span class="panel-sub">1-5 个</span></label><div class="choice-grid">${["总裁", "市场副总", "区域总监", "PM", "HR/人事"].map((role) => `<label class="choice-item"><input type="checkbox" data-employee-role value="${role}"><span>${role}</span></label>`).join("")}</div></div></div><div class="role-note">一个员工使用一个稳定身份和账号，可属于多个平级部门。创建成功后展示系统生成的初始密码。</div></div><div class="modal-foot"><button class="btn" type="button" data-close>取消</button><button class="btn btn-primary" type="submit">创建员工与账号</button></div></form>`,
+          `<div class="modal-head"><div class="modal-title">新增员工</div><button class="icon-btn close" data-close>×</button></div><form id="employeeForm"><div class="modal-body"><div class="form-grid"><div class="form-group"><label class="form-label">姓名 *</label><input class="input" id="efName" required minlength="2" maxlength="50"></div><div class="form-group"><label class="form-label">工号</label><input class="input" value="保存后自动生成" disabled><div class="list-sub">YJ + 4 位公司流水，不可修改</div></div><div class="form-group"><label class="form-label">手机号（登录账号）*</label><input class="input" id="efPhone" required inputmode="numeric" autocomplete="tel" pattern="1[3-9][0-9]{9}" maxlength="11" placeholder="11 位手机号"></div><div class="form-group"><label class="form-label">企业邮箱</label><input class="input" id="efEmail" type="email" maxlength="254" placeholder="name@company.com"></div><div class="form-group"><label class="form-label">入职日期 *</label><input class="input" id="efHireDate" type="date" max="${DEMO_TODAY}" value="${DEMO_TODAY}" required></div><div class="form-group full"><label class="form-label">所属部门 * <span class="panel-sub">可多选，不设主部门</span></label><div class="choice-grid">${organizationDepartments.filter((item) => item.status === "启用").map((department) => `<label class="choice-item"><input type="checkbox" data-employee-department value="${department.name}"><span>${department.name}</span></label>`).join("")}</div></div><div class="form-group full"><label class="form-label">系统角色 * <span class="panel-sub">1-5 个</span></label><div class="choice-grid">${["总裁", "市场副总", "区域总监", "PM", "HR/人事"].map((role) => `<label class="choice-item"><input type="checkbox" data-employee-role value="${role}"><span>${role}</span></label>`).join("")}</div></div></div><div class="role-note">一个员工使用一个稳定身份和账号，可属于多个平级部门。创建成功后展示系统生成的初始密码。</div></div><div class="modal-foot"><button class="btn" type="button" data-close>取消</button><button class="btn btn-primary" type="submit">创建员工与账号</button></div></form>`,
         );
         document.querySelectorAll("[data-employee-role]").forEach(
           (input) =>
@@ -16992,7 +17034,7 @@
             employee.status === "在职" && employee.role !== "系统管理员",
         );
         openModal(
-          `<div class="modal-head"><div class="modal-title">${department ? "管理" : "新增"}部门</div><button class="icon-btn close" data-close>×</button></div><form id="organizationDepartmentForm"><div class="modal-body"><div class="form-grid"><div class="form-group"><label class="form-label">部门名称 *</label><input class="input" id="odName" value="${department?.name || ""}" minlength="2" maxlength="100" required></div>${department ? `<div class="form-group"><label class="form-label">部门编码</label><input class="input" value="${department.code}" disabled></div>` : `<div class="form-group"><label class="form-label">部门编码</label><input class="input" value="保存后自动生成" disabled></div>`}<div class="form-group"><label class="form-label">上级部门</label><select class="input" id="odParent"><option value="">英嘉科技（一级部门）</option>${parents.map((item) => `<option value="${item.id}" ${department?.parentId === item.id ? "selected" : ""}>${departmentPath(item)}</option>`).join("")}</select></div><div class="form-group"><label class="form-label">排序 *</label><input class="input" id="odSort" type="number" min="1" max="9999" value="${department?.sort || 100}" required></div><div class="form-group"><label class="form-label">是否区域中心 *</label><select class="input" id="odIsRegion"><option value="false" ${department?.type !== "region" ? "selected" : ""}>否</option><option value="true" ${department?.type === "region" ? "selected" : ""}>是</option></select></div><div class="form-group"><label class="form-label">部门主管</label><select class="input" id="odSupervisor"><option value="">暂不设置主管（待设置）</option>${supervisorCandidates.map((employee) => `<option value="${employee.code}" ${department?.supervisorCode === employee.code ? "selected" : ""}>${employee.name} · ${employee.code} · ${employeeDepartmentNames(employee).join("、") || "未归属部门"} · ${employeeRoleDisplay(employee)}</option>`).join("")}</select><div class="list-sub">每部门最多一名主管；可选部门外员工，保存后自动增加成员关系且解除主管不自动移除。区域中心会自动补区域总监角色。</div></div>${department ? `<div class="form-group"><label class="form-label">组织状态</label><select class="input" id="odStatus"><option value="启用" ${department.status === "启用" ? "selected" : ""}>正常</option><option value="停用" ${department.status === "停用" ? "selected" : ""}>已停用</option></select></div>` : ""}</div><div class="role-note">区域中心主管的部门成员关系与区域总监角色由系统自动维护；自动角色不占人工角色上限，并保留来源。</div></div><div class="modal-foot"><button class="btn" type="button" data-close>取消</button><button class="btn btn-primary" type="submit">保存部门</button></div></form>`,
+          `<div class="modal-head"><div class="modal-title">${department ? "管理" : "新增"}部门</div><button class="icon-btn close" data-close>×</button></div><form id="organizationDepartmentForm"><div class="modal-body"><div class="form-grid"><div class="form-group"><label class="form-label">部门名称 *</label><input class="input" id="odName" value="${department?.name || ""}" minlength="2" maxlength="100" required></div>${department ? `<div class="form-group"><label class="form-label">部门编码</label><input class="input" value="${department.code}" disabled></div>` : `<div class="form-group"><label class="form-label">部门编码</label><input class="input" value="保存后自动生成" disabled></div>`}<div class="form-group"><label class="form-label">上级部门</label><select class="input" id="odParent"><option value="">英嘉科技（一级部门）</option>${parents.map((item) => `<option value="${item.id}" ${department?.parentId === item.id ? "selected" : ""}>${departmentPath(item)}</option>`).join("")}</select></div><div class="form-group"><label class="form-label">排序 *</label><input class="input" id="odSort" type="number" min="1" max="9999" value="${department?.sort || 100}" required></div><div class="form-group"><label class="form-label">是否区域中心 *</label><select class="input" id="odIsRegion"><option value="false" ${department?.type !== "region" ? "selected" : ""}>否</option><option value="true" ${department?.type === "region" ? "selected" : ""}>是</option></select></div><div class="form-group"><label class="form-label">部门主管</label><select class="input" id="odSupervisor"><option value="">暂不设置主管（待设置）</option>${supervisorCandidates.map((employee) => `<option value="${employee.code}" ${department?.supervisorCode === employee.code ? "selected" : ""}>${employee.name} · ${employee.code} · ${employeeDepartmentNames(employee).join("、") || "未归属部门"} · ${employeeRoleDisplay(employee)}</option>`).join("")}</select><div class="list-sub">每部门最多一名主管；可选部门外员工，保存后自动增加成员关系且解除主管不自动移除。</div></div>${department ? `<div class="form-group"><label class="form-label">组织状态</label><select class="input" id="odStatus"><option value="启用" ${department.status === "启用" ? "selected" : ""}>正常</option><option value="停用" ${department.status === "停用" ? "selected" : ""}>已停用</option></select></div>` : ""}</div></div><div class="modal-foot"><button class="btn" type="button" data-close>取消</button><button class="btn btn-primary" type="submit">保存部门</button></div></form>`,
         );
         $("#organizationDepartmentForm").onsubmit = (event) => {
           event.preventDefault();
@@ -17320,7 +17362,7 @@
           });
         accountEvents.sort((a, b) => String(b.time).localeCompare(String(a.time)));
         openDrawer(
-          `<div class="drawer-head"><div class="modal-title">员工详情</div><button class="icon-btn close" data-close>×</button></div><div class="drawer-body"><div class="detail-hero"><div class="avatar">${employee.name[0]}</div><div><div class="detail-name">${employee.name} <span class="tag">${employee.code}</span> <span class="tag ${employee.status === "在职" ? "green" : "yellow"}">${employee.status}</span></div><div class="detail-sub">${employeeDepartmentNames(employee).join(" · ") || "系统内置账号"}</div></div></div><div class="tabs"><button class="tab active" type="button" data-employee-detail-tab="basic">基础信息</button><button class="tab" type="button" data-employee-detail-tab="account">角色与账号记录</button></div><section data-employee-detail-panel="basic"><div class="detail-grid"><div class="detail-item"><label>手机号（登录账号）</label><div>${displayEmployeePhone(employee)}</div></div><div class="detail-item"><label>企业邮箱</label><div>${displayEmployeeEmail(employee)}</div></div><div class="detail-item"><label>工号</label><div>${employee.code}</div></div><div class="detail-item"><label>入职日期</label><div>${employee.hireDate}</div></div><div class="detail-item full"><label>全部部门路径（平级）</label><div>${departments.map((item) => `<span class="tag">${departmentPath(item)}</span>`).join(" ") || "—"}</div></div><div class="detail-item full"><label>各部门主管</label><div>${supervisors.join("、") || "待设置"}</div></div><div class="detail-item"><label>本人主管部门</label><div>${managedDepartments.map((item) => item.name).join("、") || "无"}</div></div><div class="detail-item"><label>区域身份</label><div>${managedRegions.length ? managedRegions.map((item) => `${item.name}主管`).join("、") : employeeHasRole(employee, "PM") && departments.some((item) => item.type === "region") ? "区域 PM" : "无"}</div></div><div class="detail-item full"><label>系统角色</label><div>${employeeRoleNames(employee).map((role) => `<span class="tag blue">${role}${employee.automaticRoleSources?.[role]?.length ? "（区域中心主管自动）" : "（人工）"}</span>`).join(" ") || "未关联"}</div></div><div class="detail-item"><label>员工状态</label><div>${employee.status}</div></div>${currentUser.fullAccess ? `<div class="detail-item"><label>账号状态</label><div>${employee.accountStatus}</div></div><div class="detail-item"><label>最近登录</label><div>${employee.lastLogin}</div></div>` : ""}${currentUser.role === "hr" ? `<div class="detail-item full"><label>系统生成初始密码</label><div>${employee.initialPasswordVisible ? '<strong>Yj@2026Demo!</strong><div class="list-sub">无有效期，不强制首次修改；本人修改后立即不可见</div>' : "密码已由本人修改，任何角色不可见"}</div></div>` : ""}<div class="detail-item"><label>档案创建时间</label><div>${employee.createdAt}</div></div><div class="detail-item"><label>最后更新时间</label><div>${employee.updatedAt}</div></div></div><div class="role-note">全部部门关系平级，不设主部门。区域中心主管自动角色保留来源，不占人工角色上限。</div></section><section class="hidden" data-employee-detail-panel="account"><div class="role-note">本页记录账号、部门成员、人工/自动角色及员工状态变化，不展示密码、验证码、会话或完整手机号。</div><div class="timeline">${accountEvents.map((item) => `<div class="timeline-item"><div class="timeline-title">${item.time} · ${item.title}</div><div class="timeline-content">${item.content}</div></div>`).join("")}</div></section></div><div class="drawer-foot"><button class="btn" data-close>关闭</button>${employee.role !== "系统管理员" && canEmployeeAction("employees.edit_employee") && employee.name !== currentUser.name ? `<button class="btn" data-action="employee-edit" data-id="${index}">编辑员工</button>` : ""}${employee.role !== "系统管理员" && canEmployeeAction("employees.reset_password") && employee.name !== currentUser.name ? `<button class="btn" data-action="reset-password" data-id="${index}">重置密码</button>` : ""}</div>`,
+          `<div class="drawer-head"><div class="modal-title">员工详情</div><button class="icon-btn close" data-close>×</button></div><div class="drawer-body"><div class="detail-hero"><div class="avatar">${employee.name[0]}</div><div><div class="detail-name">${employee.name} <span class="tag">${employee.code}</span> <span class="tag ${employee.status === "在职" ? "green" : "yellow"}">${employee.status}</span></div><div class="detail-sub">${employeeDepartmentNames(employee).join(" · ") || "系统内置账号"}</div></div></div><div class="tabs"><button class="tab active" type="button" data-employee-detail-tab="basic">基础信息</button><button class="tab" type="button" data-employee-detail-tab="account">角色与账号记录</button></div><section data-employee-detail-panel="basic"><div class="detail-grid"><div class="detail-item"><label>手机号（登录账号）</label><div>${displayEmployeePhone(employee)}</div></div><div class="detail-item"><label>企业邮箱</label><div>${displayEmployeeEmail(employee)}</div></div><div class="detail-item"><label>工号</label><div>${employee.code}</div></div><div class="detail-item"><label>入职日期</label><div>${employee.hireDate}</div></div><div class="detail-item full"><label>全部部门路径（平级）</label><div>${departments.map((item) => `<span class="tag">${departmentPath(item)}</span>`).join(" ") || "—"}</div></div><div class="detail-item full"><label>各部门主管</label><div>${supervisors.join("、") || "待设置"}</div></div><div class="detail-item"><label>本人主管部门</label><div>${managedDepartments.map((item) => item.name).join("、") || "无"}</div></div><div class="detail-item"><label>区域身份</label><div>${managedRegions.length ? managedRegions.map((item) => `${item.name}主管`).join("、") : employeeHasRole(employee, "PM") && departments.some((item) => item.type === "region") ? "区域 PM" : "无"}</div></div><div class="detail-item full"><label>系统角色</label><div>${employeeRoleNames(employee).map((role) => `<span class="tag blue">${role}</span>`).join(" ") || "未关联"}</div></div><div class="detail-item"><label>员工状态</label><div>${employee.status}</div></div>${currentUser.fullAccess ? `<div class="detail-item"><label>账号状态</label><div>${employee.accountStatus}</div></div><div class="detail-item"><label>最近登录</label><div>${employee.lastLogin}</div></div>` : ""}${currentUser.role === "hr" ? `<div class="detail-item full"><label>系统生成初始密码</label><div>${employee.initialPasswordVisible ? '<strong>Yj@2026Demo!</strong><div class="list-sub">无有效期，不强制首次修改；本人修改后立即不可见</div>' : "密码已由本人修改，任何角色不可见"}</div></div>` : ""}<div class="detail-item"><label>档案创建时间</label><div>${employee.createdAt}</div></div><div class="detail-item"><label>最后更新时间</label><div>${employee.updatedAt}</div></div></div><div class="role-note">全部部门关系平级，不设主部门。</div></section><section class="hidden" data-employee-detail-panel="account"><div class="role-note">本页记录账号、部门成员、系统角色及员工状态变化，不展示密码、验证码、会话或完整手机号。</div><div class="timeline">${accountEvents.map((item) => `<div class="timeline-item"><div class="timeline-title">${item.time} · ${item.title}</div><div class="timeline-content">${item.content}</div></div>`).join("")}</div></section></div><div class="drawer-foot"><button class="btn" data-close>关闭</button>${employee.role !== "系统管理员" && canEmployeeAction("employees.edit_employee") && employee.name !== currentUser.name ? `<button class="btn" data-action="employee-edit" data-id="${index}">编辑员工</button>` : ""}${employee.role !== "系统管理员" && canEmployeeAction("employees.reset_password") && employee.name !== currentUser.name ? `<button class="btn" data-action="reset-password" data-id="${index}">重置密码</button>` : ""}</div>`,
         );
         document.querySelectorAll("[data-employee-detail-tab]").forEach(
           (button) =>

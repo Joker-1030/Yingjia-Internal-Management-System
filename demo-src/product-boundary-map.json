@@ -1,0 +1,315 @@
+{
+  "schemaVersion": 1,
+  "product": "英嘉科技内部管理系统",
+  "updatedAt": "2026-08-24",
+  "purpose": "AI feature classification and product impact analysis",
+  "scope": {
+    "primary_features": ["M01", "M02", "M03", "M04", "M05", "M06", "M07", "M08", "M09", "M10"],
+    "supporting_capabilities": ["P01"],
+    "boundary_basis": ["user_goal", "business_responsibility", "user_workflow", "product_lifecycle"],
+    "not_a_code_map": true
+  },
+  "evidence": [
+    "prd-workspace/current/PRD.md",
+    "prd-workspace/current/modules/",
+    "prd-workspace/decisions/index.md",
+    "prd-workspace/decisions/DEC-163-产品负责人确认全局语义阻塞当前规则.md",
+    "prd-workspace/decisions/DEC-165-员工多部门归属与停用恢复直接生效.md",
+    "prd-workspace/GLOSSARY.md",
+    "prd-workspace/current/modules/"
+  ],
+  "unknown_policy": "Use unknown when the current product truth does not define a boundary or behavior.",
+  "features": [
+    {
+      "id": "M01",
+      "name": "工作台",
+      "responsibility": [
+        "回答当前经营情况和当前待处理事项",
+        "按角色聚合指标、对比、趋势、待办和重点动态",
+        "将用户下钻到已有业务模块的同口径明细"
+      ],
+      "not_responsible_for": [
+        "独立维护客户、任务、审批、员工或配置数据",
+        "替代业务模块完成具体处理流程",
+        "定义上游业务对象的生命周期"
+      ],
+      "core_objects": ["指标", "经营对比", "趋势", "待办", "重点动态", "角色视图"],
+      "pages": ["工作台", "指标下钻入口"],
+      "states": ["page:Loading/Empty/Error/PermissionDenied", "view:正常/无历史值/数据可能已过期", "runtime:局部数据不可用"],
+      "related_features": ["M02", "M03", "M04", "M05", "M06", "M07", "M08", "M09", "M10", "P01"],
+      "common_changes": ["指标口径调整", "角色视图调整", "周期或筛选调整", "新增下钻入口", "重点动态类别调整"],
+      "classification_guide": {
+        "module_upgrade": "既有指标、视图、筛选、展示或下钻规则变化",
+        "new_capability": "仍服务经营总览目标但形成新的聚合分析流程",
+        "new_module": "需求需要独立维护业务对象或独立生命周期时不属于工作台"
+      },
+      "migration_status": "current",
+      "source": "prd-workspace/current/modules/M01-dashboard.md"
+    },
+    {
+      "id": "M02",
+      "name": "客户经营",
+      "responsibility": [
+        "作为客户资产的业务使用入口浏览集团、客户公司和关键人",
+        "查看客户档案、责任、健康状态及关键人任职信息",
+        "维护关键人并发起关键人调岗、停用和维系行动"
+      ],
+      "not_responsible_for": [
+        "人工维护行业、集团、客户公司、客户部门或标准岗位主数据",
+        "维护内部组织与员工",
+        "管理合同、商机、销售或回款生命周期"
+      ],
+      "core_objects": ["集团公司", "客户公司", "关键人", "关键人任职", "客户责任", "客户健康"],
+      "pages": ["客户经营", "集团公司详情", "客户公司详情", "关键人详情", "关键人全部客户动态", "关键人调岗"],
+      "states": ["page:Loading/Empty/EmptyResult/Error/PermissionDenied", "selection:未选择客户/未选择关键人", "business:关键人正常/已停用", "related-approval:停用审批中/恢复审批中/调岗审批中", "runtime:责任配置异常"],
+      "related_features": ["M01", "M03", "M04", "M05", "M06", "M08", "M09", "M10", "P01"],
+      "common_changes": ["客户或关键人字段调整", "客户筛选调整", "客户详情展示调整", "关键人任职或调岗规则调整", "客户责任与可见范围调整"],
+      "classification_guide": {
+        "module_upgrade": "客户或关键人的既有字段、筛选、状态、详情和操作变化",
+        "new_capability": "仍以使用客户资产为目标，但新增独立的客户经营流程",
+        "new_module": "产生独立于客户档案/关键人的业务对象、生命周期、流程和权限边界"
+      },
+      "migration_status": "current",
+      "source": "prd-workspace/current/modules/M02-customer.md"
+    },
+    {
+      "id": "M03",
+      "name": "维系管理",
+      "responsibility": [
+        "查看维系任务整体进度并处理具体执行任务",
+        "创建和跟踪专项维系及关键人覆盖 KPI",
+        "沉淀客户维系记录并闭环关联任务"
+      ],
+      "not_responsible_for": [
+        "维护客户主数据或员工组织关系",
+        "集中处理审批节点",
+        "维护通用消息的读取状态",
+        "因员工停用自动关闭、清空或改派既有任务"
+      ],
+      "core_objects": ["父任务", "任务执行记录", "专项", "覆盖 KPI 执行项", "维系记录", "附件"],
+      "pages": ["任务总览", "执行明细/我的任务", "专项详情", "维系记录"],
+      "states": ["page:Loading/Empty/EmptyResult/Error/PermissionDenied", "business-task:待执行/当前逾期/补录审核中/已完成/已过期未完成/已取消", "business-special:草稿/待开始/进行中/已完成/已过期", "runtime:暂停事实/局部数据不可用"],
+      "related_features": ["M01", "M02", "M04", "M05", "M06", "M07", "M08", "M09", "M10", "P01"],
+      "common_changes": ["任务筛选或字段调整", "任务状态或完成口径调整", "维系规则调整", "专项范围或 KPI 口径调整", "维系记录字段调整"],
+      "classification_guide": {
+        "module_upgrade": "既有任务、专项或维系记录的字段、状态、筛选和规则变化",
+        "new_capability": "仍围绕客户维系目标但形成新的任务或记录流程",
+        "new_module": "用户目标和生命周期不再是客户维系执行与记录"
+      },
+      "migration_status": "current",
+      "source": "prd-workspace/current/modules/M03-maintenance.md"
+    },
+    {
+      "id": "M04",
+      "name": "审批中心",
+      "responsibility": [
+        "集中展示和处理跨业务模块的审批实例",
+        "提供待处理、已处理、我发起和抄送视角",
+        "呈现流程节点、处理记录及业务生效失败结果"
+      ],
+      "not_responsible_for": [
+        "定义业务对象自身的字段和生命周期",
+        "替代发起模块完成业务数据维护",
+        "提供流程设计器或任意流程配置",
+        "承载员工部门/角色编辑或员工停用/恢复审批"
+      ],
+      "core_objects": ["审批实例", "审批节点", "处理动作", "抄送关系", "流程记录"],
+      "pages": ["待我处理", "我已处理", "我发起的", "抄送我的", "审批详情"],
+      "states": ["page:Loading/Empty/EmptyResult/Error/PermissionDenied/Submitting", "approval-instance:审批中/已通过/已驳回/已撤回/已通过-业务处理失败", "related-display:已通过待生效", "node-runtime:处理人失效/流程暂停"],
+      "related_features": ["M02", "M03", "M05", "M06", "M07", "M08", "M09", "M10", "P01"],
+      "common_changes": ["审批筛选或展示调整", "审批动作调整", "业务流程路由调整", "节点状态与历史展示调整", "代办或抄送规则调整"],
+      "classification_guide": {
+        "module_upgrade": "通用审批查看、处理、节点或状态能力变化",
+        "new_capability": "审批目标不变但增加新的通用处理流程",
+        "new_module": "业务对象的核心生命周期应归属发起业务模块；流程设计器属于另行评估的新能力"
+      },
+      "migration_status": "current",
+      "source": "prd-workspace/current/modules/M04-approval.md"
+    },
+    {
+      "id": "M05",
+      "name": "停用记录",
+      "responsibility": [
+        "统一承载客户侧对象的停用、恢复和历史查询",
+        "展示停用原因、审批、级联处理、替代关系及恢复记录",
+        "保持停用对象的审计链和受控恢复流程"
+      ],
+      "not_responsible_for": [
+        "物理删除业务对象",
+        "处理行业直接停用或内部员工停用",
+        "普通编辑客户、关键人或客户部门"
+      ],
+      "core_objects": ["停用申请", "恢复申请", "对象快照", "影响摘要", "停用记录"],
+      "pages": ["停用记录列表", "停用记录详情", "恢复申请"],
+      "states": ["page:Loading/Empty/EmptyResult/Error/PermissionDenied/Submitting", "business:正常/已停用", "related-approval:停用审批中/恢复审批中", "operation:业务处理失败"],
+      "related_features": ["M02", "M03", "M04", "M06", "M08", "M09", "M10", "P01"],
+      "common_changes": ["适用对象调整", "停用或恢复规则调整", "级联影响调整", "筛选与历史展示调整", "阻断条件调整"],
+      "classification_guide": {
+        "module_upgrade": "既有停用对象的字段、状态、筛选、恢复或影响规则变化",
+        "new_capability": "仍以对象退出/恢复和审计为目标但形成新流程",
+        "new_module": "与对象停用恢复无关的归档、删除或其他独立生命周期"
+      },
+      "migration_status": "current",
+      "source": "prd-workspace/current/modules/M05-archive.md"
+    },
+    {
+      "id": "M06",
+      "name": "组织与员工",
+      "responsibility": [
+        "维护英嘉内部部门、主管和员工档案",
+        "维护员工与系统角色的关联及账号可用状态",
+        "维护员工一个或多个平级部门及人工/自动来源角色",
+        "由 HR/admin 直接停用或恢复员工并记录责任清空与保留结果",
+        "让用户查找组织成员并理解当前组织责任关系"
+      ],
+      "not_responsible_for": [
+        "编辑角色模板中的菜单、操作、字段和附件权限",
+        "维护区域省份映射或地市负责人分配",
+        "维护客户侧公司、部门、岗位或关键人",
+        "处理离职、重新入职或劳动关系结束"
+      ],
+      "core_objects": ["内部部门", "部门成员关系", "部门主管", "员工", "员工账号", "系统角色关联", "人员/组织变动记录"],
+      "pages": ["组织树", "员工列表", "员工详情", "人员/组织变动记录", "员工新增/编辑", "员工停用/恢复"],
+      "states": ["page:Loading/Empty/EmptyResult/Error/PermissionDenied/Submitting", "business-department:正常/已停用/主管待设置", "business-employee:在职/停用", "business-account:启用/停用", "operation:编辑成功/停用成功/恢复成功/版本冲突/操作失败"],
+      "related_features": ["M01", "M02", "M03", "M04", "M05", "M07", "M08", "M09", "M10", "P01"],
+      "common_changes": ["组织层级或主管规则调整", "员工多部门关系调整", "员工档案字段调整", "员工筛选与可见性调整", "人工/自动角色关联调整", "停用/恢复及责任清空调整", "账号状态与用户可见记录调整"],
+      "classification_guide": {
+        "module_upgrade": "组织或员工既有字段、多部门关系、角色、筛选、状态和页面能力变化",
+        "new_capability": "仍服务内部组织与员工生命周期，但出现新的完整人员流程",
+        "new_module": "需求具有独立于组织人员的用户目标、对象生命周期、流程和权限范围"
+      },
+      "migration_status": "current",
+      "source": "prd-workspace/current/modules/M06-organization.md"
+    },
+    {
+      "id": "M07",
+      "name": "权限授权",
+      "responsibility": [
+        "由内置系统管理员维护非管理员角色模板权限",
+        "管理菜单/页面、操作、字段和附件权限及其依赖",
+        "预览权限变更影响并保留版本历史和回滚记录"
+      ],
+      "not_responsible_for": [
+        "新增、删除或停用内置角色",
+        "给单个员工追加例外权限或手工分配数据范围",
+        "维护员工多部门关系、人工/自动系统角色关联、员工状态或区域责任"
+      ],
+      "core_objects": ["角色模板", "权限树", "权限版本", "影响预览", "版本历史"],
+      "pages": ["角色模板列表", "权限树", "权限详情/影响信息", "版本历史"],
+      "states": ["page:Loading/Empty/Error/PermissionDenied/Submitting", "business-version:当前版本/历史版本", "edit-session:未保存变更/影响待确认", "operation:保存成功/版本冲突/回滚完成"],
+      "related_features": ["M01", "M02", "M03", "M04", "M06", "M09", "M10"],
+      "common_changes": ["权限颗粒度调整", "角色模板权限调整", "权限依赖调整", "影响预览调整", "版本历史或回滚调整"],
+      "classification_guide": {
+        "module_upgrade": "现有角色模板、权限树、依赖、保存或版本能力变化",
+        "new_capability": "仍围绕模板授权但形成新的治理流程",
+        "new_module": "员工组织归属、业务责任或独立身份治理不属于本模块"
+      },
+      "migration_status": "current",
+      "source": "prd-workspace/current/modules/M07-permission.md"
+    },
+    {
+      "id": "M08",
+      "name": "区域中心与地市配置",
+      "responsibility": [
+        "把内部区域中心部门配置为业务区域",
+        "维护区域与省份、驻地的映射",
+        "维护区域 PM 与地市责任关系及交接/直接调整"
+      ],
+      "not_responsible_for": [
+        "新增或编辑内部部门、部门名称和区域中心主管",
+        "编辑员工多部门关系、员工状态或人工/自动系统角色",
+        "维护客户公司主数据或关键人"
+      ],
+      "core_objects": ["区域中心配置", "省份映射", "驻地城市", "地市负责人关系", "地市交接"],
+      "pages": ["区域中心配置", "地市负责人配置-按地市", "地市负责人配置-按PM", "地市负责人交接"],
+      "states": ["page:Loading/Empty/EmptyResult/Error/PermissionDenied/Submitting", "business-region:待配置/已配置/配置异常", "business-city-responsibility:未分配/已分配", "related-approval:交接审批中/已通过待生效/已驳回/已撤回", "operation:迁移成功/业务处理失败"],
+      "related_features": ["M01", "M02", "M03", "M04", "M06", "M10", "P01"],
+      "common_changes": ["区域映射调整", "区域可见范围调整", "地市分配规则调整", "负责人交接流程调整", "责任迁移影响调整"],
+      "classification_guide": {
+        "module_upgrade": "既有区域、省份、驻地、地市责任或交接规则变化",
+        "new_capability": "仍围绕区域与地市责任管理但形成新的独立流程",
+        "new_module": "内部组织维护或客户主数据维护不属于本模块"
+      },
+      "migration_status": "current",
+      "source": "prd-workspace/current/modules/M08-region.md"
+    },
+    {
+      "id": "M09",
+      "name": "客户基础配置",
+      "responsibility": [
+        "集中维护影响客户档案、关键人、覆盖率和自动任务的基础配置",
+        "作为行业、集团、客户公司、客户部门和标准岗位的唯一人工维护入口",
+        "维护职级维系周期、提醒及生日/节假日任务规则"
+      ],
+      "not_responsible_for": [
+        "开展客户浏览、关键人经营或日常维系操作",
+        "修改已生成任务的历史规则快照",
+        "展示客户经营统计或从配置树下钻业务详情"
+      ],
+      "core_objects": ["职级周期规则", "提醒规则", "行业", "集团公司", "客户公司", "客户部门", "标准关键人岗位", "生日/节假日规则"],
+      "pages": ["职级周期与提醒", "客户组织树", "生日/节假日规则"],
+      "states": ["page:Loading/Empty/EmptyResult/Error/PermissionDenied/Submitting", "business-master-data:正常/已停用", "business-rule:启用/停用", "operation:配置版本已更新/同步失败", "related-approval:停用审批中/恢复审批中"],
+      "related_features": ["M01", "M02", "M03", "M04", "M05", "M06", "M07", "M08", "M10", "P01"],
+      "common_changes": ["维系周期或提醒调整", "客户主数据字段或层级调整", "部门岗位归属调整", "生日/节假日规则调整", "配置权限调整"],
+      "classification_guide": {
+        "module_upgrade": "既有配置对象的字段、层级、规则、状态或维护入口变化",
+        "new_capability": "仍是跨业务复用的客户基础规则，但形成新的配置流程",
+        "new_module": "面向日常客户经营或具有独立交易生命周期的业务能力"
+      },
+      "migration_status": "current",
+      "source": "prd-workspace/current/modules/M09-settings.md"
+    },
+    {
+      "id": "M10",
+      "name": "数据导入",
+      "responsibility": [
+        "让 admin 批量建立客户主数据",
+        "让 PM 批量录入本人负责范围的关键人",
+        "通过模板、预校验、确认和结果报告控制批量写入过程"
+      ],
+      "not_responsible_for": [
+        "绕过 M02/M08/M09 的产品规则和权限",
+        "通过导入更新既有关键人任职或自动发起调岗",
+        "导入维系记录、合同、商机或其他未定义业务对象"
+      ],
+      "core_objects": ["导入模板", "导入文件", "导入批次", "预校验结果", "错误/重复行", "结果报告"],
+      "pages": ["导入批次列表", "上传与预校验", "批次详情", "确认导入", "结果报告"],
+      "states": ["page:Loading/Empty/EmptyResult/Error/PermissionDenied/Submitting", "business-batch:已上传/预校验中/待确认/导入中/部分成功/全部成功/失败/已关闭", "business-row:可导入/成功/失败/疑似重复/阻断错误/警告", "operation:文件拒绝/确认冲突/重试返回原结果"],
+      "related_features": ["M02", "M03", "M04", "M05", "M06", "M07", "M08", "M09", "P01"],
+      "common_changes": ["模板对象或字段调整", "导入权限调整", "预校验规则调整", "批次筛选或状态调整", "错误与结果报告调整"],
+      "classification_guide": {
+        "module_upgrade": "既有模板、校验、批次、状态和结果展示变化",
+        "new_capability": "仍以受控批量录入为目标但增加新的完整导入流程",
+        "new_module": "业务对象自身的日常管理和生命周期不属于导入模块"
+      },
+      "migration_status": "current",
+      "source": "prd-workspace/current/modules/M10-import.md"
+    },
+    {
+      "id": "P01",
+      "name": "消息中心与待办",
+      "kind": "supporting_capability",
+      "responsibility": [
+        "提醒用户已经发生的任务、审批、客户变动和系统异常",
+        "提供分类筛选、未读状态和受控业务跳转"
+      ],
+      "not_responsible_for": [
+        "替代工作台待办或审批中心",
+        "改变来源业务对象状态",
+        "发送企业微信、短信或邮件"
+      ],
+      "core_objects": ["消息", "消息分类", "未读状态", "受控动作链接"],
+      "pages": ["消息浮窗", "消息抽屉"],
+      "states": ["未读", "已读", "对象已不可用或无权访问", "通知失败待重试"],
+      "related_features": ["M01", "M02", "M03", "M04", "M05", "M06", "M08", "M09", "M10"],
+      "common_changes": ["消息分类调整", "触发时机调整", "已读交互调整", "跳转与失权展示调整"],
+      "classification_guide": {
+        "module_upgrade": "消息展示、筛选、已读或跳转变化",
+        "new_capability": "仍服务跨模块知会目标但形成新的通知流程",
+        "new_module": "来源业务流程仍归属对应业务模块"
+      },
+      "migration_status": "supporting-current",
+      "source": "prd-workspace/current/modules/P01-messages.md"
+    }
+  ]
+}

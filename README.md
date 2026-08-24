@@ -1,152 +1,48 @@
 # 英嘉科技内部管理系统
 
-> 产品需求（PRD）与 Demo 仓库
-> 面向产品、设计与研发团队，用于持续同步当前产品需求、版本迭代与可运行 Demo。
+本仓库的 GitHub 版本定位为研发协作镜像，提供当前产品需求、Prototype 和维护中的前端实现。完整内部工作区中的治理报告、AI 执行记录、历史快照和归档不属于公开镜像。
 
-## 项目说明
+## 产品需求
 
-本仓库用于维护当前版本的产品需求与 Demo。
+- 当前唯一 PRD 入口：[`prd-workspace/current/PRD.md`](prd-workspace/current/PRD.md)
+- 模块需求：[`prd-workspace/current/modules/`](prd-workspace/current/modules/)
+- 验收口径：[`prd-workspace/current/acceptance/`](prd-workspace/current/acceptance/)
+- 产品决策：[`prd-workspace/decisions/`](prd-workspace/decisions/)
 
-产品需求已经完成从单体 PRD 到模块化 PRD 的迁移。当前 GitHub 仓库以模块化 PRD 作为研发侧唯一阅读入口，研发可以直接通过 Git diff 查看需求变化，不再需要通过内部沟通群反复接收文件。
+需求变化应先更新并确认当前产品来源，再创建独立实施任务。实现通过 CODEX Review 后，才可进入发布检查。
 
-## 当前产品需求
+## Prototype
 
-### PRD 入口
+当前可查看产物为 [`demo/prototype.html`](demo/prototype.html)，维护源位于 [`src/`](src/)。本项目当前构建脚本无第三方运行时依赖，需使用支持 ES modules 的 Node.js 20 或兼容版本。
 
-[`prd/PRD.md`](./prd/PRD.md)
-
-该文件是整个产品需求的总入口，包含产品模块地图、模块关系和研发阅读导航。
-
-### 模块 PRD
-
-当前产品按 M01-M10 拆分：
-
-| 模块  | 名称     | PRD                                                        |
-| --- | ------ | ---------------------------------------------------------- |
-| M01 | 工作台    | [`M01-dashboard.md`](./prd/modules/M01-dashboard.md)       |
-| M02 | 客户经营   | [`M02-customer.md`](./prd/modules/M02-customer.md)         |
-| M03 | 维系管理   | [`M03-maintenance.md`](./prd/modules/M03-maintenance.md)   |
-| M04 | 审批中心   | [`M04-approval.md`](./prd/modules/M04-approval.md)         |
-| M05 | 停用记录   | [`M05-archive.md`](./prd/modules/M05-archive.md)           |
-| M06 | 组织与员工  | [`M06-organization.md`](./prd/modules/M06-organization.md) |
-| M07 | 权限授权   | [`M07-permission.md`](./prd/modules/M07-permission.md)     |
-| M08 | 区域配置   | [`M08-region.md`](./prd/modules/M08-region.md)             |
-| M09 | 客户基础配置 | [`M09-settings.md`](./prd/modules/M09-settings.md)         |
-| M10 | 数据导入   | [`M10-import.md`](./prd/modules/M10-import.md)             |
-
-## Demo
-
-最终 Demo 位于：
-
-[`demo/`](./demo/)
-
-Demo 用于帮助研发理解页面结构、交互和产品行为。
-
-**PRD 定义产品需求，Demo 用于辅助理解和验证，不以 Demo 实现反推未定义的产品规则。**
-
-## 研发如何阅读
-
-推荐阅读顺序：
-
-**第一步：** 阅读 [`prd/PRD.md`](./prd/PRD.md)，了解整体产品结构。
-
-**第二步：** 根据当前开发任务进入对应 M01-M10 模块 PRD。
-
-**第三步：** 对照 `demo/` 查看页面和交互表现。
-
-**第四步：** 通过 Git history / diff 查看本次需求相对于上一版本的变化。
-
-当不同文件存在理解冲突时，优先依据当前模块 PRD中的明确产品规则；对于未明确的内容，不应自行推导为新的产品需求，应由产品侧确认。
-
-## 需求变更
-
-产品需求会持续迭代。
-
-每次需求调整原则上：
-
-1. 修改对应模块 PRD。
-2. 保持跨模块所有权和边界一致。
-3. 对影响其他模块的变更同步更新相关模块。
-4. 通过 Git commit / Pull Request 保留变更记录。
-5. 研发以当前分支最新版本为当前需求阅读依据。
-
-因此，**GitHub 中最新版本的模块 PRD，就是研发查看需求的主要入口。**
-
-## 版本与变更记录
-
-建议使用 Git commit / Pull Request 记录需求变化，例如：
-
-```text
-feat(M02): 新增关键人调岗规则
-change(M08): 调整地市责任分配规则
-update(M03): 修改专项任务规则
-docs: 更新 PRD 导航
+```bash
+npm run build:prototype
+npm run check:prototype
 ```
 
-对于较大的产品变更，建议在 PR 描述中说明：
+`build:prototype` 从 `src/` 生成 Prototype 和 artifact manifest；`check:prototype` 只读验证 source/artifact digest 是否一致。
 
-* 变更模块
-* 变更背景
-* 主要产品规则
-* 是否影响其他模块
-* Demo 是否同步
-* 研发需要关注的行为变化
+## 代码入口
 
-## 仓库内容边界
+- Prototype 入口：[`src/prototype.html`](src/prototype.html)
+- 应用启动：[`src/app.js`](src/app.js)
+- 业务模块：[`src/modules/`](src/modules/)
+- 数据与样例状态：[`src/data/`](src/data/)
 
-本仓库主要面向研发协作，因此只保留研发需要持续查看的内容：
+## 变更与 Review
+
+研发变更使用独立任务和分支，分支格式为：
 
 ```text
-README.md
-prd/
-  PRD.md
-  modules/
-    M01-M10
-demo/
+ai/<AI-ID>/<TASK-ID>-<description>
 ```
 
-内部产品治理过程、历史审查材料、语义治理报告、迁移审计记录和其他内部工作文件不作为研发侧日常阅读材料。
+每次提交必须保留 AI ID、Task ID 和任务依据。未经 CODEX Review `PASS` 的实现不得进入发布候选。
 
-## 当前状态
+GitHub 发布范围由 [`docs/GITHUB_PUBLISH_RULES.md`](docs/GITHUB_PUBLISH_RULES.md) 和 [`.github/publish-manifest.json`](.github/publish-manifest.json) 共同约束。发布候选在 Push 前必须通过：
 
-* PRD：模块化 PRD
-* 模块：M01-M10
-* Demo：持续维护
-* 需求状态：持续迭代
-* GitHub 用途：研发需求同步与版本追踪
+```bash
+node .github/scripts/check-publish-policy.mjs --all
+```
 
-## 重要说明
-
-### PRD 与 Demo 的关系
-
-PRD 是产品需求定义。
-
-Demo 是产品行为的可视化与交互参考。
-
-当 Demo 与 PRD 表达存在差异时，不应直接将 Demo 行为视为新的产品规则，应先确认产品意图后再修改。
-
-### 未定义需求
-
-对于 PRD 没有明确规定的行为：
-
-> **不要自行补充产品规则。**
-
-研发可以提出实现建议，但最终产品行为以产品确认结果为准。
-
-## 联系与协作
-
-需求问题、跨模块影响或规则冲突，建议通过 Issue / Pull Request / 产品评审进行确认，并将最终确认结果同步到对应模块 PRD。
-
----
-
-**Current Product PRD**
-
-[`prd/PRD.md`](./prd/PRD.md)
-
-**Modules**
-
-[`prd/modules/`](./prd/modules/)
-
-**Demo**
-
-[`demo/`](./demo/)
+通过检查不等于获得 Push 授权；首次及后续发布仍需 Product Owner 明确批准。

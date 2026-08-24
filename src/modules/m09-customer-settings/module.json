@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "id": "M09",
+  "name": "客户基础配置",
+  "pages": [
+    "settings",
+    "customer-organization-tree",
+    "rule-form"
+  ],
+  "pageStates": [
+    "配置页签",
+    "组织节点选择与展开",
+    "规则启停",
+    "保存反馈"
+  ],
+  "dataReferences": [
+    "data/customer-settings.js",
+    "data/customer-organization.js",
+    "data/customers.js",
+    "data/contacts.js"
+  ],
+  "sourceFiles": [
+    "modules/m09-customer-settings/interactions.js",
+    "modules/m09-customer-settings/page.js"
+  ],
+  "eventRouterSource": "modules/_app-shell/events.js"
+}

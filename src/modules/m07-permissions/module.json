@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "id": "M07",
+  "name": "权限授权",
+  "pages": [
+    "permissions"
+  ],
+  "pageStates": [
+    "角色选择",
+    "权限草稿",
+    "变更原因",
+    "保存反馈"
+  ],
+  "dataReferences": [
+    "data/permissions.js",
+    "data/organization.js"
+  ],
+  "sourceFiles": [
+    "modules/m07-permissions/page.js"
+  ],
+  "eventRouterSource": "modules/_app-shell/events.js"
+}

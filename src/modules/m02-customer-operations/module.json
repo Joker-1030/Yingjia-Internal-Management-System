@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "id": "M02",
+  "name": "客户经营",
+  "pages": [
+    "operations",
+    "customer-detail",
+    "contact-detail",
+    "maintenance-record"
+  ],
+  "pageStates": [
+    "客户/关键人选择",
+    "集团与区域筛选",
+    "客户树展开",
+    "详情页签"
+  ],
+  "dataReferences": [
+    "data/customers.js",
+    "data/contacts.js",
+    "data/maintenance.js",
+    "data/customer-organization.js",
+    "data/campaigns.js"
+  ],
+  "sourceFiles": [
+    "modules/m02-customer-operations/page.js",
+    "modules/m02-customer-operations/scoped-records.js",
+    "modules/m02-customer-operations/details.js",
+    "modules/m02-customer-operations/records.js",
+    "modules/m02-customer-operations/transfers.js",
+    "modules/m02-customer-operations/customer-tree.js"
+  ],
+  "eventRouterSource": "modules/_app-shell/events.js"
+}

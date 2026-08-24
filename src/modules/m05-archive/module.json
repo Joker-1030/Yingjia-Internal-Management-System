@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "id": "M05",
+  "name": "停用记录",
+  "pages": [
+    "archive",
+    "archive-audit"
+  ],
+  "pageStates": [
+    "对象类型筛选",
+    "可见范围",
+    "恢复确认",
+    "操作反馈"
+  ],
+  "dataReferences": [
+    "data/archive.js",
+    "data/customers.js",
+    "data/contacts.js",
+    "data/organization.js"
+  ],
+  "sourceFiles": [
+    "modules/m05-archive/page.js",
+    "modules/m05-archive/interactions.js"
+  ],
+  "eventRouterSource": "modules/_app-shell/events.js"
+}

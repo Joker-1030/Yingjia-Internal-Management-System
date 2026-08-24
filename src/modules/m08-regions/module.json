@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "id": "M08",
+  "name": "区域中心与地市配置",
+  "pages": [
+    "regions",
+    "region-form",
+    "city-handover"
+  ],
+  "pageStates": [
+    "区域选择",
+    "地市/区域视图",
+    "配置状态",
+    "交接与调整反馈"
+  ],
+  "dataReferences": [
+    "data/regions.js",
+    "data/organization.js",
+    "data/approvals.js",
+    "data/notifications.js"
+  ],
+  "sourceFiles": [
+    "modules/m08-regions/interactions.js",
+    "modules/m08-regions/page.js",
+    "modules/m08-regions/forms.js"
+  ],
+  "eventRouterSource": "modules/_app-shell/events.js"
+}

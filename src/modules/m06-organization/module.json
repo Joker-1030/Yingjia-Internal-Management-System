@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "id": "M06",
+  "name": "组织与员工",
+  "pages": [
+    "employees",
+    "employee-detail",
+    "employee-form",
+    "organization-change"
+  ],
+  "pageStates": [
+    "组织/员工/异动视图",
+    "部门选择与树展开",
+    "员工筛选",
+    "详情页签",
+    "编辑与提交反馈"
+  ],
+  "dataReferences": [
+    "data/organization.js",
+    "data/organization-history.js",
+    "data/accounts.js",
+    "data/regions.js"
+  ],
+  "sourceFiles": [
+    "modules/m06-organization/page.js",
+    "modules/m06-organization/account-actions.js",
+    "modules/m06-organization/interactions.js"
+  ],
+  "eventRouterSource": "modules/_app-shell/events.js"
+}

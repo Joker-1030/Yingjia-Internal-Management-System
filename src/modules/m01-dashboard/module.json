@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "id": "M01",
+  "name": "工作台",
+  "pages": [
+    "dashboard"
+  ],
+  "pageStates": [
+    "角色视图",
+    "统计周期",
+    "任务下钻筛选",
+    "重点动态与待办"
+  ],
+  "dataReferences": [
+    "data/accounts.js",
+    "data/customers.js",
+    "data/contacts.js",
+    "data/tasks.js",
+    "data/approvals.js",
+    "data/campaigns.js",
+    "data/notifications.js"
+  ],
+  "sourceFiles": [
+    "modules/m01-dashboard/page.js"
+  ],
+  "eventRouterSource": "modules/_app-shell/events.js"
+}

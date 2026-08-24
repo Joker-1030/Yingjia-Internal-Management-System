@@ -1,0 +1,406 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-08-24T15:32:40.675Z",
+  "generator": "scripts/build-prototype.mjs",
+  "buildCommand": "node scripts/build-prototype.mjs",
+  "sourceRoot": "src",
+  "entry": "src/prototype.html",
+  "sourceDigest": "d40f5a8bc96e4931d86c774bb952c3583e70d6cb2a71f377ee0af393366786b6",
+  "sourceFiles": [
+    {
+      "path": "src/app.js",
+      "sha256": "eb5fc9b8e04f9778a5b0e3ce1d5ea5556db7b86547b680f3b6e68991b1d8e43c",
+      "bytes": 2405
+    },
+    {
+      "path": "src/data/accounts.js",
+      "sha256": "70e260e8fd2aabdac35c407eabf2611cbda7e84189c284d857efaa24b90d83d8",
+      "bytes": 1521
+    },
+    {
+      "path": "src/data/approvals.js",
+      "sha256": "4c2f36d35703c8b811703f76b9a40b76d0ce8e03be9e3f0893f24482f0ad04df",
+      "bytes": 9121
+    },
+    {
+      "path": "src/data/archive.js",
+      "sha256": "709492a25bcc8e9abd1086528837ae9fd761d7d460d894be0e5e7625dca37285",
+      "bytes": 3690
+    },
+    {
+      "path": "src/data/campaigns.js",
+      "sha256": "dc47e687b2386a652445d501cdfdd45d3b7665ebcce6a0cf0eab8fc4d77fca9a",
+      "bytes": 7500
+    },
+    {
+      "path": "src/data/contacts.js",
+      "sha256": "893e59fb833abac0763c59eec173cb73707688239441cf9c867333631537b4f1",
+      "bytes": 17934
+    },
+    {
+      "path": "src/data/customer-organization.js",
+      "sha256": "07ad02dc356dd6aed2d09696714409a80d94592be55742581d18175c834dc616",
+      "bytes": 67874
+    },
+    {
+      "path": "src/data/customer-settings.js",
+      "sha256": "fc9160e2154d97860b59f0d20fb99c87c836a2e61813b048effb320d7c068ebf",
+      "bytes": 3282
+    },
+    {
+      "path": "src/data/customers.js",
+      "sha256": "7386cfce75b34cb5795f1a102104becc25d99e651c059404b1823055af9847c6",
+      "bytes": 11394
+    },
+    {
+      "path": "src/data/imports.js",
+      "sha256": "0e3f93b8aec4548b0b5577142dabacea236d64190e3bdf129b97d37a27311137",
+      "bytes": 6059
+    },
+    {
+      "path": "src/data/maintenance.js",
+      "sha256": "52bdff71d5a6e1dc731a9fa8db3e7446457217abf3a37560f51e0bce7c17538c",
+      "bytes": 12048
+    },
+    {
+      "path": "src/data/notifications.js",
+      "sha256": "a9ef0a0e251005c84c17f48bab80a279a85e80bb13121162dec4794a2ace3936",
+      "bytes": 2377
+    },
+    {
+      "path": "src/data/organization-history.js",
+      "sha256": "3c475ac020c6c67cb08f5566ee7ef5e60a631f37ff9216c77a36d1b400c9866f",
+      "bytes": 7693
+    },
+    {
+      "path": "src/data/organization.js",
+      "sha256": "f7dffb5aa1300bf694696f88e6efc713ab6fa0a168d8629a3472659da9ce5808",
+      "bytes": 11164
+    },
+    {
+      "path": "src/data/permissions.js",
+      "sha256": "09965632f2af52e024f373e61bc4c7ce0231e68fb247fced88f52380232b6dcf",
+      "bytes": 15059
+    },
+    {
+      "path": "src/data/platform.js",
+      "sha256": "37409fe30580b421a5d25dd6e6c85d0481911caa849a102308f36c68d5420843",
+      "bytes": 1200
+    },
+    {
+      "path": "src/data/regions.js",
+      "sha256": "b8364a112906f411243783378177db0c38879ebe3b560c8f4c0803d74c452dea",
+      "bytes": 2739
+    },
+    {
+      "path": "src/data/task-state.js",
+      "sha256": "6ca9ae2814ce06fb749f7c043fdfe992d4986f87cb24556faec9aa623945a10d",
+      "bytes": 6015
+    },
+    {
+      "path": "src/data/tasks.js",
+      "sha256": "5afb5bd28df0a53213f81382a99a18dfe61e5ce1e26a4bef6788900efe015e60",
+      "bytes": 15082
+    },
+    {
+      "path": "src/modules/_app-shell/account.js",
+      "sha256": "28d0a142f828086be8f423927cf7bb6dcfa52570766b37209f24a83217bfdb91",
+      "bytes": 5421
+    },
+    {
+      "path": "src/modules/_app-shell/bootstrap.js",
+      "sha256": "985a454442ca96941d45cced2fbccd36a900fb1ee726c02318a6f203340426dc",
+      "bytes": 97
+    },
+    {
+      "path": "src/modules/_app-shell/events.js",
+      "sha256": "507419fa32acb3bdea8ae90996b416e216364b65dadbfacd0c658eac0d05cd4f",
+      "bytes": 64345
+    },
+    {
+      "path": "src/modules/_app-shell/notifications.js",
+      "sha256": "4bc7190b09f7bf96794291208a24aa52f432f13ad15e06cb1f65d8a95d360af2",
+      "bytes": 6210
+    },
+    {
+      "path": "src/modules/_app-shell/overlays.js",
+      "sha256": "97d790817b5753b54861c1e4ed2c6eaad3a468af64905e1b31296ed07dcce453",
+      "bytes": 2718
+    },
+    {
+      "path": "src/modules/_app-shell/runtime.js",
+      "sha256": "56f057c48e7d6f4298e7b40eb29c5bc9e7bec395e2be89813880286ea005e688",
+      "bytes": 45836
+    },
+    {
+      "path": "src/modules/_app-shell/state.js",
+      "sha256": "3eda25085c57a6c3a313ac6ee0f73743abc1f3c1e4c3f4914d46681d37ecee7a",
+      "bytes": 2477
+    },
+    {
+      "path": "src/modules/m01-dashboard/module.json",
+      "sha256": "93f22267de4e76f5f9db49de998ba5285ac3a5a349d5995d491db8857237d8d6",
+      "bytes": 528
+    },
+    {
+      "path": "src/modules/m01-dashboard/page.js",
+      "sha256": "2c08b71d822b824f3b100dcba3f9c383333183fea864ba190da04cab80e9edbf",
+      "bytes": 40245
+    },
+    {
+      "path": "src/modules/m02-customer-operations/customer-tree.js",
+      "sha256": "0f91d8c0899c11871b02458d4c049c07ab089e8c2767970e9e689538a57cfa2d",
+      "bytes": 37144
+    },
+    {
+      "path": "src/modules/m02-customer-operations/details.js",
+      "sha256": "a311a27c9b5f0f0f3cb8fc3333f312fc80467832eb7c9eaad3896ddf1a1fc669",
+      "bytes": 70841
+    },
+    {
+      "path": "src/modules/m02-customer-operations/module.json",
+      "sha256": "3921d63ba2eaacf63734059d814c70dc3fe2a980b9577198eb76c46dac790597",
+      "bytes": 850
+    },
+    {
+      "path": "src/modules/m02-customer-operations/page.js",
+      "sha256": "a7848c239ed78f1eb4b9082f0976fe29158c0925fa5e47bf807ba5ac3c37d625",
+      "bytes": 26510
+    },
+    {
+      "path": "src/modules/m02-customer-operations/records.js",
+      "sha256": "258e476be8f484bd96a097bac57ad3280baae883ad73be188e59460ee14ac1ce",
+      "bytes": 17394
+    },
+    {
+      "path": "src/modules/m02-customer-operations/scoped-records.js",
+      "sha256": "dd955708150edcdb07e080f16525989b853724b095f05fd91e3593c6a8769b69",
+      "bytes": 773
+    },
+    {
+      "path": "src/modules/m02-customer-operations/transfers.js",
+      "sha256": "612753198cf39343ee0ec9926af95e7d73bda1f23217ecbd538630c7599269cb",
+      "bytes": 13874
+    },
+    {
+      "path": "src/modules/m03-maintenance/details.js",
+      "sha256": "c57f80f1d6780928d53c2b3b8b203e7dc93e793319dbbb1b10d8093814684d5f",
+      "bytes": 51648
+    },
+    {
+      "path": "src/modules/m03-maintenance/module.json",
+      "sha256": "cfeba5df0df46fd7d7ca66144264b19a0f45e85c3aee829195629c66db5660d7",
+      "bytes": 626
+    },
+    {
+      "path": "src/modules/m03-maintenance/page.js",
+      "sha256": "76be58220e67579f31c46f54be9566265ec8db9cb59ffe8664885c35b656743b",
+      "bytes": 42229
+    },
+    {
+      "path": "src/modules/m03-maintenance/task-actions.js",
+      "sha256": "3a6d58bcd117f6e399f66b5fc25651354d3b658fea4592116b416fdb0147b63f",
+      "bytes": 15958
+    },
+    {
+      "path": "src/modules/m04-approvals/interactions.js",
+      "sha256": "cd10c0c9f135878ed0c1711b565826b60c5851ba3b1df644b5e38ef19de584a1",
+      "bytes": 57525
+    },
+    {
+      "path": "src/modules/m04-approvals/module.json",
+      "sha256": "061e3042de29853150b0074d1bd9d75cdccf1592c2ecbd0095375ac740243fd4",
+      "bytes": 563
+    },
+    {
+      "path": "src/modules/m04-approvals/page.js",
+      "sha256": "d7e1cb73efd05dca1eaca665db9c35b2c430c6e6805bdcdb29931f2a9bb2ee7d",
+      "bytes": 10691
+    },
+    {
+      "path": "src/modules/m04-approvals/presentation.js",
+      "sha256": "c5beca96b4ec1e7ab78501cd295bacd7bc5cc0cdb75f09cd27a4728edaab1434",
+      "bytes": 3938
+    },
+    {
+      "path": "src/modules/m05-archive/interactions.js",
+      "sha256": "a0d761180944ddf501f1eaea95219b2e711937da3570b05860916934516b6148",
+      "bytes": 8985
+    },
+    {
+      "path": "src/modules/m05-archive/module.json",
+      "sha256": "d53bd2d7c20fdd3113446fe262bb889238413faebc676ed92724af615af8b371",
+      "bytes": 509
+    },
+    {
+      "path": "src/modules/m05-archive/page.js",
+      "sha256": "5ba6eafc50113b7646b632e40a98856a1048e67ade53cc976fbb23f4c3f6231d",
+      "bytes": 5143
+    },
+    {
+      "path": "src/modules/m06-organization/account-actions.js",
+      "sha256": "b948464a0902c330252f60c8190ee3f9bdde914f8eca07173f13fcf9ba5d1739",
+      "bytes": 2080
+    },
+    {
+      "path": "src/modules/m06-organization/interactions.js",
+      "sha256": "1125a1650a069beae5df72939dd7c8357461b9244d0b8e2227b12443367b1e97",
+      "bytes": 36082
+    },
+    {
+      "path": "src/modules/m06-organization/module.json",
+      "sha256": "60e9192501c6c24a1549d19ee5f7f4e9326de0f733e976d19881362ac2960dd8",
+      "bytes": 685
+    },
+    {
+      "path": "src/modules/m06-organization/page.js",
+      "sha256": "ddda6165c6a6052e59862908da488a7708bec18544d09455247b83a41bd65668",
+      "bytes": 23023
+    },
+    {
+      "path": "src/modules/m07-permissions/module.json",
+      "sha256": "8291ad1c57617eaa1d349ac8c532642afffd487bacdec2af797b2500dec12aa9",
+      "bytes": 402
+    },
+    {
+      "path": "src/modules/m07-permissions/page.js",
+      "sha256": "82845f1d3f26cb3817875702cbed57c6f7e83c171b77711a33504a3b54ccafde",
+      "bytes": 12413
+    },
+    {
+      "path": "src/modules/m08-regions/forms.js",
+      "sha256": "267568ebe8b1238cc62bd6fce6c7f0de316bc3e2d2e6aabf9350e661fa783c25",
+      "bytes": 7863
+    },
+    {
+      "path": "src/modules/m08-regions/interactions.js",
+      "sha256": "8a31b9829538d6aba07bb4d35b4e2822e660db3eb4b1972ae37fcd679ce125cf",
+      "bytes": 31719
+    },
+    {
+      "path": "src/modules/m08-regions/module.json",
+      "sha256": "7944474b6e42b8498e748885fff97ef589680d6db930493c630b7adde57b6e13",
+      "bytes": 594
+    },
+    {
+      "path": "src/modules/m08-regions/page.js",
+      "sha256": "0165d7b2018963b56f5bd685cd0794485e9e5a74827b961c5926df4e947e81ec",
+      "bytes": 15359
+    },
+    {
+      "path": "src/modules/m09-customer-settings/interactions.js",
+      "sha256": "4a34b50051506dd0135d62a5ef5c44de4da9af787b035909e7fe89352065d86b",
+      "bytes": 33228
+    },
+    {
+      "path": "src/modules/m09-customer-settings/module.json",
+      "sha256": "b439e5c0be3b17089eb496739e8afac158c2e4e71980d6b13a5a5ca86cc8ca82",
+      "bytes": 594
+    },
+    {
+      "path": "src/modules/m09-customer-settings/page.js",
+      "sha256": "c732af3c8c9bdf96731527542c1792d0aa372cc38cefdb69d44f2e7471b9401b",
+      "bytes": 26361
+    },
+    {
+      "path": "src/modules/m10-imports/interactions.js",
+      "sha256": "6a80d3677ec50b94ce2f346a0f3a63afcbdcf72db00226789ef8293d878b8fdf",
+      "bytes": 17489
+    },
+    {
+      "path": "src/modules/m10-imports/module.json",
+      "sha256": "294f47fd5e5a7407b8d1620ee8dbd8e2b0bd45c350c4a1939574ada58d74b3d6",
+      "bytes": 540
+    },
+    {
+      "path": "src/modules/m10-imports/page.js",
+      "sha256": "c960df13e2f4a8333f3551ac935280ff43f227f4df6ac8a619828fbaad230a2a",
+      "bytes": 8454
+    },
+    {
+      "path": "src/prototype.html",
+      "sha256": "781cf38fa07adbe961ce66aca303b4c431a5a576c345a2ec9cf67e164611b4c5",
+      "bytes": 7243
+    },
+    {
+      "path": "src/styles/prototype.css",
+      "sha256": "b13b6ea2a5183cb2f442fff6217c3bd3f0fee56dff3c001e2fba04781b9baf81",
+      "bytes": 67185
+    }
+  ],
+  "artifactInputs": [
+    "src/app.js",
+    "src/data/accounts.js",
+    "src/data/approvals.js",
+    "src/data/archive.js",
+    "src/data/campaigns.js",
+    "src/data/contacts.js",
+    "src/data/customer-organization.js",
+    "src/data/customer-settings.js",
+    "src/data/customers.js",
+    "src/data/imports.js",
+    "src/data/maintenance.js",
+    "src/data/notifications.js",
+    "src/data/organization-history.js",
+    "src/data/organization.js",
+    "src/data/permissions.js",
+    "src/data/platform.js",
+    "src/data/regions.js",
+    "src/data/task-state.js",
+    "src/data/tasks.js",
+    "src/modules/_app-shell/account.js",
+    "src/modules/_app-shell/bootstrap.js",
+    "src/modules/_app-shell/events.js",
+    "src/modules/_app-shell/notifications.js",
+    "src/modules/_app-shell/overlays.js",
+    "src/modules/_app-shell/runtime.js",
+    "src/modules/_app-shell/state.js",
+    "src/modules/m01-dashboard/page.js",
+    "src/modules/m02-customer-operations/customer-tree.js",
+    "src/modules/m02-customer-operations/details.js",
+    "src/modules/m02-customer-operations/page.js",
+    "src/modules/m02-customer-operations/records.js",
+    "src/modules/m02-customer-operations/scoped-records.js",
+    "src/modules/m02-customer-operations/transfers.js",
+    "src/modules/m03-maintenance/details.js",
+    "src/modules/m03-maintenance/page.js",
+    "src/modules/m03-maintenance/task-actions.js",
+    "src/modules/m04-approvals/interactions.js",
+    "src/modules/m04-approvals/page.js",
+    "src/modules/m04-approvals/presentation.js",
+    "src/modules/m05-archive/interactions.js",
+    "src/modules/m05-archive/page.js",
+    "src/modules/m06-organization/account-actions.js",
+    "src/modules/m06-organization/interactions.js",
+    "src/modules/m06-organization/page.js",
+    "src/modules/m07-permissions/page.js",
+    "src/modules/m08-regions/forms.js",
+    "src/modules/m08-regions/interactions.js",
+    "src/modules/m08-regions/page.js",
+    "src/modules/m09-customer-settings/interactions.js",
+    "src/modules/m09-customer-settings/page.js",
+    "src/modules/m10-imports/interactions.js",
+    "src/modules/m10-imports/page.js",
+    "src/prototype.html",
+    "src/styles/prototype.css"
+  ],
+  "artifact": {
+    "path": "demo/prototype.html",
+    "sha256": "11afee814670ff94f82119829ca721418680e2ef4351a3126d195a13b58f2987",
+    "bytes": 1020191
+  },
+  "legacyBridge": false,
+  "architecture": "lightweight-modular",
+  "featureStatus": {
+    "M01": "modular-source",
+    "M02": "modular-source",
+    "M03": "modular-source",
+    "M04": "modular-source",
+    "M05": "modular-source",
+    "M06": "modular-source",
+    "M07": "modular-source",
+    "M08": "modular-source",
+    "M09": "modular-source",
+    "M10": "modular-source"
+  }
+}

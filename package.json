@@ -1,0 +1,10 @@
+{
+  "name": "yingjia-internal-management-prototype",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build:prototype": "node scripts/build-prototype.mjs",
+    "check:prototype": "node scripts/check-prototype-drift.mjs",
+    "audit:prototype": "node scripts/audit-prototype.mjs"
+  }
+}

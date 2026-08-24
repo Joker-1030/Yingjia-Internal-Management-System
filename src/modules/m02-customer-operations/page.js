@@ -1,0 +1,361 @@
+      function customerMatchesAppliedFilter(company) {
+        const {
+          group,
+          name,
+          personName,
+          industries,
+          levels,
+          personPhone,
+          pms,
+          coverage,
+          departments,
+          positions,
+          dimensionCoverage,
+          provinces,
+          cities,
+          districts,
+        } = appliedCustomerFilter;
+        const people = scopedContacts().filter(
+          (person) => person.company === company.name,
+        );
+        const phoneKey = String(personPhone || "").replace(/\D/g, "");
+        const contactCriteriaActive = Boolean(
+          personName ||
+            phoneKey ||
+            departments.size ||
+            positions.size,
+        );
+        const matchingPeople = people.filter((person) => {
+          const normalizedPhone = String(person.phone || "").replace(/\D/g, "");
+          const personDepartmentId = String(
+            customerDepartments.find(
+              (department) =>
+                department.company === company.name &&
+                department.name === person.department,
+            )?.id || "",
+          );
+          const phoneMatches =
+            !phoneKey ||
+            (phoneKey.length === 11
+              ? normalizedPhone === phoneKey
+              : normalizedPhone.endsWith(phoneKey));
+          const positionMatches =
+            !positions.size || positions.has(person.positionId);
+          return (
+            (!personName || person.name.includes(personName)) &&
+            phoneMatches &&
+            (!departments.size || departments.has(personDepartmentId)) &&
+            positionMatches
+          );
+        });
+        const dimensionTargetCount =
+          departments.size + positions.size;
+        const dimensionCovered = matchingPeople.length > 0;
+        return (
+          (!group || company.group === group) &&
+          (!name || company.name.includes(name) || company.group.includes(name)) &&
+          (!industries.size || industries.has(company.industry)) &&
+          (!levels.size || levels.has(company.level)) &&
+          (!pms.size || pms.has(customerOwnerName(company))) &&
+          (!contactCriteriaActive ||
+            matchingPeople.length > 0 ||
+            (dimensionCoverage === "none" && dimensionTargetCount === 1)) &&
+          (!coverage ||
+            (coverage === "none" ? people.length === 0 : people.length > 0)) &&
+          (!dimensionCoverage ||
+            dimensionTargetCount !== 1 ||
+            (dimensionCoverage === "none" ? !dimensionCovered : dimensionCovered)) &&
+          (!provinces.size || provinces.has(company.province)) &&
+          (!cities.size || cities.has(company.city)) &&
+          (!districts.size || districts.has(company.district))
+        );
+      }
+
+      function contactMatchesAppliedFilter(person) {
+        const name = appliedCustomerFilter.personName || "";
+        const phoneKey = String(appliedCustomerFilter.personPhone || "").replace(
+          /\D/g,
+          "",
+        );
+        const normalizedPhone = String(person.phone || "").replace(/\D/g, "");
+        const company = customers.find((item) => item.name === person.company);
+        const personDepartmentId = String(
+          customerDepartments.find(
+            (department) =>
+              department.company === company?.name &&
+              department.name === person.department,
+          )?.id || "",
+        );
+        const positionMatches =
+          !appliedCustomerFilter.positions.size ||
+          appliedCustomerFilter.positions.has(person.positionId);
+        return (
+          (!name || person.name.includes(name)) &&
+          (!phoneKey ||
+            (phoneKey.length === 11
+              ? normalizedPhone === phoneKey
+              : normalizedPhone.endsWith(phoneKey))) &&
+          (!appliedCustomerFilter.departments.size ||
+            appliedCustomerFilter.departments.has(personDepartmentId)) &&
+          positionMatches
+        );
+      }
+
+      function renderOperations() {
+        const customersInScope = scopedCustomers().filter(
+          customerMatchesAppliedFilter,
+        );
+        const operationTasks = scopedTasks();
+        if (
+          selectedOperationCustomerId !== null &&
+          !customersInScope.some(
+            (item) => item.id === selectedOperationCustomerId,
+          )
+        ) {
+          selectedOperationCustomerId = null;
+          selectedOperationContactId = null;
+        }
+        if (
+          selectedCustomerGroup &&
+          !customersInScope.some(
+            (company) => company.group === selectedCustomerGroup,
+          )
+        ) {
+          selectedCustomerGroup = "";
+          selectedOperationContactId = null;
+        }
+        if (
+          selectedOperationRegion &&
+          !customersInScope.some(
+            (company) => customerRegionLabel(company) === selectedOperationRegion,
+          )
+        ) {
+          selectedOperationRegion = "";
+          selectedOperationProvince = "";
+          selectedOperationRegionGroup = "";
+          selectedOperationContactId = null;
+        }
+        if (
+          selectedOperationProvince &&
+          !customersInScope.some(
+            (company) =>
+              customerRegionLabel(company) === selectedOperationRegion &&
+              company.province === selectedOperationProvince,
+          )
+        ) {
+          selectedOperationProvince = "";
+          selectedOperationRegionGroup = "";
+          selectedOperationContactId = null;
+        }
+        if (
+          selectedOperationRegionGroup &&
+          !customersInScope.some(
+            (company) =>
+              customerRegionLabel(company) === selectedOperationRegion &&
+              company.province === selectedOperationProvince &&
+              company.group === selectedOperationRegionGroup,
+          )
+        ) {
+          selectedOperationRegionGroup = "";
+          selectedOperationContactId = null;
+        }
+        const selectedCustomer = customersInScope.find(
+          (item) => item.id === selectedOperationCustomerId,
+        );
+        const contextCustomers = selectedCustomer
+          ? [selectedCustomer]
+          : customerTreeDimension === "group" && selectedCustomerGroup
+            ? customersInScope.filter(
+                (company) => company.group === selectedCustomerGroup,
+              )
+            : customerTreeDimension === "region" && selectedOperationRegion
+              ? customersInScope.filter(
+                  (company) =>
+                    customerRegionLabel(company) === selectedOperationRegion &&
+                    (!selectedOperationProvince ||
+                      company.province === selectedOperationProvince) &&
+                    (!selectedOperationRegionGroup ||
+                      company.group === selectedOperationRegionGroup),
+                )
+              : [];
+        const personHasOverdueTask = (person) => contactHasOverdue(person);
+        const people = scopedContacts()
+          .filter((person) =>
+            contextCustomers.some((company) => company.name === person.company),
+          )
+          .filter(contactMatchesAppliedFilter)
+          .sort((a, b) => {
+            const overdueOrder =
+              Number(personHasOverdueTask(b)) -
+              Number(personHasOverdueTask(a));
+            if (overdueOrder) return overdueOrder;
+            const decisionOrder = Number(b.decision) - Number(a.decision);
+            if (decisionOrder) return decisionOrder;
+            const leftLast = a.last === "从未" ? "0000-00-00" : a.last || "0000-00-00";
+            const rightLast = b.last === "从未" ? "0000-00-00" : b.last || "0000-00-00";
+            return (
+              leftLast.localeCompare(rightLast) ||
+              String(b.createdAt || "").localeCompare(String(a.createdAt || "")) ||
+              a.id - b.id
+            );
+          });
+        if (!people.some((person) => person.id === selectedOperationContactId))
+          selectedOperationContactId = null;
+        const selectedPerson = people.find(
+          (person) => person.id === selectedOperationContactId,
+        );
+        const activeTasks = selectedPerson
+          ? operationTasks.filter(
+            (task) =>
+                task.person === selectedPerson.name &&
+                task.company === selectedPerson.company &&
+                !["done", "cancelled"].includes(task.status),
+            )
+          : [];
+        const nextTask = activeTasks
+          .slice()
+          .sort(
+            (a, b) =>
+              personTaskOrder(a) - personTaskOrder(b) ||
+              a.due.localeCompare(b.due) ||
+              a.executionCode.localeCompare(b.executionCode),
+          )[0];
+        const allPersonRecords = selectedPerson
+          ? scopedRecords()
+              .filter(
+                (record) =>
+                  record.person === selectedPerson.name &&
+                  record.company === selectedPerson.company,
+              )
+              .sort(
+                (a, b) =>
+                  `${b.date} ${b.createdAt || ""}`.localeCompare(
+                    `${a.date} ${a.createdAt || ""}`,
+                  ),
+              )
+          : [];
+        const records = allPersonRecords.slice(0, 3);
+        const baseScopeLabel =
+          currentUser.role === "pm"
+            ? `负责地市：${assignedCitiesForCurrentUser().join("、") || "未配置"}`
+            : currentUser.role === "director"
+              ? currentUser.region
+              : "全国市场";
+        const scopeLabel = baseScopeLabel;
+        selectedCustomerId = selectedOperationCustomerId;
+        const customerItems =
+          customerTreeDimension === "region"
+            ? customerRegionTreeRows(customersInScope)
+            : customerTreeRows(customersInScope);
+        let personItems = people
+          .map(
+            (person) =>
+              `<button class="operations-item ${person.id === selectedOperationContactId ? "active" : ""}" data-operation-contact="${person.id}"><div class="avatar">${person.name[0]}</div><div class="operations-item-main"><div class="operations-item-title">${person.name} ${person.decision ? '<span class="tag orange">关键决策人</span>' : ""} ${personHasOverdueTask(person) ? '<span class="tag red">已逾期</span>' : ""}</div><div class="operations-item-sub">${person.title || "职务待完善"} · ${person.department || "部门待完善"} · ${person.gender || "性别待完善"}</div></div>${completenessHtml(person)}</button>`,
+          )
+          .join("");
+        const personItemsHost = document.createElement("div");
+        personItemsHost.innerHTML = personItems;
+        personItemsHost
+          .querySelectorAll("[data-operation-contact]")
+          .forEach((item, index) => {
+            const subtitle = item.querySelector(".operations-item-sub");
+            const person = people[index];
+            if (subtitle && person)
+              subtitle.textContent = `${person.code} · ${person.company} · ${person.department} / ${person.positionName} · ${person.level} · 最近联系 ${person.last || "从未"}`;
+            const title = item.querySelector(".operations-item-title");
+            if (title && person && !personHasOverdueTask(person))
+              title.insertAdjacentHTML(
+                "beforeend",
+                ' <span class="tag green">健康</span>',
+              );
+          });
+        personItems = personItemsHost.innerHTML;
+        const selectedGroupCustomers = selectedCustomerGroup
+          ? customersInScope.filter(
+              (company) => company.group === selectedCustomerGroup,
+            )
+          : [];
+        const groupIndustry =
+          customerGroupIndustries[selectedCustomerGroup] ||
+          selectedGroupCustomers[0]?.industry ||
+          "待配置";
+        const groupDetail = selectedCustomerGroup
+          ? `<div class="customer-company-head"><div class="customer-company-head-main"><div class="customer-company-name">${selectedCustomerGroup}</div><div class="customer-company-path">集团公司详情 · ${groupIndustry}</div></div>${pendingStopApproval("group", selectedCustomerGroup) ? '<span class="tag yellow">停用审批中</span>' : '<span class="tag green">正常</span>'}</div><div class="customer-company-summary"><div class="overview-item"><label>集团名称</label><div>${selectedCustomerGroup}</div></div><div class="overview-item"><label>行业</label><div>${groupIndustry}</div></div><div class="overview-item"><label>统一社会信用代码</label><div>${customerGroupCreditCodes[selectedCustomerGroup] || "未填写"}</div></div><div class="overview-item"><label>客户单位</label><div>${selectedGroupCustomers.length} 家</div></div><div class="overview-item"><label>有效关键人</label><div>${people.length} 人</div></div></div><div class="operations-next"><h4>集团客户结构</h4><p>中栏展示当前筛选范围内该集团全部关键人；集团与客户公司主数据统一在“客户基础配置”维护。</p><div class="operations-company-actions">${currentUser.fullAccess ? `<button class="btn" data-action="go-customer-settings" data-kind="group" data-id="${selectedCustomerGroup}">前往客户基础配置</button>` : ""}${stopObjectActionHtml("group", selectedCustomerGroup)}</div></div>`
+          : '<div class="empty"><div><div class="empty-icon">□</div>请选择客户公司或关键人</div></div>';
+        const companyDetail = selectedCustomer
+          ? `<div class="customer-company-head"><div class="customer-company-head-main"><div class="customer-company-name">${selectedCustomer.name}</div><div class="customer-company-path">${selectedCustomer.group} · ${selectedCustomer.level} · 业务责任 ${adminArea(selectedCustomer)}</div></div>${pendingStopApproval("customer", selectedCustomer.id) ? '<span class="tag yellow">停用审批中</span>' : healthTag(customerHealth(selectedCustomer))}${selectedCustomer.responsibilityAnomaly ? '<span class="tag red">责任配置异常</span>' : ""}</div><div class="customer-company-summary"><div class="overview-item"><label>集团公司</label><div>${selectedCustomer.group}</div></div><div class="overview-item"><label>行业</label><div>${selectedCustomer.industry}</div></div><div class="overview-item"><label>公司层级</label><div>${selectedCustomer.level}</div></div><div class="overview-item"><label>业务责任区域</label><div>${adminArea(selectedCustomer)}</div></div><div class="overview-item"><label>区域中心</label><div>${customerRegionLabel(selectedCustomer)}</div></div><div class="overview-item"><label>客户负责人</label><div>${customerOwnerName(selectedCustomer)}</div></div><div class="overview-item"><label>有效关键人</label><div>${people.length} 人</div></div></div>${selectedCustomer.responsibilityAnomaly ? `<div class="role-note danger-note">客户健康仍按维系任务显示为${customerHealth(selectedCustomer)}；责任异常独立展示。${selectedCustomer.responsibilityAnomalyReason}</div>` : ""}<div class="operations-next"><h4>${people.length ? `已维护 ${people.length} 名关键人` : "尚未维护关键人"}</h4><p>从中间选择关键人可查看待办任务与维系动态；集团与客户公司主数据统一在“客户基础配置”维护。</p><div class="operations-company-actions">${canMaintainContactForCompany(selectedCustomer) && !pendingStopApproval("customer", selectedCustomer.id) ? '<button class="btn btn-primary" data-operation-add-contact>＋ 新增关键人</button>' : ""}<button class="btn" data-customer="${selectedCustomer.id}">查看完整档案</button>${currentUser.fullAccess ? `<button class="btn" data-action="go-customer-settings" data-kind="company" data-id="${selectedCustomer.id}">前往客户基础配置</button>` : ""}${stopObjectActionHtml("customer", selectedCustomer.id)}</div></div>`
+          : groupDetail;
+        const personDetail = selectedPerson
+          ? `<div class="detail-hero"><div class="avatar">${selectedPerson.name[0]}</div><div><div class="detail-name">${selectedPerson.name} <span class="tag blue">${selectedPerson.level}</span>${personHasOverdueTask(selectedPerson) ? ' <span class="tag red">当前逾期</span>' : ""}</div><div class="detail-sub">${selectedPerson.positionName} · ${selectedPerson.department}</div></div><div class="spacer"></div>${canMaintainContact(selectedPerson) ? `<button class="btn" data-action="edit-contact" data-id="${selectedPerson.id}">编辑</button>` : ""}</div><div class="detail-grid"><div class="detail-item"><label>客户公司</label><div>${selectedPerson.company}</div></div><div class="detail-item"><label>客户部门</label><div>${selectedPerson.department}</div></div><div class="detail-item"><label>关键人岗位</label><div>${selectedPerson.positionName}</div></div><div class="detail-item"><label>关键决策人</label><div>${selectedPerson.decision ? "是" : "否"}</div></div><div class="detail-item"><label>手机号</label><div>${selectedPerson.phone}</div></div><div class="detail-item"><label>生日</label><div>${selectedPerson.birthday ? selectedPerson.birthday.replace("-", "月") + "日" : "待完善"}</div></div><div class="detail-item"><label>最近维系</label><div>${selectedPerson.last}</div></div><div class="detail-item"><label>未结束任务</label><div>${activeTasks.length} 条${activeTasks.filter((task) => task.status === "overdue").length ? `，当前逾期 ${activeTasks.filter((task) => task.status === "overdue").length} 条` : ""}</div></div><div class="detail-item"><label>创建时间</label><div>${selectedPerson.createdAt || "待补录"}</div></div></div><div class="operations-next"><h4>${nextTask ? `${taskDisplayType(nextTask)} · ${nextTask.title}` : "当前没有待办任务"}</h4><p>${nextTask ? `截止 ${nextTask.due}，这里展示最高优先级任务；全部 ${activeTasks.length} 条任务可在完整详情逐条查看。` : "可以主动新增维系记录，系统将同步更新最近维系时间。"}</p><div class="operations-quick-actions">${canCreateMaintenanceForPerson(selectedPerson) ? `<button class="btn btn-primary" data-operation-maintain="${selectedPerson.id}" ${nextTask ? `data-task-id="${nextTask.id}"` : ""}>去维系</button>` : ""}${nextTask ? `<button class="btn" data-action="task-detail" data-id="${nextTask.id}">任务详情</button>` : ""}<button class="btn" data-person="${selectedPerson.id}">完整详情 / 全部任务</button></div></div><div class="recent-records-head"><div class="section-title">最近客户动态</div><span class="panel-sub">最近 ${Math.min(3, allPersonRecords.length)} 条</span>${allPersonRecords.length > 3 ? `<button class="link" type="button" data-action="all-person-records" data-id="${selectedPerson.id}">查看全部 ${allPersonRecords.length} 条</button>` : ""}</div><div class="recent-records">${records.map((record) => `<button class="recent-record-item" type="button" data-action="record-detail" data-id="${record.id}" title="查看维系记录详情"><span class="recent-record-date">${record.date}</span><span class="recent-record-summary">${record.summary}</span><span class="tag blue">${record.method}</span></button>`).join("") || '<div class="role-note">暂无维系记录</div>'}</div>`
+          : companyDetail;
+        const personDetailHost = document.createElement("div");
+        personDetailHost.innerHTML = personDetail;
+        if (selectedPerson) {
+          const hero = personDetailHost.querySelector(".detail-hero");
+          const editButton = hero?.querySelector(
+            '[data-action="edit-contact"]',
+          );
+          if (hero && editButton)
+            editButton.insertAdjacentHTML(
+              "beforebegin",
+              completenessHtml(selectedPerson),
+            );
+          const subtitle = hero?.querySelector(".detail-sub");
+          if (subtitle)
+            subtitle.textContent = `${selectedPerson.code} · ${selectedPerson.title || "职务待完善"} · ${selectedPerson.department || "部门待完善"}`;
+          const detailGrid = personDetailHost.querySelector(".detail-grid");
+          if (detailGrid) {
+            const codeItem = document.createElement("div");
+            codeItem.className = "detail-item";
+            codeItem.innerHTML = `<label>关键人编号</label><div>${selectedPerson.code}</div>`;
+            detailGrid.prepend(codeItem);
+          }
+          [...personDetailHost.querySelectorAll(".detail-item")].forEach(
+            (item) => {
+              const label = item.querySelector("label")?.textContent;
+              const value = item.querySelector("div");
+              if (label === "关键决策人" && value)
+                value.textContent =
+                  selectedPerson.decisionConfirmed === false
+                    ? "待完善"
+                    : selectedPerson.decision
+                      ? "是"
+                      : "否";
+              if (label === "手机号" && value && !selectedPerson.phone)
+                value.textContent = "待完善";
+            },
+          );
+          if (nextTask?.status === "overdue")
+            personDetailHost
+              .querySelector(".operations-next")
+              ?.classList.add("overdue");
+        }
+        const operationDetailHtml = personDetailHost.innerHTML;
+        const filterOptions = customerFilterOptions();
+        const pmOptions = [
+          ...new Set(
+            customersInScope.map(customerOwnerName).filter(Boolean),
+          ),
+        ];
+        const pageActions = `${hasOperationPermission("customers.create_contact") ? '<button class="btn" data-operation-add-contact-global>＋ 新增关键人</button>' : ""}${canCreateMaintenanceRecord() ? '<button class="btn btn-primary" data-action="new-record">＋ 新增维系</button>' : ""}`;
+        const operationPageHead = pageHead(
+          "客户经营",
+          "按客户层级浏览档案，选择关键人后直接完成日常维系。",
+          pageActions,
+        );
+        const contactScopeLabel = selectedCustomer
+          ? selectedCustomer.name
+          : customerTreeDimension === "group"
+            ? selectedCustomerGroup || "当前筛选范围"
+            : selectedOperationRegionGroup ||
+              selectedOperationProvince ||
+              selectedOperationRegion ||
+              "当前筛选范围";
+        return `<div class="operations-shell">${operationPageHead}<section class="panel operation-filter-panel"><div class="operation-filter-head">筛选客户与关键人<span class="tag blue">${scopeLabel}</span></div><div class="toolbar" id="customerFilterToolbar" style="flex-wrap:wrap"><input class="input" id="customerTreeName" placeholder="客户名称" value="${appliedCustomerFilter.name}"><input class="input" id="customerTreePersonName" placeholder="关键人名称" value="${appliedCustomerFilter.personName}"><select class="input" id="customerTreeIndustry"><option value="">全部行业</option>${industries
+          .filter((item) => item.enabled)
+          .map((item) => `<option ${appliedCustomerFilter.industry === item.name ? "selected" : ""}>${item.name}</option>`)
+          .join(
+            "",
+          )}</select><select class="input" id="customerTreeLevel"><option value="">全部公司层级</option><option ${appliedCustomerFilter.level === "省公司" ? "selected" : ""}>省公司</option><option ${appliedCustomerFilter.level === "市公司" ? "selected" : ""}>市公司</option><option ${appliedCustomerFilter.level === "区县公司" ? "selected" : ""}>区县公司</option></select><input class="input" id="customerTreePersonPhone" placeholder="关键人手机号" value="${appliedCustomerFilter.personPhone}"><select class="input" id="customerTreePm"><option value="">全部客户负责人</option>${pmOptions.map((pm) => `<option ${appliedCustomerFilter.pm === pm ? "selected" : ""}>${pm}</option>`).join("")}</select><select class="input" id="customerTreeCoverage" title="按有效关键人覆盖情况筛选"><option value="">关键人覆盖</option><option value="none" ${appliedCustomerFilter.coverage === "none" ? "selected" : ""}>未覆盖（0人）</option><option value="covered" ${appliedCustomerFilter.coverage === "covered" ? "selected" : ""}>已覆盖（≥1人）</option></select>${areaMultiSelectHtml("customerAreaProvince", "省份", filterOptions.provinces, customerAreaFilter.provinces)}${areaMultiSelectHtml("customerAreaCity", "城市", filterOptions.cities, customerAreaFilter.cities)}${areaMultiSelectHtml("customerAreaDistrict", "区县", filterOptions.districts, customerAreaFilter.districts)}<button class="btn btn-primary" id="applyCustomerFilter" type="button">筛选</button><button class="btn" id="clearAreaFilter" type="button">重置</button></div></section><section class="operations-grid"><div class="operations-pane"><div class="operations-pane-head">客户公司层级<span class="spacer"></span><div class="customer-dimension-switch" role="group" aria-label="客户公司层级查看维度"><button class="customer-dimension-option ${customerTreeDimension === "group" ? "active" : ""}" type="button" data-customer-dimension="group" aria-pressed="${customerTreeDimension === "group"}">按集团</button><button class="customer-dimension-option ${customerTreeDimension === "region" ? "active" : ""}" type="button" data-customer-dimension="region" aria-pressed="${customerTreeDimension === "region"}">按区域</button></div><span class="tag">${customersInScope.length}</span></div><div class="operations-pane-body operations-tree" id="customerTree">${customerItems || '<div class="empty">暂无演示客户</div>'}</div></div><div class="operations-pane"><div class="operations-pane-head">关键人<span class="panel-sub">${contactScopeLabel} · ${people.length} 人</span>${selectedCustomer && canMaintainContactForCompany(selectedCustomer) ? '<button class="btn operations-add-contact" data-operation-add-contact>＋ 新增</button>' : ""}</div><div class="operations-pane-body" id="operationContactList">${personItems || `<div class="empty">${selectedCustomer || selectedCustomerGroup || selectedOperationRegion ? "当前范围暂无关键人" : "请先选择客户公司"}</div>`}</div></div><div class="operations-pane"><div class="operations-pane-head">${selectedPerson ? "关键人详情 / 下一步行动" : selectedCustomerGroup && !selectedCustomer ? "集团公司详情" : "公司详情"}</div><div class="operations-action">${operationDetailHtml}</div></div></section></div>`;
+      }
+

@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "id": "M04",
+  "name": "审批中心",
+  "pages": [
+    "approvals",
+    "approval-detail"
+  ],
+  "pageStates": [
+    "待处理/已处理/我发起/抄送视图",
+    "审批节点",
+    "协作操作",
+    "处理反馈"
+  ],
+  "dataReferences": [
+    "data/approvals.js",
+    "data/accounts.js",
+    "data/organization.js"
+  ],
+  "sourceFiles": [
+    "modules/m04-approvals/presentation.js",
+    "modules/m04-approvals/page.js",
+    "modules/m04-approvals/interactions.js"
+  ],
+  "eventRouterSource": "modules/_app-shell/events.js"
+}

@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "id": "M03",
+  "name": "维系管理",
+  "pages": [
+    "tasks",
+    "task-detail",
+    "campaign-detail",
+    "maintenance-record"
+  ],
+  "pageStates": [
+    "总览/执行/记录视图",
+    "执行状态页签",
+    "任务筛选",
+    "完成与变更反馈"
+  ],
+  "dataReferences": [
+    "data/tasks.js",
+    "data/campaigns.js",
+    "data/maintenance.js",
+    "data/task-state.js"
+  ],
+  "sourceFiles": [
+    "modules/m03-maintenance/page.js",
+    "modules/m03-maintenance/details.js",
+    "modules/m03-maintenance/task-actions.js"
+  ],
+  "eventRouterSource": "modules/_app-shell/events.js"
+}

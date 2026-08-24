@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "id": "M10",
+  "name": "数据导入",
+  "pages": [
+    "imports",
+    "import-upload",
+    "import-detail",
+    "import-confirmation"
+  ],
+  "pageStates": [
+    "批次筛选",
+    "批次状态",
+    "上传与确认",
+    "成功/错误/重复反馈"
+  ],
+  "dataReferences": [
+    "data/imports.js",
+    "data/customers.js",
+    "data/contacts.js"
+  ],
+  "sourceFiles": [
+    "modules/m10-imports/page.js",
+    "modules/m10-imports/interactions.js"
+  ],
+  "eventRouterSource": "modules/_app-shell/events.js"
+}

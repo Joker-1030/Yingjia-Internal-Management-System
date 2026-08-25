@@ -1324,6 +1324,12 @@
       tbody tr:hover {
         background: #fafcfb;
       }
+      tbody tr[data-region-city-row][data-pending-warning="true"] {
+        background: var(--yellow-2);
+      }
+      tbody tr[data-region-city-row][data-pending-warning="true"]:hover {
+        background: var(--yellow-2);
+      }
       .person {
         display: flex;
         gap: 9px;

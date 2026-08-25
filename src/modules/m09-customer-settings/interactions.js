@@ -131,10 +131,10 @@
           const box = $("#ruleReminderChoices");
           if (!box) return;
           box.innerHTML = reminderCandidates
-            .filter((day) => day <= lead)
             .map((day) => {
               const label = day === 0 ? "截止日" : `提前 ${day} 天`;
-              return `<label class="choice-item"><input type="checkbox" data-rule-reminder value="${day}" ${reminderSet.has(day) ? "checked" : ""}><span>${label}</span></label>`;
+              const disabled = day > lead;
+              return `<label class="choice-item" ${disabled ? 'style="background:var(--soft);color:var(--muted);border-color:#e4e9e6;cursor:not-allowed" title="超过当前提前生成天数，不可选择"' : ""}><input type="checkbox" data-rule-reminder value="${day}" ${reminderSet.has(day) ? "checked" : ""} ${disabled ? "disabled" : ""}><span>${label}</span></label>`;
             })
             .join("");
         };
@@ -532,4 +532,3 @@
         renderPage();
         toast(`行业“${x.name}”已${x.enabled ? "恢复" : "停用"}`);
       }
-

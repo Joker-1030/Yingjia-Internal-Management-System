@@ -81,6 +81,11 @@
         { code: "YJ022", name: "何晨", dept: "软件研发部", job: "研发总监", role: "普通员工", status: "在职" },
         { code: "YJ023", name: "韩雪", dept: "师资管理部", job: "师资经理", role: "普通员工", status: "在职" },
         { code: "YJ024", name: "郭凯", dept: "财务部", job: "财务经理", role: "普通员工", scope: "已停用", status: "停用" },
+        { code: "YJ025", name: "华北总监", dept: "华北区域运营中心", job: "区域总监", role: "区域总监", scope: "华北区域", status: "停用" },
+        { code: "YJ026", name: "华中主管", dept: "华中区域运营中心", job: "项目经理", role: "PM", scope: "华中区域", status: "在职" },
+        { code: "YJ027", name: "西南总监", dept: "西南区域运营中心", job: "区域总监", role: "区域总监", scope: "西南区域", status: "在职" },
+        { code: "YJ028", name: "东北总监", dept: "东北区域运营中心", job: "区域总监", role: "区域总监", scope: "东北区域", status: "在职" },
+        { code: "YJ029", name: "沈阳原PM", dept: "东北区域运营中心", job: "项目经理", role: "PM", scope: "沈阳", status: "停用" },
       );
       const employeeProfiles = {
         YJ001: ["13900000001", "liuzong@yingjia.example", "2021-03-01", "YJ001"],
@@ -107,6 +112,11 @@
         YJ022: ["13900000122", "hechen@yingjia.example", "2022-01-17", "YJ001"],
         YJ023: ["13900000123", "hanxue@yingjia.example", "2023-06-12", "YJ018"],
         YJ024: ["13900000124", "guokai@yingjia.example", "2024-01-08", "YJ019"],
+        YJ025: ["13900000125", "huabeizongjian@yingjia.example", "2022-01-01", "YJ002"],
+        YJ026: ["13900000126", "huazhongzhuguan@yingjia.example", "2023-01-01", "YJ002"],
+        YJ027: ["13900000127", "xinanzongjian@yingjia.example", "2022-03-01", "YJ002"],
+        YJ028: ["13900000128", "dongbeizongjian@yingjia.example", "2022-05-01", "YJ002"],
+        YJ029: ["13900000129", "shenyangyuanpm@yingjia.example", "2021-06-01", "YJ028"],
       };
       employees.forEach((employee, index) => {
         const [phone, email, hireDate] = employeeProfiles[employee.code];
@@ -218,6 +228,42 @@
           supervisorCode: "YJ011",
         },
         {
+          id: 813,
+          name: "华北区域运营中心",
+          parentId: 806,
+          type: "region",
+          regionId: 705,
+          status: "启用",
+          supervisorCode: "YJ025",
+        },
+        {
+          id: 814,
+          name: "华中区域运营中心",
+          parentId: 806,
+          type: "region",
+          regionId: 706,
+          status: "启用",
+          supervisorCode: "YJ026",
+        },
+        {
+          id: 815,
+          name: "西南区域运营中心",
+          parentId: 806,
+          type: "region",
+          regionId: 707,
+          status: "启用",
+          supervisorCode: "YJ027",
+        },
+        {
+          id: 816,
+          name: "东北区域运营中心",
+          parentId: 806,
+          type: "region",
+          regionId: 708,
+          status: "启用",
+          supervisorCode: "YJ028",
+        },
+        {
           id: 807,
           name: "能源事业部",
           parentId: null,
@@ -262,3 +308,9 @@
             department.id,
           ];
       });
+      // 华中区域中心主管：模拟“主管不具备区域总监角色”（区域总监自动角色被移除）
+      const hzSupervisorWithoutDirectorRole = employees.find(
+        (employee) => employee.code === "YJ026",
+      );
+      if (hzSupervisorWithoutDirectorRole)
+        delete hzSupervisorWithoutDirectorRole.automaticRoleSources["区域总监"];

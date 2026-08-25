@@ -19,11 +19,12 @@
               city,
               pm: owner?.pm || "",
               effective: owner?.effective || "",
-              customers: cityCustomers.length,
-              contacts: contacts.filter(
-                (person) =>
-                  contactIsActive(person) && companyNames.has(person.company),
-              ).length,
+              customers: cityCustomers.length || (owner?.customers || 0),
+              contacts:
+                contacts.filter(
+                  (person) =>
+                    contactIsActive(person) && companyNames.has(person.company),
+                ).length || (owner?.contacts || 0),
             };
           }),
         );
@@ -295,10 +296,27 @@
       }
 
       function assignCitiesToPm(region, cities, pm, effective = DEMO_TODAY) {
-        const validPm = regionPmEmployees(region).some(
-          (employee) => employee.name === pm,
+        const validPmNames = new Set(
+          regionPmEmployees(region).map((employee) => employee.name),
         );
-        if (!validPm) return false;
+        if (!validPmNames.has(pm)) return false;
+        const owners = cities.map((city) => {
+          const province = regionProvinceList(region).find(
+            (item) => (administrativeDivisions[item] || {})[city],
+          );
+          return province
+            ? cityOwners.find(
+                (item) => item.province === province && item.city === city,
+              )
+            : null;
+        });
+        const hasInvalidPriorResponsibility = owners.some(
+          (owner) =>
+            owner &&
+            owner.effective &&
+            !(owner.pm && validPmNames.has(owner.pm)),
+        );
+        if (hasInvalidPriorResponsibility) return false;
         let assigned = 0;
         cities.forEach((city) => {
           const province = regionProvinceList(region).find(
@@ -308,7 +326,7 @@
           let owner = cityOwners.find(
             (item) => item.province === province && item.city === city,
           );
-          if (owner?.pm) return;
+          if (owner?.pm && validPmNames.has(owner.pm)) return;
           if (!owner) {
             owner = { id: Date.now() + assigned, province, city };
             cityOwners.push(owner);
@@ -332,8 +350,11 @@
           return toast("当前角色无权分配地市负责人");
         const region =
           regionsData.find((x) => x.id === selectedRegionId) || regionsData[0];
-        const available = regionCityRows(region).filter((city) => !city.pm);
         const pms = regionPmEmployees(region);
+        const validPmNames = new Set(pms.map((employee) => employee.name));
+        const available = regionCityRows(region).filter(
+          (city) => !(city.pm && validPmNames.has(city.pm)) && !city.effective,
+        );
         if (!pms.length) return toast("该区域中心暂无在职 PM，请先在组织中配置");
         const defaultProvince =
           available.find((item) => item.city === preferredCity)?.province ||

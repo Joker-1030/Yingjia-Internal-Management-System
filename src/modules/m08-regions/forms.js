@@ -109,6 +109,7 @@
               provinces: provinces.join("、"),
               base,
               remark,
+              configuredAt: region.configuredAt || recordCreatedAt(),
               updatedAt: recordCreatedAt(),
             });
             selectedRegionId = region.id;
@@ -118,4 +119,3 @@
           };
         };
       }
-

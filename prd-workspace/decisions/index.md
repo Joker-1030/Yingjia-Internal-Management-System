@@ -1,6 +1,6 @@
 # Decision Index
 
-> Current parseable Decision registry for the modular PRD Source of Truth. `../DECISIONS.md` retains the append-only original record and replacement history; both contain 166 stable Decision IDs.
+> Current parseable Decision registry for the modular PRD Source of Truth. `../DECISIONS.md` retains the append-only original record and replacement history; this index contains 168 stable Decision IDs.
 
 | ID | Title | Status |
 | --- | --- | --- |
@@ -170,4 +170,8 @@
 | DEC-164 | [关键人调岗生效、停用附件与客户部门导入父级规则](./DEC-164-关键人调岗生效停用附件与客户部门导入父级规则.md) | 已确认；关闭关键人调岗生效时点、M05 附件和 M10 客户部门父级定位歧义 |
 | DEC-165 | [员工多部门归属与停用恢复直接生效](./DEC-165-员工多部门归属与停用恢复直接生效.md) | 已确认；当前员工多部门、主管自动成员/角色、普通编辑和停用恢复规则 |
 | DEC-166 | [系统管理员直接重置并签发密码](./DEC-166-系统管理员直接重置并签发密码.md) | 已确认；点击即重置并在成功弹窗展示新密码，以“复制并关闭”完成交付 |
-| DEC-167 | [配置界面简化并隐藏后台规则说明](./DEC-167-配置界面简化并隐藏后台规则说明.md) | 已确认；驻地与省份解绑、区域编辑精简、异常原因展示、提醒节点复选、版本字段隐藏及后台规则说明收敛 |
+| DEC-167 | [配置界面简化并隐藏后台规则说明](./DEC-167-配置界面简化并隐藏后台规则说明.md) | 部分被 DEC-169 替代；驻地与省份解绑、区域编辑精简、提醒节点复选、版本字段隐藏及后台规则说明收敛继续有效；异常影响和处理入口不再展示 |
+| DEC-168 | [固化区域配置异常并完整展示提醒节点](./DEC-168-固化区域配置异常并完整展示提醒节点.md) | 部分被 DEC-169 替代；M08 四类异常边界继续有效，独立异常 Demo 表被区域列表实际记录替代；M09 全量显示提醒候选并置灰超范围节点继续有效 |
+| DEC-169 | [修正区域异常展示与地市负责人二态](./DEC-169-修正区域异常展示与地市负责人二态.md) | 已确认；异常区域进入区域列表，右侧详情只展示原因；地市负责人仅待分配/已分配，从未分配 PM 不触发区域异常 |
+| DEC-170 | [细化待分配地市警示与异常数据隔离](./DEC-170-细化待分配地市警示与异常数据隔离.md) | 已确认；仅有客户的待分配地市标黄，状态列不展示流程编号，异常样例不得改写既有江苏/安徽及客户责任数据 |
+| DEC-171 | [原责任失效地市暂时只读待分配](./DEC-171-原责任失效地市暂时只读待分配.md) | 已确认；只展示待分配和异常，不提供操作、不进入分配候选且不得覆盖原责任历史 |

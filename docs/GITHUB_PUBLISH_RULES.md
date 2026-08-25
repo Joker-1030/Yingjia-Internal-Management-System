@@ -1,142 +1,135 @@
 # GitHub Publish Rules
 
-## 1. Purpose And Boundary
+## 1. Purpose And Remote Policy
 
-This repository has two distinct scopes:
-
-- **Local Workspace**: the complete internal record, including current product sources, implementation, governance reports, AI task/result records, archives, snapshots, and historical material.
-- **Engineering Public Mirror**: a deliberately filtered tree containing only the current PRD, current Prototype, maintained source, and the minimum engineering files required to inspect and validate them.
-
-The Local Workspace is never published as a directory copy. A Git remote or a successful commit does not authorize publication.
-
-The required release gate is:
+The Product Owner has restored the personal GitHub repository as this project's only active synchronization target:
 
 ```text
-PRD -> Task -> Implementation -> CODEX Review = PASS -> Commit
-    -> Approved publish candidate tree -> Publish Check --all -> Authorized Push
+origin = Primary GitHub Engineering Mirror
+git@github.com:Joker-1030/Yingjia-Internal-Management-System.git
+target branch = main
 ```
 
-`PASS WITH FIXES`, `FAIL`, and `PRODUCT CONFIRMATION REQUIRED` are not publishable states. Push authorization is a separate Product Owner decision.
+The Company Git remote remains configured only for historical reference:
 
-## 2. Source Of Publish Scope
+```text
+company = Disabled / No Sync
+ssh://git@code.gaizee.cn:3222/qinyong/Yingjia-Internal-Management-System.git
+```
 
-`.github/publish-manifest.json` is the machine-readable allowlist. This document explains its policy; the manifest determines the exact paths accepted by the checker.
+Do not fetch, pull, push, synchronize, or release to `company` unless the Product Owner explicitly changes this policy again. Repository-local `remote.pushDefault` must be `origin`, but that setting never grants Push authorization.
 
-A future publish operation must construct or select a candidate tree containing only allowlisted paths. It must then run:
+The repository has two distinct content scopes:
+
+- **Local Workspace**: the complete internal record, including current product sources, implementation, governance reports, AI Task/Result records, archives, snapshots, and historical material.
+- **GitHub Engineering Mirror**: a deliberately filtered tree containing only the current PRD, current Prototype, maintained source, and minimum engineering files required to inspect and validate them.
+
+The Local Workspace is never published as a directory copy. A Git remote, successful commit, previous Push, or reachable repository does not authorize publication.
+
+## 2. Required Release Gate
+
+```text
+PRD -> Task -> Implementation -> CODEX Review = PASS -> accepted commit
+-> filtered publish candidate -> Publish Check --all -> sensitive scan
+-> Product Owner authorization for this candidate and origin/main -> Push
+```
+
+`PASS WITH FIXES`, `FAIL`, and `PRODUCT CONFIRMATION REQUIRED` are not publishable states. Every Push requires a new explicit Product Owner authorization.
+
+## 3. Source Of Publish Scope
+
+`.github/publish-manifest.json` is the machine-readable allowlist and the exact GitHub publication boundary. A future GitHub operation must construct or select a candidate containing only allowlisted paths and run:
 
 ```bash
 node .github/scripts/build-publish-candidate.mjs --source <reviewed-commit> --target <clean-publish-worktree>
 node .github/scripts/check-publish-policy.mjs --all
 ```
 
-Only a successful full-tree check may authorize the candidate for a separately approved push. Staged, range, and explicit-path checks are useful preflight checks but do not authorize publication by themselves.
+Only a successful full-tree check may qualify the candidate for a separately authorized Push. Staged, range, and explicit-path checks are preflight evidence but do not authorize publication by themselves.
 
-The candidate builder reads committed content from the declared source commit, applies the manifest include/exclude/sensitive rules, verifies every required file, and materializes the result only into a clean worktree belonging to this repository. It never reads uncommitted Local Workspace files. The generated candidate must be staged and checked as a complete tree before its release commit is created.
+The candidate builder reads committed content from the declared reviewed commit, applies include/exclude/sensitive rules, verifies required files, and materializes the result only into a clean worktree belonging to this repository. It never reads uncommitted Local Workspace files.
 
-## 3. Allowed Public Content
+## 4. Allowed GitHub Content
 
-The current allowlist contains only paths that exist and are needed by engineering:
+The exact list remains in `.github/publish-manifest.json`. Its intended categories are:
 
 ### Current product sources
 
 - `prd-workspace/current/PRD.md`
-- `prd-workspace/current/modules/`
-- `prd-workspace/current/acceptance/`
-- `prd-workspace/current/shared/`
-- `prd-workspace/current/user-flows/`
-- `prd-workspace/decisions/`
-- `prd-workspace/DECISIONS.md`
-- `prd-workspace/GLOSSARY.md`
-- `prd-workspace/README.md`
-- `demo-src/product-boundary-map.json`
+- current module PRDs, Acceptance, Shared facts, and User Flows
+- current Decisions, decision index, Glossary, and PRD workspace README
+- current Product Boundary source required by the Prototype
 
-`prd-workspace/current/` is intentionally not allowed as a whole because it also contains historical and governance material.
+Current product directories are not automatically allowed as a whole when they also contain governance or historical material.
 
 ### Current Prototype and maintained implementation
 
-- `demo/prototype.html`
-- `demo/prototype.artifact.json`
-- `src/`
+- current `demo/prototype.html` and provenance artifact
+- maintained `src/`
+- required build and drift-check scripts
 
-`demo/` is intentionally not allowed as a whole because it contains archived and superseded Demo files. The current Prototype is generated from `src/`; its source/artifact consistency must pass before publication.
+Generated artifacts must match their maintained source before publication.
 
 ### Minimum engineering infrastructure
 
-- `README.md`
-- `.gitignore`
-- `package.json`
-- `scripts/build-prototype.mjs`
-- `scripts/check-prototype-drift.mjs`
-- `scripts/prototype-build-lib.mjs`
-- `docs/GITHUB_PUBLISH_RULES.md`
-- `.github/publish-manifest.json`
-- `.github/scripts/build-publish-candidate.mjs`
-- `.github/scripts/check-publish-policy.mjs`
-- `.github/workflows/publish-check.yml`
+- `README.md`, `.gitignore`, and `package.json`
+- required build/check scripts
+- this policy, publish manifest, candidate builder, checker, and read-only workflow
 
-Adding another public path requires a reviewed change to both this policy and the manifest. Directory growth does not automatically expand the mirror.
+Adding another GitHub path requires a reviewed change to both this policy and the manifest. Directory growth does not automatically expand the mirror.
 
-## 4. Content Never Published Automatically
+## 5. Content Never Published Automatically
 
-The following are denied even if a broad future include pattern could otherwise match them:
+The following remain excluded from the GitHub candidate even when tracked locally:
 
-- `archive/`, `snapshots/`, history, old Prototype, and internal handoff material;
-- `docs/archive/`, including archived governance, migration, confirmation, completion, and audit evidence;
-- `prd-workspace/current/governance/` and `prd-workspace/current/PRD_customer_management_full.md`;
+- `archive/`, `snapshots/`, `docs/archive/`, history, old Prototype, and internal handoff material;
+- internal Governance, Semantic, Completion, Migration, Closure, Revalidation, Remediation, confirmation, and audit reports;
 - `docs/AI_IMPLEMENTATION_TASKS/`, `docs/AI_IMPLEMENTATION_RESULTS/`, `docs/AI_AGENT_REGISTRY.md`, and `docs/AI_COLLABORATION_RULES.md`;
-- internal Governance, Semantic, Completion, Migration, Closure, Revalidation, and Remediation reports;
-- `.env`, local environment variants, secrets, credentials, tokens, private keys, certificates containing private material, local databases, and credential stores;
+- `.env`, local environment variants, secrets, credentials, tokens, passwords, private keys, certificates containing private material, local databases, and credential stores;
 - logs, caches, build directories, editor state, temporary files, OS metadata, and other local artifacts;
-- files larger than the manifest limit unless a future reviewed manifest revision explicitly permits the exact file.
+- pre-existing uncommitted/untracked files and unrelated or unreviewed Task content;
+- files larger than the manifest limit unless a reviewed manifest revision explicitly permits the exact file.
 
-`.env.example` and `.env.sample` are not currently allowlisted. A future policy change may allow them only after confirming that they contain placeholders and no real credentials.
+Do not use `.gitignore`, `git add .`, or `git add -A` to bypass explicit candidate scope. Do not delete Local Workspace evidence merely because it is excluded from GitHub.
 
-## 5. Publish Check
+## 6. Publish Check
 
-The dependency-free Node.js checker validates:
+The dependency-free checker validates:
 
 1. manifest syntax and required fields;
 2. required-file existence and allowlist coverage;
 3. every candidate path against include, exclude, sensitive, local-artifact, and internal-report rules;
-4. a conservative file-size limit and basic secret-content signatures;
+4. file-size limits and basic secret-content signatures;
 5. Prototype source/artifact provenance via `npm run check:prototype`.
 
-Failures print:
+Failures print `GITHUB_PUBLISH_BLOCKED` followed by each path and reason. The checker never edits files, selects commits, synchronizes a remote, or grants Push permission.
 
-```text
-GITHUB_PUBLISH_BLOCKED
-```
+Supported modes:
 
-followed by each path and reason. The checker never edits files and never pushes.
+- `--all`: every tracked file in the filtered candidate; required before publication.
+- `--staged`: staged-path preflight.
+- `--range <base>..<head>`: commit-range preflight.
+- `--paths <path...>`: explicit-path preflight.
 
-Supported preflight modes:
+## 7. GitHub Actions
 
-- `--all`: validate every tracked file in the candidate tree; required before publication.
-- `--staged`: validate staged paths.
-- `--range <base>..<head>`: validate paths changed in a commit range.
-- `--paths <path...>`: validate an explicit path set for deterministic checks.
+`.github/workflows/publish-check.yml` runs the full-tree check on pushes and pull requests in the GitHub Engineering Mirror. It has read-only repository permission, does not use browser automation, does not alter files, and does not deploy.
 
-With no mode, the checker examines staged paths when present, otherwise the paths in `HEAD`. This default is feedback only, not publication authorization.
+The workflow is a gate, not a synchronizer. It cannot select files, merge branches, or grant Push authorization.
 
-## 6. GitHub Actions
+## 8. Branch And Authorization Policy
 
-`.github/workflows/publish-check.yml` runs the full-tree check on pushes and pull requests in the Engineering Public Mirror. It has read-only repository permission, does not use browser automation, does not alter files, and does not deploy.
+Implementation Agents continue to work on `ai/<AI-ID>/<TASK-ID>-<description>` branches and must not write directly to `main`. An AI branch is never pushed directly as the GitHub development line.
 
-The workflow is a gate, not a synchronizer. It cannot make an internal tree public, select files, merge branches, or grant push permission.
+The Product Owner has designated GitHub `main` as the filtered Engineering Mirror target. CODEX creates or updates an isolated filtered candidate whose parent is the current remote `main`, commits only the complete reviewed allowlisted tree, and pushes to `origin/main` only when the result is a normal fast-forward.
 
-## 7. Branch And Authorization Policy
+Before any Push, CODEX must confirm:
 
-Implementation Agents continue to work on `ai/<AI-ID>/<TASK-ID>-<description>` branches and must not write directly to `main`. This policy does not select or change the eventual GitHub release branch.
+- relevant CODEX Review is `PASS`;
+- candidate contains only accepted commits and allowlisted paths;
+- `check-publish-policy.mjs --all` passes on the complete candidate;
+- sensitive scan and Prototype drift checks pass;
+- remote remains the authorized personal GitHub repository;
+- Product Owner explicitly authorized this candidate and `origin/main` Push.
 
-The Product Owner has designated GitHub `main` as the Engineering Public Mirror target. A local AI branch is never pushed as that target. CODEX creates a filtered candidate branch whose parent is the current remote `main`, commits the complete allowlisted tree there, and pushes that candidate commit to remote `main` only when the update is a normal fast-forward.
-
-Publishing always uses committed, reviewed content, never an uncommitted working tree. Before the first or any later push, CODEX must confirm:
-
-- the relevant review result is `PASS`;
-- the candidate tree contains only approved commits and allowlisted paths;
-- `check-publish-policy.mjs --all` passes;
-- the Product Owner has authorized that push and its target branch.
-
-Without all four conditions, the result is `GITHUB_PUBLISH_BLOCKED` and no push is permitted.
-
-Repository reachability, SSH authentication, CI success, `PASS`, `READY`, or a previous Push approval does not authorize a new Push. Every Push requires an explicit Product Owner authorization for the candidate and target in question.
+Without every condition, no Push is permitted. Force Push, automatic merge, rebase, reset, clean, Pull Request creation, Release creation, and remote settings changes require separate explicit authority.

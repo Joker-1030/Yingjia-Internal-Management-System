@@ -1,48 +1,63 @@
 # 英嘉科技内部管理系统
 
-本仓库的 GitHub 版本定位为研发协作镜像，提供当前产品需求、Prototype 和维护中的前端实现。完整内部工作区中的治理报告、AI 执行记录、历史快照和归档不属于公开镜像。
+本仓库用于研发查看当前产品需求、Prototype Demo 及相关参考资料。
 
 ## 产品需求
 
-- 当前唯一 PRD 入口：[`prd-workspace/current/PRD.md`](prd-workspace/current/PRD.md)
-- 模块需求：[`prd-workspace/current/modules/`](prd-workspace/current/modules/)
-- 验收口径：[`prd-workspace/current/acceptance/`](prd-workspace/current/acceptance/)
-- 产品决策：[`prd-workspace/decisions/`](prd-workspace/decisions/)
+当前产品需求统一从：
 
-需求变化应先更新并确认当前产品来源，再创建独立实施任务。实现通过 CODEX Review 后，才可进入发布检查。
+**[prd-workspace/current/PRD.md](prd-workspace/current/PRD.md)**
 
-## Prototype
+开始查看。
 
-当前可查看产物为 [`demo/prototype.html`](demo/prototype.html)，维护源位于 [`src/`](src/)。本项目当前构建脚本无第三方运行时依赖，需使用支持 ES modules 的 Node.js 20 或兼容版本。
+模块详细需求：
 
-```bash
-npm run build:prototype
-npm run check:prototype
-```
+[prd-workspace/current/modules/](prd-workspace/current/modules/)
 
-`build:prototype` 从 `src/` 生成 Prototype 和 artifact manifest；`check:prototype` 只读验证 source/artifact digest 是否一致。
+验收标准：
 
-## 代码入口
+[prd-workspace/current/acceptance/](prd-workspace/current/acceptance/)
 
-- Prototype 入口：[`src/prototype.html`](src/prototype.html)
-- 应用启动：[`src/app.js`](src/app.js)
-- 业务模块：[`src/modules/`](src/modules/)
-- 数据与样例状态：[`src/data/`](src/data/)
+产品决策：
 
-## 变更与 Review
+[prd-workspace/decisions/](prd-workspace/decisions/)
 
-研发变更使用独立任务和分支，分支格式为：
+> **详细产品需求以当前 PRD 为准。**
+
+> Demo 主要用于产品方案展示和交互演示，可能存在功能缺失、表现不完整或与当前 PRD 不完全一致的情况。如 Demo 与 PRD 存在不一致，请以 PRD 为准，并与产品经理确认。
+
+## Prototype Demo
+
+当前 Demo：
+
+**[demo/prototype.html](demo/prototype.html)**
+
+Demo 用于产品方案展示、需求评审和交互确认，**不是正式生产系统代码**。
+
+Demo 源文件主要位于：
 
 ```text
-ai/<AI-ID>/<TASK-ID>-<description>
+src/
 ```
 
-每次提交必须保留 AI ID、Task ID 和任务依据。未经 CODEX Review `PASS` 的实现不得进入发布候选。
+如需查看页面实现，可从 Demo 和对应的 `src/` 模块进行参考。
 
-GitHub 发布范围由 [`docs/GITHUB_PUBLISH_RULES.md`](docs/GITHUB_PUBLISH_RULES.md) 和 [`.github/publish-manifest.json`](.github/publish-manifest.json) 共同约束。发布候选在 Push 前必须通过：
+## 项目说明
 
-```bash
-node .github/scripts/check-publish-policy.mjs --all
-```
+本仓库主要用于：
 
-通过检查不等于获得 Push 授权；首次及后续发布仍需 Product Owner 明确批准。
+* 查看当前产品需求
+* 查看 Prototype Demo
+* 了解需求对应的模块和交互
+
+内部治理报告、AI 协作记录、历史快照及归档资料不属于本研发查看入口。
+
+## 常用入口
+
+| 内容        | 入口                                              |
+| --------- | ----------------------------------------------- |
+| 当前 PRD    | [PRD.md](prd-workspace/current/PRD.md)          |
+| 模块需求      | [modules](prd-workspace/current/modules/)       |
+| 验收标准      | [acceptance](prd-workspace/current/acceptance/) |
+| 产品决策      | [decisions](prd-workspace/decisions/)           |
+| Prototype | [demo/prototype.html](demo/prototype.html)      |

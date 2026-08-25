@@ -7,6 +7,7 @@
         ["archive", "停用记录"],
         ["employees", "组织与员工"],
         ["regions", "区域中心与地市配置"],
+        ["city-management", "地市管理"],
         ["settings", "客户基础配置"],
         ["imports", "数据导入"],
       ];
@@ -97,7 +98,7 @@
             "approvals",
             "archive",
             "employees",
-            "regions",
+            "city-management",
             "imports",
           ],
         },
@@ -151,7 +152,7 @@
         { name: "经营概览", items: [["dashboard", "经营工作台", "页面访问"]] },
         { name: "客户经营", items: [["customers", "客户经营", "三栏查看 / 新增 / 维护"], ["tasks", "维系管理", "任务与记录"]] },
         { name: "协同与审批", items: [["approvals", "审批中心", "查看与处理"], ["archive", "停用记录", "查看与恢复"]] },
-        { name: "组织与配置", items: [["employees", "组织与员工", "组织、员工与异动"], ["regions", "区域中心与地市配置", "区域与地市责任"], ["settings", "客户基础配置", "配置项维护"], ["imports", "数据导入", "上传、确认与结果"]] },
+        { name: "组织与配置", items: [["employees", "组织与员工", "组织、员工与异动"], ["regions", "区域中心与地市配置", "区域与地市责任"], ["city-management", "地市管理", "PM 本人地市责任"], ["settings", "客户基础配置", "配置项维护"], ["imports", "数据导入", "上传、确认与结果"]] },
       ];
       const operationPermissionCatalog = [
         ["dashboard.view", "dashboard", "查看经营工作台"],
@@ -176,7 +177,7 @@
         ["archive.view", "archive", "查看停用记录"],
         ["archive.request_stop", "archive", "发起对象停用"],
         ["archive.restore", "archive", "申请恢复"],
-        ["employees.view", "employees", "查看组织与员工详情"],
+        ["employees.view", "employees", "查看组织与员工目录"],
         ["employees.view_changes", "employees", "查看人员/组织变动记录"],
         ["employees.create_department", "employees", "新增部门"],
         ["employees.set_supervisor", "employees", "设置部门主管"],
@@ -189,7 +190,7 @@
         ["regions.view", "regions", "查看区域配置"],
         ["regions.edit", "regions", "编辑区域业务映射"],
         ["regions.batch_assign", "regions", "批量分配地市"],
-        ["regions.handover", "regions", "发起负责人交接"],
+        ["regions.handover", "city-management", "发起负责人交接"],
         ["settings.view", "settings", "查看基础配置"],
         ["settings.edit", "settings", "维护基础配置"],
         ["imports.view", "imports", "查看导入批次"],
@@ -227,7 +228,7 @@
           "approvals.view", "approvals.decide", "approvals.withdraw", "approvals.transfer",
           "approvals.countersign", "approvals.append_cc",
           "archive.view", "archive.request_stop", "archive.restore",
-          "employees.view", "employees.view_changes", "regions.view", "regions.handover",
+          "employees.view", "employees.view_changes", "regions.handover",
           "imports.view", "imports.upload", "imports.confirm", "imports.download",
         ],
         "HR/人事": [

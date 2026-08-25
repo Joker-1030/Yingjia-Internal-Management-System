@@ -33,6 +33,12 @@
           )
           .filter(Boolean);
       const currentRoleTemplate = () => currentRoleTemplates()[0];
+      const isPmCityManagementUser = () =>
+        Boolean(
+          currentUser &&
+            !currentUser.fullAccess &&
+            currentRoleTemplateNames().includes("PM"),
+        );
       const hasPermission = (permission) =>
         currentRoleTemplates().some((template) =>
           template.permissions.includes(permission),
@@ -53,6 +59,13 @@
         ].find((scopeType) => scopeTypes.includes(scopeType)) || "technical";
       };
       const roleCanSeeBusiness = () => hasDataObject("客户单位");
+      const canAccessPage = (page) => {
+        if (page === "operations") return roleCanSeeBusiness();
+        if (page === "city-management")
+          return isPmCityManagementUser() && hasPermission(page);
+        if (page === "regions" && isPmCityManagementUser()) return false;
+        return hasPermission(page);
+      };
       const hasOperationPermission = (operation) =>
         Boolean(
           currentUser?.fullAccess ||
@@ -817,10 +830,7 @@
         if (loginEmployee) loginEmployee.lastLogin = recordCreatedAt();
         const requestedExplicitly = Boolean(window.location.hash.slice(1));
         const requestedPage = normalizedPageHash();
-        const requestedPageAllowed =
-          requestedPage === "operations"
-            ? roleCanSeeBusiness()
-            : hasPermission(requestedPage);
+        const requestedPageAllowed = canAccessPage(requestedPage);
         currentPage = requestedPageAllowed
           ? requestedPage
           : requestedExplicitly
@@ -911,24 +921,12 @@
       function renderNav() {
         $("#nav").innerHTML = navGroups
           .map((g) => {
-            const pmNavigation = [
-              "dashboard",
-              "operations",
-              "tasks",
-              "approvals",
-              "archive",
-              "employees",
-              "regions",
-              "imports",
-            ];
             const items = g.items.filter((i) =>
               i.id === "customers"
                 ? false
-                : currentUser.role === "pm"
-                  ? pmNavigation.includes(i.id)
-                  : i.id === "operations"
-                    ? roleCanSeeBusiness()
-                    : hasPermission(i.id),
+                : i.id === "operations"
+                  ? roleCanSeeBusiness()
+                  : canAccessPage(i.id),
             );
             if (!items.length) return "";
             return `<div class="nav-group"><div class="nav-title">${g.title}</div>${items
@@ -984,15 +982,13 @@
         employees: "组织与员工",
         permissions: "权限授权",
         regions: "区域中心与地市配置",
+        "city-management": "地市管理",
         settings: "客户基础配置",
         imports: "数据导入",
       };
       function renderPage() {
         normalizeTaskStates();
-        const canOpenPage =
-          currentPage === "operations"
-            ? roleCanSeeBusiness()
-            : hasPermission(currentPage);
+        const canOpenPage = canAccessPage(currentPage);
         if (!canOpenPage) {
           const deniedName = pageNames[currentPage] || "该页面";
           $("#content").classList.remove("customer-page-shell");
@@ -1022,6 +1018,7 @@
           employees: renderEmployees,
           permissions: renderPermissions,
           regions: renderRegions,
+          "city-management": renderPmCityManagement,
           settings: renderSettings,
           imports: renderImports,
         };

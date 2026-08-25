@@ -99,7 +99,7 @@
             assignees: [],
             note: "二次确认后直接形成已通过流程，不生成本人审批节点",
           };
-        if (currentUser.role === "pm")
+        if (isPmCityManagementUser())
           return {
             direct: false,
             current: "区域总监审批",
@@ -461,6 +461,8 @@
       }
 
       function openCityHandover(id) {
+        if (!isPmCityManagementUser())
+          return toast("地市交接仅原负责 PM 本人可发起（DEC-143）；区域总监和 admin 请使用直接调整");
         const city = cityOwners.find((x) => x.id === id);
         if (city && city.pm !== currentUser.name)
           return toast("地市交接仅原负责 PM 本人可发起（DEC-143）；区域总监和 admin 请使用直接调整");
@@ -471,10 +473,8 @@
         const region = regionsData.find((item) =>
           regionProvinceList(item).includes(c.province),
         );
-        if (currentUser.role === "pm" && c.pm !== currentUser.name)
+        if (c.pm !== currentUser.name)
           return toast("PM 只能发起本人当前负责地市的交接");
-        if (currentUser.role === "director" && region?.director !== currentUser.name)
-          return toast("区域总监只能发起本人主管区域内的交接");
         const route = cityHandoverRoute(region);
         if (!route) return toast("当前角色不在地市交接可发起人范围内");
         const existing = pendingCityHandover(c.id);

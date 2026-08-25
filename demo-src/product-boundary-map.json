@@ -221,10 +221,10 @@
         "维护客户公司主数据或关键人"
       ],
       "core_objects": ["区域中心配置", "省份映射", "驻地城市", "地市负责人关系", "地市交接"],
-      "pages": ["区域中心配置", "地市负责人配置-按地市", "地市负责人配置-按PM", "地市负责人交接"],
+      "pages": ["区域中心配置", "地市负责人配置-按地市", "地市负责人配置-按PM", "PM地市管理", "地市负责人交接"],
       "states": ["page:Loading/Empty/EmptyResult/Error/PermissionDenied/Submitting", "business-region:待配置/已配置/配置异常", "business-city-responsibility:待分配/已分配", "related-approval:交接审批中/已通过待生效/已驳回/已撤回", "operation:迁移成功/业务处理失败"],
       "related_features": ["M01", "M02", "M03", "M04", "M06", "M10", "P01"],
-      "common_changes": ["区域映射调整", "区域可见范围调整", "地市分配规则调整", "负责人交接流程调整", "责任迁移影响调整"],
+      "common_changes": ["区域映射调整", "区域可见范围或菜单调整", "地市分配规则调整", "负责人交接流程调整", "责任迁移影响调整"],
       "classification_guide": {
         "module_upgrade": "既有区域、省份、驻地、地市责任或交接规则变化",
         "new_capability": "仍围绕区域与地市责任管理但形成新的独立流程",

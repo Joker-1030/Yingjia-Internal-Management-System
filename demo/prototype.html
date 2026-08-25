@@ -5325,6 +5325,7 @@
             { id: "employees", icon: "♧", label: "组织与员工" },
             { id: "permissions", icon: "⌘", label: "权限授权" },
             { id: "regions", icon: "⌖", label: "区域中心与地市配置" },
+            { id: "city-management", icon: "⌖", label: "地市管理" },
             { id: "settings", icon: "⚙", label: "客户基础配置" },
             { id: "imports", icon: "⇧", label: "数据导入" },
           ],
@@ -6694,6 +6695,12 @@
           )
           .filter(Boolean);
       const currentRoleTemplate = () => currentRoleTemplates()[0];
+      const isPmCityManagementUser = () =>
+        Boolean(
+          currentUser &&
+            !currentUser.fullAccess &&
+            currentRoleTemplateNames().includes("PM"),
+        );
       const hasPermission = (permission) =>
         currentRoleTemplates().some((template) =>
           template.permissions.includes(permission),
@@ -6714,6 +6721,13 @@
         ].find((scopeType) => scopeTypes.includes(scopeType)) || "technical";
       };
       const roleCanSeeBusiness = () => hasDataObject("客户单位");
+      const canAccessPage = (page) => {
+        if (page === "operations") return roleCanSeeBusiness();
+        if (page === "city-management")
+          return isPmCityManagementUser() && hasPermission(page);
+        if (page === "regions" && isPmCityManagementUser()) return false;
+        return hasPermission(page);
+      };
       const hasOperationPermission = (operation) =>
         Boolean(
           currentUser?.fullAccess ||
@@ -7478,10 +7492,7 @@
         if (loginEmployee) loginEmployee.lastLogin = recordCreatedAt();
         const requestedExplicitly = Boolean(window.location.hash.slice(1));
         const requestedPage = normalizedPageHash();
-        const requestedPageAllowed =
-          requestedPage === "operations"
-            ? roleCanSeeBusiness()
-            : hasPermission(requestedPage);
+        const requestedPageAllowed = canAccessPage(requestedPage);
         currentPage = requestedPageAllowed
           ? requestedPage
           : requestedExplicitly
@@ -7572,24 +7583,12 @@
       function renderNav() {
         $("#nav").innerHTML = navGroups
           .map((g) => {
-            const pmNavigation = [
-              "dashboard",
-              "operations",
-              "tasks",
-              "approvals",
-              "archive",
-              "employees",
-              "regions",
-              "imports",
-            ];
             const items = g.items.filter((i) =>
               i.id === "customers"
                 ? false
-                : currentUser.role === "pm"
-                  ? pmNavigation.includes(i.id)
-                  : i.id === "operations"
-                    ? roleCanSeeBusiness()
-                    : hasPermission(i.id),
+                : i.id === "operations"
+                  ? roleCanSeeBusiness()
+                  : canAccessPage(i.id),
             );
             if (!items.length) return "";
             return `<div class="nav-group"><div class="nav-title">${g.title}</div>${items
@@ -7645,15 +7644,13 @@
         employees: "组织与员工",
         permissions: "权限授权",
         regions: "区域中心与地市配置",
+        "city-management": "地市管理",
         settings: "客户基础配置",
         imports: "数据导入",
       };
       function renderPage() {
         normalizeTaskStates();
-        const canOpenPage =
-          currentPage === "operations"
-            ? roleCanSeeBusiness()
-            : hasPermission(currentPage);
+        const canOpenPage = canAccessPage(currentPage);
         if (!canOpenPage) {
           const deniedName = pageNames[currentPage] || "该页面";
           $("#content").classList.remove("customer-page-shell");
@@ -7683,6 +7680,7 @@
           employees: renderEmployees,
           permissions: renderPermissions,
           regions: renderRegions,
+          "city-management": renderPmCityManagement,
           settings: renderSettings,
           imports: renderImports,
         };
@@ -10101,6 +10099,11 @@
       }
       const employeeByCode = (code) =>
         employees.find((employee) => employee.code === code);
+      const canViewEmployeeDetail = () =>
+        Boolean(
+          currentUser?.fullAccess ||
+            currentRoleTemplateNames().includes("HR/人事"),
+        );
       const canViewEmployeeSensitive = (employee) =>
         Boolean(
           currentUser?.fullAccess ||
@@ -10299,7 +10302,7 @@
             const phone = displayEmployeePhone(e);
             const roleNames = employeeRoleNames(e);
             const department = organizationDepartments.find((item) => item.name === departmentName);
-            return `<tr data-dept-name="${departmentName}" data-role="${roleNames.join("|") || "未关联业务角色"}" data-status="${e.status}" data-account-status="${e.accountStatus}" data-search="${e.name}${e.code}${phone.slice(-4)}"><td><div class="person"><div class="avatar">${e.name[0]}</div><strong>${e.name}</strong>${department?.supervisorCode === e.code ? ' <span class="tag">主管</span>' : ""}</div></td><td><span class="tag">${e.code}</span></td><td>${departmentPath(department)}</td><td>${employeeDepartmentNames(e).map((name) => `<span class="tag">${name}</span>`).join(" ") || "—"}</td><td>${roleNames.map((role) => `<span class="tag blue">${role}</span>`).join(" ") || '<span class="tag">未关联</span>'}</td><td>${phone}</td><td><span class="tag ${e.status === "在职" ? "green" : "yellow"}">${e.status}</span></td>${currentUser.fullAccess ? `<td><span class="tag ${e.accountStatus === "启用" ? "green" : "red"}">${e.accountStatus}</span></td>` : ""}${currentUser.fullAccess ? `<td>${e.lastLogin}</td>` : ""}<td><button class="link" data-action="employee-detail" data-id="${i}">详情</button>${e.role !== "系统管理员" && canEmployeeAction("employees.edit_employee") && e.name !== currentUser.name ? ` · <button class="link" data-action="employee-edit" data-id="${i}">编辑员工</button>` : ""}${e.role !== "系统管理员" && canEmployeeAction("employees.suspend_employee") && e.name !== currentUser.name && e.status === "在职" ? ` · <button class="link" data-action="employee-suspend" data-id="${i}">停用</button>` : ""}${e.role !== "系统管理员" && canEmployeeAction("employees.restore_employee") && e.status === "停用" ? ` · <button class="link" data-action="employee-restore" data-id="${i}">恢复</button>` : ""}${e.role !== "系统管理员" && canEmployeeAction("employees.reset_password") && e.name !== currentUser.name ? ` · <button class="link" data-action="reset-password" data-id="${i}">重置密码</button>` : ""}</td></tr>`;
+            return `<tr data-dept-name="${departmentName}" data-role="${roleNames.join("|") || "未关联业务角色"}" data-status="${e.status}" data-account-status="${e.accountStatus}" data-search="${e.name}${e.code}${phone.slice(-4)}"><td><div class="person"><div class="avatar">${e.name[0]}</div><strong>${e.name}</strong>${department?.supervisorCode === e.code ? ' <span class="tag">主管</span>' : ""}</div></td><td><span class="tag">${e.code}</span></td><td>${departmentPath(department)}</td><td>${employeeDepartmentNames(e).map((name) => `<span class="tag">${name}</span>`).join(" ") || "—"}</td><td>${roleNames.map((role) => `<span class="tag blue">${role}</span>`).join(" ") || '<span class="tag">未关联</span>'}</td><td>${phone}</td><td><span class="tag ${e.status === "在职" ? "green" : "yellow"}">${e.status}</span></td>${currentUser.fullAccess ? `<td><span class="tag ${e.accountStatus === "启用" ? "green" : "red"}">${e.accountStatus}</span></td>` : ""}${currentUser.fullAccess ? `<td>${e.lastLogin}</td>` : ""}<td>${canViewEmployeeDetail() ? `<button class="link" data-action="employee-detail" data-id="${i}">详情</button>` : ""}${e.role !== "系统管理员" && canEmployeeAction("employees.edit_employee") && e.name !== currentUser.name ? ` · <button class="link" data-action="employee-edit" data-id="${i}">编辑员工</button>` : ""}${e.role !== "系统管理员" && canEmployeeAction("employees.suspend_employee") && e.name !== currentUser.name && e.status === "在职" ? ` · <button class="link" data-action="employee-suspend" data-id="${i}">停用</button>` : ""}${e.role !== "系统管理员" && canEmployeeAction("employees.restore_employee") && e.status === "停用" ? ` · <button class="link" data-action="employee-restore" data-id="${i}">恢复</button>` : ""}${e.role !== "系统管理员" && canEmployeeAction("employees.reset_password") && e.name !== currentUser.name ? ` · <button class="link" data-action="reset-password" data-id="${i}">重置密码</button>` : ""}</td></tr>`;
           })
           .join("")}</tbody></table></div></div></section>`;
         const changes = [
@@ -13717,7 +13720,7 @@
             assignees: [],
             note: "二次确认后直接形成已通过流程，不生成本人审批节点",
           };
-        if (currentUser.role === "pm")
+        if (isPmCityManagementUser())
           return {
             direct: false,
             current: "区域总监审批",
@@ -14079,6 +14082,8 @@
       }
 
       function openCityHandover(id) {
+        if (!isPmCityManagementUser())
+          return toast("地市交接仅原负责 PM 本人可发起（DEC-143）；区域总监和 admin 请使用直接调整");
         const city = cityOwners.find((x) => x.id === id);
         if (city && city.pm !== currentUser.name)
           return toast("地市交接仅原负责 PM 本人可发起（DEC-143）；区域总监和 admin 请使用直接调整");
@@ -14089,10 +14094,8 @@
         const region = regionsData.find((item) =>
           regionProvinceList(item).includes(c.province),
         );
-        if (currentUser.role === "pm" && c.pm !== currentUser.name)
+        if (c.pm !== currentUser.name)
           return toast("PM 只能发起本人当前负责地市的交接");
-        if (currentUser.role === "director" && region?.director !== currentUser.name)
-          return toast("区域总监只能发起本人主管区域内的交接");
         const route = cityHandoverRoute(region);
         if (!route) return toast("当前角色不在地市交接可发起人范围内");
         const existing = pendingCityHandover(c.id);
@@ -15506,6 +15509,26 @@
         return null;
       }
 
+      function organizationRegionsForEmployee(employee) {
+        const regionIds = new Set();
+        departmentsForEmployee(employee).forEach((startingDepartment) => {
+          let department = startingDepartment;
+          const visited = new Set();
+          while (department && !visited.has(department.id)) {
+            visited.add(department.id);
+            if (department.type === "region") {
+              if (department.status === "启用")
+                regionIds.add(department.regionId);
+              break;
+            }
+            department = organizationDepartments.find(
+              (item) => item.id === department.parentId,
+            );
+          }
+        });
+        return regionsData.filter((region) => regionIds.has(region.id));
+      }
+
       function regionRequiredConfigurationIsValid(region) {
         const provinces = regionProvinceList(region);
         const validProvinces =
@@ -15570,7 +15593,76 @@
         return reasons;
       }
 
+      function renderPmCityManagement() {
+        if (!isPmCityManagementUser())
+          return forbiddenPage(
+            "地市管理",
+            "地市管理仅对当前有效角色包含 PM 的账号开放。",
+          );
+        const employee = employees.find(
+          (item) => item.name === currentUser.name && item.status === "在职",
+        );
+        const regions = organizationRegionsForEmployee(employee);
+        const heading = pageHead(
+          "地市管理",
+          "查看本人所属区域和当前负责地市，并处理本人发起的地市交接。",
+        );
+        if (!regions.length)
+          return (
+            heading +
+            '<section class="panel"><div class="empty"><div><div class="empty-icon">⌖</div><strong>暂无所属区域</strong><p class="panel-sub">当前账号尚未关联有效区域中心。</p></div></div></section>'
+          );
+        const regionSections = regions.map((region) => {
+          const department = organizationDepartments.find(
+            (item) =>
+              item.regionId === region.id &&
+              item.type === "region" &&
+              item.status === "启用",
+          );
+          const director = departmentSupervisor(department);
+          const isCurrentValidPm = regionPmEmployees(region).some(
+            (item) => item.name === currentUser.name,
+          );
+          const ownCities = isCurrentValidPm
+            ? regionCityRows(region).filter(
+                (city) => city.id && city.pm === currentUser.name,
+              )
+            : [];
+          const customerCount = ownCities.reduce(
+            (sum, city) => sum + city.customers,
+            0,
+          );
+          const contactCount = ownCities.reduce(
+            (sum, city) => sum + city.contacts,
+            0,
+          );
+          const configurationStatus = regionConfigurationStatus(region);
+          const statusTone =
+            configurationStatus === "已配置"
+              ? "green"
+              : configurationStatus === "配置异常"
+                ? "red"
+                : "yellow";
+          const rows = ownCities.map((city) => {
+            const pending = pendingCityHandover(city.id);
+            const actions = pending
+              ? `<button class="link" type="button" data-action="approval-detail" data-id="${pending.id}">查看交接</button>${canWithdrawApproval(pending) ? ` · <button class="link" type="button" data-action="withdraw-approval" data-id="${pending.id}">撤回</button>` : ""}`
+              : hasOperationPermission("regions.handover")
+                ? `<button class="link" type="button" data-action="handover-city" data-id="${city.id}">发起交接</button>`
+                : "—";
+            return `<tr><td>${city.province}</td><td><strong>${city.city}</strong></td><td>${city.effective || "—"}</td><td>${city.customers}</td><td>${city.contacts}</td><td><span class="tag green">已分配</span></td><td>${actions}</td></tr>`;
+          }).join("");
+          return `<section class="panel"><div class="panel-head"><div><div class="panel-title">${region.name}</div><div class="panel-sub">部门编码 ${department?.code || "待同步"} · 区域总监 ${director?.name || "待配置"}</div></div><div class="spacer"></div><span class="tag ${statusTone}">${configurationStatus}</span></div><div class="region-detail-summary"><div class="overview-item"><label>关联省份</label><div>${regionProvinceList(region).join("、") || "待配置"}</div></div><div class="overview-item"><label>驻地</label><div>${region.base || "待配置"}</div></div><div class="overview-item"><label>本人负责地市</label><div>${ownCities.length}</div></div><div class="overview-item"><label>地市客户</label><div>${customerCount}</div></div><div class="overview-item"><label>关键人</label><div>${contactCount}</div></div></div><div class="panel-head" style="padding:14px 0 10px"><div><div class="panel-title">本人地市</div><div class="panel-sub">仅展示本人当前有效负责地市</div></div></div><div class="table-wrap"><table style="min-width:860px"><thead><tr><th>省份</th><th>地市</th><th>负责起始时间</th><th>客户</th><th>关键人</th><th>分配状态</th><th>操作</th></tr></thead><tbody>${rows || '<tr><td colspan="7"><div class="empty">当前区域暂无本人有效负责地市</div></td></tr>'}</tbody></table></div></section>`;
+        }).join("");
+        return heading + regionSections;
+      }
+
       function renderRegions() {
+        if (isPmCityManagementUser())
+          return forbiddenPage(
+            "区域中心与地市配置",
+            "PM 请通过地市管理查看本人所属区域和本人负责地市。",
+          );
         const employee = employees.find((item) => item.name === currentUser.name);
         const employeeRegion = organizationRegionForEmployee(employee);
         const rows = ["director", "pm"].includes(currentUser.role)
@@ -16593,6 +16685,7 @@
         ["archive", "停用记录"],
         ["employees", "组织与员工"],
         ["regions", "区域中心与地市配置"],
+        ["city-management", "地市管理"],
         ["settings", "客户基础配置"],
         ["imports", "数据导入"],
       ];
@@ -16683,7 +16776,7 @@
             "approvals",
             "archive",
             "employees",
-            "regions",
+            "city-management",
             "imports",
           ],
         },
@@ -16737,7 +16830,7 @@
         { name: "经营概览", items: [["dashboard", "经营工作台", "页面访问"]] },
         { name: "客户经营", items: [["customers", "客户经营", "三栏查看 / 新增 / 维护"], ["tasks", "维系管理", "任务与记录"]] },
         { name: "协同与审批", items: [["approvals", "审批中心", "查看与处理"], ["archive", "停用记录", "查看与恢复"]] },
-        { name: "组织与配置", items: [["employees", "组织与员工", "组织、员工与异动"], ["regions", "区域中心与地市配置", "区域与地市责任"], ["settings", "客户基础配置", "配置项维护"], ["imports", "数据导入", "上传、确认与结果"]] },
+        { name: "组织与配置", items: [["employees", "组织与员工", "组织、员工与异动"], ["regions", "区域中心与地市配置", "区域与地市责任"], ["city-management", "地市管理", "PM 本人地市责任"], ["settings", "客户基础配置", "配置项维护"], ["imports", "数据导入", "上传、确认与结果"]] },
       ];
       const operationPermissionCatalog = [
         ["dashboard.view", "dashboard", "查看经营工作台"],
@@ -16762,7 +16855,7 @@
         ["archive.view", "archive", "查看停用记录"],
         ["archive.request_stop", "archive", "发起对象停用"],
         ["archive.restore", "archive", "申请恢复"],
-        ["employees.view", "employees", "查看组织与员工详情"],
+        ["employees.view", "employees", "查看组织与员工目录"],
         ["employees.view_changes", "employees", "查看人员/组织变动记录"],
         ["employees.create_department", "employees", "新增部门"],
         ["employees.set_supervisor", "employees", "设置部门主管"],
@@ -16775,7 +16868,7 @@
         ["regions.view", "regions", "查看区域配置"],
         ["regions.edit", "regions", "编辑区域业务映射"],
         ["regions.batch_assign", "regions", "批量分配地市"],
-        ["regions.handover", "regions", "发起负责人交接"],
+        ["regions.handover", "city-management", "发起负责人交接"],
         ["settings.view", "settings", "查看基础配置"],
         ["settings.edit", "settings", "维护基础配置"],
         ["imports.view", "imports", "查看导入批次"],
@@ -16813,7 +16906,7 @@
           "approvals.view", "approvals.decide", "approvals.withdraw", "approvals.transfer",
           "approvals.countersign", "approvals.append_cc",
           "archive.view", "archive.request_stop", "archive.restore",
-          "employees.view", "employees.view_changes", "regions.view", "regions.handover",
+          "employees.view", "employees.view_changes", "regions.handover",
           "imports.view", "imports.upload", "imports.confirm", "imports.download",
         ],
         "HR/人事": [
@@ -17467,6 +17560,10 @@
       }
 
       function openEmployeeDetail(index) {
+        if (!canViewEmployeeDetail()) {
+          toast("当前角色无权查看员工详情");
+          return false;
+        }
         const employee = employees[index];
         const department = departmentForEmployee(employee);
         const departments = departmentsForEmployee(employee);

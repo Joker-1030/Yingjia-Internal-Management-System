@@ -19,6 +19,26 @@
         return null;
       }
 
+      function organizationRegionsForEmployee(employee) {
+        const regionIds = new Set();
+        departmentsForEmployee(employee).forEach((startingDepartment) => {
+          let department = startingDepartment;
+          const visited = new Set();
+          while (department && !visited.has(department.id)) {
+            visited.add(department.id);
+            if (department.type === "region") {
+              if (department.status === "启用")
+                regionIds.add(department.regionId);
+              break;
+            }
+            department = organizationDepartments.find(
+              (item) => item.id === department.parentId,
+            );
+          }
+        });
+        return regionsData.filter((region) => regionIds.has(region.id));
+      }
+
       function regionRequiredConfigurationIsValid(region) {
         const provinces = regionProvinceList(region);
         const validProvinces =
@@ -83,7 +103,76 @@
         return reasons;
       }
 
+      function renderPmCityManagement() {
+        if (!isPmCityManagementUser())
+          return forbiddenPage(
+            "地市管理",
+            "地市管理仅对当前有效角色包含 PM 的账号开放。",
+          );
+        const employee = employees.find(
+          (item) => item.name === currentUser.name && item.status === "在职",
+        );
+        const regions = organizationRegionsForEmployee(employee);
+        const heading = pageHead(
+          "地市管理",
+          "查看本人所属区域和当前负责地市，并处理本人发起的地市交接。",
+        );
+        if (!regions.length)
+          return (
+            heading +
+            '<section class="panel"><div class="empty"><div><div class="empty-icon">⌖</div><strong>暂无所属区域</strong><p class="panel-sub">当前账号尚未关联有效区域中心。</p></div></div></section>'
+          );
+        const regionSections = regions.map((region) => {
+          const department = organizationDepartments.find(
+            (item) =>
+              item.regionId === region.id &&
+              item.type === "region" &&
+              item.status === "启用",
+          );
+          const director = departmentSupervisor(department);
+          const isCurrentValidPm = regionPmEmployees(region).some(
+            (item) => item.name === currentUser.name,
+          );
+          const ownCities = isCurrentValidPm
+            ? regionCityRows(region).filter(
+                (city) => city.id && city.pm === currentUser.name,
+              )
+            : [];
+          const customerCount = ownCities.reduce(
+            (sum, city) => sum + city.customers,
+            0,
+          );
+          const contactCount = ownCities.reduce(
+            (sum, city) => sum + city.contacts,
+            0,
+          );
+          const configurationStatus = regionConfigurationStatus(region);
+          const statusTone =
+            configurationStatus === "已配置"
+              ? "green"
+              : configurationStatus === "配置异常"
+                ? "red"
+                : "yellow";
+          const rows = ownCities.map((city) => {
+            const pending = pendingCityHandover(city.id);
+            const actions = pending
+              ? `<button class="link" type="button" data-action="approval-detail" data-id="${pending.id}">查看交接</button>${canWithdrawApproval(pending) ? ` · <button class="link" type="button" data-action="withdraw-approval" data-id="${pending.id}">撤回</button>` : ""}`
+              : hasOperationPermission("regions.handover")
+                ? `<button class="link" type="button" data-action="handover-city" data-id="${city.id}">发起交接</button>`
+                : "—";
+            return `<tr><td>${city.province}</td><td><strong>${city.city}</strong></td><td>${city.effective || "—"}</td><td>${city.customers}</td><td>${city.contacts}</td><td><span class="tag green">已分配</span></td><td>${actions}</td></tr>`;
+          }).join("");
+          return `<section class="panel"><div class="panel-head"><div><div class="panel-title">${region.name}</div><div class="panel-sub">部门编码 ${department?.code || "待同步"} · 区域总监 ${director?.name || "待配置"}</div></div><div class="spacer"></div><span class="tag ${statusTone}">${configurationStatus}</span></div><div class="region-detail-summary"><div class="overview-item"><label>关联省份</label><div>${regionProvinceList(region).join("、") || "待配置"}</div></div><div class="overview-item"><label>驻地</label><div>${region.base || "待配置"}</div></div><div class="overview-item"><label>本人负责地市</label><div>${ownCities.length}</div></div><div class="overview-item"><label>地市客户</label><div>${customerCount}</div></div><div class="overview-item"><label>关键人</label><div>${contactCount}</div></div></div><div class="panel-head" style="padding:14px 0 10px"><div><div class="panel-title">本人地市</div><div class="panel-sub">仅展示本人当前有效负责地市</div></div></div><div class="table-wrap"><table style="min-width:860px"><thead><tr><th>省份</th><th>地市</th><th>负责起始时间</th><th>客户</th><th>关键人</th><th>分配状态</th><th>操作</th></tr></thead><tbody>${rows || '<tr><td colspan="7"><div class="empty">当前区域暂无本人有效负责地市</div></td></tr>'}</tbody></table></div></section>`;
+        }).join("");
+        return heading + regionSections;
+      }
+
       function renderRegions() {
+        if (isPmCityManagementUser())
+          return forbiddenPage(
+            "区域中心与地市配置",
+            "PM 请通过地市管理查看本人所属区域和本人负责地市。",
+          );
         const employee = employees.find((item) => item.name === currentUser.name);
         const employeeRegion = organizationRegionForEmployee(employee);
         const rows = ["director", "pm"].includes(currentUser.role)

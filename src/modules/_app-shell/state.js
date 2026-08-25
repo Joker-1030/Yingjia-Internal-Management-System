@@ -23,6 +23,7 @@
             { id: "employees", icon: "♧", label: "组织与员工" },
             { id: "permissions", icon: "⌘", label: "权限授权" },
             { id: "regions", icon: "⌖", label: "区域中心与地市配置" },
+            { id: "city-management", icon: "⌖", label: "地市管理" },
             { id: "settings", icon: "⚙", label: "客户基础配置" },
             { id: "imports", icon: "⇧", label: "数据导入" },
           ],

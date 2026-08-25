@@ -437,6 +437,10 @@
       }
 
       function openEmployeeDetail(index) {
+        if (!canViewEmployeeDetail()) {
+          toast("当前角色无权查看员工详情");
+          return false;
+        }
         const employee = employees[index];
         const department = departmentForEmployee(employee);
         const departments = departmentsForEmployee(employee);

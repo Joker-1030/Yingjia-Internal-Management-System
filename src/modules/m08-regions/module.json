@@ -4,6 +4,7 @@
   "name": "区域中心与地市配置",
   "pages": [
     "regions",
+    "city-management",
     "region-form",
     "city-handover"
   ],

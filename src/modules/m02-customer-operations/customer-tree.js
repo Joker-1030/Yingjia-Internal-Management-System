@@ -61,7 +61,7 @@
           .join("");
       }
       function areaMultiSelectHtml(id, label, values, selectedSet) {
-        return `<div class="multi-select" style="width:170px"><button class="multi-select-trigger" id="${id}Trigger" type="button" aria-haspopup="listbox" aria-expanded="false"><span id="${id}Text">${areaSelectionLabel(selectedSet, label)}</span><span aria-hidden="true">⌄</span></button><div class="multi-select-menu hidden" id="${id}Menu"><input class="input" id="${id}Search" placeholder="搜索${label}" style="margin-bottom:6px"><div id="${id}Options">${areaOptionList(values, selectedSet)}</div></div></div>`;
+        return `<div class="multi-select" style="width:170px"><button class="multi-select-trigger" id="${id}Trigger" type="button" aria-haspopup="listbox" aria-expanded="false"><span id="${id}Text">${areaSelectionLabel(selectedSet, label)}</span><span aria-hidden="true">⌄</span></button><div class="multi-select-menu hidden" id="${id}Menu"><input class="input" id="${id}Search" placeholder="搜索${label}" style="margin-bottom:var(--space-2)"><div id="${id}Options">${areaOptionList(values, selectedSet)}</div></div></div>`;
       }
       function refreshAreaFilterUI() {
         const opts = customerFilterOptions();
@@ -113,7 +113,7 @@
           : selectedLabels.length <= 2
             ? selectedLabels.join("、")
             : `${selectedLabels.slice(0, 2).join("、")}等${selectedLabels.length}项`;
-        return `<div class="multi-select" style="width:170px"><button class="multi-select-trigger" id="${id}Trigger" type="button" aria-haspopup="listbox" aria-expanded="false" ${disabled ? "disabled" : ""} title="${disabled ? "请先选择集团公司" : label}"><span id="${id}Text">${disabled ? `请先选择${label === "关键人部门" || label === "关键人岗位" ? "集团公司" : label}` : summary}</span><span aria-hidden="true">⌄</span></button><div class="multi-select-menu hidden" id="${id}Menu"><input class="input" id="${id}Search" placeholder="搜索${label}" style="margin-bottom:6px"><div id="${id}Options">${normalized.map((option) => `<label class="multi-select-option" data-option-label="${option.label}"><input type="checkbox" value="${option.value}" ${selectedSet.has(String(option.value)) ? "checked" : ""}><span>${option.label}</span></label>`).join("") || '<div class="list-sub">暂无可选项</div>'}</div></div></div>`;
+        return `<div class="multi-select" style="width:170px"><button class="multi-select-trigger" id="${id}Trigger" type="button" aria-haspopup="listbox" aria-expanded="false" ${disabled ? "disabled" : ""} title="${disabled ? "请先选择集团公司" : label}"><span id="${id}Text">${disabled ? `请先选择${label === "关键人部门" || label === "关键人岗位" ? "集团公司" : label}` : summary}</span><span aria-hidden="true">⌄</span></button><div class="multi-select-menu hidden" id="${id}Menu"><input class="input" id="${id}Search" placeholder="搜索${label}" style="margin-bottom:var(--space-2)"><div id="${id}Options">${normalized.map((option) => `<label class="multi-select-option" data-option-label="${option.label}"><input type="checkbox" value="${option.value}" ${selectedSet.has(String(option.value)) ? "checked" : ""}><span>${option.label}</span></label>`).join("") || '<div class="list-sub">暂无可选项</div>'}</div></div></div>`;
       }
 
       function checkedFilterValues(id) {
@@ -197,14 +197,14 @@
             value: position.id,
             label: `${position.company} · ${customerDepartments.find((item) => item.id === position.departmentId)?.name || "待配置部门"} · ${position.name}`,
           }));
-        const controls = `<select class="input" id="customerTreeGroup" title="集团公司"><option value="">全部集团公司</option>${groups.map((item) => `<option ${item === group ? "selected" : ""}>${item}</option>`).join("")}</select>${customerFilterMultiSelectHtml("customerIndustryMulti", "行业", [...new Set(authorizedCustomers.map((item) => item.industry))].sort(), appliedCustomerFilter.industries)}${customerFilterMultiSelectHtml("customerLevelMulti", "公司层级", ["省公司", "市公司", "区县公司"], appliedCustomerFilter.levels)}${customerFilterMultiSelectHtml("customerPmMulti", "客户负责人", [...new Set(authorizedCustomers.map(customerOwnerName).filter(Boolean))].sort(), appliedCustomerFilter.pms)}${customerFilterMultiSelectHtml("customerDepartmentMulti", "关键人部门", groupDepartments, appliedCustomerFilter.departments, !group)}${customerFilterMultiSelectHtml("customerPositionMulti", "关键人岗位", groupPositions, appliedCustomerFilter.positions, !group)}<select class="input" id="customerDimensionCoverage" title="仅选择一个部门或岗位口径时可用"><option value="">部门/岗位覆盖</option><option value="covered" ${appliedCustomerFilter.dimensionCoverage === "covered" ? "selected" : ""}>已覆盖</option><option value="none" ${appliedCustomerFilter.dimensionCoverage === "none" ? "selected" : ""}>未覆盖</option></select>`;
-        applyButton.insertAdjacentHTML("beforebegin", controls);
+        const controls = `${filterField("集团公司", `<select class="input" id="customerTreeGroup"><option value="">全部集团公司</option>${groups.map((item) => `<option ${item === group ? "selected" : ""}>${item}</option>`).join("")}</select>`)}${filterField("行业", customerFilterMultiSelectHtml("customerIndustryMulti", "行业", [...new Set(authorizedCustomers.map((item) => item.industry))].sort(), appliedCustomerFilter.industries))}${filterField("业务责任层级", customerFilterMultiSelectHtml("customerLevelMulti", "业务责任层级", ["省级", "市级", "区县级"], appliedCustomerFilter.levels))}${filterField("客户负责人", customerFilterMultiSelectHtml("customerPmMulti", "客户负责人", [...new Set(authorizedCustomers.map(customerOwnerName).filter(Boolean))].sort(), appliedCustomerFilter.pms))}${filterField("客户部门", customerFilterMultiSelectHtml("customerDepartmentMulti", "客户部门", groupDepartments, appliedCustomerFilter.departments, !group))}${filterField("标准岗位", customerFilterMultiSelectHtml("customerPositionMulti", "标准岗位", groupPositions, appliedCustomerFilter.positions, !group))}${filterField("部门覆盖状态", `<select class="input" id="customerDepartmentCoverage"><option value="">全部覆盖状态</option><option value="covered" ${appliedCustomerFilter.departmentCoverage === "covered" ? "selected" : ""}>已覆盖</option><option value="none" ${appliedCustomerFilter.departmentCoverage === "none" ? "selected" : ""}>未覆盖</option></select>`)}${filterField("岗位覆盖状态", `<select class="input" id="customerPositionCoverage"><option value="">全部覆盖状态</option><option value="covered" ${appliedCustomerFilter.positionCoverage === "covered" ? "selected" : ""}>已覆盖</option><option value="none" ${appliedCustomerFilter.positionCoverage === "none" ? "selected" : ""}>未覆盖</option></select>`)}`;
+        applyButton.closest(".filter-actions").insertAdjacentHTML("beforebegin", controls);
         [
           ["customerIndustryMulti", "行业"],
-          ["customerLevelMulti", "公司层级"],
+          ["customerLevelMulti", "业务责任层级"],
           ["customerPmMulti", "客户负责人"],
-          ["customerDepartmentMulti", "关键人部门"],
-          ["customerPositionMulti", "关键人岗位"],
+          ["customerDepartmentMulti", "客户部门"],
+          ["customerPositionMulti", "标准岗位"],
         ].forEach(([id, label]) =>
           bindCustomerFilterMultiSelect(id, label, updateDimensionCoverageState),
         );
@@ -237,7 +237,7 @@
                 value: String(department.id),
                 label: `${department.company} · ${customerDepartmentPath(department)}`,
               })),
-            "关键人部门",
+            "客户部门",
           );
           rebuild(
             "customerPositionMulti",
@@ -247,9 +247,10 @@
                   position.status === "正常" && position.group === selectedGroup,
               )
               .map((position) => ({ value: position.id, label: `${position.company} · ${position.name}` })),
-            "关键人岗位",
+            "标准岗位",
           );
-          $("#customerDimensionCoverage").value = "";
+          $("#customerDepartmentCoverage").value = "";
+          $("#customerPositionCoverage").value = "";
           updateDimensionCoverageState();
           toast(
             selectedGroup
@@ -262,20 +263,81 @@
       }
 
       function updateDimensionCoverageState() {
-        const control = $("#customerDimensionCoverage");
-        if (!control) return;
-        const targetCount =
-          checkedFilterValues("customerDepartmentMulti").size +
-          checkedFilterValues("customerPositionMulti").size;
-        control.disabled = targetCount !== 1;
-        if (control.disabled) control.value = "";
-        control.title =
-          targetCount === 1
-            ? "按所选唯一部门或岗位判断覆盖"
-            : "请只选择一个部门或一个岗位口径";
+        [
+          ["customerDepartmentCoverage", "customerDepartmentMulti", "部门"],
+          ["customerPositionCoverage", "customerPositionMulti", "岗位"],
+        ].forEach(([controlId, multiId, label]) => {
+          const control = $("#" + controlId);
+          if (!control) return;
+          const targetCount = checkedFilterValues(multiId).size;
+          control.disabled = targetCount !== 1;
+          if (control.disabled) control.value = "";
+          control.title = targetCount === 1
+            ? `按所选唯一${label}判断覆盖`
+            : `请只选择一个${label}口径`;
+        });
+      }
+
+      function customerOrganizationTreeRows(all) {
+        const peopleByCompany = new Map(
+          all.map((company) => [
+            company.id,
+            scopedContacts().filter(
+              (person) =>
+                contactIsActive(person) && person.company === company.name,
+            ),
+          ]),
+        );
+        const companyRow = (company, groupCompanies, depth = 1) => {
+          const children = groupCompanies
+            .filter(
+              (candidate) =>
+                candidate.organizationParentType === "company" &&
+                candidate.organizationParentCompanyId === company.id,
+            )
+            .sort((a, b) => a.name.localeCompare(b.name, "zh-CN"));
+          const key = `company-org:${company.id}`;
+          const expanded = expandedCustomerNodes.has(key);
+          const people = peopleByCompany.get(company.id) || [];
+          let html = `<div class="customer-tree-row level-company ${selectedCustomerId === company.id ? "active" : ""}" style="padding-left:${10 + depth * 18}px" data-search="${company.name}${adminArea(company)}${company.industry}" data-area="${adminArea(company)}" data-group="${company.group}" data-company-name="${company.name}" data-pm="${customerOwnerName(company)}" data-people="${people.map((person) => person.name).join(" ")}" data-people-phone="${people.map((person) => person.phone).join(" ")}" data-people-count="${people.length}" data-overdue="${customerHasOverdue(company)}"><button class="tree-toggle" data-customer-toggle="${key}" ${children.length ? "" : "disabled"}>${children.length ? (expanded ? "▾" : "▸") : "·"}</button><button class="tree-action customer-tree-label" data-customer-select="${company.id}" title="${company.name}">${company.name}</button><span class="customer-contact-count" title="${people.length} 名有效关键人">${people.length}</span><span class="tag blue">${customerBusinessResponsibilityLevel(company)}</span></div>`;
+          if (expanded)
+            children.forEach((child) => {
+              html += companyRow(child, groupCompanies, depth + 1);
+            });
+          return html;
+        };
+        const groups = [...new Set(all.map((customer) => customer.group))];
+        return groups
+          .map((group) => {
+            const groupCompanies = all.filter(
+              (customer) => customer.group === group,
+            );
+            const roots = groupCompanies.filter(
+              (company) =>
+                company.organizationParentType !== "company" ||
+                !groupCompanies.some(
+                  (candidate) =>
+                    candidate.id === company.organizationParentCompanyId,
+                ),
+            );
+            const groupKey = `group:${group}`;
+            const expanded = expandedCustomerNodes.has(groupKey);
+            let html = `<div class="customer-tree-row level-group ${selectedCustomerGroup === group && !selectedCustomerId ? "active" : ""}"><button class="tree-toggle" data-customer-toggle="${groupKey}">${expanded ? "▾" : "▸"}</button><button class="tree-action customer-tree-label" data-operation-group="${group}" title="查看${group}全部关键人">${group}</button><span class="tree-count">${groupCompanies.length}</span></div>`;
+            if (expanded)
+              roots
+                .sort((a, b) => a.name.localeCompare(b.name, "zh-CN"))
+                .forEach((company) => {
+                  html += companyRow(company, groupCompanies);
+                });
+            return html;
+          })
+          .join("");
       }
 
       function customerTreeRows(all) {
+        return customerOrganizationTreeRows(all);
+        /* Historical area-derived renderer retained below only as fixture
+           compatibility evidence; the active group view returns above. */
         const hasOverdueTask = (company) => customerHasOverdue(company);
         const groups = [...new Set(all.map((customer) => customer.group))];
         return groups
@@ -388,7 +450,7 @@
       }
 
       function customerRegionTreeRows(all) {
-        const levelOrder = { 省公司: 0, 市公司: 1, 区县公司: 2 };
+        const levelOrder = { 省级: 0, 市级: 1, 区县级: 2 };
         const regions = [...new Set(all.map(customerRegionLabel))];
         return regions
           .map((regionName) => {
@@ -403,11 +465,11 @@
             let html = `<div class="customer-tree-row level-group ${regionActive ? "active" : ""}"><button class="tree-toggle" data-customer-toggle="${regionKey}">${regionExpanded ? "▾" : "▸"}</button><button class="tree-action customer-tree-label" data-operation-region="${regionName}" title="查看${regionName}全部关键人">${regionName}</button><span class="tree-count">${regionCustomers.length}</span></div>`;
             if (!regionExpanded) return html;
             const provinces = [
-              ...new Set(regionCustomers.map((company) => company.province)),
+              ...new Set(regionCustomers.map(customerBusinessProvince)),
             ].filter(Boolean);
             provinces.forEach((province) => {
               const provinceCustomers = regionCustomers.filter(
-                (company) => company.province === province,
+                (company) => customerBusinessProvince(company) === province,
               );
               const provinceKey = `operation-province:${regionName}:${province}`;
               const provinceExpanded = expandedCustomerNodes.has(provinceKey);
@@ -436,12 +498,12 @@
                   .slice()
                   .sort(
                     (a, b) =>
-                      (levelOrder[a.level] ?? 9) -
-                        (levelOrder[b.level] ?? 9) ||
+                      (levelOrder[customerBusinessResponsibilityLevel(a)] ?? 9) -
+                        (levelOrder[customerBusinessResponsibilityLevel(b)] ?? 9) ||
                       a.name.localeCompare(b.name, "zh-CN"),
                   )
                   .forEach((company) => {
-                    html += `<div class="customer-tree-row level-company ${selectedCustomerId === company.id ? "active" : ""}"><span class="tree-toggle">·</span><button class="tree-action customer-tree-label" data-customer-select="${company.id}" title="${company.name}">${company.name}</button><span class="tag ${company.level === "省公司" ? "blue" : ""}">${company.level}</span></div>`;
+                    html += `<div class="customer-tree-row level-company ${selectedCustomerId === company.id ? "active" : ""}"><span class="tree-toggle">·</span><button class="tree-action customer-tree-label" data-customer-select="${company.id}" title="${company.name}">${company.name}</button><span class="tag ${customerBusinessResponsibilityLevel(company) === "省级" ? "blue" : ""}">${customerBusinessResponsibilityLevel(company)}</span></div>`;
                   });
               });
             });
@@ -456,7 +518,7 @@
         const people = scopedContacts().filter(
           (person) => person.company === customer.name,
         );
-        return `<div class="customer-company-head"><div class="customer-company-head-main"><div class="customer-company-name">${customer.name}</div><div class="customer-company-path">${customer.group} · ${customer.level} · ${adminArea(customer)}</div></div>${healthTag(customerHealth(customer))}</div><div class="customer-company-summary"><div class="overview-item"><label>行业</label><div>${customer.industry}</div></div><div class="overview-item"><label>客户负责人</label><div>${customerOwnerName(customer)}</div></div><div class="overview-item"><label>执行安排</label><div>${customer.level === "省公司" ? "区域总监直接执行全部任务" : "地市负责人 PM 直接执行"}</div></div></div><div class="panel-head" style="padding:10px 0"><div><div class="panel-title">关键人</div><div class="panel-sub">部门与关键人岗位属于当前任职，变更需调岗审批</div></div><div class="spacer"></div>${canMaintainContactForCompany(customer) ? `<button class="btn btn-primary" data-action="add-contact" data-id="${customer.id}">＋ 新增关键人</button>` : ""}</div><div class="table-wrap"><table><thead><tr><th>关键人</th><th>关键人岗位 / 部门</th><th>职级</th><th>采购决策</th><th>联系方式</th><th>状态</th><th>操作</th></tr></thead><tbody>${people.map((person) => `<tr><td><div class="person"><div class="avatar">${person.name[0]}</div><strong>${person.name}</strong></div><div class="list-sub">${person.code}</div></td><td>${person.positionName}<div class="list-sub">${person.department} · ${person.title}</div></td><td><span class="tag blue">${person.level}</span></td><td>${person.decision ? '<span class="tag orange">是</span>' : "否"}</td><td>${person.phone}<div class="list-sub">微信 ${person.wechat || "未填写"}</div></td><td>${healthTag(contactHasOverdue(person) ? "逾期" : "健康")}</td><td><span class="link" data-person="${person.id}">查看</span>${canMaintainContact(person) ? ` · <span class="link" data-action="edit-contact" data-id="${person.id}">编辑</span>` : ""}${canTransferContact(person) ? ` · <span class="link" data-action="transfer" data-id="${person.id}">调岗</span>` : ""}</td></tr>`).join("") || '<tr><td colspan="7"><div class="empty">该公司尚未维护关键人</div></td></tr>'}</tbody></table></div>`;
+        return `<div class="customer-company-head"><div class="customer-company-head-main"><div class="customer-company-name">${customer.name}</div><div class="customer-company-path">${customerOrganizationPath(customer)} · 业务责任 ${customerBusinessResponsibilityLevel(customer)} / ${adminArea(customer)}</div></div>${healthTag(customerHealth(customer))}</div><div class="customer-company-summary"><div class="overview-item"><label>行业</label><div>${customer.industry}</div></div><div class="overview-item"><label>客户负责人</label><div>${customerOwnerName(customer)}</div></div><div class="overview-item"><label>执行安排</label><div>${customerBusinessResponsibilityLevel(customer) === "省级" ? "区域总监直接执行全部任务" : "地市负责人 PM 直接执行"}</div></div></div><div class="panel-head" style="padding:var(--space-3) 0"><div><div class="panel-title">关键人</div><div class="panel-sub">部门与关键人岗位属于当前任职，变更需调岗审批</div></div><div class="spacer"></div>${canMaintainContactForCompany(customer) ? `<button class="btn btn-primary" data-action="add-contact" data-id="${customer.id}">＋ 新增关键人</button>` : ""}</div><div class="table-wrap"><table><thead><tr><th>关键人</th><th>关键人岗位 / 部门</th><th>职级</th><th>采购决策</th><th>联系方式</th><th>状态</th><th>操作</th></tr></thead><tbody>${people.map((person) => `<tr><td><div class="person"><div class="avatar">${person.name[0]}</div><strong>${person.name}</strong></div><div class="list-sub">${person.code}</div></td><td>${person.positionName}<div class="list-sub">${person.department} · ${person.title}</div></td><td><span class="tag blue">${person.level}</span></td><td>${person.decision ? '<span class="tag blue">是</span>' : "否"}</td><td>${person.phone}<div class="list-sub">微信 ${person.wechat || "未填写"}</div></td><td>${healthTag(contactHasOverdue(person) ? "逾期" : "健康")}</td><td><span class="link" data-person="${person.id}">查看</span>${canMaintainContact(person) ? ` · <span class="link" data-action="edit-contact" data-id="${person.id}">编辑</span>` : ""}${canTransferContact(person) ? ` · <span class="link" data-action="transfer" data-id="${person.id}">调岗</span>` : ""}</td></tr>`).join("") || '<tr><td colspan="7"><div class="empty">该公司尚未维护关键人</div></td></tr>'}</tbody></table></div>`;
       }
 
       function renderCustomers() {
@@ -483,7 +545,7 @@
         return (
           pageHead(
             "客户档案",
-            "按集团、省公司、市公司和区县公司折叠浏览，选中公司后直接查看档案与关键人。",
+            "按集团和显式组织上级折叠浏览；按区域时使用业务责任省、市、区县聚合。",
             `<button class="btn" data-action="add-contact">＋ 新增关键人</button>`,
           ) +
           `<section class="panel customer-workspace"><div class="toolbar" id="customerFilterToolbar" style="flex-wrap:wrap"><input class="input" id="customerTreeName" placeholder="客户名称" style="width:150px"><input class="input" id="customerTreePersonName" placeholder="关键人名称" style="width:150px"><select class="input" id="customerTreeIndustry"><option value="">全部行业</option>${industries
@@ -491,7 +553,7 @@
             .map((x) => `<option>${x.name}</option>`)
             .join(
               "",
-            )}</select><input class="input" id="customerTreePersonPhone" placeholder="关键人手机号" style="width:170px"><select class="input" id="customerTreePm"><option value="">全部客户负责人</option>${pmOptions.map((pm) => `<option>${pm}</option>`).join("")}</select>${areaMultiSelectHtml("customerAreaProvince", "省份", filterOptions.provinces, customerAreaFilter.provinces)}${areaMultiSelectHtml("customerAreaCity", "城市", filterOptions.cities, customerAreaFilter.cities)}${areaMultiSelectHtml("customerAreaDistrict", "区县", filterOptions.districts, customerAreaFilter.districts)}<button class="btn btn-primary" id="applyCustomerFilter" type="button">筛选</button><button class="btn" id="clearAreaFilter" type="button">重置</button><span class="spacer"></span><span class="tag blue">${scopeLabel}</span></div><div class="master-detail"><aside class="master-pane"><div class="master-pane-head"><div class="panel-title">客户公司层级</div></div><div class="master-list" id="customerTree">${customerTreeRows(all) || '<div class="empty">当前范围暂无演示客户</div>'}</div></aside><div class="detail-pane customer-detail-pane">${selected ? `<div class="customer-detail-body">${customerMasterDetail(selected)}</div><div class="customer-detail-foot">${stopObjectActionHtml("customer", selected.id)}</div>` : `<div class="customer-detail-body">${customerMasterDetail(selected)}</div>`}</div></div></section>`
+            )}</select><input class="input" id="customerTreePersonPhone" placeholder="关键人手机号" style="width:170px"><select class="input" id="customerTreePm"><option value="">全部客户负责人</option>${pmOptions.map((pm) => `<option>${pm}</option>`).join("")}</select>${areaMultiSelectHtml("customerAreaProvince", "业务责任省份", filterOptions.provinces, customerAreaFilter.provinces)}${areaMultiSelectHtml("customerAreaCity", "业务责任城市", filterOptions.cities, customerAreaFilter.cities)}${areaMultiSelectHtml("customerAreaDistrict", "业务责任区县", filterOptions.districts, customerAreaFilter.districts)}<button class="btn" id="applyCustomerFilter" type="button">筛选</button><button class="btn" id="clearAreaFilter" type="button">重置</button><span class="spacer"></span><span class="tag blue">${scopeLabel}</span></div><div class="master-detail"><aside class="master-pane"><div class="master-pane-head"><div class="panel-title">客户公司</div></div><div class="master-list" id="customerTree">${customerTreeRows(all) || '<div class="empty">当前范围暂无演示客户</div>'}</div></aside><div class="detail-pane customer-detail-pane">${selected ? `<div class="customer-detail-body">${customerMasterDetail(selected)}</div><div class="customer-detail-foot">${stopObjectActionHtml("customer", selected.id)}</div>` : `<div class="customer-detail-body">${customerMasterDetail(selected)}</div>`}</div></div></section>`
         );
       }
 
@@ -503,7 +565,30 @@
           (person) => person.company === customer.name,
         );
         openDrawer(
-          `<div class="drawer-head"><div class="modal-title">客户单位详情</div><button class="icon-btn close" data-close title="关闭详情链">×</button></div><div class="drawer-body"><div class="detail-hero customer-drawer-hero"><div class="avatar">企</div><div><div class="detail-name">${customer.name}</div><div class="detail-sub">${customer.group} · ${customer.level} · ${adminArea(customer)}</div></div><div class="spacer"></div>${pendingStopApproval("customer", customer.id) ? '<span class="tag yellow">停用审批中</span>' : healthTag(customerHealth(customer))}${customer.responsibilityAnomaly ? '<span class="tag red">责任配置异常</span>' : ""}</div><div class="company-overview customer-drawer-overview"><div class="overview-item"><label>集团公司</label><div>${customer.group}</div></div><div class="overview-item"><label>行业</label><div>${customer.industry}</div></div><div class="overview-item"><label>公司层级</label><div>${customer.level}</div></div><div class="overview-item"><label>完整行政区划</label><div>${adminArea(customer)}</div></div><div class="overview-item"><label>区域中心</label><div>${customerRegionLabel(customer)}</div></div><div class="overview-item"><label>客户负责人</label><div>${customerOwnerName(customer)}</div></div><div class="overview-item"><label>有效关键人</label><div>${people.length} 人</div></div><div class="overview-item"><label>写入来源 / 创建时间</label><div>${customer.source === "import" ? "批量导入" : "手工录入"} · ${customer.createdAt || "2026-01-01 09:00"}</div></div></div>${customer.responsibilityAnomaly ? `<div class="role-note danger-note">${customer.responsibilityAnomalyReason || "当前负责人无法按区域或地市责任解析，系统已停止生成无执行人的新任务。"}</div>` : ""}<div class="customer-drawer-section-head"><div class="section-title">关键人</div><span class="tag blue">${people.length} 人</span></div><div class="customer-drawer-contacts">${people.map((person) => `<div class="customer-drawer-contact"><div class="avatar">${person.name[0]}</div><div class="list-main"><div class="list-title">${person.name} · ${person.title}${person.decision ? ' <span class="tag orange">关键决策人</span>' : ""}${contactHasOverdue(person) ? ' <span class="tag red">当前逾期</span>' : ""}</div><div class="list-sub">${person.department} · ${person.positionName} · ${person.level}</div></div>${options.limitContacts ? '<span class="list-sub">下钻止于客户单位详情，查看关键人请返回客户经营</span>' : `<button class="link" data-person="${person.id}">查看详情</button>`}</div>`).join("") || '<div class="role-note">暂无关键人。</div>'}</div></div><div class="drawer-foot">${stopObjectActionHtml("customer", customer.id)}${canMaintainContactForCompany(customer) && !pendingStopApproval("customer", customer.id) ? `<button class="btn btn-primary" data-action="add-contact" data-id="${customer.id}">新增关键人</button>` : ""}</div>`,
+          `<div class="drawer-head"><div class="modal-title">客户单位详情</div><button class="icon-btn close" data-close title="关闭详情链">×</button></div><div class="drawer-body"><div class="detail-hero customer-drawer-hero"><div class="avatar">企</div><div><div class="detail-name">${customer.name}</div><div class="detail-sub">${customer.group} · ${customer.level} · ${adminArea(customer)}</div></div><div class="spacer"></div>${healthTag(customerHealth(customer))}${customer.responsibilityAnomaly ? '<span class="tag red">责任配置异常</span>' : ""}</div><div class="company-overview customer-drawer-overview"><div class="overview-item"><label>集团公司</label><div>${customer.group}</div></div><div class="overview-item"><label>行业</label><div>${customer.industry}</div></div><div class="overview-item"><label>公司层级</label><div>${customer.level}</div></div><div class="overview-item"><label>完整行政区划</label><div>${adminArea(customer)}</div></div><div class="overview-item"><label>区域中心</label><div>${customerRegionLabel(customer)}</div></div><div class="overview-item"><label>客户负责人</label><div>${customerOwnerName(customer)}</div></div><div class="overview-item"><label>有效关键人</label><div>${people.length} 人</div></div><div class="overview-item"><label>写入来源 / 创建时间</label><div>${customer.source === "import" ? "批量导入" : "手工录入"} · ${customer.createdAt || "2026-01-01 09:00"}</div></div></div>${customer.responsibilityAnomaly ? `<div class="role-note danger-note">${customer.responsibilityAnomalyReason || "当前负责人无法按区域或地市责任解析，系统已停止生成无执行人的新任务。"}</div>` : ""}<div class="customer-drawer-section-head"><div class="section-title">关键人</div><span class="tag blue">${people.length} 人</span></div><div class="customer-drawer-contacts">${people.map((person) => `<div class="customer-drawer-contact"><div class="avatar">${person.name[0]}</div><div class="list-main"><div class="list-title">${person.name} · ${person.title}${person.decision ? ' <span class="tag blue">关键决策人</span>' : ""}${contactHasOverdue(person) ? ' <span class="tag red">当前逾期</span>' : ""}</div><div class="list-sub">${person.department} · ${person.positionName} · ${person.level}</div></div>${options.limitContacts ? '<span class="list-sub">下钻止于客户单位详情，查看关键人请返回客户经营</span>' : `<button class="link" data-person="${person.id}">查看详情</button>`}</div>`).join("") || '<div class="role-note">暂无关键人。</div>'}</div></div><div class="drawer-foot">${stopObjectActionHtml("customer", customer.id)}${canMaintainContactForCompany(customer) && !pendingStopApproval("customer", customer.id) ? `<button class="btn btn-primary" data-action="add-contact" data-id="${customer.id}">新增关键人</button>` : ""}</div>`,
         );
+        const drawer = $("#drawer");
+        const subtitle = drawer?.querySelector(".customer-drawer-hero .detail-sub");
+        if (subtitle)
+          subtitle.textContent = `${customerOrganizationPath(customer)} · 业务责任 ${customerBusinessResponsibilityLevel(customer)} / ${adminArea(customer)}`;
+        const overview = drawer?.querySelector(".customer-drawer-overview");
+        const fields = [...(overview?.querySelectorAll(".overview-item") || [])];
+        const levelField = fields.find(
+          (field) => field.querySelector("label")?.textContent === "公司层级",
+        );
+        if (levelField) {
+          levelField.querySelector("label").textContent = "组织上级";
+          levelField.querySelector("div").textContent =
+            customerOrganizationParent(customer)?.name || customer.group;
+        }
+        const areaField = fields.find(
+          (field) => field.querySelector("label")?.textContent === "完整行政区划",
+        );
+        if (areaField) {
+          areaField.querySelector("label").textContent = "业务责任省/市/区县";
+          areaField.insertAdjacentHTML(
+            "beforebegin",
+            `<div class="overview-item"><label>业务责任层级</label><div>${customerBusinessResponsibilityLevel(customer)}</div></div>`,
+          );
+        }
       }
-

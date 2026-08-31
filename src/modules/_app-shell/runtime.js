@@ -1,4 +1,72 @@
       const $ = (s) => document.querySelector(s);
+      function filterField(label, control, className = "") {
+        return `<label class="filter-field ${className}"><span class="filter-label">${label}</span>${control}</label>`;
+      }
+      function filterActions(actions) {
+        return `<div class="filter-actions">${actions}</div>`;
+      }
+
+      function enhanceUnifiedFilterPresentation() {
+        const wrap = (id, label) => {
+          const control = $("#" + id);
+          if (!control || control.closest(".filter-field")) return;
+          control.insertAdjacentHTML(
+            "beforebegin",
+            `<label class="filter-field" data-filter-host="${id}"><span class="filter-label">${label}</span></label>`,
+          );
+          control.previousElementSibling.appendChild(control);
+        };
+        const split = (id, fields) => {
+          const control = $("#" + id);
+          if (!control) return;
+          control.insertAdjacentHTML(
+            "beforebegin",
+            fields.map(([fieldId, label]) => filterField(label, `<input class="input" id="${fieldId}" maxlength="100">`)).join(""),
+          );
+          control.remove();
+        };
+
+        split("approvalSearch", [["approvalCode", "流程编号"], ["approvalObjectName", "业务对象名称"]]);
+        split("archiveSearch", [["archiveObjectName", "对象名称"], ["archiveGroup", "所属集团"]]);
+        split("employeeSearch", [["employeeName", "员工姓名"], ["employeeCode", "工号"], ["employeePhoneSuffix", "手机号后四位"]]);
+        split("permissionRoleSearch", [["permissionRoleName", "角色名称"], ["permissionRoleCode", "角色编码"]]);
+        split("permissionTreeSearch", [["permissionMenuSearch", "菜单/页面权限名称"], ["permissionOperationSearch", "操作权限名称"], ["permissionFieldSearch", "字段权限名称"], ["permissionAttachmentSearch", "附件权限名称"]]);
+        split("regionSearch", [["regionName", "区域名称"], ["regionDepartmentCode", "部门编码"], ["regionDirector", "区域总监"]]);
+        split("regionCityKeyword", [["regionCityName", "城市"], ["regionCityPmName", "PM 姓名"], ["regionCityPmCode", "PM 工号"]]);
+        split("regionPmKeyword", [["regionPmName", "PM 姓名"], ["regionPmCode", "PM 工号"]]);
+        split("industryConfigKeyword", [["industryConfigName", "行业名称"], ["industryConfigCode", "行业编码"]]);
+        split("importSearch", [["importBatchCode", "批次编号"], ["importFileName", "文件名"]]);
+
+        [
+          ["approvalType", "业务类型"], ["approvalApplicant", "申请人"], ["approvalHandler", "当前处理人"], ["approvalStatus", "审批实例状态"], ["approvalStartDate", "发起开始日期"], ["approvalEndDate", "发起结束日期"], ["approvalCompletedStart", "完成开始日期"], ["approvalCompletedEnd", "完成结束日期"],
+          ["archiveType", "对象类型"], ["archiveStatus", "业务状态"], ["archiveApprovalStatus", "审批状态"], ["archiveApplicant", "申请人"], ["archiveRegion", "所属区域"], ["archiveApplyStart", "申请开始日期"], ["archiveApplyEnd", "申请结束日期"], ["archiveEffectiveStart", "生效开始日期"], ["archiveEffectiveEnd", "生效结束日期"],
+          ["employeeRole", "系统角色"], ["employeeStatus", "员工状态"], ["employeeAccountStatus", "账号状态"],
+          ["regionProvinceFilter", "省份"], ["regionCityProvince", "省份"], ["regionCityStatus", "分配状态"],
+          ["ruleConfigKeyword", "规则名称"], ["ruleConfigType", "规则类型"], ["ruleConfigStatus", "状态"], ["industryConfigStatus", "状态"],
+          ["importTemplateType", "模板类型"], ["importStatusSelect", "批次状态"], ["importCreator", "创建人"], ["importStartDate", "创建开始日期"], ["importEndDate", "创建结束日期"], ["importException", "异常情况"],
+        ].forEach(([id, label]) => wrap(id, label));
+        document.querySelectorAll(".filter-field").forEach((field) =>
+          field.closest(".toolbar")?.classList.add("filter-toolbar"),
+        );
+        document.querySelectorAll(".permission-workspace .section-title").forEach((title) => {
+          const section = title.textContent.includes("菜单")
+            ? "menu"
+            : title.textContent.includes("操作")
+              ? "operation"
+              : title.textContent.includes("字段")
+                ? "field"
+                : title.textContent.includes("附件")
+                  ? "attachment"
+                  : "";
+          if (!section) return;
+          let sibling = title.nextElementSibling;
+          while (sibling && !sibling.classList.contains("section-title")) {
+            if (sibling.classList.contains("permission-tree-group"))
+              sibling.dataset.permissionSection = section;
+            sibling = sibling.nextElementSibling;
+          }
+        });
+      }
       function validateAttachmentFiles(fileList, required = false) {
         const files = Array.from(fileList || []);
         const allowed = new Set([
@@ -64,6 +132,9 @@
         if (page === "city-management")
           return isPmCityManagementUser() && hasPermission(page);
         if (page === "regions" && isPmCityManagementUser()) return false;
+        if (page === "project-detail") return hasPermission("projects");
+        if (page === "project-create") return hasPermission("projects");
+        if (page === "project-edit") return hasPermission("projects");
         return hasPermission(page);
       };
       const hasOperationPermission = (operation) =>
@@ -96,7 +167,13 @@
               .map((x) => x.city)
           : [];
       const adminArea = (c) =>
-        [c.province, c.city, c.district].filter(Boolean).join(" / ");
+        [
+          customerBusinessProvince(c),
+          customerBusinessCity(c),
+          customerBusinessDistrict(c),
+        ]
+          .filter(Boolean)
+          .join(" / ");
       const regionScopeName = (region) => {
         if (region?.scope) return region.scope;
         const name = String(region?.name || "").trim();
@@ -853,13 +930,40 @@
         selectedOperationRegionGroup = "";
         selectedOperationCustomerId = null;
         selectedOperationContactId = null;
+        selectedCustomerOrgNode = "";
+        selectedCustomerOrgInternalNode = "";
+        customerOrgCompanyTab = "organization";
+        Object.assign(customerOrgNavFilters, {
+          industryName: "",
+          groupNumber: "",
+          groupName: "",
+          companyName: "",
+          industryCode: "",
+          creditCode: "",
+          industry: "",
+          group: "",
+        });
+        customerOrgNavFilters.levels.clear();
+        customerOrgNavFilters.statuses.clear();
+        Object.assign(customerOrgInternalFilters, {
+          departmentName: "",
+          departmentCode: "",
+          positionName: "",
+          positionCode: "",
+        });
+        customerOrgInternalFilters.statuses.clear();
+        customerOrgLoadLimits.clear();
         customerAreaFilter.provinces.clear();
         customerAreaFilter.cities.clear();
         customerAreaFilter.districts.clear();
         appliedCustomerFilter = {
           group: "",
-          name: "",
+          groupNumber: "",
+          groupName: "",
+          companyName: "",
+          personCode: "",
           personName: "",
+          personWechat: "",
           industries: new Set(),
           levels: new Set(),
           personPhone: "",
@@ -868,7 +972,8 @@
           departments: new Set(),
           positions: new Set(),
           customPosition: "",
-          dimensionCoverage: "",
+          departmentCoverage: "",
+          positionCoverage: "",
           provinces: new Set(),
           cities: new Set(),
           districts: new Set(),
@@ -930,10 +1035,10 @@
             );
             if (!items.length) return "";
             return `<div class="nav-group"><div class="nav-title">${g.title}</div>${items
-              .map((i) => {
-                const badge = navBadge(i.id);
-                return `<button class="nav-item ${currentPage === i.id ? "active" : ""}" data-page="${i.id}" title="${i.label}"><span class="nav-icon">${i.icon}</span><span>${i.label}</span>${badge ? `<span class="nav-badge">${badge}</span>` : ""}</button>`;
-              })
+              .map(
+                (i) =>
+                  `<button class="nav-item ${currentPage === i.id ? "active" : ""}" data-page="${i.id}" title="${i.label}"><span class="nav-icon">${i.icon}</span><span>${i.label}</span></button>`,
+              )
               .join("")}</div>`;
           })
           .join("");
@@ -960,18 +1065,6 @@
             }),
         );
       }
-      function navBadge(page) {
-        if (page === "tasks" && roleCanSeeBusiness())
-          return scopedTasks().filter((t) =>
-            ["pending", "overdue"].includes(t.status),
-          ).length;
-        if (page === "approvals") {
-          const count = approvalsForView("pending").length;
-          return count || "";
-        }
-        return "";
-      }
-
       const pageNames = {
         dashboard: "工作台",
         operations: "客户经营",
@@ -985,6 +1078,12 @@
         "city-management": "地市管理",
         settings: "客户基础配置",
         imports: "数据导入",
+        projects: "项目管理",
+        "project-detail": "项目详情",
+        "project-create": "创建项目",
+        "project-edit": "编辑项目",
+        packages: "采购包管理",
+        "platform-companies": "平台公司管理",
       };
       function renderPage() {
         normalizeTaskStates();
@@ -1021,6 +1120,12 @@
           "city-management": renderPmCityManagement,
           settings: renderSettings,
           imports: renderImports,
+          projects: renderProjects,
+          "project-detail": renderProjectDetail,
+          "project-create": renderProjectCreate,
+          "project-edit": renderProjectEdit,
+          packages: renderProjectPackages,
+          "platform-companies": renderPlatformCompanies,
         };
         $("#content").innerHTML = (renderers[currentPage] || renderDashboard)();
         if (pageChanged) $("#content").scrollTop = 0;

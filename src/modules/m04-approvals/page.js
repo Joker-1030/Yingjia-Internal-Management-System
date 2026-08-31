@@ -111,7 +111,8 @@
 
       function bindApprovalFilters() {
         const controls = [
-          "#approvalSearch",
+          "#approvalCode",
+          "#approvalObjectName",
           "#approvalType",
           "#approvalApplicant",
           "#approvalHandler",
@@ -124,7 +125,8 @@
         if (!controls[0]) return;
         const apply = () => {
           const [
-            search,
+            code,
+            objectName,
             type,
             applicant,
             handler,
@@ -136,8 +138,11 @@
           ] = controls.map((control) => control.value.trim());
           document.querySelectorAll("#approvalBody tr[data-search]").forEach(
             (row) => {
+              const approvalId = row.querySelector('[data-action="approval-detail"]')?.dataset.id;
+              const approval = approvals.find((item) => String(item.id) === String(approvalId));
               const visible =
-                (!search || row.dataset.search.includes(search)) &&
+                (!code || String(approval?.code || "").includes(code)) &&
+                (!objectName || String(approval?.title || "").includes(objectName)) &&
                 (!type || row.dataset.type === type) &&
                 (!applicant || row.dataset.applicant === applicant) &&
                 (!handler ||
@@ -162,4 +167,3 @@
           apply();
         };
       }
-

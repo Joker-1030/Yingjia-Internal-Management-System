@@ -1,7 +1,10 @@
       const FULL_IMPORT_TEMPLATE = "客户主数据全量模板";
       const CONTACT_IMPORT_TEMPLATE = "关键人模板";
+      const PROJECT_IMPORT_TEMPLATE = "项目模板";
       const FULL_IMPORT_VERSION = "CUSTOMER_MASTER_IMPORT_V1_5";
       const CONTACT_IMPORT_VERSION = "CONTACT_IMPORT_V1_5";
+      const PROJECT_IMPORT_VERSION = "初始化期当前版本";
+      let projectImportInitializationOpen = true;
       const IMPORT_BATCH_STATUSES = [
         "已上传",
         "预校验中",
@@ -33,6 +36,48 @@
           createdAt: "2026-08-17 13:40",
           finishedAt: "2026-08-17 14:18",
           resultAvailable: true,
+          groupResultRows: [
+            {
+              row: 2,
+              result: "成功（创建）",
+              success: 1,
+              objectId: "",
+              businessNumber: "CG00000006",
+              errorCode: "",
+              reason: "集团创建成功",
+              suggestion: "无需处理",
+            },
+            {
+              row: 3,
+              result: "成功（匹配存量）",
+              success: 1,
+              objectId: "",
+              businessNumber: "CG00000001",
+              errorCode: "",
+              reason: "匹配存量集团",
+              suggestion: "无需处理",
+            },
+            {
+              row: 4,
+              result: "成功（匹配存量）",
+              success: 1,
+              objectId: "",
+              businessNumber: "CG00000002",
+              errorCode: "",
+              reason: "匹配存量集团",
+              suggestion: "无需处理",
+            },
+            {
+              row: 5,
+              result: "跳过",
+              success: 0,
+              objectId: "",
+              businessNumber: "",
+              errorCode: "IMP-DUP-001",
+              reason: "集团名称或统一社会信用代码疑似重复",
+              suggestion: "核对存量集团后重新上传",
+            },
+          ],
           sheets: [
             importSheet("集团公司", 3, 1, 0, 0, 3),
             importSheet("地市负责人", 2, 1, 1, 0, 2),
@@ -169,3 +214,119 @@
         return batch;
       }
       importBatches.forEach(normalizeImportBatch);
+
+      function importAccountKey(account) {
+        const username = String(account?.username || "").trim();
+        if (username) return `username:${username}`;
+        const phone = String(account?.phone || "").trim();
+        return phone ? `phone:${phone}` : "";
+      }
+      function importBatchCreatorAccount(batch) {
+        if (batch?.createdByAccount) {
+          return accounts.find(
+            (account) => importAccountKey(account) === batch.createdByAccount,
+          );
+        }
+        return accounts.find((account) => account.name === batch?.user) || null;
+      }
+      function importBatchCreatorKey(batch) {
+        return (
+          batch?.createdByAccount ||
+          importAccountKey(importBatchCreatorAccount(batch)) ||
+          (batch?.userCode ? `employee:${batch.userCode}` : "")
+        );
+      }
+      function importCurrentRegionScope(account = currentUser) {
+        if (!account) return "";
+        if (account.role === "director") {
+          return regionScopeName(regionForName(account.region)) || account.region || "";
+        }
+        if (account.role === "pm") {
+          const owner = cityOwners.find((item) => item.pm === account.name);
+          const region = owner
+            ? regionsData.find((item) =>
+                regionProvinceList(item).includes(owner.province),
+              )
+            : null;
+          return region ? regionScopeName(region) : "";
+        }
+        return account.fullAccess ? "公司全局" : "";
+      }
+      function importBatchRegionScope(batch) {
+        return (
+          batch?.regionScope ||
+          importCurrentRegionScope(importBatchCreatorAccount(batch)) ||
+          ""
+        );
+      }
+      function isProjectImportBatch(batch) {
+        return batch?.templateType === PROJECT_IMPORT_TEMPLATE;
+      }
+      function canAccessImportBatch(batch, account = currentUser) {
+        if (!batch || !account) return false;
+        if (account.fullAccess) return true;
+        const sameCreator =
+          importBatchCreatorKey(batch) === importAccountKey(account);
+        if (account.role === "pm") return sameCreator;
+        if (account.role !== "director") return false;
+        if (!isProjectImportBatch(batch)) return sameCreator;
+        return regionsMatch(importBatchRegionScope(batch), account.region);
+      }
+      function canConfirmImportBatch(batch, account = currentUser) {
+        if (!canAccessImportBatch(batch, account)) return false;
+        return (
+          account.fullAccess ||
+          importBatchCreatorKey(batch) === importAccountKey(account)
+        );
+      }
+      function visibleImportBatches(account = currentUser) {
+        return importBatches
+          .filter((batch) => canAccessImportBatch(batch, account))
+          .slice()
+          .sort(
+            (left, right) =>
+              right.createdAt.localeCompare(left.createdAt) ||
+              right.id.localeCompare(left.id),
+          );
+      }
+      function importTemplateTypesForAccount(account = currentUser) {
+        if (!account) return [];
+        const templates = [];
+        if (account.fullAccess) templates.push(FULL_IMPORT_TEMPLATE);
+        if (account.fullAccess || ["director", "pm"].includes(account.role))
+          templates.push(CONTACT_IMPORT_TEMPLATE);
+        if (
+          projectImportInitializationOpen &&
+          (account.fullAccess || ["director", "pm"].includes(account.role))
+        )
+          templates.push(PROJECT_IMPORT_TEMPLATE);
+        return templates;
+      }
+      function importTemplateVersion(templateType) {
+        if (templateType === FULL_IMPORT_TEMPLATE) return FULL_IMPORT_VERSION;
+        if (templateType === CONTACT_IMPORT_TEMPLATE)
+          return CONTACT_IMPORT_VERSION;
+        if (templateType === PROJECT_IMPORT_TEMPLATE)
+          return PROJECT_IMPORT_VERSION;
+        return "";
+      }
+      function importScopeText(templateType, account = currentUser) {
+        if (account?.fullAccess) return "公司全局";
+        if (templateType === PROJECT_IMPORT_TEMPLATE) {
+          return account?.role === "director"
+            ? `${account.name}负责的省级客户项目`
+            : `${account?.name || "当前用户"}负责的市/区县客户项目`;
+        }
+        return account?.role === "director"
+          ? `${account.name}负责的省级客户`
+          : `${account?.name || "当前用户"}负责的市/区县客户`;
+      }
+      function nextImportBatchId() {
+        const prefix = `IMP-${DEMO_TODAY.replaceAll("-", "")}-`;
+        const sequences = importBatches
+          .filter((batch) => batch.id.startsWith(prefix))
+          .map((batch) => Number(batch.id.slice(prefix.length)))
+          .filter(Number.isFinite);
+        const next = (sequences.length ? Math.max(...sequences) : 0) + 1;
+        return `${prefix}${String(next).padStart(2, "0")}`;
+      }

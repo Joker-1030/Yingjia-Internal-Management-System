@@ -133,6 +133,39 @@
         };
       }
 
+      function captureOrganizationMutationState() {
+        const lists = [
+          employees,
+          accounts,
+          organizationDepartments,
+          regionsData,
+          cityOwners,
+          customers,
+          contacts,
+          tasks,
+          maintenanceRecords,
+          approvals,
+          projects,
+          organizationChanges,
+        ];
+        return {
+          lists: lists.map((list) => [list, [...list]]),
+          objects: [...new Set(lists.flat())]
+            .filter(Boolean)
+            .map((item) => [item, JSON.parse(JSON.stringify(item))]),
+        };
+      }
+
+      function restoreOrganizationMutationState(state) {
+        state.objects.forEach(([item, snapshot]) => {
+          Object.keys(item).forEach((key) => delete item[key]);
+          Object.assign(item, snapshot);
+        });
+        state.lists.forEach(([list, snapshot]) => {
+          list.splice(0, list.length, ...snapshot);
+        });
+      }
+
       function openOrganizationDepartmentForm(id) {
         if (
           !canEmployeeAction(
@@ -222,79 +255,128 @@
             const oldParent = department.parentId;
             const oldSupervisorCode = department.supervisorCode;
             const oldType = department.type;
-            Object.assign(department, {
-              name,
-              code,
-              parentId,
-              status,
-              supervisorCode,
-              sort,
-              type: isRegion ? "region" : "department",
-              updatedAt: recordCreatedAt(),
-            });
-            if (oldName !== name)
-              employees
-                .filter((employee) => employeeDepartmentNames(employee).includes(oldName))
-                .forEach((employee) =>
-                  setEmployeeDepartments(
-                    employee,
-                    employeeDepartmentNames(employee).map((item) =>
-                      item === oldName ? name : item,
-                    ),
-                  ),
-                );
             const oldSupervisor = employeeByCode(oldSupervisorCode);
-            if (
-              oldSupervisor &&
+            const oldSupervisorName = oldSupervisor?.name || "";
+            const newSupervisorName = supervisor?.name || "";
+            const organizationChangeId = `OC-${Date.now()}`;
+            const effectiveAt = recordCreatedAt();
+            const shouldTransferDirectorProjects =
               oldType === "region" &&
-              (!isRegion || oldSupervisorCode !== supervisorCode)
-            ) {
-              removeAutomaticRegionDirectorRole(oldSupervisor, department.id);
-              oldSupervisor.updatedAt = recordCreatedAt();
-              syncEmployeeAccount(oldSupervisor);
-            }
-            if (supervisor) {
-              ensureEmployeeDepartment(supervisor, name);
-              if (isRegion)
-                addAutomaticRegionDirectorRole(supervisor, department.id);
-              supervisor.updatedAt = recordCreatedAt();
-              syncEmployeeAccount(supervisor);
-            }
-            if (isRegion) {
-              syncOrganizationRegions();
-              const region = regionsData.find(
-                (item) => item.id === department.regionId,
-              );
-              if (region)
-                syncRegionDirectorChange(
-                  region,
-                  employees.find((item) => item.code === oldSupervisorCode)?.name || "",
-                  oldName,
+              isRegion &&
+              status === "启用" &&
+              oldSupervisorCode !== supervisorCode &&
+              Boolean(linkedRegion);
+            const projectTransferPlan = shouldTransferDirectorProjects
+              ? prepareProjectResponsibilityTransfer({
+                  kind: "region_director",
+                  region: linkedRegion,
+                  fromOwner: oldSupervisorName,
+                  toOwner: newSupervisorName,
+                })
+              : null;
+            if (projectTransferPlan && !projectTransferPlan.ok)
+              return toast(projectTransferPlan.error);
+            const mutationState = captureOrganizationMutationState();
+            let projectTransferResult = null;
+            try {
+              Object.assign(department, {
+                name,
+                code,
+                parentId,
+                status,
+                supervisorCode,
+                sort,
+                type: isRegion ? "region" : "department",
+                updatedAt: effectiveAt,
+              });
+              if (oldName !== name)
+                employees
+                  .filter((employee) => employeeDepartmentNames(employee).includes(oldName))
+                  .forEach((employee) =>
+                    setEmployeeDepartments(
+                      employee,
+                      employeeDepartmentNames(employee).map((item) =>
+                        item === oldName ? name : item,
+                      ),
+                    ),
+                  );
+              if (projectTransferPlan) {
+                projectTransferResult = applyProjectResponsibilityTransfer(
+                  projectTransferPlan,
+                  {
+                    effectiveAt,
+                    operator: currentUser.name,
+                    referenceId: organizationChangeId,
+                    referenceType: "区域中心主管变更",
+                    reason: "区域中心主管变更",
+                  },
                 );
-            } else if (oldType === "region" && linkedRegion) {
-              const index = regionsData.indexOf(linkedRegion);
-              if (index >= 0) regionsData.splice(index, 1);
-              delete department.regionId;
+                if (!projectTransferResult.ok)
+                  throw new Error(projectTransferResult.error);
+              }
+              if (
+                oldSupervisor &&
+                oldType === "region" &&
+                (!isRegion || oldSupervisorCode !== supervisorCode)
+              ) {
+                removeAutomaticRegionDirectorRole(oldSupervisor, department.id);
+                oldSupervisor.updatedAt = effectiveAt;
+                syncEmployeeAccount(oldSupervisor);
+              }
+              if (supervisor) {
+                ensureEmployeeDepartment(supervisor, name);
+                if (isRegion)
+                  addAutomaticRegionDirectorRole(supervisor, department.id);
+                supervisor.updatedAt = effectiveAt;
+                syncEmployeeAccount(supervisor);
+              }
+              if (isRegion) {
+                syncOrganizationRegions();
+                const region = regionsData.find(
+                  (item) => item.id === department.regionId,
+                );
+                if (region)
+                  syncRegionDirectorChange(
+                    region,
+                    oldSupervisorName,
+                    oldName,
+                  );
+              } else if (oldType === "region" && linkedRegion) {
+                const index = regionsData.indexOf(linkedRegion);
+                if (index >= 0) regionsData.splice(index, 1);
+                delete department.regionId;
+              }
+              recordOrganizationChange({
+                id: organizationChangeId,
+                date: projectTransferPlan ? effectiveAt : DEMO_TODAY,
+                actualEffectiveAt: effectiveAt,
+                object: name,
+                type:
+                  status === "停用"
+                    ? "组织停用"
+                    : oldParent !== parentId
+                      ? "部门移动"
+                      : oldSupervisorCode !== supervisorCode
+                        ? "主管变更"
+                        : oldType !== department.type
+                          ? "区域中心标记变更"
+                        : oldName !== name
+                          ? "部门改名"
+                          : "组织编辑",
+                detail: `${oldName} → ${name}；主管：${newSupervisorName || "待设置"}`,
+                operator: currentUser.name,
+                status: "已生效",
+                migratedProjectIds: projectTransferResult?.projectIds || [],
+              });
+            } catch (error) {
+              restoreOrganizationMutationState(mutationState);
+              renderPage();
+              return toast(
+                projectTransferPlan
+                  ? "区域总监及项目责任迁移失败，原组织与项目责任保持不变"
+                  : "组织架构更新失败，未产生部分结果",
+              );
             }
-            recordOrganizationChange({
-              date: DEMO_TODAY,
-              object: name,
-              type:
-                status === "停用"
-                  ? "组织停用"
-                  : oldParent !== parentId
-                    ? "部门移动"
-                    : oldSupervisorCode !== supervisorCode
-                      ? "主管变更"
-                      : oldType !== department.type
-                        ? "区域中心标记变更"
-                      : oldName !== name
-                      ? "部门改名"
-                      : "组织编辑",
-              detail: `${oldName} → ${name}；主管：${employees.find((item) => item.code === supervisorCode)?.name}`,
-              operator: currentUser.name,
-              status: "已生效",
-            });
           } else {
             const newDepartment = {
               id: Date.now(),
@@ -362,7 +444,7 @@
             approvalCurrentAssignees(approval).includes(employee.name),
         );
         openModal(
-          `<div class="modal-head"><div class="modal-title">确认员工${mode}</div><button class="icon-btn close" data-close>×</button></div><form id="employeeStatusForm"><div class="modal-body"><div class="role-note ${mode === "停用" ? "danger-note" : ""}"><strong>${employee.name} · ${employee.code}</strong><br>本操作由 HR/admin 直接生效，不创建审批、WF 编号、待办或抄送。</div>${mode === "停用" ? `<div class="impact-summary"><div class="impact-grid"><div><label>将清空主管部门</label><strong>${managedDepartments.length}</strong></div><div><label>将清空地市责任</label><strong>${ownedCities.length}</strong></div><div><label>保留未完成任务</label><strong>${openTasks.length}</strong></div><div><label>保留当前审批节点</label><strong>${activeApprovals.length}</strong></div></div></div><div class="role-note">停用不做待办校验或交接。部门成员和系统角色保留；现有任务不关闭、不清空、不改派，现有审批节点不自动改派。</div>` : `<div class="role-note">恢复后继续保留原部门成员和系统角色；此前清空的主管、区域/地市及客户当前责任不会自动恢复。</div>`}<div class="form-group"><label class="form-label">${mode}原因 *</label><textarea class="input" id="esReason" minlength="5" maxlength="500" required></textarea></div></div><div class="modal-foot"><button class="btn" type="button" data-close>取消</button><button class="btn ${mode === "停用" ? "btn-danger" : "btn-primary"}" type="submit">确认并立即${mode}</button></div></form>`,
+          `<div class="modal-head"><div class="modal-title">确认员工${mode}</div><button class="icon-btn close" data-close>×</button></div><form id="employeeStatusForm"><div class="modal-body"><div class="role-note ${mode === "停用" ? "danger-note" : ""}"><strong>${employee.name} · ${employee.code}</strong><br>本操作由 HR/admin 直接生效，不创建审批、WF 编号、待办或抄送。</div>${mode === "停用" ? `<div class="impact-summary"><div class="impact-grid"><div><label>将清空主管部门</label><strong>${managedDepartments.length}</strong></div><div><label>将清空地市责任</label><strong>${ownedCities.length}</strong></div><div><label>将取消未完成任务</label><strong>${openTasks.length}</strong></div><div><label>保留当前审批节点</label><strong>${activeApprovals.length}</strong></div></div></div><div class="role-note">停用不做待办校验或交接。部门成员、系统角色、当前审批实例和员工名下项目保留；处理人失效节点按既有规则暂停，全部未完成任务直接取消，项目不取消或自动迁移。</div>` : `<div class="role-note">恢复后继续保留原部门成员和系统角色；已取消任务不恢复，此前清空的主管、区域/地市及客户当前责任不会自动恢复。</div>`}<div class="form-group"><label class="form-label">${mode}原因 *</label><textarea class="input" id="esReason" minlength="5" maxlength="500" required></textarea></div></div><div class="modal-foot"><button class="btn" type="button" data-close>取消</button><button class="btn ${mode === "停用" ? "btn-danger" : "btn-primary"}" type="submit">确认并立即${mode}</button></div></form>`,
         );
         $("#employeeStatusForm").onsubmit = (event) => {
           event.preventDefault();
@@ -370,43 +452,121 @@
           if (reason.length < 5 || reason.length > 500)
             return toast(`${mode}原因需填写 5-500 字`);
           const changedAt = recordCreatedAt();
-          if (mode === "停用") {
-            managedDepartments.forEach((department) => {
-              department.supervisorCode = "";
-              if (department.type === "region")
-                removeAutomaticRegionDirectorRole(employee, department.id);
-            });
-            cityOwners
-              .filter((item) => item.pm === employee.name)
-              .forEach((item) => (item.pm = ""));
-            customers
-              .filter((customer) => customer.owner === employee.name || customer.pm === employee.name)
-              .forEach((customer) => {
-                if (customer.owner === employee.name) customer.owner = "";
-                if (customer.pm === employee.name) customer.pm = "";
+          const changeId = `PC-${Date.now()}`;
+          const tasksToCancel =
+            mode === "停用"
+              ? tasks.filter(
+                  (task) =>
+                    task.pm === employee.name &&
+                    !["done", "cancelled"].includes(task.status),
+                )
+              : [];
+          const projectsToPreserve =
+            mode === "停用"
+              ? projects.filter(
+                  (project) =>
+                    project.stage !== "已取消" &&
+                    projectCurrentOwner(project) === employee.name,
+                )
+              : [];
+          const mutationTargets = [
+            ...new Set([
+              ...employees,
+              ...accounts,
+              ...organizationDepartments,
+              ...regionsData,
+              ...cityOwners,
+              ...customers,
+              ...approvals,
+              ...tasksToCancel,
+              ...projectsToPreserve,
+            ]),
+          ].filter(Boolean);
+          const mutationSnapshots = mutationTargets.map((target) => [
+            target,
+            JSON.parse(JSON.stringify(target)),
+          ]);
+          const accountCount = accounts.length;
+          const regionCount = regionsData.length;
+          try {
+            if (mode === "停用") {
+              managedDepartments.forEach((department) => {
+                department.supervisorCode = "";
               });
-            activeApprovals.forEach((approval) => {
-              approval.status = "paused_invalid_handler";
-              approval.invalidHandler = employee.name;
-              approval.invalidatedAt = changedAt;
-              approval.invalidReason = "当前处理人已被 HR/admin 直接停用，账号与会话立即失效。";
-              approval.replacementRule = "由 admin 按原节点操作权限和对象范围受控选择替换人。";
+              ownedCities.forEach((item) => (item.pm = ""));
+              customers
+                .filter(
+                  (customer) =>
+                    customer.owner === employee.name ||
+                    customer.pm === employee.name,
+                )
+                .forEach((customer) => {
+                  if (customer.owner === employee.name) customer.owner = "";
+                  if (customer.pm === employee.name) customer.pm = "";
+                });
+              tasksToCancel.forEach((task) => {
+                task.statusBeforeCancellation = task.status;
+                task.status = "cancelled";
+                task.closeReason = reason;
+                task.closedAt = changedAt;
+                task.updatedAt = changedAt;
+                task.cancelledBy = currentUser.name;
+                task.cancellationSource = "employee_deactivation";
+                task.employeeStopRecordId = changeId;
+                task.employeeStopEmployeeCode = employee.code;
+                task.employeeStopEmployeeName = employee.name;
+              });
+              projectsToPreserve.forEach((project) => {
+                const preservedOwner = projectCurrentOwner(project);
+                project.currentOwner = preservedOwner;
+                project.responsibilityHistory = [
+                  ...(project.responsibilityHistory || []),
+                  {
+                    type: "employee_deactivation_preserved",
+                    fromOwner: preservedOwner,
+                    toOwner: preservedOwner,
+                    area: projectArea(project),
+                    effectiveAt: changedAt,
+                    operator: currentUser.name,
+                    referenceId: changeId,
+                    reason,
+                  },
+                ];
+              });
+              activeApprovals.forEach((approval) => {
+                approval.status = "paused_invalid_handler";
+                approval.invalidHandler = employee.name;
+                approval.invalidatedAt = changedAt;
+                approval.invalidReason =
+                  "当前处理人已被 HR/admin 直接停用，账号与会话立即失效。";
+                approval.replacementRule =
+                  "由 admin 按原节点操作权限和对象范围受控选择替换人。";
+              });
+              employee.status = "停用";
+              employee.accountStatus = "停用";
+              employee.scope = "已停用";
+              employee.suspendedAt = changedAt;
+            } else {
+              employee.status = "在职";
+              employee.accountStatus = "启用";
+            }
+            employee.updatedAt = changedAt;
+            syncEmployeeAccount(employee);
+            syncOrganizationRegions();
+            syncPmEmployeeScopes();
+            initAccounts();
+          } catch (error) {
+            mutationSnapshots.forEach(([target, snapshot]) => {
+              Object.keys(target).forEach((key) => delete target[key]);
+              Object.assign(target, snapshot);
             });
-            employee.status = "停用";
-            employee.accountStatus = "停用";
-            employee.scope = "已停用";
-            employee.suspendedAt = changedAt;
-          } else {
-            employee.status = "在职";
-            employee.accountStatus = "启用";
+            accounts.splice(accountCount);
+            regionsData.splice(regionCount);
+            renderPage();
+            return toast(`员工${mode}失败，未产生部分结果`);
           }
-          employee.updatedAt = changedAt;
-          syncEmployeeAccount(employee);
-          syncOrganizationRegions();
-          syncPmEmployeeScopes();
-          initAccounts();
           const change = {
-            id: `PC-${Date.now()}`,
+            id: changeId,
             employeeCode: employee.code,
             employeeName: employee.name,
             type: mode,
@@ -425,14 +585,18 @@
             handover: [],
             impactSummary:
               mode === "停用"
-                ? `清空主管 ${managedDepartments.length} 个、地市责任 ${ownedCities.length} 个；保留未完成任务 ${openTasks.length} 条、当前审批节点 ${activeApprovals.length} 个`
-                : "恢复账号；已清空责任不自动恢复",
+                ? `清空主管 ${managedDepartments.length} 个、地市责任 ${ownedCities.length} 个；取消未完成任务 ${tasksToCancel.length} 条；保留项目 ${projectsToPreserve.length} 个、当前审批节点 ${activeApprovals.length} 个`
+                : "恢复账号；已取消任务和已清空责任不自动恢复",
           };
           personnelChanges.unshift(change);
           closeOverlay();
           employeeView = "changes";
           renderPage();
-          toast(`员工${mode}已立即生效，未创建审批或待办`);
+          toast(
+            mode === "停用"
+              ? `员工停用已立即生效，已取消 ${tasksToCancel.length} 条未完成任务`
+              : "员工恢复已立即生效，已取消任务不恢复",
+          );
         };
       }
 

@@ -10,14 +10,20 @@ git@github.com:Joker-1030/Yingjia-Internal-Management-System.git
 target branch = main
 ```
 
-The Company Git remote remains configured only for historical reference:
+The Company Git remote remains configured as the company-side mirror endpoint:
 
 ```text
-company = Disabled / No Sync
+company = Company-side mirror / No direct local sync
 ssh://git@code.gaizee.cn:3222/qinyong/Yingjia-Internal-Management-System.git
 ```
 
-Do not fetch, pull, push, synchronize, or release to `company` unless the Product Owner explicitly changes this policy again. Repository-local `remote.pushDefault` must be `origin`, but that setting never grants Push authorization.
+The current relationship is:
+
+```text
+Local Workspace -> filtered GitHub origin/main -> Gaizee Git mirror acquired by the company side
+```
+
+Gaizee mirror acquisition is outside this repository's local Push pipeline. Do not fetch, pull, push, synchronize, or release directly to `company` unless the Product Owner explicitly changes this policy again. Repository-local `remote.pushDefault` must be `origin`, but that setting never grants Push authorization.
 
 The repository has two distinct content scopes:
 
@@ -72,11 +78,57 @@ Generated artifacts must match their maintained source before publication.
 
 ### Minimum engineering infrastructure
 
-- `README.md`, `.gitignore`, and `package.json`
+- `README.md`, `docs/PROJECT_OVERVIEW.md`, `.gitignore`, and `package.json`
 - required build/check scripts
 - this policy, publish manifest, candidate builder, checker, and read-only workflow
 
 Adding another GitHub path requires a reviewed change to both this policy and the manifest. Directory growth does not automatically expand the mirror.
+
+### Chinese change description
+
+Every GitHub publish commit and release/update description uses Chinese by default and is generated from the actual candidate Diff, accepted PRD/Decision, Task, and CODEX Review. Use a subject such as `<类型>：<中文变更摘要>`.
+
+面向 GitHub 阅读者的正文优先帮助其回答“这次修订了什么”和“去哪里查看完整内容”，固定按以下顺序组织：
+
+1. `修订摘要`：列出修订日期、实际变化和涉及模块，不复述内部执行过程。
+2. `修订记录`：列出总 PRD 及每个直接受影响模块 PRD 的准确仓库路径，并说明查看同一日期的修订记录行。
+3. `详细内容`：列出承载完整规则的模块 PRD、Decision、Acceptance、User Flow、Shared 或 Product Boundary 路径；未受影响的来源不凑数。
+4. `Prototype / Source`：仅在可见 Demo 或维护源发生变化时列出 `demo/prototype.html`、`src/` 中的实际入口和 Source/Artifact 状态。
+5. `涉及模块`、`任务`、`审核`：保留必要的模块范围、Task ID、CODEX Review 和 Publish Check 结论；内部 Task/Result 文件不得因为说明需要而进入 GitHub 候选。
+
+推荐格式：
+
+```text
+<类型>：<中文变更摘要>
+
+修订摘要：
+• <YYYY-MM-DD>：<跨模块变化摘要>
+
+修订记录：
+• 全局：prd-workspace/current/PRD.md（查看 <YYYY-MM-DD> 修订记录）
+• Mxx：prd-workspace/current/modules/<module>.md（查看同日模块修订记录）
+
+详细内容：
+• 产品规则：<module PRD path>
+• 产品决策：prd-workspace/decisions/<decision>.md
+• 验收口径：prd-workspace/current/acceptance/<module>.md
+• 用户流程：<仅在本次实际变化时列出>
+• Prototype：demo/prototype.html（仅在本次实际变化时列出）
+
+涉及模块：
+• <Mxx 模块名>
+
+任务：
+• <TASK-ID>
+
+审核：
+• CODEX Review：PASS
+• Publish Check：PASS
+```
+
+总 PRD 的修订记录是跨模块摘要，模块 PRD 的同日修订记录是模块级摘要，完整产品规则仍以模块正文及其引用的 Current Decision、Acceptance、Flow、Shared 和 Product Boundary 为准。GitHub README 必须持续提供这些入口，发布说明应写准确路径，不使用“详见文档”“相关内容已更新”等无法定位的表述。
+
+Do not publish a vague `sync`、`update`、`publish` or `baseline` message without actual content. Do not invent changes for unchanged files, and do not expose prompts, internal AI conversations, reasoning, or implementation-agent narration. Minimal Task/Review provenance may remain where required for traceability.
 
 ## 5. Content Never Published Automatically
 

@@ -64,7 +64,7 @@
         const selectedLevels = new Set(ruleLevelValues(r));
         const selectedHolidayIds = new Set(r?.holidayIds || []);
         openModal(
-          `<div class="modal-head"><div class="modal-title">编辑自动任务规则（预置）</div><button class="icon-btn close" data-close>×</button></div><form id="ruleForm"><div class="modal-body"><div class="section-title">触发来源</div><div class="form-grid"><div class="form-group"><label class="form-label">规则类型 *</label><select class="input" id="ruleType" disabled><option value="birthday" ${r?.type !== "holiday" ? "selected" : ""}>生日关怀</option><option value="holiday" ${r?.type === "holiday" ? "selected" : ""}>节假日关怀</option></select></div><div class="form-group"><label class="form-label">规则名称 *</label><input class="input" id="ruleName" minlength="2" maxlength="100" value="${r?.name || ""}" required></div><div class="form-group full" id="ruleHolidayGroup"><label class="form-label">关联节假日 * <span class="panel-sub">下拉多选；只有选中的节假日生成任务</span></label><select class="input" id="ruleHolidaySelect"><option value="">从下拉中选择节假日添加…</option>${holidayCalendar.holidays.filter((holiday) => !selectedHolidayIds.has(holiday.id)).map((holiday) => `<option value="${holiday.id}">${holiday.name} · ${holiday.year} · ${holiday.startDate} 至 ${holiday.endDate}</option>`).join("")}</select><div id="ruleHolidayTags" style="margin-top:8px;display:flex;flex-wrap:wrap;gap:6px"></div></div></div><div class="section-title">目标与时点</div><div class="form-grid"><div class="form-group full"><label class="form-label">适用职级 *</label><div class="checkbox-grid">${["一级", "二级", "三级", "四级"].map((level) => `<label class="check-row"><input type="checkbox" data-rule-level value="${level}" ${selectedLevels.has(level) ? "checked" : ""}><span>${level}</span></label>`).join("")}</div></div><div class="form-group"><label class="form-label">提前生成（天） *</label><input class="input" id="ruleLead" type="number" min="0" max="60" value="${r?.lead ?? 7}" required></div><div class="form-group"><label class="form-label">截止时间</label><input class="input" value="事件日当天 23:59:59（固定）" disabled></div><div class="form-group full"><label class="form-label">站内提醒节点 * <span class="panel-sub">至少选择 1 项</span></label><div class="choice-grid" id="ruleReminderChoices"></div></div><div class="form-group"><label class="form-label">允许逾期补完成</label><input class="input" value="否（固定）" disabled><div class="list-sub">生日/节假日任务越过截止即记录曾经逾期并进入已过期未完成，不可开启</div></div></div><div class="section-title">任务内容</div><div class="form-grid"><div class="form-group full"><label class="form-label">任务标题模板 *</label><input class="input" id="ruleTitle" minlength="2" maxlength="100" value="${r?.title || "【{{事件名称}}关怀】{{关键人姓名}}"}" required></div><div class="form-group full"><label class="form-label">执行要求 *</label><textarea class="input" id="ruleContent" minlength="5" maxlength="1000" required>${r?.content || "完成客户关怀并记录沟通结果。"}</textarea></div></div></div><div class="modal-foot"><button class="btn" type="button" data-close>取消</button><button class="btn btn-primary" type="submit">保存并启用</button></div></form>`,
+          `<div class="modal-head"><div class="modal-title">编辑自动任务规则（预置）</div><button class="icon-btn close" data-close>×</button></div><form id="ruleForm"><div class="modal-body"><div class="section-title">触发来源</div><div class="form-grid"><div class="form-group"><label class="form-label">规则类型 *</label><select class="input" id="ruleType" disabled><option value="birthday" ${r?.type !== "holiday" ? "selected" : ""}>生日关怀</option><option value="holiday" ${r?.type === "holiday" ? "selected" : ""}>节假日关怀</option></select></div><div class="form-group"><label class="form-label">规则名称 *</label><input class="input" id="ruleName" minlength="2" maxlength="100" value="${r?.name || ""}" required></div><div class="form-group full" id="ruleHolidayGroup"><label class="form-label">关联节假日 * <span class="panel-sub">下拉多选；只有选中的节假日生成任务</span></label><select class="input" id="ruleHolidaySelect"><option value="">从下拉中选择节假日添加…</option>${holidayCalendar.holidays.filter((holiday) => !selectedHolidayIds.has(holiday.id)).map((holiday) => `<option value="${holiday.id}">${holiday.name} · ${holiday.year} · ${holiday.startDate} 至 ${holiday.endDate}</option>`).join("")}</select><div id="ruleHolidayTags" style="margin-top:var(--space-2);display:flex;flex-wrap:wrap;gap:var(--space-2)"></div></div></div><div class="section-title">目标与时点</div><div class="form-grid"><div class="form-group full"><label class="form-label">适用职级 *</label><div class="checkbox-grid">${["一级", "二级", "三级", "四级"].map((level) => `<label class="check-row"><input type="checkbox" data-rule-level value="${level}" ${selectedLevels.has(level) ? "checked" : ""}><span>${level}</span></label>`).join("")}</div></div><div class="form-group"><label class="form-label">提前生成（天） *</label><input class="input" id="ruleLead" type="number" min="0" max="60" value="${r?.lead ?? 7}" required></div><div class="form-group"><label class="form-label">截止时间</label><input class="input" value="事件日当天 23:59:59（固定）" disabled></div><div class="form-group full"><label class="form-label">站内提醒节点 * <span class="panel-sub">至少选择 1 项</span></label><div class="choice-grid" id="ruleReminderChoices"></div></div><div class="form-group"><label class="form-label">允许逾期补完成</label><input class="input" value="否（固定）" disabled><div class="list-sub">生日/节假日任务越过截止即记录曾经逾期并进入已过期未完成，不可开启</div></div></div><div class="section-title">任务内容</div><div class="form-grid"><div class="form-group full"><label class="form-label">任务标题模板 *</label><input class="input" id="ruleTitle" minlength="2" maxlength="100" value="${r?.title || "【{{事件名称}}关怀】{{关键人姓名}}"}" required></div><div class="form-group full"><label class="form-label">执行要求 *</label><textarea class="input" id="ruleContent" minlength="5" maxlength="1000" required>${r?.content || "完成客户关怀并记录沟通结果。"}</textarea></div></div></div><div class="modal-foot"><button class="btn" type="button" data-close>取消</button><button class="btn btn-primary" type="submit">保存并启用</button></div></form>`,
         );
         const refresh = () => {
           const birthday = $("#ruleType").value === "birthday";
@@ -82,7 +82,7 @@
                     (item) => item.id === holidayId,
                   );
                   return holiday
-                    ? `<span class="tag blue" style="display:inline-flex;align-items:center;gap:4px">${holiday.name} · ${holiday.year} · ${holiday.startDate}<button type="button" class="link" data-rule-holiday-remove value="${holiday.id}" style="padding:0 2px">×</button></span>`
+                    ? `<span class="tag blue" style="display:inline-flex;align-items:center;gap:var(--space-1)">${holiday.name} · ${holiday.year} · ${holiday.startDate}<button type="button" class="link" data-rule-holiday-remove value="${holiday.id}" style="padding:0 var(--space-1)">×</button></span>`
                     : "";
                 })
                 .join("") || '<span class="list-sub">尚未选择节假日</span>';
@@ -134,7 +134,7 @@
             .map((day) => {
               const label = day === 0 ? "截止日" : `提前 ${day} 天`;
               const disabled = day > lead;
-              return `<label class="choice-item" ${disabled ? 'style="background:var(--soft);color:var(--muted);border-color:#e4e9e6;cursor:not-allowed" title="超过当前提前生成天数，不可选择"' : ""}><input type="checkbox" data-rule-reminder value="${day}" ${reminderSet.has(day) ? "checked" : ""} ${disabled ? "disabled" : ""}><span>${label}</span></label>`;
+              return `<label class="choice-item" ${disabled ? 'style="background:var(--color-disabled);color:var(--color-text-disabled);border-color:var(--color-border);cursor:not-allowed" title="超过当前提前生成天数，不可选择"' : ""}><input type="checkbox" data-rule-reminder value="${day}" ${reminderSet.has(day) ? "checked" : ""} ${disabled ? "disabled" : ""}><span>${label}</span></label>`;
             })
             .join("");
         };
@@ -293,12 +293,22 @@
         if (!hasOperationPermission("settings.edit"))
           return toast("当前角色仅可查看客户基础配置");
         const position = contactPositionCatalog.find((item) => item.id === id);
-        const [selectedType, selectedId] = selectedCustomerOrgNode.split(":");
+        const [selectedType, selectedId] = (
+          selectedCustomerOrgInternalNode || selectedCustomerOrgNode
+        ).split(":");
+        const contextPosition =
+          !position && selectedType === "position"
+            ? contactPositionCatalog.find((item) => item.id === selectedId)
+            : null;
         const contextDepartment =
           position
             ? customerDepartments.find(
                 (item) => item.id === position.departmentId,
               )
+            : contextPosition
+              ? customerDepartments.find(
+                  (item) => item.id === contextPosition.departmentId,
+                )
             : selectedType === "department"
               ? customerDepartments.find(
                   (item) => String(item.id) === selectedId,
@@ -421,6 +431,7 @@
             )
           )
             return toast("该客户部门下已存在同名岗位");
+          let savedPosition = position;
           if (position) {
             Object.assign(position, {
               group: company.group,
@@ -445,7 +456,7 @@
                   (item) => Number(String(item.code).match(/(\d+)$/)?.[1]) || 0,
                 ),
               ) + 1;
-            contactPositionCatalog.push({
+            savedPosition = {
               id: `POS-${Date.now()}`,
               group: company.group,
               company: company.name,
@@ -456,8 +467,11 @@
               sort: Number($("#contactPositionSort").value),
               status: "正常",
               updatedAt: recordCreatedAt(),
-            });
+            };
+            contactPositionCatalog.push(savedPosition);
           }
+          selectedCustomerOrgInternalNode = `position:${savedPosition.id}`;
+          expandedCustomerOrgNodes.add(`department:${department.id}`);
           closeOverlay();
           renderPage();
           toast(`标准岗位“${name}”已保存`);
@@ -477,7 +491,7 @@
         const references = contactPositionReferences(position);
         if (references.people.length || references.kpis.length) {
           openModal(
-            `<div class="modal-head"><div class="modal-title">无法停用标准岗位</div><button class="icon-btn close" data-close>×</button></div><div class="modal-body"><div class="role-note" style="border-color:#fecaca;background:#fff7f7"><strong>${position.group} / ${position.name}</strong> 仍有有效引用，不能通过替代岗位批量改写。</div><div class="metrics" style="grid-template-columns:repeat(2,1fr)">${metric("当前关键人任职", references.people.length, "须逐人调岗审批", references.people.length ? "red" : "")}${metric("进行中覆盖 KPI", references.kpis.length, "须等待或结束专项", references.kpis.length ? "red" : "")}</div><div class="section-title">阻断明细</div>${references.people.map((person) => `<div class="list-row"><div class="avatar">${person.name[0]}</div><div class="list-main"><div class="list-title">${person.name}</div><div class="list-sub">${person.company} · ${person.department}</div></div><span class="tag red">任职引用</span></div>`).join("")}${references.kpis.map((campaign) => `<div class="list-row"><div class="avatar">KPI</div><div class="list-main"><div class="list-title">${campaign.code} · ${campaign.name}</div><div class="list-sub">${campaign.startDate} 至 ${campaign.endDate}</div></div><span class="tag red">${campaign.status}</span></div>`).join("")}</div><div class="modal-foot"><button class="btn btn-primary" data-close>知道了</button></div>`,
+            `<div class="modal-head"><div class="modal-title">无法停用标准岗位</div><button class="icon-btn close" data-close>×</button></div><div class="modal-body"><div class="role-note" style="border-color:var(--color-error-border);background:var(--color-error-soft)"><strong>${position.group} / ${position.name}</strong> 仍有有效引用，不能通过替代岗位批量改写。</div><div class="metrics" style="grid-template-columns:repeat(2,1fr)">${metric("当前关键人任职", references.people.length, "须逐人调岗审批", references.people.length ? "red" : "")}${metric("进行中覆盖 KPI", references.kpis.length, "须等待或结束专项", references.kpis.length ? "red" : "")}</div><div class="section-title">阻断明细</div>${references.people.map((person) => `<div class="list-row"><div class="avatar">${person.name[0]}</div><div class="list-main"><div class="list-title">${person.name}</div><div class="list-sub">${person.company} · ${person.department}</div></div><span class="tag red">任职引用</span></div>`).join("")}${references.kpis.map((campaign) => `<div class="list-row"><div class="avatar">KPI</div><div class="list-main"><div class="list-title">${campaign.code} · ${campaign.name}</div><div class="list-sub">${campaign.startDate} 至 ${campaign.endDate}</div></div><span class="tag red">${campaign.status}</span></div>`).join("")}</div><div class="modal-foot"><button class="btn btn-primary" data-close>知道了</button></div>`,
           );
           return;
         }

@@ -61,7 +61,7 @@
           reason: "试点集团主体注销，全部下属单位已完成级联停用",
           date: "2026-08-15",
           applicant: "王静",
-          status: "恢复审批中",
+          status: "已停用",
           targetKind: "group",
           targetId: "GROUP-ARCHIVE-01",
           region: "公司全局",
@@ -71,7 +71,9 @@
           recoveryFlowCode: "WF00000351",
           taskHandle: "完整级联并关闭未完成任务",
           impact: "客户单位 3 家，关键人 8 人，任务 12 条",
+          businessNumber: "CG00000007",
           groupSnapshot: {
+            groupNumber: "CG00000007",
             industry: "通信运营",
             creditCode: "",
           },

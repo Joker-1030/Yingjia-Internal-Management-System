@@ -1,7 +1,11 @@
       function bindPageEvents() {
+        bindProjectEvents();
+        bindProjectConfigEvents();
+        bindProjectFormEvents();
         enhanceCustomerFilterToolbar();
         enhanceTaskExecutionTable();
         enhanceTaskExecutionFilters();
+        enhanceUnifiedFilterPresentation();
         bindExecutionTables();
         document.querySelectorAll("[data-admin-dashboard-view]").forEach(
           (button) =>
@@ -171,12 +175,15 @@
           .querySelectorAll("[data-action]")
           .forEach(
             (button) =>
-              (button.onclick = () =>
-                genericAction(
+              (button.onclick = () => {
+                if (button.dataset.action === "download-project-import-template")
+                  return downloadTemplate("project");
+                return genericAction(
                   button.dataset.action,
                   button.dataset.id,
                   button.dataset.kind,
-                )),
+                );
+              }),
           );
         document.querySelectorAll("[data-task-view]").forEach(
           (button) =>
@@ -244,14 +251,24 @@
             }),
         );
         const filterRegionMasterList = () => {
-          const keyword = $("#regionSearch")?.value.trim() || "";
+          const name = $("#regionName")?.value.trim() || "";
+          const departmentCode = $("#regionDepartmentCode")?.value.trim() || "";
+          const director = $("#regionDirector")?.value.trim() || "";
           const province = $("#regionProvinceFilter")?.value || "";
           let matched = 0;
           document
             .querySelectorAll("#regionMasterList [data-region-select]")
             .forEach((item) => {
+              const region = regionsData.find(
+                (candidate) => String(candidate.id) === String(item.dataset.regionSelect),
+              );
+              const department = organizationDepartments.find(
+                (candidate) => candidate.regionId === region?.id,
+              );
               const visible =
-                (!keyword || (item.dataset.search || "").includes(keyword)) &&
+                (!name || String(region?.name || "").includes(name)) &&
+                (!departmentCode || String(department?.code || "").includes(departmentCode)) &&
+                (!director || String(region?.director || "").includes(director)) &&
                 (!province ||
                   (item.dataset.provinces || "").split("|").includes(province));
               item.classList.toggle("hidden", !visible);
@@ -265,7 +282,7 @@
               '<div class="empty" id="regionMasterEmpty">未找到符合条件的区域中心</div>',
             );
         };
-        ["#regionSearch", "#regionProvinceFilter"].forEach((selector) => {
+        ["#regionName", "#regionDepartmentCode", "#regionDirector", "#regionProvinceFilter"].forEach((selector) => {
           const element = $(selector);
           if (element)
             element.oninput = element.onchange = filterRegionMasterList;
@@ -282,12 +299,16 @@
           openInitialCityAssignment.onclick = () => openCityForm();
         const filterRegionCities = () => {
           const province = $("#regionCityProvince")?.value || "";
-          const keyword = $("#regionCityKeyword")?.value.trim() || "";
+          const city = $("#regionCityName")?.value.trim() || "";
+          const pmName = $("#regionCityPmName")?.value.trim() || "";
+          const pmCode = $("#regionCityPmCode")?.value.trim() || "";
           const status = $("#regionCityStatus")?.value || "";
           document.querySelectorAll("[data-region-city-row]").forEach((row) => {
             row.style.display =
               (!province || row.dataset.province === province) &&
-              (!keyword || row.dataset.keyword.includes(keyword)) &&
+              (!city || row.children[1]?.textContent.includes(city)) &&
+              (!pmName || row.children[2]?.textContent.includes(pmName)) &&
+              (!pmCode || row.children[3]?.textContent.includes(pmCode)) &&
               (!status || row.dataset.status === status)
                 ? ""
                 : "none";
@@ -297,21 +318,26 @@
         if ($("#resetRegionCities"))
           $("#resetRegionCities").onclick = () => {
             $("#regionCityProvince").value = "";
-            $("#regionCityKeyword").value = "";
+            $("#regionCityName").value = "";
+            $("#regionCityPmName").value = "";
+            $("#regionCityPmCode").value = "";
             $("#regionCityStatus").value = "";
             filterRegionCities();
           };
         const filterRegionPms = () => {
-          const keyword = $("#regionPmKeyword")?.value.trim() || "";
+          const name = $("#regionPmName")?.value.trim() || "";
+          const code = $("#regionPmCode")?.value.trim() || "";
           document.querySelectorAll("[data-region-pm-row]").forEach((row) => {
             row.style.display =
-              !keyword || row.dataset.keyword.includes(keyword) ? "" : "none";
+              (!name || row.children[0]?.textContent.includes(name)) &&
+              (!code || row.children[1]?.textContent.includes(code)) ? "" : "none";
           });
         };
         if ($("#queryRegionPms")) $("#queryRegionPms").onclick = filterRegionPms;
         if ($("#resetRegionPms"))
           $("#resetRegionPms").onclick = () => {
-            $("#regionPmKeyword").value = "";
+            $("#regionPmName").value = "";
+            $("#regionPmCode").value = "";
             filterRegionPms();
           };
         document.querySelectorAll("[data-city-quick-assign]").forEach(
@@ -373,38 +399,40 @@
             };
           },
         );
-        const permissionRoleSearch = $("#permissionRoleSearch");
-        if (permissionRoleSearch)
-          permissionRoleSearch.oninput = () => {
-            const keyword = permissionRoleSearch.value.trim();
+        const permissionRoleName = $("#permissionRoleName");
+        const permissionRoleCode = $("#permissionRoleCode");
+        if (permissionRoleName && permissionRoleCode) {
+          const filterPermissionRoles = () => {
+            const name = permissionRoleName.value.trim();
+            const code = permissionRoleCode.value.trim();
             document
               .querySelectorAll("[data-permission-role]")
-              .forEach((item) =>
+              .forEach((item) => {
+                const roleName = item.dataset.permissionRole;
                 item.classList.toggle(
                   "hidden",
                   Boolean(
-                    keyword &&
-                      !(item.dataset.roleSearch || "").includes(keyword),
+                    (name && !roleName.includes(name)) ||
+                    (code && !String(permissionRoleCodes[roleName] || "").includes(code)),
                   ),
-                ),
-              );
+                );
+              });
           };
-        const permissionTreeSearch = $("#permissionTreeSearch");
-        if (permissionTreeSearch)
-          permissionTreeSearch.oninput = () => {
-            const keyword = permissionTreeSearch.value.trim();
-            document
-              .querySelectorAll(".permission-workspace .permission-tree-node")
-              .forEach((item) =>
-                item.classList.toggle(
-                  "hidden",
-                  Boolean(keyword && !item.textContent.includes(keyword)),
-                ),
-              );
-            document
-              .querySelectorAll(".permission-workspace .permission-tree-group")
-              .forEach((group) => {
+          permissionRoleName.oninput = permissionRoleCode.oninput = filterPermissionRoles;
+        }
+        const permissionSearches = {
+          menu: $("#permissionMenuSearch"),
+          operation: $("#permissionOperationSearch"),
+          field: $("#permissionFieldSearch"),
+          attachment: $("#permissionAttachmentSearch"),
+        };
+        Object.entries(permissionSearches).forEach(([section, control]) => {
+          if (!control) return;
+          control.oninput = () => {
+            const keyword = control.value.trim();
+            document.querySelectorAll(`[data-permission-section="${section}"]`).forEach((group) => {
                 const nodes = [...group.querySelectorAll(".permission-tree-node")];
+                nodes.forEach((node) => node.classList.toggle("hidden", Boolean(keyword && !node.textContent.includes(keyword))));
                 group.classList.toggle(
                   "hidden",
                   Boolean(
@@ -415,6 +443,7 @@
                 );
               });
           };
+        });
         document.querySelectorAll("[data-role-permission]").forEach(
           (checkbox) =>
             (checkbox.onchange = () => {
@@ -531,6 +560,8 @@
         const bindConfigurationFilters = (config) => {
           const apply = () => {
             const keyword = $(config.keyword)?.value.trim() || "";
+            const name = $(config.name)?.value.trim() || "";
+            const code = $(config.code)?.value.trim() || "";
             const group = $(config.group)?.value || "";
             const level = $(config.level)?.value || "";
             const type = $(config.type)?.value || "";
@@ -540,6 +571,8 @@
               (row) => {
                 const matched =
                   (!keyword || (row.dataset.keyword || "").includes(keyword)) &&
+                  (!name || row.querySelector("strong")?.textContent.includes(name)) &&
+                  (!code || row.querySelector(".list-sub")?.textContent.includes(code)) &&
                   (!group || row.dataset.group === group) &&
                   (!level || (row.dataset.levels || "").split("|").includes(level)) &&
                   (!type || row.dataset.type === type) &&
@@ -551,7 +584,7 @@
             const count = $(config.count);
             if (count) count.textContent = `共 ${visible} 条`;
           };
-          [config.keyword, config.group, config.level, config.type, config.status]
+          [config.keyword, config.name, config.code, config.group, config.level, config.type, config.status]
             .filter(Boolean)
             .forEach((selector) => {
               const control = $(selector);
@@ -560,6 +593,84 @@
         };
 
         if (settingsSection === "tree") {
+          const selectedValues = (selector) =>
+            new Set(
+              [...document.querySelectorAll(`${selector} input:checked`)].map(
+                (input) => input.value,
+              ),
+            );
+          const applyCustomerOrgNavFilters = () => {
+            Object.assign(customerOrgNavFilters, {
+              industryName: $("#customerOrgIndustryName")?.value.trim() || "",
+              groupNumber: $("#customerOrgGroupNumber")?.value.trim() || "",
+              groupName: $("#customerOrgGroupName")?.value.trim() || "",
+              companyName: $("#customerOrgCompanyName")?.value.trim() || "",
+              industryCode: $("#customerOrgIndustryCode")?.value.trim() || "",
+              creditCode: $("#customerOrgCreditCode")?.value.trim() || "",
+              industry: $("#customerOrgIndustry")?.value || "",
+              group: $("#customerOrgGroup")?.value || "",
+            });
+            if (
+              customerOrgNavFilters.group &&
+              customerOrgNavFilters.industry &&
+              customerGroupIndustries[customerOrgNavFilters.group] !==
+                customerOrgNavFilters.industry
+            )
+              customerOrgNavFilters.group = "";
+            customerOrgNavFilters.levels = selectedValues("#customerOrgLevels");
+            customerOrgNavFilters.statuses = selectedValues("#customerOrgStatuses");
+            industries.forEach((industry) =>
+              expandedCustomerOrgNodes.add(`industry:${industry.name}`),
+            );
+            customerGroupNames.forEach((group) =>
+              expandedCustomerOrgNodes.add(`group:${group}`),
+            );
+            customers.forEach((company) =>
+              expandedCustomerOrgNodes.add(`company:${company.id}`),
+            );
+            if (
+              selectedCustomerOrgNode &&
+              !customerOrgTreeHtml().includes(
+                `data-customer-org-select="${selectedCustomerOrgNode}"`,
+              )
+            ) {
+              selectedCustomerOrgNode = "";
+              clearCustomerOrgInternalContext();
+            }
+            renderPage();
+          };
+          if ($("#queryCustomerOrgNav"))
+            $("#queryCustomerOrgNav").onclick = applyCustomerOrgNavFilters;
+          if ($("#resetCustomerOrgNav"))
+            $("#resetCustomerOrgNav").onclick = () => {
+              Object.assign(customerOrgNavFilters, {
+                industryName: "",
+                groupNumber: "",
+                groupName: "",
+                companyName: "",
+                industryCode: "",
+                creditCode: "",
+                industry: "",
+                group: "",
+              });
+              customerOrgNavFilters.levels.clear();
+              customerOrgNavFilters.statuses.clear();
+              renderPage();
+            };
+          [
+            "#customerOrgIndustryName",
+            "#customerOrgGroupNumber",
+            "#customerOrgGroupName",
+            "#customerOrgCompanyName",
+            "#customerOrgIndustryCode",
+            "#customerOrgCreditCode",
+          ].forEach((selector) => {
+            const input = $(selector);
+            if (input)
+              input.onkeydown = (event) => {
+                if (event.key === "Enter") applyCustomerOrgNavFilters();
+              };
+          });
           const treeAddButton = $("#treeAddBtn");
           const treeAddMenu = $("#treeAddMenu");
           if (treeAddButton && treeAddMenu)
@@ -577,11 +688,119 @@
                     expandedCustomerOrgNodes.delete(key);
                   else expandedCustomerOrgNodes.add(key);
                 } else {
-                  selectedCustomerOrgNode = button.dataset.customerOrgSelect;
+                  const nextNode = button.dataset.customerOrgSelect;
+                  if (
+                    nextNode.startsWith("company:") &&
+                    nextNode !== selectedCustomerOrgNode
+                  )
+                    clearCustomerOrgInternalContext();
+                  if (!nextNode.startsWith("company:"))
+                    clearCustomerOrgInternalContext();
+                  selectedCustomerOrgNode = nextNode;
                 }
                 renderPage();
               }),
           );
+          document
+            .querySelectorAll("[data-customer-org-company-tab]")
+            .forEach(
+              (button) =>
+                (button.onclick = () => {
+                  customerOrgCompanyTab =
+                    button.dataset.customerOrgCompanyTab;
+                  renderPage();
+                }),
+            );
+          document
+            .querySelectorAll("[data-customer-org-internal-select]")
+            .forEach(
+              (button) =>
+                (button.onclick = (event) => {
+                  const toggle = event.target.closest(
+                    "[data-customer-org-toggle]",
+                  );
+                  const key = toggle?.dataset.customerOrgToggle;
+                  if (key) {
+                    if (expandedCustomerOrgNodes.has(key))
+                      expandedCustomerOrgNodes.delete(key);
+                    else expandedCustomerOrgNodes.add(key);
+                  } else {
+                    selectedCustomerOrgInternalNode =
+                      button.dataset.customerOrgInternalSelect;
+                  }
+                  renderPage();
+                }),
+            );
+          document
+            .querySelectorAll("[data-customer-org-load-more]")
+            .forEach(
+              (button) =>
+                (button.onclick = () => {
+                  const key = button.dataset.customerOrgLoadMore;
+                  customerOrgLoadLimits.set(
+                    key,
+                    (customerOrgLoadLimits.get(key) || 50) + 50,
+                  );
+                  renderPage();
+                }),
+            );
+          const applyCustomerOrgInternalFilters = () => {
+            Object.assign(customerOrgInternalFilters, {
+              departmentName:
+                $("#customerOrgDepartmentName")?.value.trim() || "",
+              departmentCode:
+                $("#customerOrgDepartmentCode")?.value.trim() || "",
+              positionName:
+                $("#customerOrgPositionName")?.value.trim() || "",
+              positionCode:
+                $("#customerOrgPositionCode")?.value.trim() || "",
+            });
+            customerOrgInternalFilters.statuses = selectedValues(
+              "#customerOrgInternalStatuses",
+            );
+            const selectedCompany = customerOrgSelectedCompany();
+            if (selectedCompany)
+              customerOrgDepartmentsForCompany(selectedCompany).forEach(
+                (department) =>
+                  expandedCustomerOrgNodes.add(`department:${department.id}`),
+              );
+            if (
+              selectedCustomerOrgInternalNode &&
+              selectedCompany &&
+              !customerOrgInternalTreeHtml(selectedCompany).includes(
+                `data-customer-org-internal-select="${selectedCustomerOrgInternalNode}"`,
+              )
+            )
+              selectedCustomerOrgInternalNode = "";
+            renderPage();
+          };
+          if ($("#queryCustomerOrgInternal"))
+            $("#queryCustomerOrgInternal").onclick =
+              applyCustomerOrgInternalFilters;
+          if ($("#resetCustomerOrgInternal"))
+            $("#resetCustomerOrgInternal").onclick = () => {
+              Object.assign(customerOrgInternalFilters, {
+                departmentName: "",
+                departmentCode: "",
+                positionName: "",
+                positionCode: "",
+              });
+              customerOrgInternalFilters.statuses.clear();
+              renderPage();
+            };
+          [
+            "#customerOrgDepartmentName",
+            "#customerOrgDepartmentCode",
+            "#customerOrgPositionName",
+            "#customerOrgPositionCode",
+          ].forEach((selector) => {
+            const input = $(selector);
+            if (input)
+              input.onkeydown = (event) => {
+                if (event.key === "Enter")
+                  applyCustomerOrgInternalFilters();
+              };
+          });
         }
 
         if (settingsSection === "automation")
@@ -594,7 +813,8 @@
           });
         if (settingsSection === "industries")
           bindConfigurationFilters({
-            keyword: "#industryConfigKeyword",
+            name: "#industryConfigName",
+            code: "#industryConfigCode",
             status: "#industryConfigStatus",
             body: "#industryConfigBody",
             count: "#industryConfigCount",
@@ -638,7 +858,7 @@
               .map(([label, values]) => `<div class="permission-summary-item"><label>${label}</label><strong>${values.join("、")}</strong></div>`)
               .join("");
             openModal(
-              `<div class="modal-head"><div class="modal-title">确认权限调整</div><button class="icon-btn close" data-close>×</button></div><div class="modal-body"><div class="permission-summary"><div class="permission-summary-item"><label>目标角色 / 当前版本</label><strong>${template.name} / ${permissionVersions[template.name][0].id}</strong></div><div class="permission-summary-item"><label>影响岗位 / 在职员工</label><strong>${template.jobs.join("、")} / ${employeeCount} 人</strong></div>${diffRows}<div class="permission-summary-item"><label>变更原因</label><strong>${reason}</strong></div></div><div class="role-note" style="margin-top:14px">保存后生成不可覆盖的新版本；新请求立即按新权限校验。</div></div><div class="modal-foot"><button class="btn" data-close>取消</button><button class="btn btn-primary" id="confirmRoleTemplateSave">确认并生效</button></div>`,
+              `<div class="modal-head"><div class="modal-title">确认权限调整</div><button class="icon-btn close" data-close>×</button></div><div class="modal-body"><div class="permission-summary"><div class="permission-summary-item"><label>目标角色 / 当前版本</label><strong>${template.name} / ${permissionVersions[template.name][0].id}</strong></div><div class="permission-summary-item"><label>影响岗位 / 在职员工</label><strong>${template.jobs.join("、")} / ${employeeCount} 人</strong></div>${diffRows}<div class="permission-summary-item"><label>变更原因</label><strong>${reason}</strong></div></div><div class="role-note" style="margin-top:var(--space-4)">保存后生成不可覆盖的新版本；新请求立即按新权限校验。</div></div><div class="modal-foot"><button class="btn" data-close>取消</button><button class="btn btn-primary" id="confirmRoleTemplateSave">确认并生效</button></div>`,
             );
             $("#confirmRoleTemplateSave").onclick = () => {
               commitPermissionVersion(
@@ -664,7 +884,7 @@
                 (item) => item.id === button.dataset.permissionRollback,
               );
               openModal(
-                `<div class="modal-head"><div class="modal-title">回滚权限版本</div><button class="icon-btn close" data-close>×</button></div><form id="permissionRollbackForm"><div class="modal-body"><div class="permission-summary-item"><label>目标角色 / 历史版本</label><strong>${template.name} / ${version.id}</strong></div><div class="form-group" style="margin-top:14px"><label class="form-label">回滚原因 *</label><textarea class="input" id="permissionRollbackReason" minlength="5" maxlength="500" required placeholder="请填写 5-500 字回滚原因"></textarea></div><div class="role-note">回滚会生成一个新版本，不覆盖或删除历史记录。</div></div><div class="modal-foot"><button class="btn" type="button" data-close>取消</button><button class="btn btn-primary" type="submit">确认回滚</button></div></form>`,
+                `<div class="modal-head"><div class="modal-title">回滚权限版本</div><button class="icon-btn close" data-close>×</button></div><form id="permissionRollbackForm"><div class="modal-body"><div class="permission-summary-item"><label>目标角色 / 历史版本</label><strong>${template.name} / ${version.id}</strong></div><div class="form-group" style="margin-top:var(--space-4)"><label class="form-label">回滚原因 *</label><textarea class="input" id="permissionRollbackReason" minlength="5" maxlength="500" required placeholder="请填写 5-500 字回滚原因"></textarea></div><div class="role-note">回滚会生成一个新版本，不覆盖或删除历史记录。</div></div><div class="modal-foot"><button class="btn" type="button" data-close>取消</button><button class="btn btn-primary" type="submit">确认回滚</button></div></form>`,
               );
               $("#permissionRollbackForm").onsubmit = (event) => {
                 event.preventDefault();
@@ -794,16 +1014,22 @@
             return toast("关键人手机号请输入完整 11 位或后 4 位");
           const departments = checkedFilterValues("customerDepartmentMulti");
           const positions = checkedFilterValues("customerPositionMulti");
-          const dimensionCoverage =
-            $("#customerDimensionCoverage")?.value || "";
-          const targetCount =
-            departments.size + positions.size;
-          if (dimensionCoverage && targetCount !== 1)
-            return toast("部门/岗位覆盖状态只能配合一个部门或一个岗位口径使用");
+          const departmentCoverage =
+            $("#customerDepartmentCoverage")?.value || "";
+          const positionCoverage =
+            $("#customerPositionCoverage")?.value || "";
+          if (departmentCoverage && departments.size !== 1)
+            return toast("部门覆盖状态只能配合一个部门口径使用");
+          if (positionCoverage && positions.size !== 1)
+            return toast("岗位覆盖状态只能配合一个岗位口径使用");
           appliedCustomerFilter = {
             group: $("#customerTreeGroup")?.value || "",
-            name: $("#customerTreeName")?.value.trim() || "",
+            groupNumber: $("#customerTreeGroupNumber")?.value.trim() || "",
+            groupName: $("#customerTreeGroupName")?.value.trim() || "",
+            companyName: $("#customerTreeCompanyName")?.value.trim() || "",
+            personCode: $("#customerTreePersonCode")?.value.trim() || "",
             personName: $("#customerTreePersonName")?.value.trim() || "",
+            personWechat: $("#customerTreePersonWechat")?.value.trim() || "",
             industries: checkedFilterValues("customerIndustryMulti"),
             levels: checkedFilterValues("customerLevelMulti"),
             personPhone: phoneKey,
@@ -812,7 +1038,8 @@
             departments,
             positions,
             customPosition: "",
-            dimensionCoverage,
+            departmentCoverage,
+            positionCoverage,
             provinces: new Set(customerAreaFilter.provinces),
             cities: new Set(customerAreaFilter.cities),
             districts: new Set(customerAreaFilter.districts),
@@ -919,8 +1146,12 @@
             customerAreaFilter.districts.clear();
             appliedCustomerFilter = {
               group: "",
-              name: "",
+              groupNumber: "",
+              groupName: "",
+              companyName: "",
+              personCode: "",
               personName: "",
+              personWechat: "",
               industries: new Set(),
               levels: new Set(),
               personPhone: "",
@@ -929,14 +1160,19 @@
               departments: new Set(),
               positions: new Set(),
               customPosition: "",
-              dimensionCoverage: "",
+              departmentCoverage: "",
+              positionCoverage: "",
               provinces: new Set(),
               cities: new Set(),
               districts: new Set(),
             };
             [
-              "#customerTreeName",
+              "#customerTreeGroupName",
+              "#customerTreeGroupNumber",
+              "#customerTreeCompanyName",
+              "#customerTreePersonCode",
               "#customerTreePersonName",
+              "#customerTreePersonWechat",
               "#customerTreePersonPhone",
             ].forEach((selector) => {
               const element = $(selector);
@@ -944,7 +1180,8 @@
             });
             [
               "#customerTreeGroup",
-              "#customerDimensionCoverage",
+              "#customerDepartmentCoverage",
+              "#customerPositionCoverage",
               "#customerTreeCoverage",
             ].forEach((selector) => {
               const element = $(selector);
@@ -967,7 +1204,12 @@
         bindFilter("#contactSearch", "#contactBody tr");
         bindFilter("#contactLevel", "#contactBody tr");
         const filterTasks = () => {
-          const keyword = $("#taskSearch")?.value.trim() || "",
+          const parentCode = $("#taskParentCode")?.value.trim() || "",
+            executionCode = $("#taskExecutionCode")?.value.trim() || "",
+            title = $("#taskTitle")?.value.trim() || "",
+            personCode = $("#taskPersonCode")?.value.trim() || "",
+            personName = $("#taskPersonName")?.value.trim() || "",
+            company = $("#taskCompany")?.value.trim() || "",
             type = $("#taskType")?.value || "",
             owner = $("#taskOwner")?.value || "",
             region = $("#taskRegion")?.value || "",
@@ -987,9 +1229,19 @@
           ];
           let matched = 0;
           rows.forEach((row) => {
-            const text = row.dataset.search || "";
+            const id = row.querySelector('[data-action="task-detail"]')?.dataset.id ||
+              row.querySelector("[data-complete]")?.dataset.complete;
+            const task = tasks.find((item) => String(item.id) === String(id));
+            const contact = contacts.find(
+              (item) => item.name === task?.person && item.company === task?.company,
+            );
             const isMatch = !invalidDueRange &&
-              (!keyword || text.includes(keyword)) &&
+              (!parentCode || String(task?.parentTaskCode || "").includes(parentCode)) &&
+              (!executionCode || String(task?.executionCode || "").includes(executionCode)) &&
+              (!title || String(task?.title || "").includes(title)) &&
+              (!personCode || String(contact?.code || "").includes(personCode)) &&
+              (!personName || String(task?.person || "").includes(personName)) &&
+              (!company || String(task?.company || "").includes(company)) &&
               (!type ||
                 (type === "care"
                   ? ["生日关怀", "节假日关怀"].includes(
@@ -1033,7 +1285,12 @@
             ?.applyExecutionState?.();
         };
         [
-          "#taskSearch",
+          "#taskParentCode",
+          "#taskExecutionCode",
+          "#taskTitle",
+          "#taskPersonCode",
+          "#taskPersonName",
+          "#taskCompany",
           "#taskType",
           "#taskOwner",
           "#taskRegion",
@@ -1051,7 +1308,12 @@
         if ($("#resetTaskFilters"))
           $("#resetTaskFilters").onclick = () => {
             [
-              "#taskSearch",
+              "#taskParentCode",
+              "#taskExecutionCode",
+              "#taskTitle",
+              "#taskPersonCode",
+              "#taskPersonName",
+              "#taskCompany",
               "#taskType",
               "#taskOwner",
               "#taskRegion",
@@ -1099,14 +1361,18 @@
           dashboardTaskFilter = null;
         }
         const filterTaskSummary = () => {
-          const keyword = $("#summarySearch")?.value.trim() || "",
+          const code = $("#summaryCode")?.value.trim() || "",
+            name = $("#summaryName")?.value.trim() || "",
+            scope = $("#summaryScope")?.value.trim() || "",
             type = $("#summaryType")?.value || "",
             status = $("#summaryStatus")?.value || "",
             owner = $("#summaryOwner")?.value || "";
           let matched = 0;
           document.querySelectorAll("#taskSummaryBody tr").forEach((row) => {
             const isMatch =
-              (!keyword || row.dataset.summarySearch.includes(keyword)) &&
+              (!code || row.dataset.summaryCode.includes(code)) &&
+              (!name || row.dataset.summaryName.includes(name)) &&
+              (!scope || row.dataset.summaryScope.includes(scope)) &&
               (!type ||
                 (type === "care"
                   ? ["生日关怀", "节假日关怀"].includes(
@@ -1122,7 +1388,7 @@
           if ($("#summaryFilterCount"))
             $("#summaryFilterCount").textContent = `筛选结果 ${matched} 项任务`;
         };
-        ["#summarySearch", "#summaryType", "#summaryStatus", "#summaryOwner"].forEach(
+        ["#summaryCode", "#summaryName", "#summaryScope", "#summaryType", "#summaryStatus", "#summaryOwner"].forEach(
           (selector) => {
             const element = $(selector);
             if (element)
@@ -1132,7 +1398,9 @@
         if ($("#resetSummaryFilters"))
           $("#resetSummaryFilters").onclick = () => {
             [
-              "#summarySearch",
+              "#summaryCode",
+              "#summaryName",
+              "#summaryScope",
               "#summaryType",
               "#summaryStatus",
               "#summaryOwner",
@@ -1150,7 +1418,11 @@
           dashboardTaskFilter = null;
         }
         const filterRecords = () => {
-          const keyword = $("#recordSearch")?.value.trim() || "",
+          const code = $("#recordCode")?.value.trim() || "",
+            personCode = $("#recordPersonCode")?.value.trim() || "",
+            personName = $("#recordPersonName")?.value.trim() || "",
+            company = $("#recordCompany")?.value.trim() || "",
+            summary = $("#recordSummary")?.value.trim() || "",
             method = $("#recordMethod")?.value || "",
             executor = $("#recordExecutor")?.value || "",
             region = $("#recordRegion")?.value || "",
@@ -1173,8 +1445,19 @@
           let matched = 0;
           document.querySelectorAll("#recordBody tr:not([data-empty-row])").forEach(
             (row) => {
+              const recordId = row.querySelector('[data-action="record-detail"]')?.dataset.id;
+              const record = maintenanceRecords.find(
+                (item) => String(item.id) === String(recordId),
+              );
+              const contact = contacts.find(
+                (item) => item.name === record?.person && item.company === record?.company,
+              );
               const isMatch = !invalidDateRange && !invalidCreatedRange &&
-                (!keyword || (row.dataset.search || "").includes(keyword)) &&
+                (!code || row.dataset.recordCode.includes(code)) &&
+                (!personCode || String(contact?.code || "").includes(personCode)) &&
+                (!personName || row.dataset.recordPerson.includes(personName)) &&
+                (!company || row.dataset.recordCompany.includes(company)) &&
+                (!summary || row.dataset.recordSummary.includes(summary)) &&
                 (!method || row.dataset.recordMethod === method) &&
                 (!executor || row.dataset.recordExecutor === executor) &&
                 (!region || regionsMatch(row.dataset.recordRegion, region)) &&
@@ -1194,7 +1477,11 @@
               `筛选结果 ${matched} 条 · 数据范围：${currentUser.region}`;
         };
         [
-          "#recordSearch",
+          "#recordCode",
+          "#recordPersonCode",
+          "#recordPersonName",
+          "#recordCompany",
+          "#recordSummary",
           "#recordMethod",
           "#recordExecutor",
           "#recordRegion",
@@ -1212,7 +1499,11 @@
         if ($("#resetRecordFilters"))
           $("#resetRecordFilters").onclick = () => {
             [
-              "#recordSearch",
+              "#recordCode",
+              "#recordPersonCode",
+              "#recordPersonName",
+              "#recordCompany",
+              "#recordSummary",
               "#recordMethod",
               "#recordExecutor",
               "#recordRegion",
@@ -1241,7 +1532,8 @@
               : "全部批次状态";
         };
         const applyImportFilters = () => {
-          const keyword = $("#importSearch")?.value.trim() || "";
+          const batchCode = $("#importBatchCode")?.value.trim() || "";
+          const fileName = $("#importFileName")?.value.trim() || "";
           const template = $("#importTemplateType")?.value || "";
           const statuses = selectedImportStatuses();
           const creator = $("#importCreator")?.value || "";
@@ -1266,9 +1558,8 @@
                   (exception === "warnings" && warnings > 0) ||
                   (exception === "none" && !errors && !duplicates && !warnings);
               const visible =
-                (!keyword ||
-                  row.dataset.batchId.startsWith(keyword) ||
-                  row.dataset.file.includes(keyword)) &&
+                (!batchCode || row.dataset.batchId.startsWith(batchCode)) &&
+                (!fileName || row.dataset.file.includes(fileName)) &&
                 (!template || row.dataset.template === template) &&
                 (!statuses.length || statuses.includes(row.dataset.status)) &&
                 (!creator || row.dataset.creator === creator) &&
@@ -1289,14 +1580,17 @@
         );
         if ($("#queryImportFilters"))
           $("#queryImportFilters").onclick = applyImportFilters;
-        if ($("#importSearch"))
-          $("#importSearch").onkeydown = (event) => {
+        ["#importBatchCode", "#importFileName"].forEach((selector) => {
+          const control = $(selector);
+          if (control) control.onkeydown = (event) => {
             if (event.key === "Enter") applyImportFilters();
           };
+        });
         if ($("#resetImportFilters"))
           $("#resetImportFilters").onclick = () => {
             [
-              "#importSearch",
+              "#importBatchCode",
+              "#importFileName",
               "#importTemplateType",
               "#importCreator",
               "#importStartDate",
@@ -1313,7 +1607,8 @@
             applyImportFilters();
           };
         const applyArchiveFilters = () => {
-          const keyword = $("#archiveSearch")?.value.trim() || "";
+          const objectName = $("#archiveObjectName")?.value.trim() || "";
+          const group = $("#archiveGroup")?.value.trim() || "";
           const type = $("#archiveType")?.value || "";
           const status = $("#archiveStatus")?.value || "";
           const approvalStatus = $("#archiveApprovalStatus")?.value || "";
@@ -1327,12 +1622,24 @@
           document
             .querySelectorAll("#archiveBody tr:not([data-empty-row])")
             .forEach((row) => {
+              const archiveId = row.querySelector('[data-action="archive-audit"]')?.dataset.id;
+              const archived = archivedItems.find(
+                (item) => String(item.id) === String(archiveId),
+              );
+              const object = archivedBusinessObject(archived || {});
+              const company = archived?.targetKind === "contact"
+                ? customers.find((item) => item.name === object?.company)
+                : object;
+              const archivedGroup = archived?.targetKind === "group"
+                ? archived.name
+                : company?.group || object?.group || "";
               const visible =
-                (!keyword || row.dataset.search.includes(keyword)) &&
+                (!objectName || String(archived?.name || "").includes(objectName)) &&
+                (!group || String(archivedGroup).includes(group)) &&
                 (!type || row.dataset.type === type) &&
                 (!status ||
                   (status === "current"
-                    ? row.dataset.status !== "停用审批中"
+                    ? row.dataset.status === "已停用"
                     : row.dataset.status === status)) &&
                 (!approvalStatus ||
                   row.dataset.approvalStatus === approvalStatus) &&
@@ -1350,7 +1657,8 @@
             $("#archiveFilterCount").textContent = `筛选结果 ${matched} 条`;
         };
         [
-          "#archiveSearch",
+          "#archiveObjectName",
+          "#archiveGroup",
           "#archiveType",
           "#archiveStatus",
           "#archiveApprovalStatus",
@@ -1368,7 +1676,8 @@
         if ($("#resetArchiveFilters"))
           $("#resetArchiveFilters").onclick = () => {
             [
-              "#archiveSearch",
+              "#archiveObjectName",
+              "#archiveGroup",
               "#archiveType",
               "#archiveStatus",
               "#archiveApprovalStatus",
@@ -1388,7 +1697,9 @@
           };
         if ($("#archiveBody")) applyArchiveFilters();
         [
-          "#employeeSearch",
+          "#employeeName",
+          "#employeeCode",
+          "#employeePhoneSuffix",
           "#employeeRole",
           "#employeeStatus",
           "#employeeAccountStatus",
@@ -1406,7 +1717,7 @@
 
       function openFilePreview() {
         openModal(
-          `<div class="modal-head"><div class="modal-title">附件预览</div><button class="icon-btn close" data-close>×</button></div><div class="modal-body"><div class="file-box" style="min-height:260px;display:grid;place-items:center"><div><div style="font-size:38px;margin-bottom:12px">▧</div>Demo附件预览区<br><span class="list-sub">正式系统将按文件类型展示图片或文档预览</span></div></div></div><div class="modal-foot"><button class="btn" data-close>关闭</button><button class="btn btn-primary" data-action="download-file">下载附件</button></div>`,
+          `<div class="modal-head"><div class="modal-title">附件预览</div><button class="icon-btn close" data-close>×</button></div><div class="modal-body"><div class="file-box" style="min-height:260px;display:grid;place-items:center"><div><div style="font-size:var(--icon-size-empty);margin-bottom:var(--space-3)">▧</div>Demo附件预览区<br><span class="list-sub">正式系统将按文件类型展示图片或文档预览</span></div></div></div><div class="modal-foot"><button class="btn" data-close>关闭</button><button class="btn btn-primary" data-action="download-file">下载附件</button></div>`,
         );
       }
 
@@ -1473,4 +1784,3 @@
                 openApprovalDecision(Number(b.dataset.reject), false)),
           );
       }
-

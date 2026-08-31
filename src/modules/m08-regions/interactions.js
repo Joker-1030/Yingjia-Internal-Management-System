@@ -142,6 +142,24 @@
         });
       }
 
+      function captureResponsibilityMutationState(lists) {
+        const listSnapshots = lists.map((list) => [list, [...list]]);
+        const objectSnapshots = [...new Set(lists.flat())]
+          .filter(Boolean)
+          .map((item) => [item, JSON.parse(JSON.stringify(item))]);
+        return { listSnapshots, objectSnapshots };
+      }
+
+      function restoreResponsibilityMutationState(state) {
+        state.objectSnapshots.forEach(([item, snapshot]) => {
+          Object.keys(item).forEach((key) => delete item[key]);
+          Object.assign(item, snapshot);
+        });
+        state.listSnapshots.forEach(([list, snapshot]) => {
+          list.splice(0, list.length, ...snapshot);
+        });
+      }
+
       function applyCityResponsibilityTransfer(approval) {
         const cityIds = cityIdsForApproval(approval);
         const owners = cityOwners.filter((owner) => cityIds.includes(Number(owner.id)));
@@ -160,44 +178,91 @@
             "地市当前负责人、目标 PM 任职或区域映射已变化，原责任保持不变";
           return false;
         }
-        owners.forEach((owner) => {
-          const companyNames = new Set(
-            customers
-              .filter(
-                (company) =>
-                  !company.archived &&
-                  company.province === owner.province &&
-                  company.city === owner.city,
-              )
-              .map((company) => company.name),
-          );
-          owner.pm = approval.targetPm;
-          owner.effective = approval.plannedEffectiveDate || DEMO_TODAY;
-          customers
-            .filter((company) => companyNames.has(company.name))
-            .forEach((company) => {
-              company.pm = approval.targetPm;
-              if (company.level !== "省公司") company.owner = approval.targetPm;
-            });
-          contacts
-            .filter((person) => companyNames.has(person.company))
-            .forEach((person) => (person.pm = approval.targetPm));
-          tasks
-            .filter(
-              (task) =>
-                companyNames.has(task.company) &&
-                task.pm === approval.originalPm &&
-                !["done", "cancelled", "expired"].includes(task.status),
-            )
-            .forEach((task) => (task.pm = approval.targetPm));
+        const projectPlan = prepareProjectResponsibilityTransfer({
+          kind: "city_pm",
+          region,
+          owners,
+          fromOwner: approval.originalPm,
+          toOwner: approval.targetPm,
         });
+        if (!projectPlan.ok) {
+          approval.status = "processing_failed";
+          approval.businessError = projectPlan.error;
+          return false;
+        }
+        const mutationState = captureResponsibilityMutationState([
+          cityOwners,
+          customers,
+          contacts,
+          tasks,
+          projects,
+          employees,
+          accounts,
+        ]);
+        const effectiveAt = `${approval.plannedEffectiveDate || DEMO_TODAY} 00:00`;
+        try {
+          const projectResult = applyProjectResponsibilityTransfer(projectPlan, {
+            effectiveAt,
+            operator: approval.decidedBy || currentUser.name,
+            referenceId: approval.code,
+            referenceType: approval.type,
+            reason: approval.reason,
+          });
+          if (!projectResult.ok) throw new Error(projectResult.error);
+          owners.forEach((owner) => {
+            const companyNames = new Set(
+              customers
+                .filter(
+                  (company) =>
+                    !company.archived &&
+                    company.province === owner.province &&
+                    company.city === owner.city,
+                )
+                .map((company) => company.name),
+            );
+            owner.pm = approval.targetPm;
+            owner.effective = approval.plannedEffectiveDate || DEMO_TODAY;
+            customers
+              .filter((company) => companyNames.has(company.name))
+              .forEach((company) => {
+                company.pm = approval.targetPm;
+                if (company.level !== "省公司") company.owner = approval.targetPm;
+              });
+            contacts
+              .filter((person) => companyNames.has(person.company))
+              .forEach((person) => (person.pm = approval.targetPm));
+            tasks
+              .filter(
+                (task) =>
+                  companyNames.has(task.company) &&
+                  task.pm === approval.originalPm &&
+                  !["done", "cancelled", "expired"].includes(task.status),
+              )
+              .forEach((task) => (task.pm = approval.targetPm));
+          });
+          normalizeCustomerResponsibilities();
+          syncPmEmployeeScopes();
+          approval.migratedProjectIds = projectResult.projectIds;
+        } catch (error) {
+          restoreResponsibilityMutationState(mutationState);
+          approval.status = "processing_failed";
+          approval.businessError =
+            error?.message?.includes("保持不变")
+              ? error.message
+              : "地区责任或项目负责人迁移失败，全部业务对象保持原值";
+          return false;
+        }
         approval.status = "approved";
-        approval.effectiveAt = `${approval.plannedEffectiveDate || DEMO_TODAY} 00:00`;
+        approval.effectiveAt = effectiveAt;
         approval.updatedAt = approval.effectiveAt;
         approval.businessError = "";
-        pushCityTransferNotice(approval, owners);
-        normalizeCustomerResponsibilities();
-        syncPmEmployeeScopes();
+        try {
+          pushCityTransferNotice(approval, owners);
+          approval.notificationStatus = "sent";
+        } catch (error) {
+          approval.notificationStatus = "retry_pending";
+          approval.notificationError = "责任已生效，交接消息待重试";
+        }
         return true;
       }
 
@@ -259,10 +324,10 @@
           event.preventDefault();
           const targetPm = $("#daPm").value;
           const reason = $("#daReason").value.trim();
+          if (reason.length < 5 || reason.length > 500)
+            return toast("调整原因须为 5-500 字");
           const previousPm = c.pm;
-          c.pm = targetPm;
-          c.since = DEMO_TODAY;
-          approvals.unshift({
+          const approval = {
             id: Date.now(),
             code: nextBusinessCode("WF"),
             source: "manual",
@@ -284,14 +349,18 @@
             expectedApprover: currentUser.name,
             decidedBy: currentUser.name,
             decidedAt: recordCreatedAt(),
-            effectiveAt: `${DEMO_TODAY} 00:00`,
             decisionComment: "已完成二次确认，直接调整生效。",
-          });
-          normalizeCustomerResponsibilities();
-          syncPmEmployeeScopes();
+            impactSnapshot: cityHandoverImpact([c.id]),
+          };
+          const applied = applyCityResponsibilityTransfer(approval);
+          approvals.unshift(approval);
           closeAllOverlays();
           renderPage();
-          toast(`${c.city}负责人已调整为${targetPm}，并生成已通过流程记录`);
+          toast(
+            applied
+              ? `${c.city}负责人已调整为${targetPm}，并生成已通过流程记录`
+              : "直接调整业务迁移失败，原负责人和项目责任保持不变",
+          );
         };
       }
 

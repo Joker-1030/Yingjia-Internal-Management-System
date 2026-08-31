@@ -1,10 +1,10 @@
       const taskTypeMeta = (type) =>
         ({
           常规维系: { tone: "blue", note: "按职级周期自动续期" },
-          专项维系: { tone: "orange", note: "公司统一发布" },
-          "关键人覆盖 KPI": { tone: "green", note: "按目标部门或岗位覆盖率自动判定" },
-          生日关怀: { tone: "green", note: "按生日月日自动生成" },
-          节假日关怀: { tone: "yellow", note: "按年度节假日日历自动生成" },
+          专项维系: { tone: "blue", note: "公司统一发布" },
+          "关键人覆盖 KPI": { tone: "blue", note: "按目标部门或岗位覆盖率自动判定" },
+          生日关怀: { tone: "blue", note: "按生日月日自动生成" },
+          节假日关怀: { tone: "blue", note: "按年度节假日日历自动生成" },
         })[type] || { tone: "blue", note: "" };
       function taskDisplayType(task) {
         if (!isCampaignTask(task)) return task?.type || "任务";
@@ -94,4 +94,3 @@
         const icons = { done: "✓", current: "•", upcoming: "", rejected: "×", invalid: "!" };
         return `<div class="approval-flow">${approvalProgressSteps(a).map((step, index) => `${index ? '<i class="flow-line"></i>' : ""}<span class="flow-step ${step.state}"><span class="flow-dot">${icons[step.state]}</span>${step.title}</span>`).join("")}</div>`;
       }
-

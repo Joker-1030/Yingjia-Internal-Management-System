@@ -1,13 +1,37 @@
       function currentNotifications() {
-        return notificationMessages.filter(
-          (message) =>
-            currentUser &&
-            message.roles.includes(currentUser.role) &&
-            (!message.users?.length || message.users.includes(currentUser.name)),
-        );
+        try {
+          dispatchProjectReminderNotifications();
+        } catch (error) {
+          // Project state remains authoritative when notification delivery is unavailable.
+        }
+        return notificationMessages
+          .filter(
+            (message) =>
+              currentUser &&
+              message.roles.includes(currentUser.role) &&
+              (!message.users?.length || message.users.includes(currentUser.name)),
+          )
+          .sort((left, right) => String(right.date).localeCompare(String(left.date)));
+      }
+      function escapeNotificationHtml(value) {
+        return String(value ?? "")
+          .replaceAll("&", "&amp;")
+          .replaceAll("<", "&lt;")
+          .replaceAll(">", "&gt;")
+          .replaceAll('"', "&quot;")
+          .replaceAll("'", "&#039;");
       }
       function noticeCard(message, full = false) {
-        return `<button type="button" class="notice-item ${message.read ? "read" : ""}" data-notice-id="${message.id}" title="${message.title}\n${message.content}\n${message.date}"><span class="notice-unread"></span><span><span class="notice-title">${message.category} · ${message.title}</span><span class="notice-content">${message.content}</span><span class="notice-date">${message.date} · ${message.read ? "已读" : "未读"}</span></span></button>`;
+        const title = escapeNotificationHtml(message.title);
+        const content = escapeNotificationHtml(message.content);
+        const category = escapeNotificationHtml(message.category);
+        const date = escapeNotificationHtml(message.date);
+        return `<button type="button" class="notice-item ${message.read ? "read" : ""}" data-notice-id="${escapeNotificationHtml(message.id)}" data-notice-category="${category}" data-notice-read="${message.read ? "read" : "unread"}" title="${title}\n${content}\n${date}"><span class="notice-unread"></span><span><span class="notice-title">${category} · ${title}</span><span class="notice-content">${content}</span><span class="notice-date">${date} · ${message.read ? "已读" : "未读"}</span></span></button>`;
+      }
+      function notificationFailureHtml() {
+        return currentProjectReminderFailures().length
+          ? '<div class="notice-delivery-error"><strong>项目提醒暂未送达</strong><span>系统已保留可重试记录，项目状态和待办不受影响。</span></div>'
+          : "";
       }
       function refreshNoticeIndicator() {
         const dot = $("#noticeBtn .dot");
@@ -32,16 +56,61 @@
       }
       function markNoticeRead(id) {
         const message = notificationMessages.find(
-          (item) => item.id === Number(id),
+          (item) => String(item.id) === String(id),
         );
         if (message) message.read = true;
         refreshNoticeIndicator();
+        return message || null;
+      }
+      function openProjectReminderMessage(message) {
+        if (!message?.projectId) return false;
+        const project = projectById(message.projectId);
+        if (
+          !project ||
+          !hasPermission("projects") ||
+          !projectIsVisibleToCurrentUser(project)
+        ) {
+          toast("对象不可用或无权访问");
+          return true;
+        }
+        selectedProjectId = project.id;
+        projectDetailTab = "basic";
+        currentPage = "project-detail";
+        window.history.replaceState(null, "", "#project-detail");
+        closeNoticePanel();
+        closeAllOverlays();
+        renderNav();
+        renderPage();
+        return true;
+      }
+      function selectNotification(id, fallback) {
+        const message = markNoticeRead(id);
+        if (openProjectReminderMessage(message)) return;
+        fallback();
       }
       function notificationCenterHtml() {
         const messages = currentNotifications();
-        return `<div class="drawer-head"><div class="modal-title">全部消息</div><button class="icon-btn close" data-close title="关闭消息中心">×</button></div><div class="drawer-body"><div class="panel-head" style="padding:0 0 12px"><div class="panel-sub">展示全部已读与未读消息</div><div class="spacer"></div><button class="btn" id="drawerMarkAllRead" type="button">全部已读</button></div><div class="list" id="notificationCenterList">${messages.map((message) => noticeCard(message, true)).join("") || '<div class="empty">暂无消息</div>'}</div></div>`;
+        const categories = [...new Set(messages.map((message) => message.category))];
+        return `<div class="drawer-head"><div class="modal-title">全部消息</div><button class="icon-btn close" data-close title="关闭消息中心">×</button></div><div class="drawer-body"><div class="panel-head" style="padding:0 0 12px"><div class="panel-sub">展示全部已读与未读消息</div><div class="spacer"></div><button class="btn" id="drawerMarkAllRead" type="button">全部已读</button></div>${notificationFailureHtml()}<div class="toolbar filter-toolbar">${filterField("分类", `<select class="input" id="notificationCategory"><option value="">全部分类</option>${categories.map((category) => `<option>${escapeNotificationHtml(category)}</option>`).join("")}</select>`)}${filterField("未读状态", '<select class="input" id="notificationReadStatus"><option value="">全部状态</option><option value="unread">未读</option><option value="read">已读</option></select>')}</div><div class="list" id="notificationCenterList">${messages.map((message) => noticeCard(message, true)).join("") || '<div class="empty">暂无消息</div>'}</div></div>`;
       }
       function bindNotificationCenter() {
+        const applyFilters = () => {
+          const category = $("#notificationCategory")?.value || "";
+          const readStatus = $("#notificationReadStatus")?.value || "";
+          document.querySelectorAll("#notificationCenterList [data-notice-id]").forEach((item) => {
+            item.classList.toggle(
+              "hidden",
+              Boolean(
+                (category && item.dataset.noticeCategory !== category) ||
+                (readStatus && item.dataset.noticeRead !== readStatus),
+              ),
+            );
+          });
+        };
+        ["#notificationCategory", "#notificationReadStatus"].forEach((selector) => {
+          const control = $(selector);
+          if (control) control.onchange = applyFilters;
+        });
         const button = $("#drawerMarkAllRead");
         if (button)
           button.onclick = () => {
@@ -56,9 +125,10 @@
           .forEach(
             (button) =>
               (button.onclick = () => {
-                markNoticeRead(button.dataset.noticeId);
-                renderDrawerLayer(notificationCenterHtml());
-                bindNotificationCenter();
+                selectNotification(button.dataset.noticeId, () => {
+                  renderDrawerLayer(notificationCenterHtml());
+                  bindNotificationCenter();
+                });
               }),
           );
       }
@@ -73,7 +143,7 @@
         const messages = currentNotifications();
         const p = document.createElement("div");
         p.className = "notice-panel";
-        p.innerHTML = `<div class="panel-head"><div class="panel-title">消息通知</div><div class="spacer"></div><button class="btn" id="markAllRead" type="button">全部已读</button></div><div>${
+        p.innerHTML = `<div class="panel-head"><div class="panel-title">消息通知</div><div class="spacer"></div><button class="btn" id="markAllRead" type="button">全部已读</button></div>${notificationFailureHtml()}<div>${
           messages
             .slice(0, 3)
             .map((message) => noticeCard(message))
@@ -85,8 +155,7 @@
         p.querySelectorAll("[data-notice-id]").forEach(
           (button) =>
             (button.onclick = () => {
-              markNoticeRead(button.dataset.noticeId);
-              closeNoticePanel();
+              selectNotification(button.dataset.noticeId, closeNoticePanel);
             }),
         );
         noticeOutsideClickHandler = (event) => {
@@ -138,4 +207,3 @@
           return;
         }
       });
-

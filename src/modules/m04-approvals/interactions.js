@@ -145,6 +145,10 @@
         const canAppendCc = canAppendApprovalCc(a);
         const canReplaceInvalidHandler =
           a.status === "paused_invalid_handler" && currentUser.fullAccess;
+        const canRetryBusiness =
+          a.status === "processing_failed" &&
+          currentUser.fullAccess &&
+          Boolean(a.targetKind || a.targetArchiveId);
         const transferPerson = a.transferContactId
           ? contacts.find((x) => x.id === a.transferContactId)
           : null;
@@ -157,8 +161,15 @@
         const lateEntryImpact = a.type === "逾期补录"
           ? `<div class="section-title">补录核验</div><div class="detail-grid"><div class="detail-item"><label>关联任务</label><div>#${a.targetTaskId} ${a.taskTitle}</div></div><div class="detail-item"><label>任务截止日期</label><div>${a.taskDue}</div></div><div class="detail-item"><label>实际维系日期</label><div>${a.actualDate}</div></div><div class="detail-item"><label>创建时间</label><div>${a.date}</div></div><div class="detail-item"><label>登记延迟</label><div>${a.entryDelayDays} 天</div></div><div class="detail-item"><label>证明材料</label><div>${a.evidenceFiles?.join("、") || "未上传"}</div></div></div>`
           : "";
-        const businessFailure = a.businessError
-          ? `<div class="section-title">业务回写结果</div><div class="role-note danger-note"><strong>审批已通过，但业务处理失败</strong><br>${a.businessError}<br>业务对象保持审批前状态，由系统管理员复核后重试或关闭失败实例。</div>`
+        const businessFailure =
+          a.status === "processing_failed" && a.businessError
+          ? `<div class="section-title">业务回写结果</div><div class="role-note danger-note"><strong>审批已通过，但业务处理失败</strong><br>${a.businessError}<br>业务对象保持审批前状态，由系统管理员复核后受控重试；重试成功前不能重新发起该对象的停用或恢复。</div>`
+          : "";
+        const businessFailureHistory = a.businessFailureHistory?.length
+          ? `<div class="section-title">业务处理失败记录</div><div class="timeline">${a.businessFailureHistory.map((entry) => `<div class="timeline-item is-current"><div class="timeline-title">${entry.time} · 业务处理失败</div><div class="timeline-content">${entry.error}</div></div>`).join("")}</div>`
+          : "";
+        const businessRetryHistory = a.businessRetryHistory?.length
+          ? `<div class="section-title">受控重试记录</div><div class="timeline">${a.businessRetryHistory.map((entry) => `<div class="timeline-item is-${entry.result === "成功" ? "done" : "current"}"><div class="timeline-title">${entry.startedAt} · ${entry.operator} · ${entry.result}</div><div class="timeline-content">${entry.error || "业务状态已按原审批生效"}</div></div>`).join("")}</div>`
           : "";
         const invalidHandlerImpact =
           a.status === "paused_invalid_handler"
@@ -168,22 +179,23 @@
           ? `<div class="section-title">处理人替换记录</div><div class="timeline">${a.handlerReplacementHistory.map((entry) => `<div class="timeline-item is-done"><div class="timeline-title">${entry.time} · ${entry.from} → ${entry.to}</div><div class="timeline-content">操作人：${entry.operator}；原因：${entry.reason}<br>资格依据：${entry.qualification || "复用原节点资格规则"}</div></div>`).join("")}</div>`
           : "";
         const stopImpact = a.targetKind
-          ? `<div class="section-title">停用影响摘要</div><div class="detail-grid"><div class="detail-item"><label>对象类型</label><div>${a.type.replace(/停用$/, "")}</div></div><div class="detail-item"><label>任务处理方式</label><div>${a.taskHandle}</div></div><div class="detail-item"><label>客户单位</label><div>${a.impactSnapshot?.customers || 0} 家</div></div><div class="detail-item"><label>关键人 / 任职</label><div>${a.impactSnapshot?.people || 0}</div></div><div class="detail-item"><label>未完成任务</label><div>${a.impactSnapshot?.tasks || 0}</div></div><div class="detail-item"><label>进行中审批</label><div>${a.impactSnapshot?.approvals || 0}</div></div></div><div class="role-note">审批通过前对象保持原业务状态；生效时重新校验任务、级联对象、替代部门及责任版本，失败则对象不变并进入业务处理失败。</div>`
+          ? `<div class="section-title">停用影响摘要</div><div class="detail-grid"><div class="detail-item"><label>对象类型</label><div>${a.type.replace(/停用$/, "")}</div></div>${a.businessNumber ? `<div class="detail-item"><label>集团编号</label><div>${a.businessNumber}</div></div>` : ""}<div class="detail-item"><label>任务处理方式</label><div>${a.taskHandle}</div></div><div class="detail-item"><label>客户单位</label><div>${a.impactSnapshot?.customers || 0} 家</div></div><div class="detail-item"><label>关键人 / 任职</label><div>${a.impactSnapshot?.people || 0}</div></div><div class="detail-item"><label>未完成任务</label><div>${a.impactSnapshot?.tasks || 0}</div></div><div class="detail-item"><label>进行中审批</label><div>${a.impactSnapshot?.approvals || 0}</div></div></div><div class="role-note">审批通过前对象保持原业务状态；生效时重新校验任务、级联对象、替代部门及责任版本，失败则对象不变并进入业务处理失败。</div>`
           : "";
         const recoveryArchive = a.targetArchiveId
-          ? archivedItems.find((item) => item.id === a.targetArchiveId)
+          ? archivedItems.find((item) => item.id === a.targetArchiveId) ||
+            a.archiveSnapshot
           : null;
         const recoveryImpact = recoveryArchive
-          ? `<div class="section-title">恢复影响摘要</div><div class="detail-grid"><div class="detail-item"><label>恢复对象</label><div>${recoveryArchive.type} · ${recoveryArchive.name}</div></div><div class="detail-item"><label>停用流程</label><div>${recoveryArchive.flowCode}</div></div><div class="detail-item"><label>原停用影响</label><div>${recoveryArchive.impact}</div></div><div class="detail-item"><label>任务处理</label><div>不补造停用期间历史任务</div></div></div>`
+          ? `<div class="section-title">恢复影响摘要</div><div class="detail-grid"><div class="detail-item"><label>恢复对象</label><div>${recoveryArchive.type} · ${recoveryArchive.name}</div></div>${recoveryArchive.businessNumber ? `<div class="detail-item"><label>集团编号</label><div>${recoveryArchive.businessNumber}</div></div>` : ""}<div class="detail-item"><label>停用流程</label><div>${recoveryArchive.flowCode}</div></div><div class="detail-item"><label>原停用影响</label><div>${recoveryArchive.impact}</div></div><div class="detail-item"><label>任务处理</label><div>不补造停用期间历史任务</div></div></div>`
           : "";
         const impact = (lateEntryImpact || stopImpact || recoveryImpact || (a.transferContactId
           ? `<div class="section-title">调岗影响</div><div class="detail-grid">${transferPerson ? `<div class="detail-item"><label>原单位</label><div>${transferPerson.company}</div></div><div class="detail-item"><label>原部门 / 关键人岗位</label><div>${transferPerson.department} / ${transferPerson.positionName}</div></div><div class="detail-item"><label>原职级</label><div>${transferPerson.level}</div></div><div class="detail-item"><label>原客户负责人</label><div>${contactOwnerName(transferPerson)}</div></div>` : ""}<div class="detail-item"><label>目标单位</label><div>${a.targetCompany}</div></div><div class="detail-item"><label>目标客户负责人</label><div>${a.targetOwner || a.targetPm || "待配置"}</div></div><div class="detail-item"><label>执行安排</label><div>${targetCompany?.level === "省公司" ? "所属区域总监直接执行五类任务" : "地市负责人 PM 直接执行"}</div></div><div class="detail-item"><label>新部门 / 关键人岗位</label><div>${a.targetDepartment} / ${a.targetPositionName || a.targetTitle}</div></div><div class="detail-item"><label>未完成常规任务</label><div>原执行项受控关闭，在目标责任下重建并保留流程关联</div></div><div class="detail-item"><label>新任职生效日</label><div>${a.effectiveDate || "审批通过日"}</div></div></div>${campaignImpact}`
             : cityIdsForApproval(a).length
             ? `<div class="section-title">地市交接影响</div><div class="detail-grid"><div class="detail-item"><label>交接地市</label><div>${cityIdsForApproval(a).map((cityId) => cityOwners.find((owner) => owner.id === cityId)?.city || a.targetCitySnapshots?.find((snapshot) => snapshot.id === cityId)?.city || `#${cityId}`).join("、")}</div></div><div class="detail-item"><label>负责人变化</label><div>${a.originalPm || "原 PM"} → ${a.targetPm}</div></div><div class="detail-item"><label>计划生效日期</label><div>${a.plannedEffectiveDate || "审批通过日"}</div></div><div class="detail-item"><label>实际生效时间</label><div>${a.effectiveAt || "—"}</div></div><div class="detail-item"><label>客户 / 关键人</label><div>${a.impactSnapshot?.customers || 0} 家 / ${a.impactSnapshot?.people || 0} 人</div></div><div class="detail-item"><label>任务 / 覆盖 KPI</label><div>${a.impactSnapshot?.tasks || 0} 条 / ${a.impactSnapshot?.coverageKpis || 0} 条</div></div><div class="detail-item"><label>待审批流程</label><div>${a.impactSnapshot?.approvals || 0} 条</div></div><div class="detail-item"><label>目标 PM 处理</label><div>不审批、不接收，生效成功后收到通知</div></div></div><div class="role-note">生效时一次性迁移客户负责人、关键人责任、未完成任务、覆盖 KPI 待办和责任型审批；任一写入失败则全部保持原负责人。</div>`
-            : "")) + invalidHandlerImpact + handlerReplacementAudit + businessFailure;
+            : "")) + invalidHandlerImpact + handlerReplacementAudit + businessFailure + businessFailureHistory + businessRetryHistory;
         const approvalTimeline = approvalTimelineHtml(a);
         openDrawer(
-          `<div class="drawer-head"><div class="modal-title">审批详情</div><button class="icon-btn close" data-close>×</button></div><div class="drawer-body"><div class="detail-hero"><div class="avatar">审</div><div><div class="detail-name">${a.title}</div><div class="detail-sub">${a.type} · ${approvalStatusName(a.status)}</div></div></div><div class="detail-grid"><div class="detail-item"><label>发起人</label><div>${a.applicant}</div></div><div class="detail-item"><label>发起时间</label><div>${a.date}</div></div><div class="detail-item"><label>${["pending", "paused_invalid_handler"].includes(a.status) ? "当前节点" : "完成节点"}</label><div>${approvalDisplayNode(a)}</div></div><div class="detail-item"><label>当前处理人</label><div>${a.status === "paused_invalid_handler" ? `<span class="tag red">${approvalCurrentAssignees(a).join("、") || "原处理人"} · 已失效</span>` : approvalCurrentAssignees(a).join("、") || "流程已结束"}</div></div><div class="detail-item"><label>抄送人</label><div>${approvalCcUsers(a).join("、") || "无"}</div></div><div class="detail-item"><label>抄送时点</label><div>发起即抄送，结束后通知结果</div></div><div class="detail-item"><label>数据范围</label><div>${a.region}</div></div><div class="detail-item"><label>完成时间</label><div>${a.decidedAt || a.rejectedAt || a.withdrawnAt || "—"}</div></div></div>${impact}<div class="section-title">申请原因</div><p style="font-size:12px;line-height:1.8">${a.reason}</p><div class="section-title">流程节点</div>${approvalTimeline}<div class="section-title">抄送记录</div><div class="role-note">${a.date} 发起时已抄送 ${approvalCcUsers(a).join("、") || "无"}；抄送仅授予本流程脱敏快照查看权限，不授予审批权。${(a.ccHistory || []).map((entry) => `<br>${entry.time} · ${entry.operator} 追加抄送 ${entry.users.join("、")}：${entry.note || "无说明"}`).join("")}${["pending", "paused_invalid_handler"].includes(a.status) ? "<br>流程结束后将向全部抄送人推送结果。" : `<br>${a.decidedAt || a.rejectedAt || a.withdrawnAt || a.date} 已推送流程结果。`}</div></div><div class="drawer-foot"><button class="btn" data-close>关闭</button>${canReplaceInvalidHandler ? `<button class="btn btn-primary" data-action="replace-invalid-handler" data-id="${a.id}">替换处理人</button>` : ""}${canWithdraw ? `<button class="btn btn-danger" data-action="withdraw-approval" data-id="${a.id}">撤回</button>` : ""}${canAppendCc ? `<button class="btn" data-action="append-approval-cc" data-id="${a.id}">追加抄送</button>` : ""}${canTransfer ? `<button class="btn" data-action="transfer-approval" data-id="${a.id}">转交</button>` : ""}${canAddSign ? `<button class="btn" data-action="add-sign-approval" data-id="${a.id}">加签</button>` : ""}${canTargetAct ? `<button class="btn btn-danger" data-action="reject-transfer" data-id="${a.id}">拒绝接收</button><button class="btn btn-primary" data-action="accept-transfer" data-id="${a.id}">确认接收</button>` : ""}${canDecisionAct ? `<button class="btn btn-danger" data-reject="${a.id}">驳回</button><button class="btn btn-primary" data-approve="${a.id}">通过</button>` : ""}</div>`,
+          `<div class="drawer-head"><div class="modal-title">审批详情</div><button class="icon-btn close" data-close>×</button></div><div class="drawer-body"><div class="detail-hero"><div class="avatar">审</div><div><div class="detail-name">${a.title}</div><div class="detail-sub">${a.type} · ${approvalStatusName(a.status)}</div></div></div><div class="detail-grid"><div class="detail-item"><label>发起人</label><div>${a.applicant}</div></div><div class="detail-item"><label>发起时间</label><div>${a.date}</div></div><div class="detail-item"><label>${["pending", "paused_invalid_handler"].includes(a.status) ? "当前节点" : "完成节点"}</label><div>${approvalDisplayNode(a)}</div></div><div class="detail-item"><label>当前处理人</label><div>${a.status === "paused_invalid_handler" ? `<span class="tag red">${approvalCurrentAssignees(a).join("、") || "原处理人"} · 已失效</span>` : approvalCurrentAssignees(a).join("、") || "流程已结束"}</div></div><div class="detail-item"><label>抄送人</label><div>${approvalCcUsers(a).join("、") || "无"}</div></div><div class="detail-item"><label>抄送时点</label><div>发起即抄送，结束后通知结果</div></div><div class="detail-item"><label>数据范围</label><div>${a.region}</div></div><div class="detail-item"><label>完成时间</label><div>${a.decidedAt || a.rejectedAt || a.withdrawnAt || "—"}</div></div></div>${impact}<div class="section-title">申请原因</div><p style="font-size:var(--font-size-body);line-height:var(--line-height-body)">${a.reason}</p><div class="section-title">流程节点</div>${approvalTimeline}<div class="section-title">抄送记录</div><div class="role-note">${a.date} 发起时已抄送 ${approvalCcUsers(a).join("、") || "无"}；抄送仅授予本流程脱敏快照查看权限，不授予审批权。${(a.ccHistory || []).map((entry) => `<br>${entry.time} · ${entry.operator} 追加抄送 ${entry.users.join("、")}：${entry.note || "无说明"}`).join("")}${["pending", "paused_invalid_handler"].includes(a.status) ? "<br>流程结束后将向全部抄送人推送结果。" : `<br>${a.decidedAt || a.rejectedAt || a.withdrawnAt || a.date} 已推送流程结果。`}</div></div><div class="drawer-foot"><button class="btn" data-close>关闭</button>${canRetryBusiness ? `<button class="btn btn-primary" data-action="retry-approval-business" data-id="${a.id}">受控重试</button>` : ""}${canReplaceInvalidHandler ? `<button class="btn btn-primary" data-action="replace-invalid-handler" data-id="${a.id}">替换处理人</button>` : ""}${canWithdraw ? `<button class="btn btn-danger" data-action="withdraw-approval" data-id="${a.id}">撤回</button>` : ""}${canAppendCc ? `<button class="btn" data-action="append-approval-cc" data-id="${a.id}">追加抄送</button>` : ""}${canTransfer ? `<button class="btn" data-action="transfer-approval" data-id="${a.id}">转交</button>` : ""}${canAddSign ? `<button class="btn" data-action="add-sign-approval" data-id="${a.id}">加签</button>` : ""}${canTargetAct ? `<button class="btn btn-danger" data-action="reject-transfer" data-id="${a.id}">拒绝接收</button><button class="btn btn-primary" data-action="accept-transfer" data-id="${a.id}">确认接收</button>` : ""}${canDecisionAct ? `<button class="btn btn-danger" data-reject="${a.id}">驳回</button><button class="btn btn-primary" data-approve="${a.id}">通过</button>` : ""}</div>`,
         );
         const approvalDetailGrid = document.querySelector(
           "#overlay .detail-grid",
@@ -584,7 +596,7 @@
           const pendingIndex = archivedItems.findIndex(
             (item) =>
               item.flowCode === approval.code &&
-              item.status === "停用审批中",
+              item.approvalStatus === "审批中",
           );
           if (pendingIndex >= 0) archivedItems.splice(pendingIndex, 1);
         }
@@ -601,10 +613,96 @@
         }
       }
 
+      function recordApprovalBusinessFailure(approval, error, message) {
+        const failedAt = recordCreatedAt();
+        approval.status = "processing_failed";
+        approval.businessError = error;
+        approval.updatedAt = failedAt;
+        approval.businessFailureHistory = [
+          ...(approval.businessFailureHistory || []),
+          { time: failedAt, error },
+        ];
+        const pendingArchive = archivedItems.find(
+          (item) => item.flowCode === approval.code,
+        );
+        if (pendingArchive)
+          pendingArchive.approvalStatus = "已通过-业务处理失败";
+        const recoveryArchive = approval.targetArchiveId
+          ? archivedItems.find((item) => item.id === approval.targetArchiveId)
+          : null;
+        if (recoveryArchive)
+          recoveryArchive.recoveryStatus = `已通过-业务处理失败 · ${approval.code}`;
+        if (
+          !notificationMessages.some(
+            (notification) =>
+              notification.approvalId === approval.id &&
+              notification.category === "系统告警",
+          )
+        )
+          notificationMessages.push({
+            id: `approval-failure:${approval.id}`,
+            approvalId: approval.id,
+            roles: ["admin"],
+            category: "系统告警",
+            title: `${approval.code} 业务处理失败`,
+            content: `${approval.title}：${error}`,
+            date: approval.updatedAt,
+            read: false,
+          });
+        refreshNoticeIndicator();
+        toast(message);
+      }
+
+      function retryApprovalBusiness(id) {
+        const approval = approvals.find((item) => item.id === id);
+        if (!currentUser?.fullAccess)
+          return toast("仅系统管理员可执行受控重试");
+        if (
+          !approval ||
+          approval.status !== "processing_failed" ||
+          !(approval.targetKind || approval.targetArchiveId)
+        )
+          return toast("当前流程无需受控重试");
+        const decisionSnapshot = {
+          decidedAt: approval.decidedAt,
+          decidedBy: approval.decidedBy,
+          decisionComment: approval.decisionComment,
+          expectedApprover: approval.expectedApprover,
+          handledBy: [...(approval.handledBy || [])],
+        };
+        const previousBusinessError = approval.businessError;
+        const retryStartedAt = recordCreatedAt();
+        approval.status = "pending";
+        approval.currentAssignees = [currentUser.name];
+        approval.businessError = "";
+        handleApproval(approval.id, true);
+        Object.assign(approval, decisionSnapshot, { currentAssignees: [] });
+        approval.businessRetryHistory = [
+          ...(approval.businessRetryHistory || []),
+          {
+            operator: currentUser.name,
+            startedAt: retryStartedAt,
+            result:
+              approval.status === "processing_failed" ? "失败" : "成功",
+            error: approval.businessError || previousBusinessError,
+          },
+        ];
+        approval.updatedAt = recordCreatedAt();
+        renderPage();
+        if (approval.status === "processing_failed")
+          return toast("受控重试未成功，原业务状态和流程锁保持不变");
+        toast("受控重试成功，业务状态已按原审批生效");
+      }
+
       function handleApproval(id, pass) {
         const a = approvals.find((x) => x.id === id);
         if (!a || !canActOnApproval(a))
           return toast("当前账号不是该流程的处理人");
+        const targetTask = a.targetTaskId
+          ? tasks.find((task) => task.id === a.targetTaskId)
+          : null;
+        if (targetTask?.status === "cancelled")
+          return toast("关联任务已取消，当前申请已不适用");
         const collaborationNode = activeApprovalCollaborationNode(a);
         if (collaborationNode) {
           const member = collaborationNode.members.find(
@@ -726,9 +824,11 @@
             (a.targetKind === "group" &&
               !customerGroupNames.includes(String(a.targetId)))
           ) {
-            a.status = "processing_failed";
-            a.businessError = "停用对象已不存在，业务状态未改变";
-            return toast("审批已通过，但停用对象不存在，已进入业务处理失败");
+            return recordApprovalBusinessFailure(
+              a,
+              "停用对象已不存在，业务状态未改变",
+              "审批已通过，但停用对象不存在，已进入业务处理失败",
+            );
           }
           const affectedPeople =
             a.targetKind === "group"
@@ -757,9 +857,11 @@
             a.taskHandle === "先处理任务后再停用" &&
             outstandingTasks.length
           ) {
-            a.status = "processing_failed";
-            a.businessError = `审批期间仍有 ${outstandingTasks.length} 条未完成任务，停用未生效`;
-            return toast("审批已通过，但仍有未完成任务，已进入业务处理失败");
+            return recordApprovalBusinessFailure(
+              a,
+              `审批期间仍有 ${outstandingTasks.length} 条未完成任务，停用未生效`,
+              "审批已通过，但仍有未完成任务，已进入业务处理失败",
+            );
           }
           const replacement =
             a.targetKind === "department" && a.replacementDepartmentId
@@ -774,9 +876,11 @@
             affectedPeople.length &&
             !replacement
           ) {
-            a.status = "processing_failed";
-            a.businessError = "替代客户部门在审批期间失效，停用未生效";
-            return toast("替代部门已失效，停用未生效");
+            return recordApprovalBusinessFailure(
+              a,
+              "替代客户部门在审批期间失效，停用未生效",
+              "替代部门已失效，停用未生效",
+            );
           }
           if (a.targetKind === "group") {
             customers
@@ -825,7 +929,7 @@
           }
           const pendingArchive = archivedItems.find(
             (item) =>
-              item.flowCode === a.code && item.status === "停用审批中",
+              item.flowCode === a.code && item.approvalStatus === "审批中",
           );
           const archiveData = {
             id: pendingArchive?.id || Date.now(),
@@ -855,6 +959,11 @@
             recoveryStatus: "未申请",
             taskHandle: a.taskHandle,
             impact: `${a.impactSnapshot?.customers ? `客户单位 ${a.impactSnapshot.customers} 家，` : ""}关键人/任职 ${affectedPeople.length}，未完成任务 ${a.impactSnapshot?.tasks || 0}`,
+            businessNumber:
+              pendingArchive?.businessNumber ||
+              (a.targetKind === "group"
+                ? customerGroupNumbers[obj.name]
+                : ""),
             groupSnapshot: pendingArchive?.groupSnapshot || null,
           };
           if (pendingArchive) Object.assign(pendingArchive, archiveData);
@@ -916,12 +1025,17 @@
           const index = archivedItems.findIndex(
             (x) => x.id === a.targetArchiveId,
           );
-          if (index >= 0) {
-            const x = archivedItems[index];
-            const obj =
-              x.targetKind === "group"
-                ? null
-                : x.targetKind === "contact"
+          if (index < 0)
+            return recordApprovalBusinessFailure(
+              a,
+              "恢复记录已不存在，业务状态未改变",
+              "审批已通过，但恢复记录不存在，已进入业务处理失败",
+            );
+          const x = archivedItems[index];
+          const obj =
+            x.targetKind === "group"
+              ? null
+              : x.targetKind === "contact"
                 ? contacts.find((o) => o.id === x.targetId)
                 : x.targetKind === "customer"
                   ? customers.find((o) => o.id === x.targetId)
@@ -930,26 +1044,38 @@
                     : contacts.find((o) => o.name === x.name) ||
                       customers.find((o) => o.name === x.name) ||
                       customerDepartments.find((o) => o.name === x.name);
-            if (x.targetKind === "group") {
-              if (!customerGroupNames.includes(x.name))
-                customerGroupNames.push(x.name);
-              customerGroupIndustries[x.name] =
-                x.groupSnapshot?.industry || customerGroupIndustries[x.name] || "";
-              customerGroupCreditCodes[x.name] =
-                x.groupSnapshot?.creditCode || customerGroupCreditCodes[x.name] || "";
-              pendingGroupStops.delete(x.name);
-            }
-            if (obj) {
-              obj.archived = false;
-              obj.pendingStop = false;
-            }
-            const restoredPeople =
-              x.targetKind === "contact"
-                ? [obj]
-                : [];
-            restoredPeople
-              .filter(Boolean)
-              .forEach((p) => ensureRegularTask(p, DEMO_TODAY));
+          if (x.targetKind !== "group" && !obj)
+            return recordApprovalBusinessFailure(
+              a,
+              "恢复对象已不存在，业务状态未改变",
+              "审批已通过，但恢复对象不存在，已进入业务处理失败",
+            );
+          if (x.targetKind === "group") {
+            if (!customerGroupNames.includes(x.name))
+              customerGroupNames.push(x.name);
+            customerGroupIndustries[x.name] =
+              x.groupSnapshot?.industry || customerGroupIndustries[x.name] || "";
+            customerGroupCreditCodes[x.name] =
+              x.groupSnapshot?.creditCode || customerGroupCreditCodes[x.name] || "";
+            customerGroupNumbers[x.name] =
+              x.groupSnapshot?.groupNumber ||
+              x.businessNumber ||
+              customerGroupNumbers[x.name];
+            pendingGroupStops.delete(x.name);
+          }
+          if (obj) {
+            obj.archived = false;
+            obj.pendingStop = false;
+          }
+          const restoredPeople = x.targetKind === "contact" ? [obj] : [];
+          restoredPeople
+            .filter(Boolean)
+            .forEach((p) => ensureRegularTask(p, DEMO_TODAY));
+          if (x.targetKind === "group") {
+            x.status = "正常";
+            x.recoveryStatus = `已通过 · ${a.code}`;
+            x.recoveredAt = a.decidedAt;
+          } else {
             archivedItems.splice(index, 1);
           }
         }

@@ -81,7 +81,7 @@
           content = `<div class="table-wrap"><table><thead><tr><th>流程编号</th><th>类型</th><th>申请事项</th><th>当前环节</th><th>状态</th><th>发起时间</th><th>操作</th></tr></thead><tbody>${relatedApprovals.map((approval) => `<tr><td>${approval.code}</td><td>${approval.type}</td><td>${approval.title}</td><td>${approval.status === "pending" ? approval.current : approvalFinalNodeTitle(approval)}</td><td><span class="tag ${approval.status === "approved" ? "green" : approval.status === "rejected" ? "red" : "yellow"}">${approvalStatusName(approval.status)}</span></td><td>${approval.date}</td><td><button class="link" data-action="approval-detail" data-id="${approval.id}">详情</button></td></tr>`).join("") || '<tr><td colspan="7">暂无相关审批</td></tr>'}</tbody></table></div>`;
         if (selectedPersonDetailTab === "logs")
           content = `<div class="timeline"><div class="timeline-item is-done"><div class="timeline-title">${person.updatedAt} · 信息更新</div><div class="timeline-content">更新手机号、关键决策人或展示字段；任职字段未变更。</div></div><div class="timeline-item is-done"><div class="timeline-title">${person.createdAt || person.effectiveDate} · 关键人创建</div><div class="timeline-content">${person.source === "import" ? "批量导入" : "手工录入"}，生成编号 ${person.code}。</div></div></div>`;
-        const html = `<div class="drawer-head"><div class="modal-title">关键人详情</div><button class="icon-btn close" data-close>×</button></div><div class="drawer-body"><div class="detail-hero"><div class="avatar">${person.name[0]}</div><div><div class="detail-name">${person.name} <span class="tag blue">${person.level}</span> ${person.decision ? '<span class="tag orange">关键决策人</span>' : ""} ${pendingStopApproval("contact", person.id) ? '<span class="tag yellow">停用审批中</span>' : contactHasOverdue(person) ? '<span class="tag red">当前逾期</span>' : '<span class="tag green">健康</span>'}</div><div class="detail-sub">${person.code} · ${person.company} · ${person.positionName}</div></div></div><div class="tabs detail-tabs">${tabs.map(([key, label]) => `<button class="tab ${selectedPersonDetailTab === key ? "active" : ""}" type="button" data-person-detail-tab="${key}">${label}</button>`).join("")}</div><div class="person-detail-content">${content}</div></div><div class="drawer-foot"><button class="btn" data-close>关闭</button>${stopObjectActionHtml("contact", person.id)}${personDetailCanMaintain(person) && !pendingStopApproval("contact", person.id) ? `<button class="btn" data-action="edit-contact" data-id="${person.id}">编辑身份</button>` : ""}${canTransferContact(person) && !pendingStopApproval("contact", person.id) ? `<button class="btn" data-action="transfer" data-id="${person.id}">发起调岗</button>` : ""}${canCreateMaintenanceForPerson(person) && !pendingStopApproval("contact", person.id) ? `<button class="btn btn-primary" data-action="new-record" data-id="${person.id}">新增记录</button>` : ""}</div>`;
+        const html = `<div class="drawer-head"><div class="modal-title">关键人详情</div><button class="icon-btn close" data-close>×</button></div><div class="drawer-body"><div class="detail-hero"><div class="avatar">${person.name[0]}</div><div><div class="detail-name">${person.name} <span class="tag blue">${person.level}</span> ${person.decision ? '<span class="tag blue">关键决策人</span>' : ""} ${contactHasOverdue(person) ? '<span class="tag red">当前逾期</span>' : '<span class="tag green">健康</span>'}</div><div class="detail-sub">${person.code} · ${person.company} · ${person.positionName}</div></div></div><div class="tabs detail-tabs">${tabs.map(([key, label]) => `<button class="tab ${selectedPersonDetailTab === key ? "active" : ""}" type="button" data-person-detail-tab="${key}">${label}</button>`).join("")}</div><div class="person-detail-content">${content}</div></div><div class="drawer-foot"><button class="btn" data-close>关闭</button>${stopObjectActionHtml("contact", person.id)}${personDetailCanMaintain(person) && !pendingStopApproval("contact", person.id) ? `<button class="btn" data-action="edit-contact" data-id="${person.id}">编辑身份</button>` : ""}${canTransferContact(person) && !pendingStopApproval("contact", person.id) ? `<button class="btn" data-action="transfer" data-id="${person.id}">发起调岗</button>` : ""}${canCreateMaintenanceForPerson(person) && !pendingStopApproval("contact", person.id) ? `<button class="btn btn-primary" data-action="new-record" data-id="${person.id}">新增记录</button>` : ""}</div>`;
         if (initial) openDrawer(html);
         else renderDrawerLayer(html);
         document.querySelectorAll("#overlay [data-person-detail-tab]").forEach(
@@ -128,12 +128,16 @@
           "download-contact-import-template": () => downloadTemplate("contact"),
           "add-group": openGroupForm,
           "add-customer": () => openCustomerForm(),
+          "edit-customer-parent": () => openCustomerForm(Number(id)),
           "go-customer-settings": () => {
             if (!hasPermission("settings"))
               return toast("当前账号无客户基础配置访问权限");
             currentPage = "settings";
             settingsSection = "tree";
-            selectedCustomerOrgNode = kind && id ? `${kind}:${id}` : selectedCustomerOrgNode;
+            if (kind && id) {
+              clearCustomerOrgInternalContext();
+              selectedCustomerOrgNode = `${kind}:${id}`;
+            }
             window.history.replaceState(null, "", "#settings");
             closeAllOverlays();
             renderNav();
@@ -166,6 +170,7 @@
           "all-person-records": () => openPersonRecords(Number(id)),
           "edit-record": () => openRecord(null, Number(id)),
           "approval-detail": () => openApprovalDetail(Number(id)),
+          "retry-approval-business": () => retryApprovalBusiness(Number(id)),
           "withdraw-approval": () => openWithdrawApproval(Number(id)),
           "append-approval-cc": () => openAppendApprovalCc(Number(id)),
           "replace-invalid-handler": () =>
@@ -224,10 +229,11 @@
       }
 
       function openCustomerForm(id) {
-        if (!canCreateCustomerUnit())
-          return toast("当前账号无新增客户单位权限");
         const c = customers.find((x) => x.id === id);
-        if (c) return toast("客户单位信息暂不支持编辑");
+        if (c && !hasOperationPermission("settings.edit"))
+          return toast("当前账号无权调整客户公司组织上级");
+        if (!c && !canCreateCustomerUnit())
+          return toast("当前账号无新增客户单位权限");
         const levels =
           currentUser.role === "pm"
             ? ["市公司", "区县公司"]
@@ -240,6 +246,55 @@
               "",
             )}</select></div><div class="form-group"><label class="form-label">集团公司 *</label><select class="input" id="cfGroup">${customerGroupNames.map((x) => `<option>${x}</option>`).join("")}</select></div><div class="form-group full"><label class="form-label">客户公司名称 *</label><input class="input" id="cfName" minlength="2" maxlength="100" required></div><div class="form-group"><label class="form-label">客户公司层级 *</label><select class="input" id="cfLevel"><option value="">请选择层级</option>${levels.map((x) => `<option>${x}</option>`).join("")}</select></div><div class="form-group"><label class="form-label">责任省份 *</label><select class="input" id="cfProvince" required></select></div><div class="form-group" id="cfCityGroup"><label class="form-label">责任城市 *</label><select class="input" id="cfCity" required></select></div><div class="form-group" id="cfDistrictGroup"><label class="form-label">责任区县 *</label><select class="input" id="cfDistrict" required></select></div><div class="form-group full"><label class="form-label">统一社会信用代码</label><input class="input" id="cfCredit" maxlength="18" pattern="[0-9A-HJ-NPQRTUWXY]{18}" placeholder="18 位；未填写可留空"></div></div><div class="role-note">系统按客户公司层级和责任省/市/区县自动计算公司父级、区域中心、客户负责人、数据范围和任务执行人。</div></div><div class="modal-foot"><button class="btn" type="button" data-close>取消</button><button class="btn btn-primary" type="submit">保存客户公司</button></div></form>`,
         );
+        const levelGroup = $("#cfLevel").closest(".form-group");
+        levelGroup.querySelector(".form-label").textContent =
+          "业务责任层级 *";
+        $("#cfProvince").closest(".form-group").querySelector(".form-label").textContent =
+          "业务责任省份 *";
+        $("#cfCity").closest(".form-group").querySelector(".form-label").textContent =
+          "业务责任城市 *";
+        $("#cfDistrict").closest(".form-group").querySelector(".form-label").textContent =
+          "业务责任区县 *";
+        $("#cfLevel").innerHTML =
+          '<option value="">请选择业务责任层级</option><option>省级</option><option>市级</option><option>区县级</option>';
+        $("#cfGroup").closest(".form-group").insertAdjacentHTML(
+          "afterend",
+          '<div class="form-group"><label class="form-label">组织上级 *</label><select class="input" id="cfOrganizationParent" required></select></div>',
+        );
+        $("#customerForm .role-note").textContent =
+          "组织上级唯一决定公司树路径；业务责任层级和业务责任省/市/区县只用于区域中心、客户负责人、数据范围和任务执行人。";
+        $("#customerForm").parentElement.querySelector(".modal-title").textContent = c
+          ? "调整客户公司组织上级"
+          : "新增客户公司";
+        $("#customerForm .btn-primary").textContent = c ? "保存" : "保存客户公司";
+        const refreshOrganizationParents = () => {
+          const group = $("#cfGroup").value;
+          const excludedIds = c
+            ? new Set([c.id, ...customerOrganizationDescendantIds(c.id)])
+            : new Set();
+          const candidates = customers.filter(
+            (company) =>
+              company.group === group &&
+              !company.archived &&
+              customerOrgStatus("company", company) === "正常" &&
+              !excludedIds.has(company.id),
+          );
+          $("#cfOrganizationParent").innerHTML =
+            `<option value="group">${group}</option>` +
+            candidates
+              .map(
+                (company) =>
+                  `<option value="company:${company.id}">${customerOrganizationPath(company)}</option>`,
+              )
+              .join("");
+          if (c) {
+            const currentValue =
+              c.organizationParentType === "company"
+                ? `company:${c.organizationParentCompanyId}`
+                : "group";
+            $("#cfOrganizationParent").value = currentValue;
+          }
+        };
         // 先选行业，集团按行业过滤（DEC-152）
         const refreshGroupByIndustry = () => {
           const selectedIndustry = $("#cfIndustry").value;
@@ -251,6 +306,7 @@
               ? eligibleGroups
               : customerGroupNames
             ).map((g) => `<option>${g}</option>`).join("");
+          refreshOrganizationParents();
         };
         $("#cfIndustry").onchange = refreshGroupByIndustry;
         refreshGroupByIndustry();
@@ -264,6 +320,21 @@
           refreshGroupByIndustry();
           $("#cfGroup").value = selectedTreeGroup;
         }
+        if (c) {
+          $("#cfIndustry").value = c.industry;
+          refreshGroupByIndustry();
+          $("#cfGroup").value = c.group;
+          $("#cfName").value = c.name;
+          $("#cfLevel").value = customerBusinessResponsibilityLevel(c);
+          $("#cfCredit").value = c.creditCode || "";
+          ["#cfIndustry", "#cfGroup", "#cfName", "#cfLevel", "#cfCredit"].forEach(
+            (selector) => {
+              $(selector).disabled = true;
+            },
+          );
+          refreshOrganizationParents();
+        }
+        $("#cfGroup").onchange = refreshOrganizationParents;
         const refreshAreas = () => {
           const provinces =
             currentUser.role === "pm"
@@ -280,14 +351,14 @@
             $("#cfProvince").innerHTML =
               '<option value="">请选择省份</option>' +
               provinces.map((x) => `<option>${x}</option>`).join("");
-            $("#cfProvince").value = provinces.includes("山东")
-              ? "山东"
-              : provinces[0] || "";
+            $("#cfProvince").value = provinces.includes(prevProv)
+              ? prevProv
+              : "";
           } else if (!provinces.includes(prevProv)) {
             $("#cfProvince").innerHTML =
               '<option value="">请选择省份</option>' +
               provinces.map((x) => `<option>${x}</option>`).join("");
-            $("#cfProvince").value = provinces[0] || "";
+            $("#cfProvince").value = "";
           }
           const province = $("#cfProvince").value;
           const allowedCities =
@@ -309,36 +380,77 @@
             ? prevDistrict
             : "";
           const level = $("#cfLevel").value;
-          const needsCity = level !== "省公司";
-          const needsDistrict = level === "区县公司";
-          $("#cfCityGroup").classList.toggle("hidden", !needsCity);
-          $("#cfDistrictGroup").classList.toggle(
-            "hidden",
-            !needsDistrict,
-          );
+          const hasLevel = Boolean(level);
+          const needsCity = ["市级", "区县级"].includes(level);
+          const needsDistrict = level === "区县级";
+          $("#cfProvince").required = hasLevel;
+          $("#cfProvince").disabled = !hasLevel;
           $("#cfCity").required = needsCity;
           $("#cfCity").disabled = !needsCity;
           $("#cfDistrict").required = needsDistrict;
           $("#cfDistrict").disabled = !needsDistrict;
-          if (level === "省公司") {
+          if (!hasLevel) {
+            $("#cfProvince").value = "";
             $("#cfCity").value = "";
             $("#cfDistrict").value = "";
+          } else if (level === "省级") {
+            $("#cfCity").value = "";
+            $("#cfDistrict").value = "";
+          } else if (level === "市级") {
+            $("#cfDistrict").value = "";
           }
-          if (level === "市公司") $("#cfDistrict").value = "";
         };
         $("#cfLevel").onchange = refreshAreas;
         $("#cfProvince").onchange = refreshAreas;
         $("#cfCity").onchange = refreshAreas;
         refreshAreas();
+        if (c) {
+          $("#cfProvince").value = customerBusinessProvince(c);
+          refreshAreas();
+          $("#cfCity").value = customerBusinessCity(c);
+          refreshAreas();
+          $("#cfDistrict").value = customerBusinessDistrict(c);
+          ["#cfProvince", "#cfCity", "#cfDistrict"].forEach((selector) => {
+            $(selector).disabled = true;
+          });
+        }
         $("#customerForm").onsubmit = (e) => {
           e.preventDefault();
+          const parentValue = $("#cfOrganizationParent").value;
+          const selectedParentId = parentValue.startsWith("company:")
+            ? Number(parentValue.slice(8))
+            : null;
+          const selectedParent = selectedParentId
+            ? customers.find((company) => company.id === selectedParentId)
+            : null;
+          const selectedGroup = c?.group || $("#cfGroup").value;
+          if (
+            parentValue !== "group" &&
+            (!selectedParent ||
+              selectedParent.group !== selectedGroup ||
+              selectedParent.archived ||
+              (c &&
+                (selectedParent.id === c.id ||
+                  customerOrganizationDescendantIds(c.id).has(selectedParent.id))))
+          )
+            return toast("请选择所属集团或同集团正常客户公司作为组织上级");
+          if (c) {
+            c.organizationParentType = selectedParent ? "company" : "group";
+            c.organizationParentCompanyId = selectedParent?.id || null;
+            c.updatedAt = recordCreatedAt();
+            clearCustomerOrgInternalContext();
+            selectedCustomerOrgNode = `company:${c.id}`;
+            closeOverlay();
+            renderPage();
+            return toast("修改已保存");
+          }
           const level = $("#cfLevel").value,
             province = $("#cfProvince").value,
             city = $("#cfCity").value,
             district = $("#cfDistrict").value,
             name = $("#cfName").value.trim(),
             creditCode = $("#cfCredit").value.trim().toUpperCase();
-          if (!level) return toast("请选择客户公司层级");
+          if (!level) return toast("请选择业务责任层级");
           if (name.length < 2 || name.length > 100)
             return toast("单位名称需填写 2-100 字");
           if (creditCode && !/^[0-9A-HJ-NPQRTUWXY]{18}$/.test(creditCode))
@@ -354,13 +466,13 @@
             districts = administrativeDivisions[province]?.[city] || [];
           if (!provinces.includes(province)) return toast("请选择标准省份");
           if (
-            level !== "省公司" &&
+            level !== "省级" &&
             (!cities.includes(city) ||
               (currentUser.role === "pm" &&
                 !assignedCitiesForCurrentUser().includes(city)))
           )
             return toast("请选择授权范围内的标准城市");
-          if (level === "区县公司" && !districts.includes(district))
+          if (level === "区县级" && !districts.includes(district))
             return toast("请选择标准区县");
           const regionMatch = regionsData.find((r) =>
             regionProvinceList(r).includes(province),
@@ -373,10 +485,10 @@
           const ownerInfo = cityOwners.find(
             (item) => item.province === province && item.city === city,
           );
-          if (level !== "省公司" && !ownerInfo?.pm)
+          if (level !== "省级" && !ownerInfo?.pm)
             return toast("该城市尚未配置地市负责人，不能创建客户");
-          const owner = level === "省公司" ? director : ownerInfo.pm;
-          const pm = level === "省公司" ? "" : ownerInfo.pm;
+          const owner = level === "省级" ? director : ownerInfo.pm;
+          const pm = level === "省级" ? "" : ownerInfo.pm;
           const group = $("#cfGroup").value;
           const industry = customerGroupIndustries[group];
           if (!industry) return toast("所属集团行业未配置，不能创建客户");
@@ -384,10 +496,18 @@
             group,
             industry,
             name,
-            level,
+            level: { 省级: "省公司", 市级: "市公司", 区县级: "区县公司" }[
+              level
+            ],
+            businessResponsibilityLevel: level,
             province,
-            city: level === "省公司" ? "" : city,
-            district: level === "区县公司" ? district : "",
+            businessResponsibilityProvince: province,
+            city: level === "省级" ? "" : city,
+            businessResponsibilityCity: level === "省级" ? "" : city,
+            district: level === "区县级" ? district : "",
+            businessResponsibilityDistrict: level === "区县级" ? district : "",
+            organizationParentType: selectedParent ? "company" : "group",
+            organizationParentCompanyId: selectedParent?.id || null,
             region,
             owner,
             pm,
@@ -399,15 +519,14 @@
             (item) =>
               !item.archived &&
               item.group === data.group &&
-              item.level === level &&
-              item.province === province &&
-              item.city === data.city &&
-              item.district === data.district &&
+              item.organizationParentType === data.organizationParentType &&
+              item.organizationParentCompanyId ===
+                data.organizationParentCompanyId &&
               item.name.toLocaleLowerCase("zh-CN") ===
                 name.toLocaleLowerCase("zh-CN"),
           );
           if (duplicate)
-            return toast("同集团、层级和完整区划下已存在同名客户单位");
+            return toast("同一组织上级下已存在同名客户公司");
           const unit = {
             id: Date.now(),
             ...data,
@@ -416,6 +535,8 @@
           };
           customers.push(unit);
           expandedCustomerNodes.add(`group:${data.group}`);
+          if (selectedParent)
+            expandedCustomerNodes.add(`company-org:${selectedParent.id}`);
           if (data.level === "省公司")
             expandedCustomerNodes.add(
               `province:${data.group}:${data.province}`,
@@ -439,6 +560,7 @@
           selectedOperationCustomerId = unit.id;
           selectedOperationContactId = null;
           selectedCustomerGroup = data.group;
+          clearCustomerOrgInternalContext();
           selectedCustomerOrgNode = `company:${unit.id}`;
           expandedCustomerOrgNodes.add(`industry:${data.industry}`);
           expandedCustomerOrgNodes.add(`group:${data.group}`);
@@ -446,7 +568,7 @@
           customerTreeDimension = "group";
           closeOverlay();
           renderPage();
-          toast("客户公司已创建，已按责任省市区自动归属");
+          toast("客户公司已创建");
         };
       }
 
@@ -454,7 +576,7 @@
         if (!canCreateCustomerGroup())
           return toast("当前账号无新增集团公司权限");
         openModal(
-          `<div class="modal-head"><div class="modal-title">新增集团公司</div><button class="icon-btn close" data-close>×</button></div><form id="groupForm"><div class="modal-body"><div class="form-grid"><div class="form-group full"><label class="form-label">集团公司名称 *</label><input class="input" id="gfName" minlength="2" maxlength="100" required placeholder="例如：中国华能集团"></div><div class="form-group"><label class="form-label">行业 *</label><select class="input" id="gfIndustry" required><option value="">请选择行业</option>${industries
+          `<div class="modal-head"><div class="modal-title">新增集团公司</div><button class="icon-btn close" data-close>×</button></div><form id="groupForm"><div class="modal-body"><div class="form-grid"><div class="form-group full"><label class="form-label">集团编号</label><input class="input" id="gfNumber" value="保存后自动生成" disabled></div><div class="form-group full"><label class="form-label">集团公司名称 *</label><input class="input" id="gfName" minlength="2" maxlength="100" required placeholder="例如：中国华能集团"></div><div class="form-group"><label class="form-label">行业 *</label><select class="input" id="gfIndustry" required><option value="">请选择行业</option>${industries
             .filter((x) => x.enabled)
             .map((x) => `<option>${x.name}</option>`)
             .join(
@@ -467,13 +589,13 @@
           const creditCode = $("#gfCredit").value.trim().toUpperCase();
           if (name.length < 2 || name.length > 100)
             return toast("集团公司名称需填写 2-100 字");
-          if (
-            customerGroupNames.some(
+          const existingGroup = Object.keys(customerGroupNumbers).find(
               (item) =>
                 item.toLocaleLowerCase("zh-CN") ===
                 name.toLocaleLowerCase("zh-CN"),
-            )
-          ) {
+            );
+          if (existingGroup) {
+            $("#gfNumber").value = customerGroupNumbers[existingGroup];
             toast("集团公司名称已存在");
             return;
           }
@@ -485,9 +607,17 @@
               Object.values(customerGroupCreditCodes).includes(creditCode))
           )
             return toast("统一社会信用代码已存在，请联系管理员核对");
+          const groupNumber = nextCustomerGroupNumber();
           customerGroupNames.push(name);
+          customerGroupNumbers[name] = groupNumber;
           customerGroupIndustries[name] = $("#gfIndustry").value;
           customerGroupCreditCodes[name] = creditCode;
+          clearCustomerOrgInternalContext();
+          selectedCustomerOrgNode = `group:${name}`;
+          expandedCustomerOrgNodes.add(
+            `industry:${customerGroupIndustries[name]}`,
+          );
+          expandedCustomerOrgNodes.add(`group:${name}`);
           closeOverlay();
           renderPage();
           toast(`集团公司已创建，行业为${customerGroupIndustries[name]}`);
@@ -500,7 +630,9 @@
         const department = customerDepartments.find(
           (item) => item.id === departmentId,
         );
-        const [selectedType, selectedId] = selectedCustomerOrgNode.split(":");
+        const [selectedType, selectedId] = (
+          selectedCustomerOrgInternalNode || selectedCustomerOrgNode
+        ).split(":");
         const contextDepartment =
           selectedType === "department"
             ? customerDepartments.find((item) => String(item.id) === selectedId)
@@ -555,8 +687,14 @@
             return toast("部门名称须为 2-100 字");
           if (customerDepartments.some((item) => !item.archived && item.id !== department?.id && item.company === company && item.parent === data.parent && item.name.toLowerCase() === data.name.toLowerCase()))
             return toast("该客户公司同一上级下已存在同名部门");
+          let savedDepartment = department;
           if (department) Object.assign(department, data);
-          else customerDepartments.push({ id: Date.now(), ...data });
+          else {
+            savedDepartment = { id: Date.now(), ...data };
+            customerDepartments.push(savedDepartment);
+          }
+          selectedCustomerOrgInternalNode = `department:${savedDepartment.id}`;
+          expandedCustomerOrgNodes.add(`department:${savedDepartment.id}`);
           closeOverlay();
           renderPage();
           toast(`客户部门已保存，归属 ${company}`);
@@ -604,7 +742,7 @@
         ).split("-");
         const industries = [...new Set(choices.map((item) => item.industry))];
         openModal(
-          `<div class="modal-head"><div class="modal-title">${person ? "编辑关键人" : "新增关键人"}</div><button class="icon-btn close" data-close>×</button></div><form id="contactForm"><div class="modal-body"><div class="section-title">职业信息</div><div class="form-grid"><div class="form-group"><label class="form-label">行业 *</label><select class="input" id="pfIndustry" ${lockedProfession ? "disabled" : ""}><option value="">请选择行业</option>${industries.map((item) => `<option ${item === initialCompany.industry ? "selected" : ""}>${item}</option>`).join("")}</select></div><div class="form-group"><label class="form-label">集团 *</label><select class="input" id="pfGroup" ${lockedProfession ? "disabled" : ""}><option value="">请先选择行业</option></select></div><div class="form-group"><label class="form-label">客户公司 *</label><select class="input" id="pfCompany" ${lockedProfession ? "disabled" : ""}><option value="">请先选择集团</option></select></div><div class="form-group"><label class="form-label">客户部门 *</label><select class="input" id="pfDept" ${person ? "disabled" : ""}><option value="">请先选择客户公司</option></select></div><div class="form-group"><label class="form-label">关键人岗位 *</label><select class="input" id="pfPosition" ${person ? "disabled" : ""}><option value="">请先选择客户部门</option></select></div></div><div class="role-note">${person ? "职业信息普通编辑只读；公司、部门或岗位变化请使用“发起调岗”。" : "五项均为普通单选；切换上级会清空下级选择。"}</div><div class="section-title">个人信息</div><div class="form-grid"><div class="form-group"><label class="form-label">关键人编号</label><input class="input" value="${person?.code || "保存后自动生成"}" disabled><div class="list-sub">KP + 8 位公司级流水</div></div><div class="form-group"><label class="form-label">姓名 *</label><input class="input" id="pfName" value="${person?.name || ""}" minlength="2" maxlength="50" required></div><div class="form-group"><label class="form-label">性别</label><select class="input" id="pfGender"><option value="未说明" ${!person?.gender || person?.gender === "未说明" ? "selected" : ""}>未说明</option><option value="男" ${person?.gender === "男" ? "selected" : ""}>男</option><option value="女" ${person?.gender === "女" ? "selected" : ""}>女</option></select></div><div class="form-group"><label class="form-label">职级 *</label><select class="input" id="pfLevel" required><option value="">请选择职级</option>${contactLevelOptions(person?.level || "")}</select></div><div class="form-group"><label class="form-label">手机号 *</label><input class="input" id="pfPhone" value="${String(person?.phone || "").replace(/\D/g, "")}" inputmode="numeric" maxlength="11" pattern="1[3-9][0-9]{9}" required><div class="list-sub">11 位手机号，公司全局唯一</div></div><div class="form-group"><label class="form-label">微信号</label><input class="input" id="pfWechat" value="${person?.wechat || ""}" maxlength="64"></div><div class="form-group"><label class="form-label">邮箱</label><input class="input" id="pfEmail" type="email" maxlength="254" value="${person?.email || ""}"></div><div class="form-group"><label class="form-label">任职生效日 *</label><input class="input" id="pfEffectiveDate" type="date" max="${DEMO_TODAY}" value="${person?.effectiveDate || DEMO_TODAY}" ${person ? "disabled" : "required"}></div><div class="form-group"><label class="form-label">生日（公历月日）</label><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><select class="input" id="pfBirthdayMonth"><option value="">月</option>${Array.from({ length: 12 }, (_, index) => String(index + 1).padStart(2, "0")).map((month) => `<option value="${month}" ${month === birthdayMonth ? "selected" : ""}>${Number(month)}月</option>`).join("")}</select><select class="input" id="pfBirthdayDay"><option value="">日</option></select></div></div><div class="form-group"><label class="form-label">关键决策人</label><select class="input" id="pfDecision"><option value="true" ${person?.decision === true ? "selected" : ""}>是</option><option value="false" ${person?.decision !== true ? "selected" : ""}>否</option></select></div></div></div><div class="modal-foot">${person ? `<button class="btn" type="button" data-action="transfer" data-id="${person.id}">发起调岗</button>` : ""}<button class="btn" type="button" data-close>取消</button><button class="btn btn-primary" type="submit">保存关键人</button></div></form>`,
+          `<div class="modal-head"><div class="modal-title">${person ? "编辑关键人" : "新增关键人"}</div><button class="icon-btn close" data-close>×</button></div><form id="contactForm"><div class="modal-body"><div class="section-title">职业信息</div><div class="form-grid"><div class="form-group"><label class="form-label">行业 *</label><select class="input" id="pfIndustry" ${lockedProfession ? "disabled" : ""}><option value="">请选择行业</option>${industries.map((item) => `<option ${item === initialCompany.industry ? "selected" : ""}>${item}</option>`).join("")}</select></div><div class="form-group"><label class="form-label">集团 *</label><select class="input" id="pfGroup" ${lockedProfession ? "disabled" : ""}><option value="">请先选择行业</option></select></div><div class="form-group"><label class="form-label">客户公司 *</label><select class="input" id="pfCompany" ${lockedProfession ? "disabled" : ""}><option value="">请先选择集团</option></select></div><div class="form-group"><label class="form-label">客户部门 *</label><select class="input" id="pfDept" ${person ? "disabled" : ""}><option value="">请先选择客户公司</option></select></div><div class="form-group"><label class="form-label">关键人岗位 *</label><select class="input" id="pfPosition" ${person ? "disabled" : ""}><option value="">请先选择客户部门</option></select></div></div><div class="role-note">${person ? "职业信息普通编辑只读；公司、部门或岗位变化请使用“发起调岗”。" : "五项均为普通单选；切换上级会清空下级选择。"}</div><div class="section-title">个人信息</div><div class="form-grid"><div class="form-group"><label class="form-label">关键人编号</label><input class="input" value="${person?.code || "保存后自动生成"}" disabled><div class="list-sub">KP + 8 位公司级流水</div></div><div class="form-group"><label class="form-label">姓名 *</label><input class="input" id="pfName" value="${person?.name || ""}" minlength="2" maxlength="50" required></div><div class="form-group"><label class="form-label">性别</label><select class="input" id="pfGender"><option value="未说明" ${!person?.gender || person?.gender === "未说明" ? "selected" : ""}>未说明</option><option value="男" ${person?.gender === "男" ? "selected" : ""}>男</option><option value="女" ${person?.gender === "女" ? "selected" : ""}>女</option></select></div><div class="form-group"><label class="form-label">职级 *</label><select class="input" id="pfLevel" required><option value="">请选择职级</option>${contactLevelOptions(person?.level || "")}</select></div><div class="form-group"><label class="form-label">手机号 *</label><input class="input" id="pfPhone" value="${String(person?.phone || "").replace(/\D/g, "")}" inputmode="numeric" maxlength="11" pattern="1[3-9][0-9]{9}" required><div class="list-sub">11 位手机号，公司全局唯一</div></div><div class="form-group"><label class="form-label">微信号</label><input class="input" id="pfWechat" value="${person?.wechat || ""}" maxlength="64"></div><div class="form-group"><label class="form-label">邮箱</label><input class="input" id="pfEmail" type="email" maxlength="254" value="${person?.email || ""}"></div><div class="form-group"><label class="form-label">任职生效日 *</label><input class="input" id="pfEffectiveDate" type="date" max="${DEMO_TODAY}" value="${person?.effectiveDate || DEMO_TODAY}" ${person ? "disabled" : "required"}></div><div class="form-group"><label class="form-label">生日（公历月日）</label><div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--space-2)"><select class="input" id="pfBirthdayMonth"><option value="">月</option>${Array.from({ length: 12 }, (_, index) => String(index + 1).padStart(2, "0")).map((month) => `<option value="${month}" ${month === birthdayMonth ? "selected" : ""}>${Number(month)}月</option>`).join("")}</select><select class="input" id="pfBirthdayDay"><option value="">日</option></select></div></div><div class="form-group"><label class="form-label">关键决策人</label><select class="input" id="pfDecision"><option value="true" ${person?.decision === true ? "selected" : ""}>是</option><option value="false" ${person?.decision !== true ? "selected" : ""}>否</option></select></div></div></div><div class="modal-foot">${person ? `<button class="btn" type="button" data-action="transfer" data-id="${person.id}">发起调岗</button>` : ""}<button class="btn" type="button" data-close>取消</button><button class="btn btn-primary" type="submit">保存关键人</button></div></form>`,
         );
 
         const fillContactCascade = (source = "initial") => {
@@ -805,6 +943,17 @@
         );
       }
 
+      function stopRequestLockApproval(kind, id) {
+        return approvals.find(
+          (approval) =>
+            ["pending", "paused_invalid_handler", "processing_failed"].includes(
+              approval.status,
+            ) &&
+            approval.targetKind === kind &&
+            String(approval.targetId) === String(id),
+        );
+      }
+
       function canRequestObjectStop(kind, obj) {
         if (!currentUser || !obj) return false;
         if (!hasOperationPermission("archive.request_stop")) return false;
@@ -821,7 +970,7 @@
       }
 
       function stopObjectActionHtml(kind, id) {
-        const approval = pendingStopApproval(kind, id);
+        const approval = stopRequestLockApproval(kind, id);
         if (approval)
           return `<button class="btn" data-action="approval-detail" data-id="${approval.id}">查看停用审批 ${approval.code}</button>`;
         const obj =
@@ -920,7 +1069,7 @@
             : kind === "department"
             ? "客户部门"
               : "客户单位";
-        if (pendingStopApproval(kind, normalizedId) || obj.pendingStop)
+        if (stopRequestLockApproval(kind, normalizedId) || obj.pendingStop)
           return toast("该对象已有停用审批，不能重复提交");
         const affectedCustomers =
           kind === "group"
@@ -979,7 +1128,7 @@
             : [];
         const route = objectApprovalRoute(kind, obj);
         openModal(
-          `<div class="modal-head"><div class="modal-title">申请停用${kindName}</div><button class="icon-btn close" data-close>×</button></div><form id="stopForm"><div class="modal-body"><div class="detail-grid"><div class="detail-item"><label>对象</label><div>${obj.name}</div></div><div class="detail-item"><label>当前状态</label><div>正常</div></div>${kind === "group" ? `<div class="detail-item"><label>正常客户单位</label><div>${affectedCustomers.length}</div></div><div class="detail-item"><label>正常客户部门</label><div>${customerDepartments.filter((item) => !item.archived && item.group === obj.name).length}</div></div>` : ""}<div class="detail-item"><label>有效关键人 / 任职</label><div>${affectedPeople.length}</div></div><div class="detail-item"><label>未完成任务</label><div>${unfinishedTasks.length}</div></div><div class="detail-item"><label>进行中审批</label><div>${pendingApprovals.length}</div></div><div class="detail-item"><label>覆盖 KPI 影响</label><div>${affectedPeople.length ? "将实时重算" : "无"}</div></div></div>${pendingApprovals.length ? `<div class="role-note danger-note">存在进行中流程 ${pendingApprovals.map((approval) => approval.code).join("、")}，必须先处理后才能提交停用。</div>` : ""}${kind === "group" && affectedCustomers.length ? `<label class="choice-item" style="margin-top:14px"><input id="stopCascadeGroup" type="checkbox"><span>完整级联停用全部 ${affectedCustomers.length} 家客户单位及 ${affectedPeople.length} 名有效关键人</span></label>` : ""}${kind === "customer" && affectedPeople.length ? `<label class="choice-item" style="margin-top:14px"><input id="stopCascade" type="checkbox"><span>完整级联停用该单位全部 ${affectedPeople.length} 名有效关键人</span></label>` : ""}${kind === "department" && affectedPeople.length ? `<div class="form-group"><label class="form-label">替代客户部门 *</label><select class="input" id="stopReplacementDepartment"><option value="">请选择同一客户公司内的正常部门</option>${replacementDepartments.map((department) => `<option value="${department.id}">${department.name}</option>`).join("")}</select><div class="list-sub">仅迁移当前任职，历史任职保留原部门名称</div></div>` : ""}<div class="form-group"><label class="form-label">影响处理 *</label><select class="input" id="stopTaskHandle"><option>关闭未完成任务并记录原因</option><option>先处理任务后再停用</option></select></div><div class="form-group"><label class="form-label">停用原因 *</label><textarea class="input" id="stopReason" minlength="5" maxlength="500" required placeholder="请填写 5-500 字停用原因"></textarea></div><div class="role-note">审批路由：${route.direct ? "总裁直接确认并形成已通过审计实例" : `${route.current}（${route.assignees.join("、")}）`}。审批通过前对象仍参与业务并显示“停用审批中”；生效后从正常列表、候选和实时统计中剔除。</div></div><div class="modal-foot"><button class="btn" type="button" data-close>取消</button><button class="btn btn-primary" type="submit">${route.direct ? "确认停用并记录审计" : "提交停用审批"}</button></div></form>`,
+          `<div class="modal-head"><div class="modal-title">申请停用${kindName}</div><button class="icon-btn close" data-close>×</button></div><form id="stopForm"><div class="modal-body"><div class="detail-grid"><div class="detail-item"><label>对象</label><div>${obj.name}</div></div>${kind === "group" ? `<div class="detail-item"><label>集团编号</label><div>${customerGroupNumbers[obj.name]}</div></div>` : ""}<div class="detail-item"><label>当前状态</label><div>正常</div></div>${kind === "group" ? `<div class="detail-item"><label>正常客户单位</label><div>${affectedCustomers.length}</div></div><div class="detail-item"><label>正常客户部门</label><div>${customerDepartments.filter((item) => !item.archived && item.group === obj.name).length}</div></div>` : ""}<div class="detail-item"><label>有效关键人 / 任职</label><div>${affectedPeople.length}</div></div><div class="detail-item"><label>未完成任务</label><div>${unfinishedTasks.length}</div></div><div class="detail-item"><label>进行中审批</label><div>${pendingApprovals.length}</div></div><div class="detail-item"><label>覆盖 KPI 影响</label><div>${affectedPeople.length ? "将实时重算" : "无"}</div></div></div>${pendingApprovals.length ? `<div class="role-note danger-note">存在进行中流程 ${pendingApprovals.map((approval) => approval.code).join("、")}，必须先处理后才能提交停用。</div>` : ""}${kind === "group" && affectedCustomers.length ? `<label class="choice-item" style="margin-top:var(--space-4)"><input id="stopCascadeGroup" type="checkbox"><span>完整级联停用全部 ${affectedCustomers.length} 家客户单位及 ${affectedPeople.length} 名有效关键人</span></label>` : ""}${kind === "customer" && affectedPeople.length ? `<label class="choice-item" style="margin-top:var(--space-4)"><input id="stopCascade" type="checkbox"><span>完整级联停用该单位全部 ${affectedPeople.length} 名有效关键人</span></label>` : ""}${kind === "department" && affectedPeople.length ? `<div class="form-group"><label class="form-label">替代客户部门 *</label><select class="input" id="stopReplacementDepartment"><option value="">请选择同一客户公司内的正常部门</option>${replacementDepartments.map((department) => `<option value="${department.id}">${department.name}</option>`).join("")}</select><div class="list-sub">仅迁移当前任职，历史任职保留原部门名称</div></div>` : ""}<div class="form-group"><label class="form-label">影响处理 *</label><select class="input" id="stopTaskHandle"><option>关闭未完成任务并记录原因</option><option>先处理任务后再停用</option></select></div><div class="form-group"><label class="form-label">停用原因 *</label><textarea class="input" id="stopReason" minlength="5" maxlength="500" required placeholder="请填写 5-500 字停用原因"></textarea></div><div class="role-note">审批路由：${route.direct ? "总裁直接确认并形成已通过审计实例" : `${route.current}（${route.assignees.join("、")}）`}。审批通过前对象仍按正常状态参与业务，审批进度在原流程中查看；生效后从正常列表、候选和实时统计中剔除。</div></div><div class="modal-foot"><button class="btn" type="button" data-close>取消</button><button class="btn btn-primary" type="submit">${route.direct ? "确认停用并记录审计" : "提交停用审批"}</button></div></form>`,
         );
         $("#stopForm").onsubmit = (e) => {
           e.preventDefault();
@@ -1040,6 +1189,8 @@
             },
             targetKind: kind,
             targetId: normalizedId,
+            businessNumber:
+              kind === "group" ? customerGroupNumbers[obj.name] : "",
           };
           approvals.unshift(approval);
           archivedItems.unshift({
@@ -1053,7 +1204,7 @@
             reason: approval.reason,
             date: approval.date.slice(0, 10),
             applicant: currentUser.name,
-            status: "停用审批中",
+            status: "正常",
             approvalStatus: "审批中",
             targetKind: kind,
             targetId: normalizedId,
@@ -1063,9 +1214,12 @@
             recoveryStatus: "未申请",
             taskHandle: approval.taskHandle,
             impact: `${affectedCustomers.length ? `客户单位 ${affectedCustomers.length} 家，` : ""}关键人/任职 ${affectedPeople.length}，未完成任务 ${unfinishedTasks.length}`,
+            businessNumber:
+              kind === "group" ? customerGroupNumbers[obj.name] : "",
             groupSnapshot:
               kind === "group"
                 ? {
+                    groupNumber: customerGroupNumbers[obj.name],
                     industry: customerGroupIndustries[obj.name] || "",
                     creditCode: customerGroupCreditCodes[obj.name] || "",
                   }

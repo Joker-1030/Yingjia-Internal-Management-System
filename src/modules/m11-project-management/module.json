@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 1,
+  "id": "M11",
+  "name": "项目管理",
+  "pages": [
+    "projects",
+    "project-detail",
+    "project-create",
+    "project-edit",
+    "packages",
+    "platform-companies"
+  ],
+  "pageStates": [
+    "项目列表",
+    "列表筛选",
+    "项目详情四 Tab",
+    "项目创建",
+    "项目分阶段编辑",
+    "项目资料维护",
+    "满意度填写",
+    "AI 确认交付",
+    "项目取消",
+    "自动完成与待办",
+    "采购包管理",
+    "平台公司管理"
+  ],
+  "dataReferences": [
+    "data/projects.js",
+    "data/project-instructors.js",
+    "data/project-packages.js",
+    "data/platform-companies.js",
+    "data/customers.js",
+    "data/regions.js",
+    "data/organization.js"
+  ],
+  "sourceFiles": [
+    "modules/m11-project-management/page.js",
+    "modules/m11-project-management/interactions.js"
+  ],
+  "eventRouterSource": "modules/_app-shell/events.js"
+}

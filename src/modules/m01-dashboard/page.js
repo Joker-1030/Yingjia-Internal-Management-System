@@ -5,6 +5,15 @@
         return `<button type="button" class="metric dashboard-metric ${tone || ""}" data-dashboard-nav="${nav}"${attrs}><span class="metric-label">${label}</span><span class="metric-value">${value}</span><span class="metric-foot">${foot}</span></button>`;
       }
 
+      function escapeDashboardHtml(value) {
+        return String(value ?? "")
+          .replaceAll("&", "&amp;")
+          .replaceAll("<", "&lt;")
+          .replaceAll(">", "&gt;")
+          .replaceAll('"', "&quot;")
+          .replaceAll("'", "&#039;");
+      }
+
       function dashboardTaskNumbers(rows = scopedTasks()) {
         return taskSummaryNumbers(
           rows.filter(
@@ -277,8 +286,12 @@
               command: "处理",
             }));
         }
-        const items = currentUser.role === "pm" ? [...taskItems, ...approvalItems] : [...approvalItems, ...taskItems];
-        return items.slice(0, 6);
+        const projectItems = projectActionTodoItemsForCurrentUser();
+        const items =
+          currentUser.role === "pm"
+            ? [...projectItems, ...taskItems, ...approvalItems]
+            : [...projectItems, ...approvalItems, ...taskItems];
+        return items;
       }
 
       function dashboardDynamicItems() {
@@ -381,10 +394,12 @@
         return items.length
           ? items
               .map((item) => {
-                const attrs = item.nav
-                  ? `data-dashboard-nav="${item.nav}" data-task-view="mine" data-task-group="${item.group || ""}"`
-                  : `data-action="${item.action}" data-id="${item.id}"`;
-                return `<button class="list-row action-row" type="button" ${attrs}><div class="avatar">${item.icon}</div><div class="list-main"><div class="list-title">${item.title}</div><div class="list-sub">${item.detail}</div></div><span class="tag ${item.tone}">${item.command || "查看"}</span></button>`;
+                const attrs = item.projectId
+                  ? `data-project-open="${escapeDashboardHtml(item.projectId)}"`
+                  : item.nav
+                    ? `data-dashboard-nav="${escapeDashboardHtml(item.nav)}" data-task-view="mine" data-task-group="${escapeDashboardHtml(item.group || "")}"`
+                    : `data-action="${escapeDashboardHtml(item.action)}" data-id="${escapeDashboardHtml(item.id)}"`;
+                return `<button class="list-row action-row" type="button" ${attrs}><div class="avatar">${escapeDashboardHtml(item.icon)}</div><div class="list-main"><div class="list-title">${escapeDashboardHtml(item.title)}</div><div class="list-sub">${escapeDashboardHtml(item.detail)}</div></div><span class="tag ${escapeDashboardHtml(item.tone)}">${escapeDashboardHtml(item.command || "查看")}</span></button>`;
               })
               .join("")
           : `<div class="empty">${emptyText}</div>`;
@@ -454,6 +469,7 @@
             !["done", "cancelled", "expired"].includes(task.status),
         ).length;
         const todoItems = dashboardTodoItems();
+        const projectReminderItems = projectReminderSummaryItemsForCurrentUser();
         const dynamicItems = dashboardDynamicItems();
         const isPm = currentUser.role === "pm";
         const title = isPm
@@ -474,14 +490,18 @@
           : `<div class="dashboard-primary-grid">${dashboardScopeTable()}<section class="panel dashboard-todo-panel"><div class="panel-head"><div class="panel-title">待办</div><span class="tag red dashboard-panel-count">${todoItems.length}</span><div class="spacer"></div>${hasPermission("approvals") ? '<button class="btn" type="button" data-dashboard-nav="approvals" data-approval-view="pending">审批中心</button>' : ""}</div><div class="panel-body list dashboard-list">${dashboardList(todoItems, "当前没有需要本人处理的事项")}</div></section></div>`;
         const secondaryLeft = isPm
           ? dashboardScopeTable()
-          : `${dashboardPmTable()}<section class="panel" style="margin-top:14px"><div class="panel-head"><div class="panel-title">近六个月执行趋势</div><div class="panel-sub">按实际完成月与首次逾期月统计，可分别下钻</div><div class="spacer"></div><span class="tag green">完成事件</span><span class="tag yellow">首次逾期事件</span></div><div class="panel-body">${dashboardTrendHtml(rows)}</div></section>`;
+          : `${dashboardPmTable()}<section class="panel" style="margin-top:var(--space-4)"><div class="panel-head"><div class="panel-title">近六个月执行趋势</div><div class="panel-sub">按实际完成月与首次逾期月统计，可分别下钻</div><div class="spacer"></div><span class="tag green">完成事件</span><span class="tag yellow">首次逾期事件</span></div><div class="panel-body">${dashboardTrendHtml(rows)}</div></section>`;
+        const projectReminderPanel = hasPermission("projects")
+          ? `<section class="panel dashboard-project-reminder-panel"><div class="panel-head"><div><div class="panel-title">项目提醒</div><div class="panel-sub">监督与待回款只读提醒不进入我的待办</div></div><div class="spacer"></div><button class="btn" type="button" data-dashboard-nav="projects">项目管理</button></div><div class="panel-body list dashboard-list">${dashboardList(projectReminderItems, "当前没有项目提醒")}</div></section>`
+          : "";
+        const secondaryRight = `<div class="dashboard-side-stack">${projectReminderPanel}<section class="panel dashboard-dynamic-panel"><div class="panel-head"><div class="panel-title">重点动态</div><span class="tag blue dashboard-panel-count">${dynamicItems.length}</span><div class="spacer"></div><button class="btn" type="button" data-action="notification-center">消息中心</button></div><div class="panel-body list dashboard-list">${dashboardList(dynamicItems, "当前没有重点动态")}</div></section></div>`;
         return (
           pageHead(
             title,
             description,
             `${currentUser.role === "admin" ? '<button class="btn" type="button" data-admin-dashboard-view="system">系统运行</button>' : ""}<button class="btn" type="button" data-dashboard-nav="operations">客户经营</button><button class="btn btn-primary" type="button" data-dashboard-nav="tasks" data-task-view="${isPm ? "mine" : "summary"}">${isPm ? "处理任务" : "查看执行"}</button>`,
           ) +
-          `<div class="metrics dashboard-metrics">${metrics}</div>${primary}<div class="dashboard-secondary-grid">${secondaryLeft}<section class="panel dashboard-dynamic-panel"><div class="panel-head"><div class="panel-title">重点动态</div><span class="tag blue dashboard-panel-count">${dynamicItems.length}</span><div class="spacer"></div><button class="btn" type="button" data-action="notification-center">消息中心</button></div><div class="panel-body list dashboard-list">${dashboardList(dynamicItems, "当前没有重点动态")}</div></section></div>`
+          `<div class="metrics dashboard-metrics">${metrics}</div>${primary}<div class="dashboard-secondary-grid">${secondaryLeft}${secondaryRight}</div>`
         );
       }
 
@@ -562,8 +582,11 @@
           appliedCustomerFilter.districts = new Set();
           appliedCustomerFilter = {
             group: "",
-            name: "",
+            groupName: "",
+            companyName: "",
+            personCode: "",
             personName: "",
+            personWechat: "",
             industries: new Set(),
             levels: new Set(),
             personPhone: "",
@@ -572,7 +595,8 @@
             departments: new Set(),
             positions: new Set(),
             customPosition: "",
-            dimensionCoverage: "",
+            departmentCoverage: "",
+            positionCoverage: "",
             provinces: new Set(),
             cities: new Set(),
             districts: new Set(),
@@ -612,7 +636,7 @@
               });
             }
           } else if (scopeValue === "省公司") {
-            appliedCustomerFilter.level = "省公司";
+            appliedCustomerFilter.levels = new Set(["省公司"]);
             selectedOperationRegion = "";
             selectedOperationProvince = "";
           } else {
@@ -638,5 +662,3 @@
         renderNav();
         renderPage();
       }
-
-

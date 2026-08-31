@@ -6,6 +6,7 @@
     "README.md",
     ".gitignore",
     "package.json",
+    "docs/PROJECT_OVERVIEW.md",
     "docs/GITHUB_PUBLISH_RULES.md",
     ".github/publish-manifest.json",
     ".github/scripts/build-publish-candidate.mjs",
@@ -81,6 +82,7 @@
   "requiredFiles": [
     "README.md",
     "package.json",
+    "docs/PROJECT_OVERVIEW.md",
     "docs/GITHUB_PUBLISH_RULES.md",
     ".github/publish-manifest.json",
     ".github/scripts/build-publish-candidate.mjs",

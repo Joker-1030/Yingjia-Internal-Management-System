@@ -7,13 +7,21 @@
           title: "客户经营",
           items: [
             { id: "operations", icon: "◉", label: "客户经营" },
-            { id: "tasks", icon: "✓", label: "维系管理", badge: "3" },
+            { id: "tasks", icon: "✓", label: "维系管理" },
+          ],
+        },
+        {
+          title: "项目管理",
+          items: [
+            { id: "projects", icon: "▤", label: "项目列表" },
+            { id: "packages", icon: "▥", label: "采购包管理" },
+            { id: "platform-companies", icon: "▧", label: "平台公司管理" },
           ],
         },
         {
           title: "协同与审批",
           items: [
-            { id: "approvals", icon: "◇", label: "审批中心", badge: "2" },
+            { id: "approvals", icon: "◇", label: "审批中心" },
             { id: "archive", icon: "□", label: "停用记录" },
           ],
         },
@@ -52,19 +60,35 @@
       let selectedRegionId = 701;
       let selectedOrganizationDepartmentId = null;
       let settingsSection = "maintenance";
-      let selectedCustomerOrgNode = "company:27";
+      let selectedCustomerOrgNode = "";
+      let selectedCustomerOrgInternalNode = "";
+      let customerOrgCompanyTab = "organization";
+      const customerOrgNavFilters = {
+        industryName: "",
+        groupNumber: "",
+        groupName: "",
+        companyName: "",
+        industryCode: "",
+        creditCode: "",
+        industry: "",
+        group: "",
+        levels: new Set(),
+        statuses: new Set(),
+      };
+      const customerOrgInternalFilters = {
+        departmentName: "",
+        departmentCode: "",
+        positionName: "",
+        positionCode: "",
+        statuses: new Set(),
+      };
+      let selectedProjectId = null;
+      let projectDetailTab = "basic";
       const expandedCustomerOrgNodes = new Set([
         "industry:通信",
         "industry:能源",
         "industry:制造",
-        "group:中国移动",
-        "group:华电集团",
-        "group:国家电网",
-        "company:26",
-        "company:27",
-        "company:28",
-        "department:1101",
-        "department:1102",
       ]);
+      const customerOrgLoadLimits = new Map();
       let taskDataUpdatedAt = formatTaskUpdateTime(new Date());
       const executionTableStates = {};

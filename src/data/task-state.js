@@ -138,8 +138,12 @@
       };
       let appliedCustomerFilter = {
         group: "",
-        name: "",
+        groupNumber: "",
+        groupName: "",
+        companyName: "",
+        personCode: "",
         personName: "",
+        personWechat: "",
         industries: new Set(),
         levels: new Set(),
         personPhone: "",
@@ -148,7 +152,8 @@
         departments: new Set(),
         positions: new Set(),
         customPosition: "",
-        dimensionCoverage: "",
+        departmentCoverage: "",
+        positionCoverage: "",
         provinces: new Set(),
         cities: new Set(),
         districts: new Set(),

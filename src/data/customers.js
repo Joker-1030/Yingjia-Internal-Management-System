@@ -426,3 +426,31 @@
         },
       );
 
+      const customerOrganizationParentIds = new Map([
+        [2, 1],
+        [9, 2],
+        [13, 1],
+        [14, 2],
+        [15, 10],
+        [19, 18],
+        [23, 22],
+        [27, 26],
+        [28, 27],
+      ]);
+      customers.forEach((company) => {
+        company.organizationParentType = customerOrganizationParentIds.has(
+          company.id,
+        )
+          ? "company"
+          : "group";
+        company.organizationParentCompanyId =
+          customerOrganizationParentIds.get(company.id) || null;
+        company.businessResponsibilityLevel =
+          company.businessResponsibilityLevel ||
+          ({ 省公司: "省级", 市公司: "市级", 区县公司: "区县级" }[
+            company.level
+          ] || company.level);
+        company.businessResponsibilityProvince = company.province || "";
+        company.businessResponsibilityCity = company.city || "";
+        company.businessResponsibilityDistrict = company.district || "";
+      });

@@ -16,3 +16,5 @@
 - [FLOW-12 M03-task-exception-approval](./FLOW-12-M03-task-exception-approval.md)
 - [FLOW-13 M05-deactivation-and-restore](./FLOW-13-M05-deactivation-and-restore.md)
 - [FLOW-14 M06-employee-change-and-deactivation](./FLOW-14-M06-employee-change-and-deactivation.md)
+- [FLOW-15 M11-project-lifecycle](./FLOW-15-M11-project-lifecycle.md)
+- [FLOW-16 M11-project-responsibility-handover](./FLOW-16-M11-project-responsibility-handover.md)

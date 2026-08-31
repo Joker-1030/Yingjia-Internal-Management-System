@@ -12,12 +12,19 @@
     "批次筛选",
     "批次状态",
     "上传与确认",
+    "项目初始化导入",
     "成功/错误/重复反馈"
   ],
   "dataReferences": [
+    "data/accounts.js",
     "data/imports.js",
     "data/customers.js",
-    "data/contacts.js"
+    "data/contacts.js",
+    "data/organization.js",
+    "data/projects.js",
+    "data/regions.js",
+    "data/project-packages.js",
+    "data/platform-companies.js"
   ],
   "sourceFiles": [
     "modules/m10-imports/page.js",

@@ -858,7 +858,7 @@
               .map(([label, values]) => `<div class="permission-summary-item"><label>${label}</label><strong>${values.join("、")}</strong></div>`)
               .join("");
             openModal(
-              `<div class="modal-head"><div class="modal-title">确认权限调整</div><button class="icon-btn close" data-close>×</button></div><div class="modal-body"><div class="permission-summary"><div class="permission-summary-item"><label>目标角色 / 当前版本</label><strong>${template.name} / ${permissionVersions[template.name][0].id}</strong></div><div class="permission-summary-item"><label>影响岗位 / 在职员工</label><strong>${template.jobs.join("、")} / ${employeeCount} 人</strong></div>${diffRows}<div class="permission-summary-item"><label>变更原因</label><strong>${reason}</strong></div></div><div class="role-note" style="margin-top:var(--space-4)">保存后生成不可覆盖的新版本；新请求立即按新权限校验。</div></div><div class="modal-foot"><button class="btn" data-close>取消</button><button class="btn btn-primary" id="confirmRoleTemplateSave">确认并生效</button></div>`,
+              `<div class="modal-head"><div class="modal-title">确认权限调整</div><button class="icon-btn close" data-close>×</button></div><div class="modal-body"><div class="permission-summary"><div class="permission-summary-item"><label>目标角色 / 当前配置</label><strong>${template.name} / ${permissionVersions[template.name][0].id}</strong></div><div class="permission-summary-item"><label>影响岗位 / 在职员工</label><strong>${template.jobs.join("、")} / ${employeeCount} 人</strong></div>${diffRows}<div class="permission-summary-item"><label>变更原因</label><strong>${reason}</strong></div></div><div class="role-note" style="margin-top:var(--space-4)">保存后新配置立即生效，并追加只读变更日志；新请求立即按新权限校验。</div></div><div class="modal-foot"><button class="btn" data-close>取消</button><button class="btn btn-primary" id="confirmRoleTemplateSave">确认并生效</button></div>`,
             );
             $("#confirmRoleTemplateSave").onclick = () => {
               commitPermissionVersion(
@@ -871,41 +871,9 @@
               );
               closeOverlay();
               renderPage();
-              toast("权限版本已生成并生效");
+              toast("权限配置已生效，变更日志已记录");
             };
           };
-        document.querySelectorAll("[data-permission-rollback]").forEach(
-          (button) =>
-            (button.onclick = () => {
-              const template = systemRoleTemplates.find(
-                (item) => item.name === selectedPermissionRole,
-              );
-              const version = permissionVersions[template.name].find(
-                (item) => item.id === button.dataset.permissionRollback,
-              );
-              openModal(
-                `<div class="modal-head"><div class="modal-title">回滚权限版本</div><button class="icon-btn close" data-close>×</button></div><form id="permissionRollbackForm"><div class="modal-body"><div class="permission-summary-item"><label>目标角色 / 历史版本</label><strong>${template.name} / ${version.id}</strong></div><div class="form-group" style="margin-top:var(--space-4)"><label class="form-label">回滚原因 *</label><textarea class="input" id="permissionRollbackReason" minlength="5" maxlength="500" required placeholder="请填写 5-500 字回滚原因"></textarea></div><div class="role-note">回滚会生成一个新版本，不覆盖或删除历史记录。</div></div><div class="modal-foot"><button class="btn" type="button" data-close>取消</button><button class="btn btn-primary" type="submit">确认回滚</button></div></form>`,
-              );
-              $("#permissionRollbackForm").onsubmit = (event) => {
-                event.preventDefault();
-                const reason = $("#permissionRollbackReason").value.trim();
-                if (reason.length < 5 || reason.length > 500)
-                  return toast("回滚原因需填写 5-500 字");
-                commitPermissionVersion(
-                  template,
-                  version.permissions,
-                  version.operations || [],
-                  version.fields,
-                  version.attachments || [],
-                  reason,
-                  `回滚自 ${version.id}`,
-                );
-                closeOverlay();
-                renderPage();
-                toast("已生成新的回滚版本");
-              };
-            }),
-        );
         const filterCustomerTree = () => {
           const {
             name: companyName,

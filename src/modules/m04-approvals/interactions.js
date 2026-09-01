@@ -133,16 +133,6 @@
           canActOnApproval(a) && a.current !== "目标PM接收";
         const canTargetAct =
           canActOnApproval(a) && a.current === "目标PM接收";
-        const canWithdraw = canWithdrawApproval(a);
-        const canTransfer = canCollaborateOnApproval(
-          a,
-          "approvals.transfer",
-        );
-        const canAddSign = canCollaborateOnApproval(
-          a,
-          "approvals.countersign",
-        );
-        const canAppendCc = canAppendApprovalCc(a);
         const canReplaceInvalidHandler =
           a.status === "paused_invalid_handler" && currentUser.fullAccess;
         const canRetryBusiness =
@@ -195,7 +185,7 @@
             : "")) + invalidHandlerImpact + handlerReplacementAudit + businessFailure + businessFailureHistory + businessRetryHistory;
         const approvalTimeline = approvalTimelineHtml(a);
         openDrawer(
-          `<div class="drawer-head"><div class="modal-title">审批详情</div><button class="icon-btn close" data-close>×</button></div><div class="drawer-body"><div class="detail-hero"><div class="avatar">审</div><div><div class="detail-name">${a.title}</div><div class="detail-sub">${a.type} · ${approvalStatusName(a.status)}</div></div></div><div class="detail-grid"><div class="detail-item"><label>发起人</label><div>${a.applicant}</div></div><div class="detail-item"><label>发起时间</label><div>${a.date}</div></div><div class="detail-item"><label>${["pending", "paused_invalid_handler"].includes(a.status) ? "当前节点" : "完成节点"}</label><div>${approvalDisplayNode(a)}</div></div><div class="detail-item"><label>当前处理人</label><div>${a.status === "paused_invalid_handler" ? `<span class="tag red">${approvalCurrentAssignees(a).join("、") || "原处理人"} · 已失效</span>` : approvalCurrentAssignees(a).join("、") || "流程已结束"}</div></div><div class="detail-item"><label>抄送人</label><div>${approvalCcUsers(a).join("、") || "无"}</div></div><div class="detail-item"><label>抄送时点</label><div>发起即抄送，结束后通知结果</div></div><div class="detail-item"><label>数据范围</label><div>${a.region}</div></div><div class="detail-item"><label>完成时间</label><div>${a.decidedAt || a.rejectedAt || a.withdrawnAt || "—"}</div></div></div>${impact}<div class="section-title">申请原因</div><p style="font-size:var(--font-size-body);line-height:var(--line-height-body)">${a.reason}</p><div class="section-title">流程节点</div>${approvalTimeline}<div class="section-title">抄送记录</div><div class="role-note">${a.date} 发起时已抄送 ${approvalCcUsers(a).join("、") || "无"}；抄送仅授予本流程脱敏快照查看权限，不授予审批权。${(a.ccHistory || []).map((entry) => `<br>${entry.time} · ${entry.operator} 追加抄送 ${entry.users.join("、")}：${entry.note || "无说明"}`).join("")}${["pending", "paused_invalid_handler"].includes(a.status) ? "<br>流程结束后将向全部抄送人推送结果。" : `<br>${a.decidedAt || a.rejectedAt || a.withdrawnAt || a.date} 已推送流程结果。`}</div></div><div class="drawer-foot"><button class="btn" data-close>关闭</button>${canRetryBusiness ? `<button class="btn btn-primary" data-action="retry-approval-business" data-id="${a.id}">受控重试</button>` : ""}${canReplaceInvalidHandler ? `<button class="btn btn-primary" data-action="replace-invalid-handler" data-id="${a.id}">替换处理人</button>` : ""}${canWithdraw ? `<button class="btn btn-danger" data-action="withdraw-approval" data-id="${a.id}">撤回</button>` : ""}${canAppendCc ? `<button class="btn" data-action="append-approval-cc" data-id="${a.id}">追加抄送</button>` : ""}${canTransfer ? `<button class="btn" data-action="transfer-approval" data-id="${a.id}">转交</button>` : ""}${canAddSign ? `<button class="btn" data-action="add-sign-approval" data-id="${a.id}">加签</button>` : ""}${canTargetAct ? `<button class="btn btn-danger" data-action="reject-transfer" data-id="${a.id}">拒绝接收</button><button class="btn btn-primary" data-action="accept-transfer" data-id="${a.id}">确认接收</button>` : ""}${canDecisionAct ? `<button class="btn btn-danger" data-reject="${a.id}">驳回</button><button class="btn btn-primary" data-approve="${a.id}">通过</button>` : ""}</div>`,
+          `<div class="drawer-head"><div class="modal-title">审批详情</div><button class="icon-btn close" data-close>×</button></div><div class="drawer-body"><div class="detail-hero"><div class="avatar">审</div><div><div class="detail-name">${a.title}</div><div class="detail-sub">${a.type} · ${approvalStatusName(a.status)}</div></div></div><div class="detail-grid"><div class="detail-item"><label>发起人</label><div>${a.applicant}</div></div><div class="detail-item"><label>发起时间</label><div>${a.date}</div></div><div class="detail-item"><label>${["pending", "paused_invalid_handler"].includes(a.status) ? "当前节点" : "完成节点"}</label><div>${approvalDisplayNode(a)}</div></div><div class="detail-item"><label>当前处理人</label><div>${a.status === "paused_invalid_handler" ? `<span class="tag red">${approvalCurrentAssignees(a).join("、") || "原处理人"} · 已失效</span>` : approvalCurrentAssignees(a).join("、") || "流程已结束"}</div></div><div class="detail-item"><label>抄送人</label><div>${approvalCcUsers(a).join("、") || "无"}</div></div><div class="detail-item"><label>抄送时点</label><div>发起即抄送，结束后通知结果</div></div><div class="detail-item"><label>数据范围</label><div>${a.region}</div></div><div class="detail-item"><label>完成时间</label><div>${a.decidedAt || a.rejectedAt || "—"}</div></div></div>${impact}<div class="section-title">申请原因</div><p style="font-size:var(--font-size-body);line-height:var(--line-height-body)">${a.reason}</p><div class="section-title">流程节点</div>${approvalTimeline}<div class="section-title">抄送记录</div><div class="role-note">${a.date} 发起时已抄送 ${approvalCcUsers(a).join("、") || "无"}；抄送仅授予本流程脱敏快照查看权限，不授予审批权。${["pending", "paused_invalid_handler"].includes(a.status) ? "<br>流程结束后将向全部抄送人推送结果。" : `<br>${a.decidedAt || a.rejectedAt || a.date} 已推送流程结果。`}</div></div><div class="drawer-foot"><button class="btn" data-close>关闭</button>${canRetryBusiness ? `<button class="btn btn-primary" data-action="retry-approval-business" data-id="${a.id}">受控重试</button>` : ""}${canReplaceInvalidHandler ? `<button class="btn btn-primary" data-action="replace-invalid-handler" data-id="${a.id}">替换处理人</button>` : ""}${canTargetAct ? `<button class="btn btn-danger" data-action="reject-transfer" data-id="${a.id}">拒绝接收</button><button class="btn btn-primary" data-action="accept-transfer" data-id="${a.id}">确认接收</button>` : ""}${canDecisionAct ? `<button class="btn btn-danger" data-reject="${a.id}">驳回</button><button class="btn btn-primary" data-approve="${a.id}">通过</button>` : ""}</div>`,
         );
         const approvalDetailGrid = document.querySelector(
           "#overlay .detail-grid",
@@ -212,78 +202,15 @@
         const a = approvals.find((x) => x.id === id);
         if (!a || !canActOnApproval(a))
           return toast("当前账号不是该流程的处理人");
-        const actingFor = approvalCurrentAssignees(a).includes(currentUser.name)
-          ? ""
-          : approvalCurrentAssignees(a)[0] || a.expectedApprover || "原处理人";
         openModal(
-          `<div class="modal-head"><div class="modal-title">${pass ? "通过" : "驳回"}审批</div><button class="icon-btn close" data-close>×</button></div><form id="decisionForm"><div class="modal-body"><div class="role-note">${a.title}${actingFor ? `<br><span class="tag orange">管理员代办</span> 应处理人：${actingFor}` : ""}</div><div class="form-group"><label class="form-label">审批意见 *</label><textarea class="input" id="decisionComment" minlength="${pass ? 0 : 5}" maxlength="500" required>${pass ? "同意，按申请内容执行。" : "请补充完整原因后重新提交。"}</textarea></div>${actingFor ? '<div class="form-group"><label class="form-label">管理员代办原因 *</label><textarea class="input" id="approvalProxyReason" minlength="5" maxlength="500" required placeholder="说明代办原因，历史将同时保留应处理人和实际处理人"></textarea></div>' : ""}</div><div class="modal-foot"><button class="btn" type="button" data-close>取消</button><button class="btn ${pass ? "btn-primary" : "btn-danger"}" type="submit">确认${pass ? "通过" : "驳回"}</button></div></form>`,
+          `<div class="modal-head"><div class="modal-title">${pass ? "通过" : "驳回"}审批</div><button class="icon-btn close" data-close>×</button></div><form id="decisionForm"><div class="modal-body"><div class="role-note">${a.title}</div><div class="form-group"><label class="form-label">审批意见 *</label><textarea class="input" id="decisionComment" minlength="${pass ? 0 : 5}" maxlength="500" required>${pass ? "同意，按申请内容执行。" : "请补充完整原因后重新提交。"}</textarea></div></div><div class="modal-foot"><button class="btn" type="button" data-close>取消</button><button class="btn ${pass ? "btn-primary" : "btn-danger"}" type="submit">确认${pass ? "通过" : "驳回"}</button></div></form>`,
         );
         $("#decisionForm").onsubmit = (e) => {
           e.preventDefault();
           a.decisionComment = $("#decisionComment").value;
-          a.proxyReason = $("#approvalProxyReason")?.value.trim() || "";
           handleApproval(id, pass);
           closeOverlay();
           renderPage();
-        };
-      }
-
-      function openWithdrawApproval(id) {
-        const approval = approvals.find((item) => item.id === id);
-        if (!approval || !canWithdrawApproval(approval))
-          return toast("首个处理动作已发生，当前流程不可撤回");
-        openModal(
-          `<div class="modal-head"><div class="modal-title">撤回审批</div><button class="icon-btn close" data-close>×</button></div><form id="withdrawApprovalForm"><div class="modal-body"><div class="role-note">${approval.code} · ${approval.title}<br>撤回后流程立即结束，不执行任何业务回写。</div><div class="form-group"><label class="form-label">撤回原因 *</label><textarea class="input" id="withdrawApprovalReason" minlength="5" maxlength="500" required placeholder="请填写 5-500 字撤回原因"></textarea></div></div><div class="modal-foot"><button class="btn" type="button" data-close>取消</button><button class="btn btn-danger" type="submit">确认撤回</button></div></form>`,
-        );
-        $("#withdrawApprovalForm").onsubmit = (event) => {
-          event.preventDefault();
-          approval.status = "withdrawn";
-          approval.withdrawnAt = recordCreatedAt();
-          approval.withdrawnBy = currentUser.name;
-          approval.withdrawReason = $("#withdrawApprovalReason").value.trim();
-          approval.currentAssignees = [];
-          approval.updatedAt = approval.withdrawnAt;
-          rollbackApprovalBusinessState(approval);
-          closeAllOverlays();
-          renderPage();
-          toast("审批已撤回，业务状态保持不变");
-        };
-      }
-
-      function openAppendApprovalCc(id) {
-        const approval = approvals.find((item) => item.id === id);
-        if (!approval || !canAppendApprovalCc(approval))
-          return toast("当前账号无权追加抄送");
-        const existing = new Set(approvalCcUsers(approval));
-        const candidates = employees.filter(
-          (employee) =>
-            employee.status === "在职" &&
-            employee.role !== "系统管理员" &&
-            !existing.has(employee.name),
-        );
-        openModal(
-          `<div class="modal-head"><div class="modal-title">追加抄送</div><button class="icon-btn close" data-close>×</button></div><form id="appendApprovalCcForm"><div class="modal-body"><div class="role-note">追加成功后立即建立抄送关系并发送当前进度，流程结束时继续接收结果通知；不授予审批权。</div><div class="form-group"><label class="form-label">抄送人员 *（1-20 人）</label><div class="choice-grid">${candidates.map((employee) => `<label class="choice-item"><input class="assignment-check" type="checkbox" name="approvalCcUser" value="${employee.name}"><span>${employee.name} · ${employee.dept}</span></label>`).join("")}</div></div><div class="form-group"><label class="form-label">说明</label><textarea class="input" id="appendApprovalCcNote" maxlength="500" placeholder="可填写追加背景"></textarea></div></div><div class="modal-foot"><button class="btn" type="button" data-close>取消</button><button class="btn btn-primary" type="submit">确认追加</button></div></form>`,
-        );
-        $("#appendApprovalCcForm").onsubmit = (event) => {
-          event.preventDefault();
-          const users = Array.from(
-            document.querySelectorAll('[name="approvalCcUser"]:checked'),
-          ).map((input) => input.value);
-          if (!users.length || users.length > 20)
-            return toast("请选择 1-20 名追加抄送人员");
-          approval.ccUsers = [...new Set([...approvalCcUsers(approval), ...users])];
-          approval.ccHistory = approval.ccHistory || [];
-          approval.ccHistory.push({
-            operator: currentUser.name,
-            users,
-            note: $("#appendApprovalCcNote").value.trim(),
-            time: recordCreatedAt(),
-          });
-          approval.updatedAt = recordCreatedAt();
-          closeAllOverlays();
-          renderPage();
-          openApprovalDetail(id);
-          toast("已追加抄送并发送当前进度");
         };
       }
 
@@ -349,102 +276,6 @@
           renderPage();
           approvalView = "pending";
           toast(`已由${target}接续处理，流程恢复审批中`);
-        };
-      }
-
-      function openTransferApproval(id) {
-        const approval = approvals.find((item) => item.id === id);
-        if (
-          !approval ||
-          !canCollaborateOnApproval(approval, "approvals.transfer")
-        )
-          return toast("当前节点不支持转交");
-        const currentAssignees = approvalCurrentAssignees(approval);
-        const candidates = employees.filter(
-          (employee) =>
-            employee.status === "在职" &&
-            employee.role !== "系统管理员" &&
-            !currentAssignees.includes(employee.name),
-        );
-        openModal(
-          `<div class="modal-head"><div class="modal-title">转交审批</div><button class="icon-btn close" data-close>×</button></div><form id="transferApprovalForm"><div class="modal-body"><div class="role-note">原处理人：${currentAssignees.join("、")}。Demo 仅展示资格候选；正式系统还会校验节点角色、组织链及对象数据范围。</div><div class="form-group"><label class="form-label">目标处理人 *</label><select class="input" id="transferApprovalUser" required><option value="">请选择</option>${candidates.map((employee) => `<option>${employee.name}</option>`).join("")}</select></div><div class="form-group"><label class="form-label">转交原因 *</label><textarea class="input" id="transferApprovalReason" minlength="5" maxlength="500" required></textarea></div></div><div class="modal-foot"><button class="btn" type="button" data-close>取消</button><button class="btn btn-primary" type="submit">确认转交</button></div></form>`,
-        );
-        $("#transferApprovalForm").onsubmit = (event) => {
-          event.preventDefault();
-          const target = $("#transferApprovalUser").value;
-          approval.transferHistory = approval.transferHistory || [];
-          approval.transferHistory.push({
-            from: currentAssignees,
-            to: target,
-            operator: currentUser.name,
-            reason: $("#transferApprovalReason").value.trim(),
-            time: recordCreatedAt(),
-          });
-          approval.currentAssignees = [target];
-          approval.expectedApprover = target;
-          approval.updatedAt = recordCreatedAt();
-          closeAllOverlays();
-          renderPage();
-          toast(`审批已转交给${target}`);
-        };
-      }
-
-      function openAddSignApproval(id) {
-        const approval = approvals.find((item) => item.id === id);
-        if (
-          !approval ||
-          !canCollaborateOnApproval(approval, "approvals.countersign")
-        )
-          return toast("当前节点不支持动态加签");
-        const originalAssignees = approvalCurrentAssignees(approval);
-        const excluded = new Set([
-          ...originalAssignees,
-          ...(approval.collaborationNodes || []).flatMap((node) =>
-            node.members.map((member) => member.name),
-          ),
-        ]);
-        const candidates = employees.filter(
-          (employee) =>
-            employee.status === "在职" &&
-            employee.role !== "系统管理员" &&
-            !excluded.has(employee.name),
-        );
-        openModal(
-          `<div class="modal-head"><div class="modal-title">动态加签</div><button class="icon-btn close" data-close>×</button></div><form id="addSignApprovalForm"><div class="modal-body"><div class="role-note">加签节点插入当前审批前；全部通过后返回原处理人，任一人驳回则流程结束。</div><div class="form-group"><label class="form-label">加签人员 *（1-5 人）</label><div class="choice-grid">${candidates.map((employee) => `<label class="choice-item"><input class="assignment-check" type="checkbox" name="addSignUser" value="${employee.name}"><span>${employee.name} · ${employee.role}</span></label>`).join("")}</div></div><div class="form-group"><label class="form-label">加签原因 *</label><textarea class="input" id="addSignReason" minlength="5" maxlength="500" required></textarea></div></div><div class="modal-foot"><button class="btn" type="button" data-close>取消</button><button class="btn btn-primary" type="submit">确认加签</button></div></form>`,
-        );
-        $("#addSignApprovalForm").onsubmit = (event) => {
-          event.preventDefault();
-          const users = Array.from(
-            document.querySelectorAll('[name="addSignUser"]:checked'),
-          ).map((input) => input.value);
-          if (!users.length || users.length > 5)
-            return toast("请选择 1-5 名动态加签人员");
-          const node = {
-            id: `NODE-${approval.id}-ADD-${Date.now()}`,
-            type: "dynamic_add_sign",
-            title: `动态加签（${users.length} 人）`,
-            state: "current",
-            initiator: currentUser.name,
-            reason: $("#addSignReason").value.trim(),
-            returnNode: approval.current,
-            returnAssignees: originalAssignees,
-            members: users.map((name) => ({
-              name,
-              state: "current",
-              time: "待处理",
-              opinion: "待审批人填写",
-            })),
-          };
-          approval.collaborationNodes = [
-            ...(approval.collaborationNodes || []),
-            node,
-          ];
-          approval.current = "动态加签";
-          approval.currentAssignees = users;
-          approval.updatedAt = recordCreatedAt();
-          closeAllOverlays();
-          renderPage();
-          toast(`已发起 ${users.length} 人动态加签`);
         };
       }
 
@@ -708,21 +539,12 @@
           const member = collaborationNode.members.find(
             (item) =>
               item.state === "current" && item.name === currentUser.name,
-          ) ||
-            (currentUser.fullAccess
-              ? collaborationNode.members.find(
-                  (item) => item.state === "current",
-                )
-              : null);
-          if (!member) return toast("当前账号不是该加签或会签节点成员");
+          );
+          if (!member) return toast("当前账号不是该会签节点成员");
           member.state = pass ? "done" : "rejected";
           member.actualOperator = currentUser.name;
           member.time = recordCreatedAt();
           member.opinion = a.decisionComment;
-          if (currentUser.fullAccess && member.name !== currentUser.name) {
-            member.proxyFor = member.name;
-            member.proxyReason = a.proxyReason;
-          }
           a.handledBy = [...new Set([...(a.handledBy || []), currentUser.name])];
           a.updatedAt = member.time;
           if (!pass) {
@@ -744,17 +566,9 @@
             );
           }
           collaborationNode.state = "done";
-          a.current = collaborationNode.returnNode || collaborationNode.nextNode;
-          a.currentAssignees = [
-            ...(collaborationNode.returnAssignees ||
-              collaborationNode.nextAssignees ||
-              []),
-          ];
-          return toast(
-            collaborationNode.returnNode
-              ? `加签已全部通过，流程返回${collaborationNode.returnNode}`
-              : `会签已全部通过，流程进入${collaborationNode.nextNode}`,
-          );
+          a.current = collaborationNode.nextNode;
+          a.currentAssignees = [...(collaborationNode.nextAssignees || [])];
+          return toast(`会签已全部通过，流程进入${collaborationNode.nextNode}`);
         }
         a.expectedApprover = approvalCurrentAssignees(a).join("、") || a.expectedApprover;
         a.handledBy = [...new Set([...(a.handledBy || []), currentUser.name])];

@@ -443,14 +443,28 @@
             ["pending", "paused_invalid_handler"].includes(approval.status) &&
             approvalCurrentAssignees(approval).includes(employee.name),
         );
+        const unfinishedProjectsForEmployee = () =>
+          projects.filter(
+            (project) =>
+              !["已完成", "已取消"].includes(project.stage) &&
+              projectCurrentOwner(project) === employee.name,
+          );
+        const projectMigrationRequired = () =>
+          toast(
+            "该员工仍负责未完成项目，请先在“区域中心与地市配置”通过地区责任直接调整完成项目迁移，再重新停用。",
+          );
+        if (mode === "停用" && unfinishedProjectsForEmployee().length)
+          return projectMigrationRequired();
         openModal(
-          `<div class="modal-head"><div class="modal-title">确认员工${mode}</div><button class="icon-btn close" data-close>×</button></div><form id="employeeStatusForm"><div class="modal-body"><div class="role-note ${mode === "停用" ? "danger-note" : ""}"><strong>${employee.name} · ${employee.code}</strong><br>本操作由 HR/admin 直接生效，不创建审批、WF 编号、待办或抄送。</div>${mode === "停用" ? `<div class="impact-summary"><div class="impact-grid"><div><label>将清空主管部门</label><strong>${managedDepartments.length}</strong></div><div><label>将清空地市责任</label><strong>${ownedCities.length}</strong></div><div><label>将取消未完成任务</label><strong>${openTasks.length}</strong></div><div><label>保留当前审批节点</label><strong>${activeApprovals.length}</strong></div></div></div><div class="role-note">停用不做待办校验或交接。部门成员、系统角色、当前审批实例和员工名下项目保留；处理人失效节点按既有规则暂停，全部未完成任务直接取消，项目不取消或自动迁移。</div>` : `<div class="role-note">恢复后继续保留原部门成员和系统角色；已取消任务不恢复，此前清空的主管、区域/地市及客户当前责任不会自动恢复。</div>`}<div class="form-group"><label class="form-label">${mode}原因 *</label><textarea class="input" id="esReason" minlength="5" maxlength="500" required></textarea></div></div><div class="modal-foot"><button class="btn" type="button" data-close>取消</button><button class="btn ${mode === "停用" ? "btn-danger" : "btn-primary"}" type="submit">确认并立即${mode}</button></div></form>`,
+          `<div class="modal-head"><div class="modal-title">确认员工${mode}</div><button class="icon-btn close" data-close>×</button></div><form id="employeeStatusForm"><div class="modal-body"><div class="role-note ${mode === "停用" ? "danger-note" : ""}"><strong>${employee.name} · ${employee.code}</strong><br>本操作由 HR/admin 直接生效，不创建审批、WF 编号、待办或抄送。</div>${mode === "停用" ? `<div class="impact-summary"><div class="impact-grid"><div><label>将清空主管部门</label><strong>${managedDepartments.length}</strong></div><div><label>将清空地市责任</label><strong>${ownedCities.length}</strong></div><div><label>将取消未完成任务</label><strong>${openTasks.length}</strong></div><div><label>保留当前审批节点</label><strong>${activeApprovals.length}</strong></div></div></div><div class="role-note">停用前已确认不存在未迁移未完成项目。部门成员、系统角色、当前审批实例及已迁移/历史项目保留；处理人失效节点按既有规则暂停，全部未完成任务直接取消，项目不取消。</div>` : `<div class="role-note">恢复后继续保留原部门成员和系统角色；已取消任务不恢复，此前清空的主管、区域/地市及客户当前责任不会自动恢复。</div>`}<div class="form-group"><label class="form-label">${mode}原因 *</label><textarea class="input" id="esReason" minlength="5" maxlength="500" required></textarea></div></div><div class="modal-foot"><button class="btn" type="button" data-close>取消</button><button class="btn ${mode === "停用" ? "btn-danger" : "btn-primary"}" type="submit">确认并立即${mode}</button></div></form>`,
         );
         $("#employeeStatusForm").onsubmit = (event) => {
           event.preventDefault();
           const reason = $("#esReason").value.trim();
           if (reason.length < 5 || reason.length > 500)
             return toast(`${mode}原因需填写 5-500 字`);
+          if (mode === "停用" && unfinishedProjectsForEmployee().length)
+            return projectMigrationRequired();
           const changedAt = recordCreatedAt();
           const changeId = `PC-${Date.now()}`;
           const tasksToCancel =
@@ -459,14 +473,6 @@
                   (task) =>
                     task.pm === employee.name &&
                     !["done", "cancelled"].includes(task.status),
-                )
-              : [];
-          const projectsToPreserve =
-            mode === "停用"
-              ? projects.filter(
-                  (project) =>
-                    project.stage !== "已取消" &&
-                    projectCurrentOwner(project) === employee.name,
                 )
               : [];
           const mutationTargets = [
@@ -479,7 +485,6 @@
               ...customers,
               ...approvals,
               ...tasksToCancel,
-              ...projectsToPreserve,
             ]),
           ].filter(Boolean);
           const mutationSnapshots = mutationTargets.map((target) => [
@@ -515,23 +520,6 @@
                 task.employeeStopRecordId = changeId;
                 task.employeeStopEmployeeCode = employee.code;
                 task.employeeStopEmployeeName = employee.name;
-              });
-              projectsToPreserve.forEach((project) => {
-                const preservedOwner = projectCurrentOwner(project);
-                project.currentOwner = preservedOwner;
-                project.responsibilityHistory = [
-                  ...(project.responsibilityHistory || []),
-                  {
-                    type: "employee_deactivation_preserved",
-                    fromOwner: preservedOwner,
-                    toOwner: preservedOwner,
-                    area: projectArea(project),
-                    effectiveAt: changedAt,
-                    operator: currentUser.name,
-                    referenceId: changeId,
-                    reason,
-                  },
-                ];
               });
               activeApprovals.forEach((approval) => {
                 approval.status = "paused_invalid_handler";
@@ -585,7 +573,7 @@
             handover: [],
             impactSummary:
               mode === "停用"
-                ? `清空主管 ${managedDepartments.length} 个、地市责任 ${ownedCities.length} 个；取消未完成任务 ${tasksToCancel.length} 条；保留项目 ${projectsToPreserve.length} 个、当前审批节点 ${activeApprovals.length} 个`
+                ? `未完成项目迁移校验通过；清空主管 ${managedDepartments.length} 个、地市责任 ${ownedCities.length} 个；取消未完成任务 ${tasksToCancel.length} 条；保留当前审批节点 ${activeApprovals.length} 个`
                 : "恢复账号；已取消任务和已清空责任不自动恢复",
           };
           personnelChanges.unshift(change);
@@ -612,9 +600,6 @@
           .map((item) => departmentSupervisor(item)?.name || `${item.name}待设置`)
           .filter((name, itemIndex, all) => all.indexOf(name) === itemIndex);
         const managedDepartments = departmentsManagedBy(employee.code);
-        const managedRegions = regionsData.filter(
-          (region) => region.director === employee.name,
-        );
         const accountEvents = [
           {
             time: employee.createdAt,
@@ -658,7 +643,7 @@
           });
         accountEvents.sort((a, b) => String(b.time).localeCompare(String(a.time)));
         openDrawer(
-          `<div class="drawer-head"><div class="modal-title">员工详情</div><button class="icon-btn close" data-close>×</button></div><div class="drawer-body"><div class="detail-hero"><div class="avatar">${employee.name[0]}</div><div><div class="detail-name">${employee.name} <span class="tag">${employee.code}</span> <span class="tag ${employee.status === "在职" ? "green" : "yellow"}">${employee.status}</span></div><div class="detail-sub">${employeeDepartmentNames(employee).join(" · ") || "系统内置账号"}</div></div></div><div class="tabs"><button class="tab active" type="button" data-employee-detail-tab="basic">基础信息</button><button class="tab" type="button" data-employee-detail-tab="account">角色与账号记录</button></div><section data-employee-detail-panel="basic"><div class="detail-grid"><div class="detail-item"><label>手机号（登录账号）</label><div>${displayEmployeePhone(employee)}</div></div><div class="detail-item"><label>企业邮箱</label><div>${displayEmployeeEmail(employee)}</div></div><div class="detail-item"><label>工号</label><div>${employee.code}</div></div><div class="detail-item"><label>入职日期</label><div>${employee.hireDate}</div></div><div class="detail-item full"><label>全部部门路径（平级）</label><div>${departments.map((item) => `<span class="tag">${departmentPath(item)}</span>`).join(" ") || "—"}</div></div><div class="detail-item full"><label>各部门主管</label><div>${supervisors.join("、") || "待设置"}</div></div><div class="detail-item"><label>本人主管部门</label><div>${managedDepartments.map((item) => item.name).join("、") || "无"}</div></div><div class="detail-item"><label>区域身份</label><div>${managedRegions.length ? managedRegions.map((item) => `${item.name}主管`).join("、") : employeeHasRole(employee, "PM") && departments.some((item) => item.type === "region") ? "区域 PM" : "无"}</div></div><div class="detail-item full"><label>系统角色</label><div>${employeeRoleNames(employee).map((role) => `<span class="tag blue">${role}</span>`).join(" ") || "未关联"}</div></div><div class="detail-item"><label>员工状态</label><div>${employee.status}</div></div>${currentUser.fullAccess ? `<div class="detail-item"><label>账号状态</label><div>${employee.accountStatus}</div></div><div class="detail-item"><label>最近登录</label><div>${employee.lastLogin}</div></div>` : ""}${currentUser.role === "hr" ? `<div class="detail-item full"><label>系统生成初始密码</label><div>${employee.initialPasswordVisible ? '<strong>Yj@2026Demo!</strong><div class="list-sub">无有效期，不强制首次修改；本人修改后立即不可见</div>' : "密码已由本人修改，任何角色不可见"}</div></div>` : ""}<div class="detail-item"><label>档案创建时间</label><div>${employee.createdAt}</div></div><div class="detail-item"><label>最后更新时间</label><div>${employee.updatedAt}</div></div></div><div class="role-note">全部部门关系平级，不设主部门。</div></section><section class="hidden" data-employee-detail-panel="account"><div class="role-note">本页记录账号、部门成员、系统角色及员工状态变化，不展示密码、验证码、会话或完整手机号。</div><div class="timeline">${accountEvents.map((item) => `<div class="timeline-item"><div class="timeline-title">${item.time} · ${item.title}</div><div class="timeline-content">${item.content}</div></div>`).join("")}</div></section></div><div class="drawer-foot"><button class="btn" data-close>关闭</button>${employee.role !== "系统管理员" && canEmployeeAction("employees.edit_employee") && employee.name !== currentUser.name ? `<button class="btn" data-action="employee-edit" data-id="${index}">编辑员工</button>` : ""}${employee.role !== "系统管理员" && canEmployeeAction("employees.reset_password") && employee.name !== currentUser.name ? `<button class="btn" data-action="reset-password" data-id="${index}">重置密码</button>` : ""}</div>`,
+          `<div class="drawer-head"><div class="modal-title">员工详情</div><button class="icon-btn close" data-close>×</button></div><div class="drawer-body"><div class="detail-hero"><div class="avatar">${employee.name[0]}</div><div><div class="detail-name">${employee.name} <span class="tag">${employee.code}</span> <span class="tag ${employee.status === "在职" ? "green" : "yellow"}">${employee.status}</span></div><div class="detail-sub">${employeeDepartmentNames(employee).join(" · ") || "系统内置账号"}</div></div></div><div class="tabs"><button class="tab active" type="button" data-employee-detail-tab="basic">基础信息</button><button class="tab" type="button" data-employee-detail-tab="account">角色与账号记录</button></div><section data-employee-detail-panel="basic"><div class="detail-grid"><div class="detail-item"><label>手机号（登录账号）</label><div>${displayEmployeePhone(employee)}</div></div><div class="detail-item"><label>企业邮箱</label><div>${displayEmployeeEmail(employee)}</div></div><div class="detail-item"><label>工号</label><div>${employee.code}</div></div><div class="detail-item"><label>入职日期</label><div>${employee.hireDate}</div></div><div class="detail-item full"><label>所属部门</label><div>${departments.map((item) => `<span class="tag">${departmentPath(item)}</span>`).join(" ") || "—"}</div></div><div class="detail-item full"><label>各部门主管</label><div>${supervisors.join("、") || "待设置"}</div></div><div class="detail-item"><label>本人主管部门</label><div>${managedDepartments.map((item) => item.name).join("、") || "无"}</div></div><div class="detail-item full"><label>系统角色</label><div>${employeeRoleNames(employee).map((role) => `<span class="tag blue">${role}</span>`).join(" ") || "未关联"}</div></div><div class="detail-item"><label>员工状态</label><div>${employee.status}</div></div>${currentUser.fullAccess ? `<div class="detail-item"><label>账号状态</label><div>${employee.accountStatus}</div></div><div class="detail-item"><label>最近登录</label><div>${employee.lastLogin}</div></div>` : ""}${currentUser.role === "hr" ? `<div class="detail-item full"><label>系统生成初始密码</label><div>${employee.initialPasswordVisible ? '<strong>Yj@2026Demo!</strong><div class="list-sub">无有效期，不强制首次修改；本人修改后立即不可见</div>' : "密码已由本人修改，任何角色不可见"}</div></div>` : ""}<div class="detail-item"><label>档案创建时间</label><div>${employee.createdAt}</div></div><div class="detail-item"><label>最后更新时间</label><div>${employee.updatedAt}</div></div></div><div class="role-note">全部部门关系平级，不设主部门。</div></section><section class="hidden" data-employee-detail-panel="account"><div class="role-note">本页记录账号、部门成员、系统角色及员工状态变化，不展示密码、验证码、会话或完整手机号。</div><div class="timeline">${accountEvents.map((item) => `<div class="timeline-item"><div class="timeline-title">${item.time} · ${item.title}</div><div class="timeline-content">${item.content}</div></div>`).join("")}</div></section></div><div class="drawer-foot"><button class="btn" data-close>关闭</button>${employee.role !== "系统管理员" && canEmployeeAction("employees.edit_employee") && employee.name !== currentUser.name ? `<button class="btn" data-action="employee-edit" data-id="${index}">编辑员工</button>` : ""}${employee.role !== "系统管理员" && canEmployeeAction("employees.reset_password") && employee.name !== currentUser.name ? `<button class="btn" data-action="reset-password" data-id="${index}">重置密码</button>` : ""}</div>`,
         );
         document.querySelectorAll("[data-employee-detail-tab]").forEach(
           (button) =>

@@ -1,8 +1,5 @@
-      function dashboardMetric(label, value, foot, tone, nav, filter = {}) {
-        const attrs = Object.entries(filter)
-          .map(([key, item]) => ` data-${key}="${String(item)}"`)
-          .join("");
-        return `<button type="button" class="metric dashboard-metric ${tone || ""}" data-dashboard-nav="${nav}"${attrs}><span class="metric-label">${label}</span><span class="metric-value">${value}</span><span class="metric-foot">${foot}</span></button>`;
+      function dashboardMetric(label, value, foot, tone) {
+        return `<div class="metric dashboard-metric ${tone || ""}"><span class="metric-label">${label}</span><span class="metric-value">${value}</span><span class="metric-foot">${foot}</span></div>`;
       }
 
       function escapeDashboardHtml(value) {
@@ -100,36 +97,6 @@
 
 
 
-      function dashboardPersonMatchesCoverage(person, filter) {
-        if (filter.dimension === "全部关键人") return true;
-        if (filter.dimension === "部门覆盖") {
-          const department = customerDepartments.find(
-            (item) => String(item.id) === String(filter.departmentId),
-          );
-          return Boolean(
-            department &&
-              person.department === department.name &&
-              customers.find((company) => company.name === person.company)
-                ?.group === department.group,
-          );
-        }
-        if (filter.positionSource === "custom")
-          return (
-            person.positionSource === "custom" &&
-            normalizePositionText(person.positionName).toLowerCase() ===
-              normalizePositionText(filter.customPosition).toLowerCase()
-          );
-        return (
-          person.positionSource === "standard" &&
-          person.positionId === filter.positionId
-        );
-      }
-
-
-
-
-
-
       function taskBusinessMonth(task, kind) {
         if (kind === "done") {
           const record = taskRecord(task);
@@ -163,9 +130,9 @@
         return `<div class="chart">${data
           .map(
             (item) =>
-              `<div class="dashboard-chart-month"><div class="dashboard-chart-bars"><button class="dashboard-chart-bar" style="--bar-height:${Math.max((item.done / maxValue) * 100, item.done ? 8 : 2)}%" type="button" data-dashboard-nav="tasks" data-task-view="mine" data-task-month="${item.key}" data-task-event="done" title="查看 ${item.label} 的完成事件"><span class="dashboard-chart-value">${item.done}</span><span class="bar" style="height:var(--bar-height)"></span></button><button class="dashboard-chart-bar" style="--bar-height:${Math.max((item.overdue / maxValue) * 100, item.overdue ? 8 : 2)}%" type="button" data-dashboard-nav="tasks" data-task-view="mine" data-task-month="${item.key}" data-task-event="overdue" title="查看 ${item.label} 的首次逾期事件"><span class="dashboard-chart-value">${item.overdue}</span><span class="bar alt" style="height:var(--bar-height)"></span></button></div><span class="bar-label">${item.label}</span></div>`,
+              `<div class="dashboard-chart-month"><div class="dashboard-chart-bars"><div class="dashboard-chart-bar" style="--bar-height:${Math.max((item.done / maxValue) * 100, item.done ? 8 : 2)}%"><span class="dashboard-chart-value">${item.done}</span><span class="bar" style="height:var(--bar-height)"></span></div><div class="dashboard-chart-bar" style="--bar-height:${Math.max((item.overdue / maxValue) * 100, item.overdue ? 8 : 2)}%"><span class="dashboard-chart-value">${item.overdue}</span><span class="bar alt" style="height:var(--bar-height)"></span></div></div><span class="bar-label">${item.label}</span></div>`,
           )
-          .join("")}</div><div class="legend"><span><i></i>完成事件</span><span><i class="alt"></i>首次逾期事件</span><span>每根柱可独立下钻</span></div>`;
+          .join("")}</div><div class="legend"><span><i></i>完成事件</span><span><i class="alt"></i>首次逾期事件</span></div>`;
       }
 
       function dashboardScopeRows() {
@@ -222,7 +189,7 @@
         return `<section class="panel"><div class="panel-head"><div><div class="panel-title">${title}</div><div class="panel-sub">资产指标为当前快照；完成率统计 ${period.start} 至 ${period.end} 已到期任务</div></div><div class="spacer"></div>${dashboardPeriodControl()}</div><div class="table-wrap"><table class="dashboard-scope-table"><thead><tr><th>范围</th><th>当前客户</th><th>当前关键人</th><th>当前覆盖率</th><th>当前健康率</th><th>${period.label}按期完成率</th><th>当前逾期</th></tr></thead><tbody>${rows
           .map(
             (row) =>
-              `<tr data-dashboard-nav="operations" data-scope-type="${row.type}" data-scope-value="${row.value}" title="查看 ${row.name} 客户经营明细"><td><strong>${row.name}</strong></td><td>${row.companies}</td><td>${row.people}</td><td>${row.coverage}%</td><td>${row.health}%</td><td><button class="link" type="button" data-dashboard-nav="tasks" data-task-view="mine" data-task-group="on-time" data-task-due-start="${period.start}" data-task-due-end="${period.end}" data-task-${row.type}="${row.value}" title="查看${period.label}按期完成任务"><strong>${row.onTimeRate}%</strong></button><div class="progress"><i style="width:${row.onTimeRate}%"></i></div></td><td><button class="tag ${row.overdue ? "red" : "green"}" type="button" data-dashboard-nav="tasks" data-task-view="mine" data-task-group="overdue" data-task-${row.type}="${row.value}" title="查看当前逾期执行明细">${row.overdue}</button></td></tr>`,
+              `<tr><td><strong>${row.name}</strong></td><td>${row.companies}</td><td>${row.people}</td><td>${row.coverage}%</td><td>${row.health}%</td><td><strong>${row.onTimeRate}%</strong><div class="progress"><i style="width:${row.onTimeRate}%"></i></div></td><td><span class="tag ${row.overdue ? "red" : "green"}">${row.overdue}</span></td></tr>`,
           )
           .join("") || '<tr><td colspan="7"><div class="empty">当前范围暂无经营数据</div></td></tr>'}</tbody></table></div></section>`;
       }
@@ -238,8 +205,7 @@
               dashboardDuePeriodRows(pmRows),
             );
             const currentNumbers = dashboardTaskNumbers(pmRows);
-            const periodAttrs = `data-task-due-start="${period.start}" data-task-due-end="${period.end}" data-task-pm="${pm}"`;
-            return `<tr><td><button class="link" type="button" data-dashboard-nav="tasks" data-task-view="mine" data-task-group="due-period" ${periodAttrs}><strong>${pm}</strong></button></td><td>${periodNumbers.total}</td><td><button class="link" type="button" data-dashboard-nav="tasks" data-task-view="mine" data-task-group="period-done" ${periodAttrs}>${periodNumbers.done}</button></td><td><button class="link" type="button" data-dashboard-nav="tasks" data-task-view="mine" data-task-group="period-done" ${periodAttrs}>${periodNumbers.rate}%</button></td><td><button class="link" type="button" data-dashboard-nav="tasks" data-task-view="mine" data-task-group="on-time" ${periodAttrs}><strong>${periodNumbers.onTimeRate}%</strong></button></td><td><button class="tag ${currentNumbers.overdue ? "red" : "green"}" type="button" data-dashboard-nav="tasks" data-task-view="mine" data-task-group="overdue" data-task-pm="${pm}">${currentNumbers.overdue}</button></td></tr>`;
+            return `<tr><td><strong>${pm}</strong></td><td>${periodNumbers.total}</td><td>${periodNumbers.done}</td><td>${periodNumbers.rate}%</td><td><strong>${periodNumbers.onTimeRate}%</strong></td><td><span class="tag ${currentNumbers.overdue ? "red" : "green"}">${currentNumbers.overdue}</span></td></tr>`;
           })
           .join("") || '<tr><td colspan="6"><div class="empty">当前范围暂无责任人执行数据</div></td></tr>'}</tbody></table></div></section>`;
       }
@@ -490,7 +456,7 @@
           : `<div class="dashboard-primary-grid">${dashboardScopeTable()}<section class="panel dashboard-todo-panel"><div class="panel-head"><div class="panel-title">待办</div><span class="tag red dashboard-panel-count">${todoItems.length}</span><div class="spacer"></div>${hasPermission("approvals") ? '<button class="btn" type="button" data-dashboard-nav="approvals" data-approval-view="pending">审批中心</button>' : ""}</div><div class="panel-body list dashboard-list">${dashboardList(todoItems, "当前没有需要本人处理的事项")}</div></section></div>`;
         const secondaryLeft = isPm
           ? dashboardScopeTable()
-          : `${dashboardPmTable()}<section class="panel" style="margin-top:var(--space-4)"><div class="panel-head"><div class="panel-title">近六个月执行趋势</div><div class="panel-sub">按实际完成月与首次逾期月统计，可分别下钻</div><div class="spacer"></div><span class="tag green">完成事件</span><span class="tag yellow">首次逾期事件</span></div><div class="panel-body">${dashboardTrendHtml(rows)}</div></section>`;
+          : `${dashboardPmTable()}<section class="panel" style="margin-top:var(--space-4)"><div class="panel-head"><div class="panel-title">近六个月执行趋势</div><div class="panel-sub">按实际完成月与首次逾期月统计</div><div class="spacer"></div><span class="tag green">完成事件</span><span class="tag yellow">首次逾期事件</span></div><div class="panel-body">${dashboardTrendHtml(rows)}</div></section>`;
         const projectReminderPanel = hasPermission("projects")
           ? `<section class="panel dashboard-project-reminder-panel"><div class="panel-head"><div><div class="panel-title">项目提醒</div><div class="panel-sub">监督与待回款只读提醒不进入我的待办</div></div><div class="spacer"></div><button class="btn" type="button" data-dashboard-nav="projects">项目管理</button></div><div class="panel-body list dashboard-list">${dashboardList(projectReminderItems, "当前没有项目提醒")}</div></section>`
           : "";

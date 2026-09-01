@@ -1110,7 +1110,6 @@
         const renderers = {
           dashboard: renderDashboard,
           operations: renderOperations,
-          customers: renderCustomers,
           tasks: renderTasks,
           approvals: renderApprovals,
           archive: renderArchive,

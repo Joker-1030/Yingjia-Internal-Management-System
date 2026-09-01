@@ -313,12 +313,16 @@
         const region = regionsData.find((item) =>
           regionProvinceList(item).includes(c.province),
         );
+        const invalidPriorResponsibility = Boolean(
+          c.effective &&
+            !regionPmEmployees(region).some((employee) => employee.name === c.pm),
+        );
         const pending = pendingCityHandover(c.id);
         if (pending) return toast("该地市存在交接中的流程，请先处理");
         const pms = regionPmEmployees(region).filter((item) => item.name !== c.pm);
         if (!pms.length) return toast("该区域中心没有其他在职 PM 可接任");
         openModal(
-          `<div class="modal-head"><div class="modal-title">直接调整地市负责人</div><button class="icon-btn close" data-close>×</button></div><form id="directAdjustForm"><div class="modal-body"><div class="role-note">${c.province} · <strong>${c.city}</strong> · 当前负责人 ${c.pm}。直接调整立即生效并生成已通过流程记录、通知原任和新任 PM；需要审批留痕或计划生效日期时请改用地市交接。</div><div class="form-group full"><label class="form-label">影响摘要</label><div class="impact-summary"><div class="impact-grid"><div><label>受影响客户</label><strong>${scopedCustomers().filter((x) => x.province === c.province && x.city === c.city).length}</strong></div><div><label>关键人</label><strong>${scopedContacts().filter((x) => x.company && customers.find((cu) => cu.name === x.company && cu.province === c.province && cu.city === c.city)).length}</strong></div><div><label>未完成任务</label><strong>${tasks.filter((t) => t.pm === c.pm && !["done", "cancelled", "expired"].includes(t.status)).length}</strong></div><div><label>覆盖 KPI 待办</label><strong>${campaigns.filter((cp) => cp.category === "关键人覆盖 KPI" && cp.status === "执行中").length}</strong></div><div><label>待审批</label><strong>${approvals.filter((a) => a.status === "pending").length}</strong></div></div></div><div class="list-sub">与交接影响摘要同口径，实时计算</div></div><div class="form-group"><label class="form-label">目标 PM *</label><select class="input" id="daPm" required>${pms.map((item) => `<option value="${item.name}">${item.name} · ${item.code}</option>`).join("")}</select></div><div class="form-group"><label class="form-label">调整原因 *</label><textarea class="input" id="daReason" minlength="5" maxlength="500" required placeholder="说明直接调整原因"></textarea></div></div><div class="modal-foot"><button class="btn" type="button" data-close>取消</button><button class="btn btn-primary" type="submit">确认调整</button></div></form>`,
+          `<div class="modal-head"><div class="modal-title">直接调整地市负责人</div><button class="icon-btn close" data-close>×</button></div><form id="directAdjustForm"><div class="modal-body"><div class="role-note">${c.province} · <strong>${c.city}</strong> · ${invalidPriorResponsibility ? `原负责人 ${c.pm} 的责任已失效，原生效时间 ${c.effective} 将随历史保留。` : `当前负责人 ${c.pm}。`}直接调整立即生效并生成已通过流程记录、通知原任和新任 PM；需要审批留痕或计划生效日期时请改用地市交接。</div><div class="form-group full"><label class="form-label">影响摘要</label><div class="impact-summary"><div class="impact-grid"><div><label>受影响客户</label><strong>${scopedCustomers().filter((x) => x.province === c.province && x.city === c.city).length}</strong></div><div><label>关键人</label><strong>${scopedContacts().filter((x) => x.company && customers.find((cu) => cu.name === x.company && cu.province === c.province && cu.city === c.city)).length}</strong></div><div><label>未完成任务</label><strong>${tasks.filter((t) => t.pm === c.pm && !["done", "cancelled", "expired"].includes(t.status)).length}</strong></div><div><label>覆盖 KPI 待办</label><strong>${campaigns.filter((cp) => cp.category === "关键人覆盖 KPI" && cp.status === "执行中").length}</strong></div><div><label>待审批</label><strong>${approvals.filter((a) => a.status === "pending").length}</strong></div></div></div><div class="list-sub">与交接影响摘要同口径，实时计算</div></div><div class="form-group"><label class="form-label">目标 PM *</label><select class="input" id="daPm" required>${pms.map((item) => `<option value="${item.name}">${item.name} · ${item.code}</option>`).join("")}</select></div><div class="form-group"><label class="form-label">调整原因 *</label><textarea class="input" id="daReason" minlength="5" maxlength="500" required placeholder="说明直接调整原因"></textarea></div></div><div class="modal-foot"><button class="btn" type="button" data-close>取消</button><button class="btn btn-primary" type="submit">确认调整</button></div></form>`,
         );
         $("#directAdjustForm").onsubmit = (event) => {
           event.preventDefault();
@@ -342,6 +346,19 @@
             targetPm,
             targetCityIds: [c.id],
             originalPm: previousPm,
+            ...(invalidPriorResponsibility
+              ? {
+                  targetCitySnapshots: [
+                    {
+                      id: c.id,
+                      province: c.province,
+                      city: c.city,
+                      originalPm: previousPm,
+                      effective: c.effective,
+                    },
+                  ],
+                }
+              : {}),
             plannedEffectiveDate: DEMO_TODAY,
             currentAssignees: [],
             ccUsers: [region.director, previousPm, targetPm].filter(Boolean),

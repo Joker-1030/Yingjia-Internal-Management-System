@@ -156,7 +156,7 @@
           const rows = ownCities.map((city) => {
             const pending = pendingCityHandover(city.id);
             const actions = pending
-              ? `<button class="link" type="button" data-action="approval-detail" data-id="${pending.id}">查看交接</button>${canWithdrawApproval(pending) ? ` · <button class="link" type="button" data-action="withdraw-approval" data-id="${pending.id}">撤回</button>` : ""}`
+              ? `<button class="link" type="button" data-action="approval-detail" data-id="${pending.id}">查看交接</button>`
               : hasOperationPermission("regions.handover")
                 ? `<button class="link" type="button" data-action="handover-city" data-id="${city.id}">发起交接</button>`
                 : "—";
@@ -220,7 +220,9 @@
         const viewSwitch = `<div class="assignment-view-switch" role="group" aria-label="地市分配查看视角"><button class="tab ${regionAssignmentView === "city" ? "active" : ""}" type="button" data-region-assignment-view="city">按地市</button>${currentUser.role === "pm" ? "" : `<button class="tab ${regionAssignmentView === "pm" ? "active" : ""}" type="button" data-region-assignment-view="pm">按 PM</button>`}</div>`;
         const cityView = `<div class="panel-head" style="padding:var(--space-3) 0"><div><div class="panel-title">${currentUser.role === "pm" ? "本人地市责任" : "地市负责人配置"}</div><div class="panel-sub">${currentUser.role === "pm" ? `本人负责 ${regionCities.length} 个地市` : `全部 ${regionCities.length} 个地市 · 已分配 ${assignedCount} · 待分配 ${unassignedCount}`}</div></div><div class="spacer"></div>${viewSwitch}${canAssignCities ? '<button class="btn btn-primary" type="button" id="openInitialCityAssignment">分配</button>' : ""}</div><div class="toolbar" style="padding-left:0;padding-right:0"><select class="input" id="regionCityProvince"><option value="">全部省份</option>${provinces.map((province) => `<option>${province}</option>`).join("")}</select><input class="input" id="regionCityKeyword" maxlength="100" placeholder="城市 / PM 姓名 / 工号"><select class="input" id="regionCityStatus"><option value="">全部分配状态</option><option value="assigned">已分配</option><option value="pending">待分配</option></select><button class="btn" type="button" id="queryRegionCities">查询</button><button class="btn" type="button" id="resetRegionCities">重置</button><span class="spacer"></span><span class="panel-sub">目标 PM 不审批、不接收，仅在交接生效后收到通知</span></div>${canAssignCities ? "" : '<div class="role-note">当前角色按权限范围只读查看；地市交接仅原负责 PM 本人可发起，区域总监和 admin 使用直接调整。</div>'}<div class="table-wrap"><table style="min-width:1120px"><thead><tr><th>省份</th><th>城市</th><th>当前负责人</th><th>工号</th><th>部门</th><th>负责起始时间</th><th>状态</th><th>操作</th></tr></thead><tbody id="regionCityBody">${regionCities.map((city) => {
           const pmName = city.pm && validPmNames.has(city.pm) ? city.pm : "";
-          const invalidPriorResponsibility = !pmName && Boolean(city.effective);
+          const invalidPriorResponsibility = Boolean(
+            city.pm && city.effective && !pmName,
+          );
           const pmEmployee = employees.find((employee) => employee.name === pmName);
           const pending = city.id ? pendingCityHandover(city.id) : null;
           const status = pmName ? "assigned" : "pending";
@@ -229,14 +231,18 @@
           const pendingWarning = !pmName && city.customers > 0;
           const canSelfHandover = pmName === currentUser.name && canHandoverCities && !pending;
           const handoverAction = invalidPriorResponsibility
-            ? ""
+            ? canAssignCities
+              ? `<button class="link" type="button" data-action="direct-adjust-city" data-id="${city.id}">直接调整</button>`
+              : ""
             : pmName && !pending
               ? `${canSelfHandover ? `<button class="link" type="button" data-action="handover-city" data-id="${city.id}">发起交接</button> · ` : ""}${canAssignCities ? `<button class="link" type="button" data-action="direct-adjust-city" data-id="${city.id}">直接调整</button> · ` : ""}`
               : pending
                 ? `<button class="link" type="button" data-action="approval-detail" data-id="${pending.id}">查看交接</button> · `
                 : "";
           const scopeAction = invalidPriorResponsibility
-            ? "—"
+            ? canAssignCities
+              ? ""
+              : "—"
             : pmName
               ? `<button class="link" type="button" data-action="city-impact" data-id="${city.id}">查看范围</button>`
               : canAssignCities

@@ -836,10 +836,26 @@
       .icon-btn.sidebar-action svg path {
         stroke: currentColor;
       }
-      .sidebar-action .dot {
-        border-color: var(--color-surface-secondary);
-        top: 4px;
-        right: 4px;
+      .sidebar-action .notice-count {
+        position: absolute;
+        top: -6px;
+        right: -8px;
+        min-width: 18px;
+        height: 18px;
+        padding: 0 4px;
+        border: 2px solid var(--color-surface-secondary);
+        border-radius: 9px;
+        background: var(--red);
+        color: var(--color-text-inverse);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        box-sizing: border-box;
+        font-size: 10px;
+        font-weight: var(--font-weight-semibold);
+        line-height: 1;
+        letter-spacing: 0;
+        pointer-events: none;
       }
       .sidebar-version {
         margin-top: var(--space-2);
@@ -866,16 +882,6 @@
       }
       .icon-btn:hover {
         background: var(--soft);
-      }
-      .dot {
-        position: absolute;
-        width: 7px;
-        height: 7px;
-        background: var(--red);
-        border: 2px solid var(--color-surface);
-        border-radius: var(--radius-round);
-        top: 6px;
-        right: 6px;
       }
       .avatar {
         width: 33px;
@@ -1011,7 +1017,6 @@
         width: 100%;
         color: inherit;
         text-align: left;
-        cursor: pointer;
         font-family: inherit;
         display: block;
       }
@@ -1019,21 +1024,6 @@
       .dashboard-metric .metric-value,
       .dashboard-metric .metric-foot {
         display: block;
-      }
-      .dashboard-metric:hover,
-      .dashboard-metric:focus-visible {
-        border-color: var(--color-primary);
-        background: var(--color-selected);
-        box-shadow: none;
-        outline: none;
-      }
-      .dashboard-metric:focus-visible {
-        box-shadow: var(--shadow-focus);
-      }
-      .dashboard-metric .metric-foot::after {
-        content: "  查看明细";
-        color: var(--brand);
-        font-weight: var(--font-weight-medium);
       }
       .dashboard-primary-grid {
         display: grid;
@@ -1188,18 +1178,10 @@
         display: flex;
         align-items: flex-end;
         position: relative;
-        cursor: pointer;
+        cursor: default;
       }
       .dashboard-chart-bar .bar {
         width: 100%;
-      }
-      .dashboard-chart-bar:hover .bar,
-      .dashboard-chart-bar:focus-visible .bar {
-        filter: brightness(0.9);
-      }
-      .dashboard-chart-bar:focus-visible {
-        outline: 2px solid var(--brand);
-        outline-offset: 2px;
       }
       .dashboard-chart-bar .dashboard-chart-value {
         top: auto;
@@ -3206,7 +3188,7 @@
         background: var(--brand-soft);
         color: var(--brand);
       }
-      .sidebar-action .dot {
+      .sidebar-action .notice-count {
         border-color: var(--color-surface-secondary);
       }
 
@@ -3254,18 +3236,6 @@
       }
       .metric-value {
         color: var(--color-text-primary);
-      }
-      .dashboard-metric:hover,
-      .dashboard-metric:focus-visible {
-        border-color: transparent;
-        background: var(--brand-soft);
-        box-shadow: inset 0 -2px var(--brand);
-      }
-      .dashboard-metric:focus-visible {
-        outline: 0;
-        box-shadow:
-          inset 0 -2px var(--brand),
-          var(--shadow-focus);
       }
       .dashboard-todo-panel,
       .dashboard-project-reminder-panel,

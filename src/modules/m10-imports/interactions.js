@@ -131,6 +131,96 @@
           },
         ];
       }
+      function contactImportDemoRows(actor, batchId) {
+        const customer = customers.find((item) => {
+          const owner = resolveProjectOwner(item);
+          return (
+            !item.archived &&
+            owner &&
+            projectImportCustomerInScope(item, owner, actor) &&
+            contacts.some(
+              (person) => !person.archived && person.company === item.name,
+            )
+          );
+        });
+        const reference = contacts.find(
+          (person) => !person.archived && person.company === customer?.name,
+        );
+        if (!customer || !reference) return [];
+        const digits = batchId.replace(/\D/g, "").slice(-8).padStart(8, "0");
+        const createdAt = recordCreatedAt();
+        return [
+          {
+            rowNumber: 2,
+            id: `contact:${batchId}:2`,
+            name: `导入关键人${digits.slice(-4)}`,
+            gender: "未说明",
+            title: reference.title,
+            company: customer.name,
+            department: reference.department,
+            positionSource: reference.positionSource,
+            positionId: reference.positionId,
+            positionName: reference.positionName,
+            level: reference.level,
+            phone: `139${digits}`,
+            wechat: `import_${digits}`,
+            email: "",
+            birthday: "",
+            decision: false,
+            decisionConfirmed: true,
+            effectiveDate: DEMO_TODAY,
+            pm: customer.level === "省公司" ? "" : customerOwnerName(customer),
+            region: customer.region,
+            city: customer.city,
+            last: "从未",
+            status: "健康",
+            createdAt,
+            updatedAt: createdAt,
+            source: "import",
+          },
+        ];
+      }
+      function materializeContactImportRows(batch) {
+        return (batch.contactRows || []).map((row) => {
+          const existing = contacts.find(
+            (person) => String(person.id) === String(row.id),
+          );
+          if (existing) return existing;
+          const { rowNumber, ...data } = row;
+          const created = { code: nextBusinessCode("KP"), ...data };
+          contacts.push(created);
+          const customer = customers.find(
+            (item) => item.name === created.company,
+          );
+          if (customer) customer.contacts += 1;
+          return created;
+        });
+      }
+      function generateImportedContactTasks(people, baseDate = DEMO_TODAY) {
+        return people.map((person) => {
+          const alreadyGenerated = tasks.some(
+            (task) =>
+              (task.personId
+                ? String(task.personId) === String(person.id)
+                : task.person === person.name) &&
+              task.company === person.company &&
+              task.type === "常规维系",
+          );
+          if (alreadyGenerated) return true;
+          try {
+            ensureRegularTask(person, baseDate, true);
+            return tasks.some(
+              (task) =>
+                String(task.personId) === String(person.id) &&
+                task.company === person.company &&
+                task.type === "常规维系",
+            );
+          } catch {
+            // Import success is final; the same idempotent call can be retried later.
+            return false;
+          }
+        });
+      }
       function projectImportBatchDetails(rows, actor) {
         const projectNameCounts = rows.reduce((counts, row) => {
           const name = String(row?.name || "").trim();
@@ -235,6 +325,9 @@
                   currentUser,
                 )
               : null;
+          const contactRows = projectDetails
+            ? []
+            : contactImportDemoRows(currentUser, batchId);
           const batch = {
             id: batchId,
             file: file.name,
@@ -250,6 +343,7 @@
             createdAt: `${DEMO_TODAY} ${formatTaskUpdateTime(new Date()).slice(11)}`,
             finishedAt: "",
             ...(projectDetails || {
+              contactRows,
               sheets:
                 templateType === FULL_IMPORT_TEMPLATE
                   ? [
@@ -506,6 +600,7 @@
           if (isProjectImportBatch(liveBatch)) {
             executeProjectImportBatch(liveBatch, currentUser);
           } else {
+            const importedContacts = materializeContactImportRows(liveBatch);
             liveBatch.sheets.forEach((sheet) => (sheet.success = sheet.valid));
             if (liveBatch.templateType === FULL_IMPORT_TEMPLATE) {
               const matchedGroups = customerGroupNames.slice(0, 3);
@@ -535,6 +630,7 @@
               liveBatch.errors || liveBatch.duplicates
                 ? "部分成功"
                 : "全部成功";
+            generateImportedContactTasks(importedContacts);
           }
           liveBatch.finishedAt = recordCreatedAt();
           normalizeImportBatch(liveBatch);

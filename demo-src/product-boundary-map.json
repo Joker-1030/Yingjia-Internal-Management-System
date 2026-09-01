@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "product": "英嘉科技内部管理系统",
-  "updatedAt": "2026-08-29",
+  "updatedAt": "2026-08-31",
   "purpose": "AI feature classification and product impact analysis",
   "scope": {
     "primary_features": ["M01", "M02", "M03", "M04", "M05", "M06", "M07", "M08", "M09", "M10", "M11"],
@@ -15,7 +15,12 @@
     "prd-workspace/decisions/index.md",
     "prd-workspace/decisions/DEC-163-产品负责人确认全局语义阻塞当前规则.md",
     "prd-workspace/decisions/DEC-165-员工多部门归属与停用恢复直接生效.md",
-    "prd-workspace/decisions/DEC-182-员工停用当前取消任务并保留项目.md",
+    "prd-workspace/decisions/DEC-186-M01-仅待办与重点异常保留下钻.md",
+    "prd-workspace/decisions/DEC-187-M04-MVP-审批动作收缩并保留业务正确性保障.md",
+    "prd-workspace/decisions/DEC-188-失效责任受控调整且员工停用前完成项目迁移.md",
+    "prd-workspace/decisions/DEC-189-M07-权限直接生效并仅保留只读变更日志.md",
+    "prd-workspace/decisions/DEC-190-M10-导入成功后五分钟内幂等生成适用-M03-任务.md",
+    "prd-workspace/decisions/DEC-191-P01-数字角标与消息未读状态按明确动作联动.md",
     "prd-workspace/GLOSSARY.md",
     "prd-workspace/current/modules/"
   ],
@@ -27,7 +32,7 @@
       "responsibility": [
         "回答当前经营情况和当前待处理事项",
         "按角色聚合指标、对比、趋势、待办和重点动态",
-        "将用户下钻到已有业务模块的同口径明细"
+        "仅将我的待办和需要处理的重点异常下钻到已有业务模块的同口径明细"
       ],
       "not_responsible_for": [
         "独立维护客户、任务、审批、员工或配置数据",
@@ -35,7 +40,7 @@
         "定义上游业务对象的生命周期"
       ],
       "core_objects": ["指标", "经营对比", "趋势", "待办", "重点动态", "角色视图"],
-      "pages": ["工作台", "指标下钻入口"],
+      "pages": ["工作台", "待办与重点异常下钻入口"],
       "states": ["page:Loading/Empty/Error/PermissionDenied", "view:正常/无历史值/数据可能已过期", "runtime:局部数据不可用"],
       "related_features": ["M02", "M03", "M04", "M05", "M06", "M07", "M08", "M09", "M10", "M11", "P01"],
       "common_changes": ["指标口径调整", "角色视图调整", "周期或筛选调整", "新增下钻入口", "重点动态类别调整"],
@@ -104,9 +109,9 @@
       "id": "M04",
       "name": "审批中心",
       "responsibility": [
-        "集中展示和处理跨业务模块的审批实例",
+        "集中展示和处理跨业务模块的审批实例，普通审批动作仅提交、通过、驳回",
         "提供待处理、已处理、我发起和抄送视角",
-        "呈现流程节点、处理记录及业务生效失败结果"
+        "呈现流程节点、处理记录、失效处理人受控替换及业务生效失败重试结果"
       ],
       "not_responsible_for": [
         "定义业务对象自身的字段和生命周期",
@@ -116,9 +121,9 @@
       ],
       "core_objects": ["审批实例", "审批节点", "处理动作", "抄送关系", "流程记录"],
       "pages": ["待我处理", "我已处理", "我发起的", "抄送我的", "审批详情"],
-      "states": ["page:Loading/Empty/EmptyResult/Error/PermissionDenied/Submitting", "approval-instance:审批中/已通过/已驳回/已撤回/已通过-业务处理失败", "related-display:已通过待生效", "node-runtime:处理人失效/流程暂停"],
+      "states": ["page:Loading/Empty/EmptyResult/Error/PermissionDenied/Submitting", "approval-instance:审批中/已通过/已驳回/已通过-业务处理失败", "related-display:已通过待生效", "node-runtime:处理人失效/流程暂停"],
       "related_features": ["M02", "M03", "M05", "M06", "M07", "M08", "M09", "M10", "P01"],
-      "common_changes": ["审批筛选或展示调整", "审批动作调整", "业务流程路由调整", "节点状态与历史展示调整", "代办或抄送规则调整"],
+      "common_changes": ["审批筛选或展示调整", "审批动作调整", "业务流程路由调整", "节点状态与历史展示调整", "预设会签或预设抄送规则调整"],
       "classification_guide": {
         "module_upgrade": "通用审批查看、处理、节点或状态能力变化",
         "new_capability": "审批目标不变但增加新的通用处理流程",
@@ -160,7 +165,7 @@
         "维护英嘉内部部门、主管和员工档案",
         "维护员工与系统角色的关联及账号可用状态",
         "维护员工一个或多个平级部门及人工/自动来源角色",
-        "由 HR/admin 直接停用或恢复员工并记录责任清空、未完成任务取消、项目保留与审批节点保留结果",
+        "由 HR/admin 直接停用或恢复员工；未完成项目须先通过既有地区责任调整完成项目迁移，并记录责任清空、未完成任务取消、项目保留与审批节点保留结果",
         "让用户查找组织成员并理解当前组织责任关系"
       ],
       "not_responsible_for": [
@@ -188,18 +193,18 @@
       "responsibility": [
         "由内置系统管理员维护非管理员角色模板权限",
         "管理菜单/页面、操作、字段和附件权限及其依赖",
-        "预览权限变更影响并保留版本历史和回滚记录"
+        "预览权限变更影响，确认后直接生效并保留只读、只追加变更日志"
       ],
       "not_responsible_for": [
         "新增、删除或停用内置角色",
         "给单个员工追加例外权限或手工分配数据范围",
         "维护员工多部门关系、人工/自动系统角色关联、员工状态或区域责任"
       ],
-      "core_objects": ["角色模板", "权限树", "权限版本", "影响预览", "版本历史"],
-      "pages": ["角色模板列表", "权限树", "权限详情/影响信息", "版本历史"],
-      "states": ["page:Loading/Empty/Error/PermissionDenied/Submitting", "business-version:当前版本/历史版本", "edit-session:未保存变更/影响待确认", "operation:保存成功/版本冲突/回滚完成"],
+      "core_objects": ["角色模板", "权限树", "当前权限配置", "影响预览", "变更日志"],
+      "pages": ["角色模板列表", "权限树", "权限详情/影响信息", "变更日志"],
+      "states": ["page:Loading/Empty/Error/PermissionDenied/Submitting", "edit-session:未保存变更/影响待确认", "operation:保存成功/版本冲突"],
       "related_features": ["M01", "M02", "M03", "M04", "M06", "M09", "M10"],
-      "common_changes": ["权限颗粒度调整", "角色模板权限调整", "权限依赖调整", "影响预览调整", "版本历史或回滚调整"],
+      "common_changes": ["权限颗粒度调整", "角色模板权限调整", "权限依赖调整", "影响预览调整", "变更日志调整"],
       "classification_guide": {
         "module_upgrade": "现有角色模板、权限树、依赖、保存或版本能力变化",
         "new_capability": "仍围绕模板授权但形成新的治理流程",
@@ -214,7 +219,7 @@
       "responsibility": [
         "把内部区域中心部门配置为业务区域",
         "维护区域与省份、驻地的映射",
-        "维护区域 PM 与地市责任关系及交接/直接调整，并按客户业务责任事实输出负责人和范围"
+        "维护区域 PM 与地市责任关系及交接/直接调整，受控修复失效责任并保留原历史，按客户业务责任事实输出负责人和范围"
       ],
       "not_responsible_for": [
         "新增或编辑内部部门、部门名称和区域中心主管",
@@ -223,7 +228,7 @@
       ],
       "core_objects": ["区域中心配置", "省份映射", "驻地城市", "地市负责人关系", "地市交接"],
       "pages": ["区域中心配置", "地市负责人配置-按地市", "地市负责人配置-按PM", "PM地市管理", "地市负责人交接"],
-      "states": ["page:Loading/Empty/EmptyResult/Error/PermissionDenied/Submitting", "business-region:待配置/已配置/配置异常", "business-city-responsibility:待分配/已分配", "related-approval:交接审批中/已通过待生效/已驳回/已撤回", "operation:迁移成功/业务处理失败"],
+      "states": ["page:Loading/Empty/EmptyResult/Error/PermissionDenied/Submitting", "business-region:待配置/已配置/配置异常", "business-city-responsibility:待分配/已分配", "related-approval:交接审批中/已通过待生效/已驳回", "operation:迁移成功/业务处理失败"],
       "related_features": ["M01", "M02", "M03", "M04", "M06", "M10", "M11", "P01"],
       "common_changes": ["区域映射调整", "区域可见范围或菜单调整", "地市分配规则调整", "负责人交接流程调整", "责任迁移影响调整"],
       "classification_guide": {
@@ -266,7 +271,7 @@
       "responsibility": [
         "让 admin 按显式组织上级和业务责任规则批量建立客户主数据并在初始化期导入公司项目",
         "让 PM 导入本人范围关键人及初始化项目，让区域总监导入本人省级关键人及初始化项目",
-        "通过模板、预校验、确认和结果报告控制批量写入过程"
+        "通过模板、预校验、确认和结果报告控制批量写入过程，并由成功写入结果触发 M03 在 5 分钟内幂等生成适用任务"
       ],
       "not_responsible_for": [
         "绕过 M02/M08/M09/M11 的产品规则和权限",
@@ -298,7 +303,7 @@
         "维护客户公司、显式组织上级、业务责任区划、区域中心、区域总监或地市 PM 责任",
         "承载项目初始化导入批次或消息已读状态",
         "实现当前尚未上线的商机合同菜单、财务回款明细、正式讲师管理或取消审批",
-        "在当前员工停用中选择交接人、阻断停用或自动取消项目",
+        "在员工停用中新增交接人字段、独立迁移审批或自动取消项目；未完成项目迁移复用 M08 既有地区责任调整",
         "替代 Shared 定义统一权限、附件、安全和审计规则"
       ],
       "core_objects": ["项目", "项目责任", "项目商业快照", "采购包", "课程方向", "平台公司", "项目人员安排", "项目资料", "满意度", "项目并行待办"],
@@ -320,14 +325,14 @@
       "kind": "supporting_capability",
       "responsibility": [
         "提醒用户已经发生的任务、审批、客户变动、项目事项和系统异常",
-        "提供分类筛选、未读状态和受控业务跳转"
+        "提供分类筛选、1-99/99+ 未读数字角标、消息项未读红点、明确已读动作和受控业务跳转"
       ],
       "not_responsible_for": [
         "替代工作台待办或审批中心",
         "改变来源业务对象状态",
         "发送企业微信、短信或邮件"
       ],
-      "core_objects": ["消息", "消息分类", "未读状态", "受控动作链接"],
+      "core_objects": ["消息", "消息分类", "未读状态", "未读数字角标", "受控动作链接"],
       "pages": ["消息浮窗", "消息抽屉"],
       "states": ["未读", "已读", "对象已不可用或无权访问", "通知失败待重试"],
       "related_features": ["M01", "M02", "M03", "M04", "M05", "M06", "M08", "M09", "M10", "M11"],

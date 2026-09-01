@@ -521,42 +521,6 @@
         return `<div class="customer-company-head"><div class="customer-company-head-main"><div class="customer-company-name">${customer.name}</div><div class="customer-company-path">${customerOrganizationPath(customer)} · 业务责任 ${customerBusinessResponsibilityLevel(customer)} / ${adminArea(customer)}</div></div>${healthTag(customerHealth(customer))}</div><div class="customer-company-summary"><div class="overview-item"><label>行业</label><div>${customer.industry}</div></div><div class="overview-item"><label>客户负责人</label><div>${customerOwnerName(customer)}</div></div><div class="overview-item"><label>执行安排</label><div>${customerBusinessResponsibilityLevel(customer) === "省级" ? "区域总监直接执行全部任务" : "地市负责人 PM 直接执行"}</div></div></div><div class="panel-head" style="padding:var(--space-3) 0"><div><div class="panel-title">关键人</div><div class="panel-sub">部门与关键人岗位属于当前任职，变更需调岗审批</div></div><div class="spacer"></div>${canMaintainContactForCompany(customer) ? `<button class="btn btn-primary" data-action="add-contact" data-id="${customer.id}">＋ 新增关键人</button>` : ""}</div><div class="table-wrap"><table><thead><tr><th>关键人</th><th>关键人岗位 / 部门</th><th>职级</th><th>采购决策</th><th>联系方式</th><th>状态</th><th>操作</th></tr></thead><tbody>${people.map((person) => `<tr><td><div class="person"><div class="avatar">${person.name[0]}</div><strong>${person.name}</strong></div><div class="list-sub">${person.code}</div></td><td>${person.positionName}<div class="list-sub">${person.department} · ${person.title}</div></td><td><span class="tag blue">${person.level}</span></td><td>${person.decision ? '<span class="tag blue">是</span>' : "否"}</td><td>${person.phone}<div class="list-sub">微信 ${person.wechat || "未填写"}</div></td><td>${healthTag(contactHasOverdue(person) ? "逾期" : "健康")}</td><td><span class="link" data-person="${person.id}">查看</span>${canMaintainContact(person) ? ` · <span class="link" data-action="edit-contact" data-id="${person.id}">编辑</span>` : ""}${canTransferContact(person) ? ` · <span class="link" data-action="transfer" data-id="${person.id}">调岗</span>` : ""}</td></tr>`).join("") || '<tr><td colspan="7"><div class="empty">该公司尚未维护关键人</div></td></tr>'}</tbody></table></div>`;
       }
 
-      function renderCustomers() {
-        const all = scopedCustomers();
-        if (!all.some((customer) => customer.id === selectedCustomerId))
-          selectedCustomerId = all[0]?.id || null;
-        const selected = all.find(
-          (customer) => customer.id === selectedCustomerId,
-        );
-        const scopeLabel =
-          currentUser.role === "pm"
-            ? `数据范围：负责地市 ${assignedCitiesForCurrentUser().join("、") || "未配置"}`
-            : currentUser.role === "president" || currentUser.fullAccess
-              ? "数据范围：公司全局"
-              : currentUser.role === "vp"
-                ? "数据范围：全国市场"
-              : currentUser.role === "director"
-                  ? `数据范围：${currentUser.region}`
-                  : "数据范围：公司全局";
-        const filterOptions = customerFilterOptions();
-        const pmOptions = [
-          ...new Set(all.map(customerOwnerName).filter(Boolean)),
-        ];
-        return (
-          pageHead(
-            "客户档案",
-            "按集团和显式组织上级折叠浏览；按区域时使用业务责任省、市、区县聚合。",
-            `<button class="btn" data-action="add-contact">＋ 新增关键人</button>`,
-          ) +
-          `<section class="panel customer-workspace"><div class="toolbar" id="customerFilterToolbar" style="flex-wrap:wrap"><input class="input" id="customerTreeName" placeholder="客户名称" style="width:150px"><input class="input" id="customerTreePersonName" placeholder="关键人名称" style="width:150px"><select class="input" id="customerTreeIndustry"><option value="">全部行业</option>${industries
-            .filter((x) => x.enabled)
-            .map((x) => `<option>${x.name}</option>`)
-            .join(
-              "",
-            )}</select><input class="input" id="customerTreePersonPhone" placeholder="关键人手机号" style="width:170px"><select class="input" id="customerTreePm"><option value="">全部客户负责人</option>${pmOptions.map((pm) => `<option>${pm}</option>`).join("")}</select>${areaMultiSelectHtml("customerAreaProvince", "业务责任省份", filterOptions.provinces, customerAreaFilter.provinces)}${areaMultiSelectHtml("customerAreaCity", "业务责任城市", filterOptions.cities, customerAreaFilter.cities)}${areaMultiSelectHtml("customerAreaDistrict", "业务责任区县", filterOptions.districts, customerAreaFilter.districts)}<button class="btn" id="applyCustomerFilter" type="button">筛选</button><button class="btn" id="clearAreaFilter" type="button">重置</button><span class="spacer"></span><span class="tag blue">${scopeLabel}</span></div><div class="master-detail"><aside class="master-pane"><div class="master-pane-head"><div class="panel-title">客户公司</div></div><div class="master-list" id="customerTree">${customerTreeRows(all) || '<div class="empty">当前范围暂无演示客户</div>'}</div></aside><div class="detail-pane customer-detail-pane">${selected ? `<div class="customer-detail-body">${customerMasterDetail(selected)}</div><div class="customer-detail-foot">${stopObjectActionHtml("customer", selected.id)}</div>` : `<div class="customer-detail-body">${customerMasterDetail(selected)}</div>`}</div></div></section>`
-        );
-      }
-
       function openCustomer(id, options = {}) {
         const customer = customers.find((item) => item.id === id);
         if (!customer || !companyIsVisible(customer))

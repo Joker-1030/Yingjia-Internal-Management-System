@@ -3,9 +3,9 @@
 - 更新日期：2026-08-31
 - 当前产品阶段：立项与需求澄清，尚未完成产品评审或正式生产发布
 - 当前产品事实入口：[`prd-workspace/current/PRD.md`](../prd-workspace/current/PRD.md)
-- 当前工程镜像：GitHub `origin/main`
+- 当前仓库用途：研发需求阅读、Prototype 演示与前端维护
 
-本文帮助 Product Owner、新加入项目的 AI、研发和后续维护人员快速建立全局认知。详细行为和执行约束仍以对应的 Current PRD 与项目规则文件为准；本文不替代它们。
+本文帮助研发和后续维护人员快速建立全局认知。详细产品行为仍以对应的 Current PRD、Decision、Acceptance、Flow、Shared、Glossary 和 Product Boundary 为准；本文不替代它们。
 
 ## 1. 项目简介
 
@@ -15,20 +15,16 @@
 
 > 本仓库中的 Demo 是产品方案验证和交互演示，不是正式生产系统代码。
 
-`src/` 是当前 Prototype 的维护源，也不是已选定的生产技术架构。GitHub 是经过 Publish Manifest 过滤的当前研发工程镜像；公司 Gaizee Git 由公司侧后续从 GitHub 获取镜像，不是本地项目当前的直接 Push 目标。
+`src/` 是当前 Prototype 的维护源，也不是已选定的生产技术架构。
 
 ## 2. 当前项目状态
 
 截至 2026-08-31，仓库证据确认已经完成：
 
-- 建立 Git Baseline，基线 commit 为 `5aff5210b709c2a5874e9736cf764287cb4d1e2e`。
-- 完成 PRD Source of Truth Migration；M01-M11 自 2026-08-27 起共同构成正式模块化需求入口。
+- M01-M11 自 2026-08-27 起共同构成正式模块化需求入口。
 - 建立 M01-M11 Current Acceptance Criteria、Decision 索引与拆分记录、Current User Flow、Shared Product Facts、Glossary 和 Product Boundary。
 - 建立可维护的模块化 Prototype Source、确定性构建、Artifact provenance 和 source/artifact drift check。
-- 建立 Product Owner、CODEX 和 Implementation AI 的 Task、Result、Review、Branch、Commit 与发布门禁。
-- 完成一轮历史治理报告归档，保留 36 份历史证据及 Archive Index，没有删除历史文件。
-- 建立 GitHub 过滤发布策略、Publish Manifest、候选构建脚本、检查脚本和只读 GitHub Actions gate。
-- GitHub `origin/main` 已形成当前研发工程镜像；完整 Local Workspace 仍保留内部 Task、Result、治理和历史资料。
+- 建立可点击的 M01-M11 Prototype，并保持维护源与生成产物可校验。
 
 “已完成上述治理与工程基础”不等于产品已评审或系统已上线。当前 PRD 仍标记为“立项与需求澄清 / 待产品评审”。
 
@@ -54,7 +50,7 @@ Product Boundary
 
 - **PRD**：`current/PRD.md` 是人类阅读入口，M01-M11 模块文件描述当前正式产品需求、页面、字段、权限、状态、规则和边界。
 - **Acceptance**：`current/acceptance/` 保存稳定、可独立验证的验收条件，不由 Demo 行为替代。
-- **Decision**：`decisions/` 与索引保存 Product Owner 已确认的决策、原因、替代关系和规则演进。
+- **Decision**：`decisions/` 与索引保存产品负责人已确认的决策、原因、替代关系和规则演进。
 - **User Flow**：`current/user-flows/` 表达关键业务流程及其 Current、Historical 或 Replaced 状态。
 - **Shared**：`current/shared/` 唯一维护跨模块共用的范围、角色权限、初始化、统一规则、对象状态、审计和研发评审事实。
 - **Glossary**：`GLOSSARY.md` 统一业务术语和含义，避免模块自行解释同一个词。
@@ -69,9 +65,9 @@ Product Boundary
 - `archive/`、`snapshots/`、`docs/archive/`、旧 PRD 和历史报告是 Historical Evidence，不是 Current Rule。
 - 代码只表达当前实现状态，不能反推新产品需求。
 - Demo 只表达当前产品方案，不是最终产品需求来源。
-- Demo 与 PRD 不一致时，以 Current PRD 链为准，并由 Product Owner/CODEX 确认是否需要产品治理或工程修复。
-- Product Owner 在聊天中的确认必须正式写入适当的 PRD、Decision、Acceptance、Flow、Shared、Glossary 或 Product Boundary，才能成为可持续维护的 Current Rule。
-- Current 产品来源无法得出唯一答案时，停止相关业务修改并返回 `PRODUCT CONFIRMATION REQUIRED`。
+- Demo 与 PRD 不一致时，以 Current PRD 链为准。
+- 需求确认应正式写入适当的 PRD、Decision、Acceptance、Flow、Shared、Glossary 或 Product Boundary，不能只存在于临时沟通中。
+- Current 产品来源无法得出唯一答案时，不应从代码或 Demo 补猜业务规则。
 
 ## 5. 产品模块说明
 
@@ -107,119 +103,45 @@ Prototype 用于展示角色入口、页面结构、主要控件、典型状态�
 
 维护时只能修改 `src/` 等正式 source，再通过官方构建生成 `demo/prototype.html` 与 artifact；不得直接把生成产物当作维护入口。
 
-## 7. AI 协作体系
+## 7. 研发入口
+
+- 产品总入口：[`prd-workspace/current/PRD.md`](../prd-workspace/current/PRD.md)
+- 模块需求：[`prd-workspace/current/modules/`](../prd-workspace/current/modules/)
+- 验收口径：[`prd-workspace/current/acceptance/`](../prd-workspace/current/acceptance/)
+- 产品决策：[`prd-workspace/decisions/`](../prd-workspace/decisions/)
+- 可点击 Prototype：[`demo/prototype.html`](../demo/prototype.html)
+- Prototype 维护源：[`src/`](../src/)
+- 修订查看方式：[`README.md`](../README.md#修订记录与变更查看)
+
+## 8. 当前项目主要目录
 
 ```text
-Product Owner
-    ↓
-CODEX / Orchestrator
-    ↓
-Implementation Task
-    ↓
-Implementation AI
-    ↓
-CODEX Review
-    ↓
-PASS
-    ↓
-Commit
-    ↓
-Publish Check
-    ↓
-GitHub（每次 Push 均需明确授权）
-```
-
-- **Product Owner**：确认产品规则和发布授权，是产品与发布最终决策者。
-- **CODEX**：负责需求路由、PRD 协调、Task 拆分、文件边界、Review、Git 和发布门禁；不能自行猜产品规则。
-- **Implementation AI**：只执行指定 Task 和 Allowed Files，发现范围外问题只报告。
-- **Task**：记录 AI ID、Task ID、Base Commit、Branch、Allowed/Protected Files、Acceptance Criteria 和 Validation。
-- **Branch**：默认 `ai/<AI-ID>/<TASK-ID>-<description>`；AI 不直接修改 `main`。
-- **Result**：记录实际修改、验证、异常、产品/PRD/UI 变化和 commit provenance。
-- **Review**：CODEX 只能给出 `PASS`、`PASS WITH FIXES`、`FAIL` 或 `PRODUCT CONFIRMATION REQUIRED`；只有 `PASS` 才表示接受。
-- **Commit**：必须基于实际 Diff，并保留 AI、Task、Role 可追溯信息；面向研发的标题和正文默认使用中文。
-- **Push**：Review PASS 和 Publish Check PASS 仍不等于授权，每次 Push 都需要 Product Owner 针对目标和候选明确授权。
-
-完整 Local Workspace 中的具体流程见 `AGENTS.md`、`docs/AI_COLLABORATION_RULES.md` 和 `.ai/WORKFLOW.md`；这些内部协作文件默认不进入 GitHub 过滤镜像。
-
-## 8. Git / 远程仓库说明
-
-```text
-本地完整项目
-    ↓ 过滤发布候选
-个人 GitHub（origin/main）
-    ↓ 公司侧镜像获取
-公司 Gaizee Git
-```
-
-### GitHub
-
-- Remote：`origin`
-- 地址：`git@github.com:Joker-1030/Yingjia-Internal-Management-System.git`
-- 目标分支：`main`
-- 定位：当前实际工程同步和研发镜像目标。
-- 内容：只包含 Publish Manifest 允许的 Current PRD、Prototype、维护源和必要工程文件，不等同于完整 Local Workspace。
-
-### Gaizee Git
-
-- Remote 配置名：`company`
-- 地址：`ssh://git@code.gaizee.cn:3222/qinyong/Yingjia-Internal-Management-System.git`
-- 定位：公司内部镜像，由公司侧后续从 GitHub 获取内容。
-- 当前本地策略：不直接 fetch、pull、push、同步或发布到 `company`；除非 Product Owner 再次明确改变远程策略。
-
-两个远程仓库不是“由本地同时自动同步”。发布范围和授权规则见 [`docs/GITHUB_PUBLISH_RULES.md`](./GITHUB_PUBLISH_RULES.md)。
-
-## 9. 文档生命周期
-
-```text
-Current
-    当前日常使用的产品与工程事实
-
-Archive
-    已完成阶段使命的历史证据
-
-Pending / Review
-    尚未闭合、仍可能影响治理判断的资料
-```
-
-归档不等于删除。历史资料只有经过只读审计、引用检查、Product Owner 确认和独立归档实施 Task 才能移动；原文件名、来源、内容、日期、Git 历史和恢复方式必须保留。完整 Local Workspace 的归档索引为 `docs/archive/ARCHIVE_INDEX.md`，默认不进入 GitHub 过滤镜像。
-
-## 10. 当前项目主要目录
-
-```text
-prd-workspace/   当前 PRD、模块、验收、决策、流程、共享事实和历史资料
-docs/            项目总览、协作/发布规则、内部 Task/Result 与文档归档
+prd-workspace/   当前 PRD、模块、验收、决策、流程和共享产品事实
+docs/            面向研发的项目总览
 src/             当前 Prototype 的可维护源码、模块、数据和样式
-demo/            生成的当前 Prototype、Artifact 及 Demo 历史材料
+demo/            生成的当前 Prototype 与 Artifact provenance
 demo-src/        Product Boundary 等 Prototype 结构化产品输入
-.ai/             请求路由、Task 模板和 CODEX Review 规则
-.github/         GitHub Publish Manifest、候选构建、检查脚本和只读工作流
-archive/         项目级历史与人工恢复证据
-snapshots/       明确阶段前的快照证据
-scripts/         Prototype 构建、漂移检查与静态审计脚本
+scripts/         Prototype 构建与漂移检查脚本
 ```
 
-## 11. 当前项目维护原则
+## 9. 当前项目维护原则
 
 - 产品需求先确认并写入正式产品来源，再进入工程实现。
 - PRD 是产品事实入口；代码和 Demo 不能创建产品规则。
-- AI 不自行选择多解的产品行为。
-- 每个 Task 必须有明确身份、分支、范围和验收标准。
-- 同一文件不由多个 AI 并行修改；范围外发现只报告或另建 Task。
-- CODEX Review `PASS` 后实现才可接受；`PASS WITH FIXES` 仍需修复并复审。
-- Git Commit 必须基于实际 Diff、可追溯，并默认使用中文说明。
-- GitHub 是过滤后的研发镜像，不是完整内部工作区。
-- Publish Check 通过不代表允许 Push；每次 Push 都需 Product Owner 授权。
-- 历史资料进入 Archive 而不是删除，且不能重新解释为 Current Rule。
+- 多解的产品行为必须回到 Current 产品来源确认，不能由实现自行选择。
+- 需求变化应能从总 PRD、模块 PRD、Decision 和 Acceptance 中定位。
+- Prototype 只能从 `src/` 维护并通过正式构建生成，不直接编辑生成产物。
+- 修改 Prototype 后必须验证 Source / Artifact 无漂移。
 - Demo 用于方案验证，不是最终产品事实或生产代码。
 
-## 12. 新 AI 入场指南
+## 10. 研发入场指南
 
-第一次接手项目时按以下顺序阅读，通常可在 5-10 分钟内建立全局认知：
+第一次接手项目时按以下顺序阅读：
 
 1. `docs/PROJECT_OVERVIEW.md`
-2. `AGENTS.md`
-3. `prd-workspace/current/PRD.md`
-4. `.ai/WORKFLOW.md`
-5. 当前 Task Record：`docs/AI_IMPLEMENTATION_TASKS/<TASK-ID>.md`
+2. `prd-workspace/current/PRD.md`
+3. 本次涉及的模块 PRD
+4. 对应 Acceptance、Decision、Flow、Shared、Glossary 和 Product Boundary
+5. 对应 `src/` 模块、数据与样式
 
-随后只读取该 Task 涉及的模块 PRD、Acceptance、Decision、Flow、Shared/Glossary、Product Boundary 和实现文件，不要用历史报告或代码补猜产品规则。
+遇到文档与实现差异时，以 Current 产品来源为准，不要用历史内容或代码补猜产品规则。

@@ -33,13 +33,18 @@
           ? '<div class="notice-delivery-error"><strong>项目提醒暂未送达</strong><span>系统已保留可重试记录，项目状态和待办不受影响。</span></div>'
           : "";
       }
+      function formatUnreadNotificationCount(count) {
+        if (count <= 0) return "";
+        return count > 99 ? "99+" : String(count);
+      }
       function refreshNoticeIndicator() {
-        const dot = $("#noticeBtn .dot");
-        if (dot)
-          dot.classList.toggle(
-            "hidden",
-            !currentNotifications().some((message) => !message.read),
-          );
+        const indicator = $("#noticeBtn .notice-count");
+        if (!indicator) return;
+        const count = currentNotifications().filter(
+          (message) => !message.read,
+        ).length;
+        indicator.textContent = formatUnreadNotificationCount(count);
+        indicator.classList.toggle("hidden", count === 0);
       }
       function closeNoticePanel() {
         $(".notice-panel")?.remove();

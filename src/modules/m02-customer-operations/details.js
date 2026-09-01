@@ -171,12 +171,8 @@
           "edit-record": () => openRecord(null, Number(id)),
           "approval-detail": () => openApprovalDetail(Number(id)),
           "retry-approval-business": () => retryApprovalBusiness(Number(id)),
-          "withdraw-approval": () => openWithdrawApproval(Number(id)),
-          "append-approval-cc": () => openAppendApprovalCc(Number(id)),
           "replace-invalid-handler": () =>
             openReplaceInvalidHandler(Number(id)),
-          "transfer-approval": () => openTransferApproval(Number(id)),
-          "add-sign-approval": () => openAddSignApproval(Number(id)),
           "accept-transfer": () => acceptTransfer(Number(id)),
           "reject-transfer": () => openRejectTransfer(Number(id)),
           "archive-audit": () => openArchiveAudit(Number(id)),

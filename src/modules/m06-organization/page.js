@@ -274,10 +274,7 @@
           employeeView = canViewChanges ? "changes" : "directory";
         if (employeeView === "changes" && !canViewChanges)
           employeeView = canViewDirectory ? "directory" : "changes";
-        const changeRecordCount =
-          personnelChanges.length +
-          organizationChanges.length;
-        const tabs = `<section class="panel"><div class="tabs">${canViewDirectory ? `<button class="tab ${employeeView === "directory" ? "active" : ""}" data-employee-view="directory">组织与员工详情</button>` : ""}${canViewChanges ? `<button class="tab ${employeeView === "changes" ? "active" : ""}" data-employee-view="changes">人员/组织变动记录 <span class="tab-count">${changeRecordCount}</span></button>` : ""}</div></section>`;
+        const tabs = `<section class="panel"><div class="tabs">${canViewDirectory ? `<button class="tab ${employeeView === "directory" ? "active" : ""}" data-employee-view="directory">组织与员工详情</button>` : ""}${canViewChanges ? `<button class="tab ${employeeView === "changes" ? "active" : ""}" data-employee-view="changes">人员/组织变动记录</button>` : ""}</div></section>`;
         const selectedDepartment = organizationDepartments.find(
           (department) => department.id === selectedOrganizationDepartmentId,
         );

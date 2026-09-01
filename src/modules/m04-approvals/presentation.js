@@ -25,11 +25,7 @@
       function approvalFinalNodeTitle(approval) {
         const collaborationNode = activeApprovalCollaborationNode(approval);
         if (collaborationNode)
-          return (
-            collaborationNode.returnNode ||
-            collaborationNode.nextNode ||
-            "后续审批"
-          );
+          return collaborationNode.nextNode || "后续审批";
         if (
           approval.current &&
           !["目标PM接收", "已结束"].includes(approval.current)

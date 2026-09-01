@@ -90,47 +90,6 @@
       }
       approvals.push(
         {
-          id: 318,
-          type: "任务暂停",
-          title: "王建国常规维系任务暂停申请",
-          applicant: "陈经理",
-          region: "山东区域",
-          current: "动态加签",
-          status: "pending",
-          date: "2026-08-17 11:05",
-          reason: "客户处于重大组织调整期，申请暂停普通提醒至下月初。",
-          currentAssignees: ["刘总"],
-          ccUsers: ["王静"],
-          handledBy: ["王静"],
-          originalAssignee: "赵磊",
-          collaborationNodes: [
-            {
-              id: "NODE-318-ADD",
-              type: "dynamic_add_sign",
-              title: "动态加签（2 人）",
-              state: "current",
-              initiator: "赵磊",
-              reason: "暂停时间较长，请公司管理层共同确认。",
-              returnNode: "区域总监审批",
-              returnAssignees: ["赵磊"],
-              members: [
-                {
-                  name: "王静",
-                  state: "done",
-                  time: "2026-08-17 11:32",
-                  opinion: "同意暂停，但需保留健康风险标识。",
-                },
-                {
-                  name: "刘总",
-                  state: "current",
-                  time: "待处理",
-                  opinion: "待审批人填写",
-                },
-              ],
-            },
-          ],
-        },
-        {
           id: 319,
           type: "集团公司停用",
           title: "停用华东能源历史集团档案",

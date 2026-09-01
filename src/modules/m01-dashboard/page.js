@@ -51,7 +51,7 @@
       }
 
       function dashboardPeriodControl() {
-        return `<div class="tabs" aria-label="执行统计周期">${[
+        return `<div class="tabs dashboard-period-tabs" aria-label="执行统计周期">${[
           ["month", "本月"],
           ["quarter", "本季度"],
           ["year", "本年"],

@@ -12,7 +12,7 @@
 >
 > 原始事实章节：旧完整 PRD 第 999-1118 行
 >
-> Completion 依据：[M05 PRD Semantic Governance Report](../../../docs/M05_PRD_SEMANTIC_GOVERNANCE_REPORT.md)
+> Completion 依据：[M05 PRD Semantic Governance Report](../../../archive/governance/documents/prd-governance/M05_PRD_SEMANTIC_GOVERNANCE_REPORT.md)
 
 ## Quick Overview
 

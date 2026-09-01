@@ -637,7 +637,7 @@
       }
       function projectMaterialMaintenanceMode(project) {
         if (!projectOperableByCurrentUser(project)) return "none";
-        if (["已立项", "进行中", "已交付"].includes(project.stage)) return "full";
+        if (project.stage === "已交付") return "full";
         if (project.stage === "已完成") return "optional-add";
         return "none";
       }
@@ -818,7 +818,7 @@
         const areaText = escapeHtml(area);
         const ownerText = escapeHtml(owner);
         return (
-          `<tr data-project-row data-id="${projectId}" ` +
+          `<tr data-page-row data-project-row data-id="${projectId}" ` +
           `data-name="${projectNameFilter}" ` +
           `data-type="${project.type}" data-stage="${project.stage}" ` +
           `data-todos="${project.todos.join("|")}" data-customer="${customerNameText}" ` +
@@ -903,11 +903,9 @@
           '<div class="project-list-toolbar">' +
           `<div class="project-filter-grid">${filterFields}</div>` +
           '<div class="project-filter-footer"><div class="project-filter-actions">' +
-          '<button class="btn" id="queryProjectFilters" type="button">查询</button>' +
+          '<button class="btn btn-primary" id="queryProjectFilters" type="button">筛选</button>' +
           '<button class="btn" id="resetProjectFilters" type="button">重置</button>' +
-          "</div>" +
-          `<span class="panel-sub project-filter-count" id="projectFilterCount">共 ${visible.length} 个项目</span>` +
-          "</div></div>";
+          "</div></div></div>";
         const headerCells = [
           "项目编号",
           "项目名称",
@@ -917,7 +915,7 @@
           "当前负责人",
           "开始时间",
           "结束时间",
-          "项目天数",
+          "项目确认天数",
           "项目金额",
           "主阶段",
           "并行待办标识",
@@ -929,12 +927,12 @@
           ? visible.map(projectRowHtml).join("")
           : projectEmptyState("当前账号数据范围内没有可查看的项目。");
         const filteredEmpty =
-          '<tr id="projectFilteredEmpty" style="display:none">' +
+          '<tr data-filter-empty style="display:none">' +
           '<td colspan="13"><div class="empty">未找到符合条件的项目，请调整筛选条件或重置。</div></td></tr>';
         const table =
-          '<div class="table-wrap project-table-wrap"><table class="project-table">' +
+          '<div class="table-wrap project-table-wrap"><table class="project-table" data-paged-table="m11-projects">' +
           `<thead><tr>${headerCells}</tr></thead>` +
-          `<tbody id="projectBody">${bodyRows}${filteredEmpty}</tbody></table></div>`;
+          `<tbody id="projectBody">${bodyRows}${filteredEmpty}</tbody></table></div>${tablePagination("m11-projects")}`;
         const createActions = hasOperationPermission("projects.create")
           ? '<button class="btn btn-primary" data-project-create>创建项目</button>'
           : "";
@@ -968,7 +966,8 @@
           ["创建操作人", project.createdBy],
           ["开始时间", project.startTime],
           ["结束时间", project.endTime],
-          ["项目天数", `${project.days} 天`],
+          ["系统计算天数", `${projectCalculatedDays(project)} 天`],
+          ["项目确认天数", `${project.days} 天`],
           ["资源类型", project.resourceType],
           ["合作形式", project.cooperation],
           ...(project.packageId
@@ -1040,12 +1039,12 @@
           const staffInputs = staffNames
             .map((name, index) => {
               const value = satisfaction?.staffScores?.[name];
-              return `<div class="form-group"><label class="form-label">${staffLabel(name)}（${escapeHtml(name)}）</label><input class="input" type="number" min="1" max="100" step="0.01" id="sat-staff-${index}" value="${value ?? ""}"></div>`;
+              return `<div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>${staffLabel(name)}（${escapeHtml(name)}）</label><input class="input" type="number" min="1" max="100" step="0.01" id="sat-staff-${index}" value="${value ?? ""}"></div>`;
             })
             .join("");
           return (
             `<div class="form-grid">` +
-            `<div class="form-group"><label class="form-label">项目满意度 *</label><input class="input" type="number" min="1" max="100" step="0.01" id="satProjectScore" value="${satisfaction?.projectScore ?? ""}"></div>` +
+            `<div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>项目满意度</label><input class="input" type="number" min="1" max="100" step="0.01" id="satProjectScore" value="${satisfaction?.projectScore ?? ""}"></div>` +
             staffInputs +
             `</div>` +
             `<div class="field-error" id="satErrors"></div>` +
@@ -1122,9 +1121,11 @@
           `<div class="project-detail-section"><div class="section-title">项目资料</div><div class="table-wrap project-material-table-wrap"><table class="project-material-table"><thead><tr><th>资料分类</th><th>是否必填</th><th>已有文件</th><th>操作</th></tr></thead><tbody>${materialRows || '<tr data-empty-row><td colspan="4"><div class="empty">暂无资料分类</div></td></tr>'}</tbody></table></div></div>` +
           '<input type="file" id="materialAddInput" multiple style="display:none">' +
           '<input type="file" id="materialReplaceInput" style="display:none">' +
-          `<div class="project-detail-section"><div class="section-title">满意度（1-100 分）</div>${projectSatisfactionHtml(project)}</div>` +
           resultsHtml
         );
+      }
+      function projectSatisfactionTab(project) {
+        return `<div class="project-detail-section"><div class="section-title">满意度（1-100 分）</div>${projectSatisfactionHtml(project)}</div>`;
       }
       function projectHistoryTab(project) {
         const currentOwner = projectCurrentOwner(project);
@@ -1167,13 +1168,15 @@
         const tabs = [
           ["basic", "基本信息"],
           ["staff", "人员安排"],
-          ["materials", "资料与满意度"],
+          ["materials", "资料"],
+          ["satisfaction", "满意度"],
           ["history", "变更与责任历史"],
         ];
         const tabContent = {
           basic: projectBasicTab(project),
           staff: projectStaffTab(project),
           materials: projectMaterialsTab(project),
+          satisfaction: projectSatisfactionTab(project),
           history: projectHistoryTab(project),
         }[projectDetailTab];
         const detailActions = [
@@ -1338,11 +1341,15 @@
         const endPart = projectTimeNotAfterNoon(endClock) ? 0.5 : 1;
         return startPart + middleDays + endPart;
       }
+      function projectCalculatedDays(project) {
+        if (!project?.startTime || !project?.endTime) return project?.days || "";
+        return naturalDayCount(project.startTime, project.endTime);
+      }
       function round2(value) {
         return Math.round(value * 100) / 100;
       }
       function projectFormFieldHtml(id, label, innerHtml, requiredLabel) {
-        return `<div class="form-group"><label class="form-label">${label}${requiredLabel ? " *" : ""}</label>${innerHtml}<div class="field-error" id="err-${id}"></div></div>`;
+        return `<div class="form-group"><label class="form-label">${requiredLabel ? '<span class="required-marker" aria-hidden="true">*</span>' : ""}${label}</label>${innerHtml}<div class="field-error" id="err-${id}"></div></div>`;
       }
       function instructorCheckboxGrid(id, selectedNames) {
         return `<div class="choice-grid" id="${id}">${projectInstructors
@@ -1355,6 +1362,16 @@
       function projectFormHtml(project) {
         const editing = Boolean(project);
         const type = project?.type || "";
+        const daysHelpText =
+          type === "培训项目"
+            ? "项目费用按此天数计算"
+            : type === "AI软件项目"
+              ? "仅用于记录项目周期，不参与项目金额计算"
+              : "";
+        const calculatedDays = project ? projectCalculatedDays(project) : "";
+        const confirmationDaysEdited = Boolean(
+          project && project.days !== calculatedDays,
+        );
         const resourceType = project?.resourceType || "";
         const cooperation = project?.cooperation || "";
         const validPackages = projectPackages.filter(isProjectPackageValid);
@@ -1435,7 +1452,7 @@
           ? `<input class="input" id="pfAmount" value="${project ? round2(project.amount) : ""}" disabled>`
           : `<input class="input" id="pfAmount" type="number" step="0.01" value="${project ? round2(project.amount) : ""}">`;
         const personnelHtml =
-          `<div class="form-group full"><label class="form-label">主讲师 *</label>${instructorCheckboxGrid("pfLecturers", project?.lecturers || [])}<div class="field-error" id="err-pfLecturers"></div></div>` +
+          `<div class="form-group full"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>主讲师</label>${instructorCheckboxGrid("pfLecturers", project?.lecturers || [])}<div class="field-error" id="err-pfLecturers"></div></div>` +
           `<div class="form-group full"><label class="form-label">辅讲师</label>${instructorCheckboxGrid("pfAssistants", project?.assistantLecturers || [])}</div>` +
           `<div class="form-group full"><label class="form-label">项目助教</label>${instructorCheckboxGrid("pfHelpers", project?.teachingAssistants || [])}</div>`;
         return (
@@ -1477,9 +1494,14 @@
             true,
           ) +
           projectFormFieldHtml(
+            "pfCalculatedDays",
+            "系统计算天数",
+            `<input class="input" id="pfCalculatedDays" value="${calculatedDays}" disabled>`,
+          ) +
+          projectFormFieldHtml(
             "pfDays",
-            "项目天数",
-            `<input class="input" id="pfDays" type="number" step="0.5" min="0.5" value="${project ? project.days : ""}">`,
+            "项目确认天数",
+            `<input class="input" id="pfDays" type="number" step="0.5" min="0.5" value="${project ? project.days : ""}" data-user-edited="${confirmationDaysEdited}"><div class="list-sub" id="pfDaysHelp" ${daysHelpText ? "" : 'style="display:none"'}>${daysHelpText}</div>`,
           ) +
           `</div>` +
           `<div class="section-title">资源与金额</div><div class="form-grid">` +
@@ -1515,7 +1537,12 @@
             "项目单价",
             `<input class="input" id="pfUnitPrice" value="${project?.unitPrice != null ? formatProjectMoney(project.unitPrice) : "—"}" disabled>`,
           ) +
-          projectFormFieldHtml("pfAmount", "项目金额（含税）", amountField, true) +
+          projectFormFieldHtml(
+            "pfAmount",
+            "项目金额（含税）",
+            amountField,
+            !isTraining,
+          ) +
           projectFormFieldHtml(
             "pfSettlement",
             "结账金额",
@@ -1530,6 +1557,8 @@
       }
       function projectStageEditFormHtml(project, mode) {
         const isTraining = project.type === "培训项目";
+        const calculatedDays = projectCalculatedDays(project);
+        const confirmationDaysEdited = project.days !== calculatedDays;
         const endField =
           mode === "in-progress"
             ? projectFormFieldHtml(
@@ -1541,7 +1570,7 @@
             : `<div class="form-group"><label class="form-label">结束时间</label><div class="input">${project.endTime}</div></div>`;
         const personnelHtml = isTraining
           ? `<div class="section-title">项目人员</div>` +
-            `<div class="form-group full"><label class="form-label">主讲师 *</label>${instructorCheckboxGrid("pfStageLecturers", project.lecturers)}<div class="field-error" id="err-pfStageLecturers"></div></div>` +
+            `<div class="form-group full"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>主讲师</label>${instructorCheckboxGrid("pfStageLecturers", project.lecturers)}<div class="field-error" id="err-pfStageLecturers"></div></div>` +
             `<div class="form-group full"><label class="form-label">辅讲师</label>${instructorCheckboxGrid("pfStageAssistants", project.assistantLecturers)}</div>` +
             `<div class="form-group full"><label class="form-label">项目助教</label>${instructorCheckboxGrid("pfStageHelpers", project.teachingAssistants)}</div>` +
             projectFormFieldHtml(
@@ -1562,6 +1591,18 @@
           `<div class="form-group"><label class="form-label">项目类型</label><div class="input">${project.type}</div></div>` +
           `<div class="form-group"><label class="form-label">开始时间</label><div class="input">${project.startTime}</div></div>` +
           endField +
+          (mode === "in-progress"
+            ? projectFormFieldHtml(
+                "pfCalculatedDays",
+                "系统计算天数",
+                `<input class="input" id="pfCalculatedDays" value="${calculatedDays}" disabled>`,
+              ) +
+              projectFormFieldHtml(
+                "pfDays",
+                "项目确认天数",
+                `<input class="input" id="pfDays" type="number" step="0.5" min="0.5" value="${project.days}" data-user-edited="${confirmationDaysEdited}"><div class="list-sub" id="pfDaysHelp">${isTraining ? "项目费用按此天数计算" : "仅用于记录项目周期，不参与项目金额计算"}</div>`,
+              )
+            : "") +
           `</div>` +
           personnelHtml
         );
@@ -1612,22 +1653,49 @@
         const actions = canManage
           ? '<button class="btn btn-primary" data-config-action="add-company">新增平台公司</button>'
           : "";
+        const filters =
+          '<div class="toolbar filter-toolbar">' +
+          filterField(
+            "平台公司编号",
+            '<input class="input" id="platformCompanyIdFilter" maxlength="8" placeholder="平台公司编号">',
+          ) +
+          filterField(
+            "平台公司名称",
+            '<input class="input" id="platformCompanyNameFilter" maxlength="100" placeholder="平台公司名称">',
+          ) +
+          filterField(
+            "统一社会信用代码",
+            '<input class="input" id="platformCompanyCreditFilter" maxlength="18" placeholder="统一社会信用代码">',
+          ) +
+          filterField(
+            "状态",
+            '<select class="input" id="platformCompanyStatusFilter"><option value="">全部状态</option><option value="正常">正常</option><option value="停用">停用</option></select>',
+          ) +
+          filterActions(
+            '<button class="btn btn-primary" id="applyPlatformCompanyFilters" type="button">筛选</button><button class="btn" id="resetPlatformCompanyFilters" type="button">重置</button>',
+          ) +
+          "</div>";
         const rows = visible
           .map((company) => {
+            const companyId = escapeHtml(company.id);
+            const companyName = escapeHtml(company.name);
+            const companyNameFilter = escapeHtml(company.name.toLowerCase());
+            const creditCode = escapeHtml(company.creditCode || "");
+            const status = escapeHtml(company.status);
             const ops = canManage
               ? `<span class="project-config-actions"><button class="link" data-config-action="edit-company" data-config-id="${company.id}">编辑</button><button class="link" data-config-action="${company.status === "正常" ? "stop-company" : "restore-company"}" data-config-id="${company.id}">${company.status === "正常" ? "停用" : "恢复"}</button></span>`
               : "—";
-            return `<tr><td>${company.id}</td><td>${company.name}</td><td>${formatConfigPercent(company.managementFeeRate)}</td><td>${formatProjectMoney(company.cooperationPay)} 元/天</td><td>${configStatusTag(company.status)}</td><td>${ops}</td></tr>`;
+            return `<tr data-platform-company-row data-company-id="${companyId}" data-company-name="${companyNameFilter}" data-company-credit="${creditCode}" data-company-status="${status}"><td>${companyId}</td><td>${companyName}</td><td>${creditCode || "—"}</td><td>${formatConfigPercent(company.managementFeeRate)}</td><td>${formatProjectMoney(company.cooperationPay)} 元/天</td><td>${configStatusTag(company.status)}</td><td>${ops}</td></tr>`;
           })
           .join("");
         return (
           '<div class="project-page project-config-page">' +
           pageHead(
             "平台公司管理",
-            "查看平台公司编号、名称、管理费比例、合作课酬与状态。",
+            "查看平台公司编号、名称、统一社会信用代码、管理费比例、合作课酬与状态。",
             actions,
           ) +
-          `<section class="panel project-config-panel"><div class="table-wrap project-config-table-wrap"><table class="project-config-table project-company-table"><thead><tr><th>平台公司编号</th><th>平台公司名称</th><th>管理费比例</th><th>合作课酬</th><th>状态</th><th>操作</th></tr></thead><tbody>${rows || '<tr data-empty-row><td colspan="6"><div class="empty">暂无平台公司</div></td></tr>'}</tbody></table></div></section>` +
+          `<section class="panel project-config-panel">${filters}<div class="table-wrap project-config-table-wrap"><table class="project-config-table project-company-table" style="min-width:1120px"><thead><tr><th>平台公司编号</th><th>平台公司名称</th><th>统一社会信用代码</th><th>管理费比例</th><th>合作课酬</th><th>状态</th><th>操作</th></tr></thead><tbody>${rows || '<tr data-empty-row id="platformCompanyDefaultEmpty"><td colspan="7"><div class="empty">暂无平台公司</div></td></tr>'}<tr id="platformCompanyFilterEmpty" style="display:none"><td colspan="7"><div class="empty">未找到符合条件的平台公司，请调整条件或重置筛选</div></td></tr></tbody></table></div></section>` +
           "</div>"
         );
       }

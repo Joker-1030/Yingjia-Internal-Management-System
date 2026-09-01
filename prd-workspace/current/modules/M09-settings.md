@@ -12,7 +12,7 @@
 >
 > 原始事实章节：旧完整 PRD 第 1532-1844 行
 >
-> 语义治理依据：[M09 PRD Semantic Governance Report](../../../docs/M09_PRD_SEMANTIC_GOVERNANCE_REPORT.md)
+> 语义治理依据：[M09 PRD Semantic Governance Report](../../../archive/governance/documents/prd-governance/M09_PRD_SEMANTIC_GOVERNANCE_REPORT.md)
 
 ## Quick Overview
 

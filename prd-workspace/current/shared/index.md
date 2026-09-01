@@ -10,4 +10,4 @@
 - [非功能、审计与保留](./05-non-functional-audit-and-retention.md)
 - [研发评审覆盖清单](./06-engineering-review-coverage.md)
 
-自 2026-08-27 起，以上文件是 M01-M11 共同引用的 Current Shared Product Facts。它们只维护跨模块唯一事实，不取代业务 Owner 模块；旧完整 PRD 中的对应章节仅作 Historical / Migration Baseline。
+以上文件是 M01-M12 共同引用的 Current Shared Product Facts。它们只维护跨模块唯一事实，不取代业务 Owner 模块；旧完整 PRD 与历史销售增量中的对应章节仅作 Historical Evidence。

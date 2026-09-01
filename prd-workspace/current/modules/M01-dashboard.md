@@ -4,7 +4,7 @@
 > Source of Truth：本文件（M01）；模块集合入口为 `prd-workspace/current/PRD.md`  
 > Completion 日期：2026-08-22  
 > 最近治理日期：2026-08-22  
-> Completion 依据：`docs/M01_PRD_SEMANTIC_GOVERNANCE_REPORT.md`  
+> Completion 依据：`archive/governance/documents/prd-governance/M01_PRD_SEMANTIC_GOVERNANCE_REPORT.md`
 > 未决 Governance 摘要：G-01 工作台覆盖分析替代链；G-02 区域总监范围措辞；G-03 FLOW-01 默认入口称谓
 
 ---
@@ -591,7 +591,7 @@ M01 不包含：
 - 来源未确认的新页面、新角色、新指标、新状态、新写操作或新业务流程；
 - 技术架构与实现设计。
 
-本文件是 M01 的正式模块化 PRD Source of Truth。旧完整 PRD `prd-workspace/current/PRD_customer_management_full.md` 仅保留为 Historical / Migration Baseline，不再承担当前规则权威。
+本文件是 M01 的正式模块化 PRD Source of Truth。旧完整 PRD `archive/product/migration-baselines/PRD_customer_management_full.md` 仅保留为 Historical / Migration Baseline，不再承担当前规则权威。
 
 ## 修订记录 / PRD Revision History
 

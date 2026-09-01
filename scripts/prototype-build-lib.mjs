@@ -77,11 +77,11 @@ function readModuleManifests() {
     })
     .sort((left, right) => left.id.localeCompare(right.id));
 
-  const expectedIds = Array.from({ length: 11 }, (_, index) =>
+  const expectedIds = Array.from({ length: 12 }, (_, index) =>
     `M${String(index + 1).padStart(2, "0")}`,
   );
   if (manifests.map((manifest) => manifest.id).join(",") !== expectedIds.join(",")) {
-    throw new Error("src/modules must contain exactly one manifest for M01-M11.");
+    throw new Error("src/modules must contain exactly one manifest for M01-M12.");
   }
   return manifests;
 }

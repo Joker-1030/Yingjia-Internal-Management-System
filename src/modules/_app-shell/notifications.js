@@ -96,26 +96,36 @@
       function notificationCenterHtml() {
         const messages = currentNotifications();
         const categories = [...new Set(messages.map((message) => message.category))];
-        return `<div class="drawer-head"><div class="modal-title">全部消息</div><button class="icon-btn close" data-close title="关闭消息中心">×</button></div><div class="drawer-body"><div class="panel-head" style="padding:0 0 12px"><div class="panel-sub">展示全部已读与未读消息</div><div class="spacer"></div><button class="btn" id="drawerMarkAllRead" type="button">全部已读</button></div>${notificationFailureHtml()}<div class="toolbar filter-toolbar">${filterField("分类", `<select class="input" id="notificationCategory"><option value="">全部分类</option>${categories.map((category) => `<option>${escapeNotificationHtml(category)}</option>`).join("")}</select>`)}${filterField("未读状态", '<select class="input" id="notificationReadStatus"><option value="">全部状态</option><option value="unread">未读</option><option value="read">已读</option></select>')}</div><div class="list" id="notificationCenterList">${messages.map((message) => noticeCard(message, true)).join("") || '<div class="empty">暂无消息</div>'}</div></div>`;
+        const messageList = messages.length
+          ? `${messages.map((message) => noticeCard(message, true)).join("")}<div class="empty hidden" data-notification-filter-empty>未找到符合条件的消息，请调整条件或重置筛选</div>`
+          : '<div class="empty">暂无消息</div>';
+        return `<div class="drawer-head"><div class="modal-title">全部消息</div><button class="icon-btn close" data-close title="关闭消息中心">×</button></div><div class="drawer-body"><div class="panel-head" style="padding:0 0 12px"><div class="panel-sub">展示全部已读与未读消息</div><div class="spacer"></div><button class="btn" id="drawerMarkAllRead" type="button">全部已读</button></div>${notificationFailureHtml()}<div class="toolbar filter-toolbar">${filterField("分类", `<select class="input" id="notificationCategory"><option value="">全部分类</option>${categories.map((category) => `<option>${escapeNotificationHtml(category)}</option>`).join("")}</select>`)}${filterField("未读状态", '<select class="input" id="notificationReadStatus"><option value="">全部状态</option><option value="unread">未读</option><option value="read">已读</option></select>')}${filterActions('<button class="btn btn-primary" id="applyNotificationFilters" type="button">筛选</button><button class="btn" id="resetNotificationFilters" type="button">重置</button>')}</div><div class="list" id="notificationCenterList">${messageList}</div></div>`;
       }
       function bindNotificationCenter() {
         const applyFilters = () => {
           const category = $("#notificationCategory")?.value || "";
           const readStatus = $("#notificationReadStatus")?.value || "";
+          let visible = 0;
           document.querySelectorAll("#notificationCenterList [data-notice-id]").forEach((item) => {
-            item.classList.toggle(
-              "hidden",
-              Boolean(
-                (category && item.dataset.noticeCategory !== category) ||
-                (readStatus && item.dataset.noticeRead !== readStatus),
-              ),
+            const hidden = Boolean(
+              (category && item.dataset.noticeCategory !== category) ||
+              (readStatus && item.dataset.noticeRead !== readStatus),
             );
+            item.classList.toggle("hidden", hidden);
+            if (!hidden) visible += 1;
           });
+          $("[data-notification-filter-empty]")?.classList.toggle("hidden", visible > 0);
         };
-        ["#notificationCategory", "#notificationReadStatus"].forEach((selector) => {
-          const control = $(selector);
-          if (control) control.onchange = applyFilters;
-        });
+        if ($("#applyNotificationFilters"))
+          $("#applyNotificationFilters").onclick = applyFilters;
+        if ($("#resetNotificationFilters"))
+          $("#resetNotificationFilters").onclick = () => {
+            ["#notificationCategory", "#notificationReadStatus"].forEach((selector) => {
+              const control = $(selector);
+              if (control) control.value = "";
+            });
+            applyFilters();
+          };
         const button = $("#drawerMarkAllRead");
         if (button)
           button.onclick = () => {

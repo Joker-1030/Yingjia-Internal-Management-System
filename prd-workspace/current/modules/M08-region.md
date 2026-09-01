@@ -10,7 +10,7 @@
 >
 > 功能范围：F003 区域中心配置、F004 地市责任
 >
-> Completion 依据：[M08 PRD Semantic Governance Report](../../../docs/M08_PRD_SEMANTIC_GOVERNANCE_REPORT.md)
+> Completion 依据：[M08 PRD Semantic Governance Report](../../../archive/governance/documents/prd-governance/M08_PRD_SEMANTIC_GOVERNANCE_REPORT.md)
 
 ## Quick Overview
 

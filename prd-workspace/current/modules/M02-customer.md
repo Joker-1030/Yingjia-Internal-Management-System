@@ -3,7 +3,7 @@
 - 文档状态：Active modular PRD Source of Truth
 - 功能范围：F006、F007
 - Source of Truth：本文件（M02）；模块集合入口为 `prd-workspace/current/PRD.md`
-- Completion 依据：`docs/M02_PRD_SEMANTIC_GOVERNANCE_REPORT.md`
+- Completion 依据：`archive/governance/documents/prd-governance/M02_PRD_SEMANTIC_GOVERNANCE_REPORT.md`
 - 最近治理日期：2026-08-28
 - 未决治理摘要：关键人调岗生效时点已由 DEC-164 闭合；其余历史术语和状态分层项按治理标签保留
 

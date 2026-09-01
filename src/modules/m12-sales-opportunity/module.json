@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 1,
+  "id": "M12",
+  "name": "销售与商机管理",
+  "pages": [
+    "sales-dashboard",
+    "sales-targets",
+    "opportunities",
+    "opportunity-create",
+    "opportunity-detail"
+  ],
+  "pageStates": [
+    "销售周期目标与当前商机快照",
+    "商机筛选与分页",
+    "商机创建",
+    "顺序推进与落选",
+    "负责人改派",
+    "结构化跟进",
+    "多人方案支撑"
+  ],
+  "dataReferences": [
+    "data/sales-targets.js",
+    "data/opportunities.js",
+    "data/customers.js",
+    "data/contacts.js",
+    "data/organization.js",
+    "data/permissions.js"
+  ],
+  "sourceFiles": [
+    "modules/m12-sales-opportunity/page.js",
+    "modules/m12-sales-opportunity/interactions.js"
+  ],
+  "eventRouterSource": "modules/_app-shell/events.js"
+}

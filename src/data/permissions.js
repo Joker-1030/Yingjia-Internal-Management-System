@@ -13,6 +13,9 @@
         ["projects", "项目管理"],
         ["packages", "采购包管理"],
         ["platform-companies", "平台公司管理"],
+        ["sales-dashboard", "销售仪表盘"],
+        ["opportunities", "商机列表"],
+        ["sales-targets", "销售指标"],
       ];
       const adminOnlyPermission = ["permissions", "权限授权"];
       const allPermissionCatalog = [...permissionCatalog, adminOnlyPermission];
@@ -30,6 +33,12 @@
             "审批",
             "经营看板",
             "项目",
+            "采购包",
+            "平台公司",
+            "销售指标版本",
+            "商机",
+            "商机跟进记录",
+            "方案支撑请求",
           ],
           permissions: [
             "dashboard",
@@ -41,6 +50,11 @@
             "regions",
             "settings",
             "projects",
+            "packages",
+            "platform-companies",
+            "sales-dashboard",
+            "opportunities",
+            "sales-targets",
           ],
         },
         {
@@ -56,6 +70,12 @@
             "审批",
             "经营看板",
             "项目",
+            "采购包",
+            "平台公司",
+            "销售指标版本",
+            "商机",
+            "商机跟进记录",
+            "方案支撑请求",
           ],
           permissions: [
             "dashboard",
@@ -67,6 +87,11 @@
             "regions",
             "settings",
             "projects",
+            "packages",
+            "platform-companies",
+            "sales-dashboard",
+            "opportunities",
+            "sales-targets",
           ],
         },
         {
@@ -84,6 +109,10 @@
             "项目",
             "采购包",
             "平台公司",
+            "销售指标版本",
+            "商机",
+            "商机跟进记录",
+            "方案支撑请求",
           ],
           permissions: [
             "dashboard",
@@ -97,6 +126,9 @@
             "projects",
             "packages",
             "platform-companies",
+            "sales-dashboard",
+            "opportunities",
+            "sales-targets",
           ],
         },
         {
@@ -104,7 +136,7 @@
           jobs: ["项目经理"],
           scopeType: "cities",
           scopeSource: "地市负责人配置",
-          objects: ["客户单位", "关键人", "维系任务", "维系记录", "项目", "采购包", "平台公司"],
+          objects: ["客户单位", "关键人", "维系任务", "维系记录", "项目", "采购包", "平台公司", "销售指标版本", "商机", "商机跟进记录", "方案支撑请求"],
           permissions: [
             "dashboard",
             "customers",
@@ -117,6 +149,9 @@
             "projects",
             "packages",
             "platform-companies",
+            "sales-dashboard",
+            "opportunities",
+            "sales-targets",
           ],
         },
         {
@@ -142,6 +177,10 @@
             "项目",
             "采购包",
             "平台公司",
+            "销售指标版本",
+            "商机",
+            "商机跟进记录",
+            "方案支撑请求",
             "账号",
             "平台参数",
             "运行日志",
@@ -173,6 +212,7 @@
         { name: "客户经营", items: [["customers", "客户经营", "三栏查看 / 新增 / 维护"], ["tasks", "维系管理", "任务与记录"]] },
         { name: "协同与审批", items: [["approvals", "审批中心", "查看与处理"], ["archive", "停用记录", "查看与恢复"]] },
         { name: "项目管理", items: [["projects", "项目管理", "查看项目列表与详情"], ["packages", "采购包管理", "查看与维护"], ["platform-companies", "平台公司管理", "查看与维护"]] },
+        { name: "销售管理", items: [["sales-dashboard", "销售仪表盘", "查看目标与商机快照"], ["opportunities", "商机列表", "查看与推进商机"], ["sales-targets", "销售指标", "查看与维护商机数量目标"]] },
         { name: "组织与配置", items: [["employees", "组织与员工", "组织、员工与异动"], ["regions", "区域中心与地市配置", "区域与地市责任"], ["city-management", "地市管理", "PM 本人地市责任"], ["settings", "客户基础配置", "配置项维护"], ["imports", "数据导入", "上传、确认与结果"]] },
       ];
       const operationPermissionCatalog = [
@@ -220,6 +260,13 @@
         ["packages.manage", "packages", "维护采购包（新增/编辑/停用/恢复）"],
         ["platform-companies.view", "platform-companies", "查看平台公司"],
         ["platform-companies.manage", "platform-companies", "维护平台公司（新增/编辑/停用/恢复）"],
+        ["sales.view", "sales-dashboard", "查看销售仪表盘"],
+        ["opportunities.view", "opportunities", "查看商机列表与详情"],
+        ["opportunities.create", "opportunities", "创建商机"],
+        ["opportunities.progress", "opportunities", "推进本人负责商机并新增跟进"],
+        ["opportunities.reassign", "opportunities", "改派有权范围内商机"],
+        ["opportunities.support", "opportunities", "处理本人方案支撑请求"],
+        ["sales-targets.manage", "sales-targets", "维护有权层级商机数量目标"],
       ];
       const roleOperationPermissions = {
         总裁: [
@@ -227,13 +274,19 @@
           "tasks.view", "tasks.publish_campaign", "tasks.create_record",
           "approvals.view", "approvals.decide",
           "archive.view", "archive.request_stop", "archive.restore",
-          "employees.view", "employees.view_changes", "regions.view", "settings.view", "projects.view",         ],
+          "employees.view", "employees.view_changes", "regions.view", "settings.view", "projects.view",
+          "packages.view", "platform-companies.view",
+          "sales.view", "opportunities.view", "opportunities.create", "sales-targets.manage",
+        ],
         市场副总: [
           "dashboard.view", "customers.view",
           "tasks.view", "tasks.publish_campaign", "tasks.create_record",
           "approvals.view", "approvals.decide",
           "archive.view", "archive.request_stop", "archive.restore",
-          "employees.view", "employees.view_changes", "regions.view", "regions.edit", "settings.view", "projects.view",         ],
+          "employees.view", "employees.view_changes", "regions.view", "regions.edit", "settings.view", "projects.view",
+          "packages.view", "platform-companies.view",
+          "sales.view", "opportunities.view", "opportunities.create", "sales-targets.manage",
+        ],
         区域总监: [
           "dashboard.view", "customers.view", "customers.create_contact", "customers.edit_contact",
           "customers.transfer_contact", "tasks.view", "tasks.create_record", "tasks.complete", "tasks.adjust",
@@ -242,6 +295,7 @@
           "employees.view", "employees.view_changes", "regions.view", "regions.batch_assign",
           "imports.view", "imports.upload", "imports.confirm", "imports.download",
           "projects.view", "projects.create", "projects.edit", "packages.view", "platform-companies.view",
+          "sales.view", "opportunities.view", "opportunities.create", "opportunities.reassign", "sales-targets.manage",
         ],
         PM: [
           "dashboard.view", "customers.view", "customers.create_contact",
@@ -252,6 +306,7 @@
           "employees.view", "employees.view_changes", "regions.handover",
           "imports.view", "imports.upload", "imports.confirm", "imports.download",
           "projects.view", "projects.create", "projects.edit", "packages.view", "platform-companies.view",
+          "sales.view", "opportunities.view", "opportunities.create", "opportunities.progress", "opportunities.support",
         ],
         "HR/人事": [
           "employees.view", "employees.view_changes", "employees.create_department",
@@ -305,6 +360,9 @@
         systemRoleTemplates.map((template, index) => {
           const code = permissionRoleCodes[template.name];
           const isAdmin = template.name === "系统管理员";
+          const receivesM11ReadonlyConfig = ["总裁", "市场副总"].includes(
+            template.name,
+          );
           const configPageKeys = ["packages", "platform-companies"];
           const configOperationKeys = [
             "packages.view",
@@ -315,8 +373,18 @@
           const projectActionOperationKeys = ["projects.create", "projects.edit"];
           const m11CreatePermissions = [...template.permissions];
           const m11CreateOperations = [...roleOperationPermissions[template.name]];
-          const m11ConfigPermissions = [...template.permissions];
-          const m11ConfigOperations = roleOperationPermissions[template.name].filter(
+          const priorM11Permissions = receivesM11ReadonlyConfig
+            ? template.permissions.filter(
+                (permission) => !configPageKeys.includes(permission),
+              )
+            : [...template.permissions];
+          const priorM11Operations = receivesM11ReadonlyConfig
+            ? roleOperationPermissions[template.name].filter(
+                (operation) => !configOperationKeys.includes(operation),
+              )
+            : [...roleOperationPermissions[template.name]];
+          const m11ConfigPermissions = [...priorM11Permissions];
+          const m11ConfigOperations = priorM11Operations.filter(
             (operation) => !projectActionOperationKeys.includes(operation),
           );
           const m11ProjectPermissions = template.permissions.filter(
@@ -343,14 +411,29 @@
           return [
             template.name,
             [
+              ...(receivesM11ReadonlyConfig
+                ? [
+                    {
+                      id: `PERM-${code}-00000${index + 6}`,
+                      type: "变更",
+                      operator: "系统管理员",
+                      time: "2026-09-01 10:00",
+                      reason: "开放 M11 采购包与平台公司有效配置只读查看",
+                      permissions: m11CreatePermissions,
+                      operations: m11CreateOperations,
+                      fields: [...roleFieldPermissions[template.name]],
+                      attachments: [...roleAttachmentPermissions[template.name]],
+                    },
+                  ]
+                : []),
               {
                 id: `PERM-${code}-00000${index + 5}`,
                 type: "初始化",
                 operator: "系统管理员",
                 time: "2026-08-27 11:00",
                 reason: "同步 M11 项目创建与开始前编辑权限基线",
-                permissions: m11CreatePermissions,
-                operations: m11CreateOperations,
+                permissions: priorM11Permissions,
+                operations: priorM11Operations,
                 fields: [...roleFieldPermissions[template.name]],
                 attachments: [...roleAttachmentPermissions[template.name]],
               },

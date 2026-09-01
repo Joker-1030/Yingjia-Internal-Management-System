@@ -19,6 +19,14 @@
           ],
         },
         {
+          title: "销售管理",
+          items: [
+            { id: "sales-dashboard", icon: "◫", label: "销售仪表盘" },
+            { id: "opportunities", icon: "◎", label: "商机列表" },
+            { id: "sales-targets", icon: "▥", label: "销售指标" },
+          ],
+        },
+        {
           title: "协同与审批",
           items: [
             { id: "approvals", icon: "◇", label: "审批中心" },
@@ -84,6 +92,25 @@
       };
       let selectedProjectId = null;
       let projectDetailTab = "basic";
+      let selectedOpportunityId = null;
+      let opportunityDetailTab = "overview";
+      let salesPeriodDraft = "2026-09";
+      let salesPeriodApplied = "2026-09";
+      let salesTrendMode = "count";
+      let salesOpportunityDrill = "";
+      let appliedOpportunityFilters = {
+        code: "",
+        name: "",
+        type: "",
+        stage: "",
+        customer: "",
+        region: "",
+        owner: "",
+        priority: "",
+        expectedDate: "",
+        createdDate: "",
+        overdue: "",
+      };
       const expandedCustomerOrgNodes = new Set([
         "industry:通信",
         "industry:能源",

@@ -1,4 +1,5 @@
       function bindPageEvents() {
+        bindSalesEvents();
         bindProjectEvents();
         bindProjectConfigEvents();
         bindProjectFormEvents();
@@ -282,11 +283,16 @@
               '<div class="empty" id="regionMasterEmpty">未找到符合条件的区域中心</div>',
             );
         };
-        ["#regionName", "#regionDepartmentCode", "#regionDirector", "#regionProvinceFilter"].forEach((selector) => {
-          const element = $(selector);
-          if (element)
-            element.oninput = element.onchange = filterRegionMasterList;
-        });
+        if ($("#applyRegionFilters"))
+          $("#applyRegionFilters").onclick = filterRegionMasterList;
+        if ($("#resetRegionFilters"))
+          $("#resetRegionFilters").onclick = () => {
+            ["#regionName", "#regionDepartmentCode", "#regionDirector", "#regionProvinceFilter"].forEach((selector) => {
+              const element = $(selector);
+              if (element) element.value = "";
+            });
+            filterRegionMasterList();
+          };
         document.querySelectorAll("[data-region-assignment-view]").forEach(
           (button) =>
             (button.onclick = () => {
@@ -304,15 +310,15 @@
           const pmCode = $("#regionCityPmCode")?.value.trim() || "";
           const status = $("#regionCityStatus")?.value || "";
           document.querySelectorAll("[data-region-city-row]").forEach((row) => {
-            row.style.display =
+            const visible =
               (!province || row.dataset.province === province) &&
               (!city || row.children[1]?.textContent.includes(city)) &&
-              (!pmName || row.children[2]?.textContent.includes(pmName)) &&
-              (!pmCode || row.children[3]?.textContent.includes(pmCode)) &&
-              (!status || row.dataset.status === status)
-                ? ""
-                : "none";
+              (!pmName || row.children[4]?.textContent.includes(pmName)) &&
+              (!pmCode || row.children[5]?.textContent.includes(pmCode)) &&
+              (!status || row.dataset.status === status);
+            row.classList.toggle("hidden", !visible);
           });
+          refreshUnifiedTablePagination("m08-cities", true);
         };
         if ($("#queryRegionCities")) $("#queryRegionCities").onclick = filterRegionCities;
         if ($("#resetRegionCities"))
@@ -328,10 +334,12 @@
           const name = $("#regionPmName")?.value.trim() || "";
           const code = $("#regionPmCode")?.value.trim() || "";
           document.querySelectorAll("[data-region-pm-row]").forEach((row) => {
-            row.style.display =
+            const visible =
               (!name || row.children[0]?.textContent.includes(name)) &&
-              (!code || row.children[1]?.textContent.includes(code)) ? "" : "none";
+              (!code || row.children[1]?.textContent.includes(code));
+            row.classList.toggle("hidden", !visible);
           });
+          refreshUnifiedTablePagination("m08-pms", true);
         };
         if ($("#queryRegionPms")) $("#queryRegionPms").onclick = filterRegionPms;
         if ($("#resetRegionPms"))
@@ -566,30 +574,35 @@
             const level = $(config.level)?.value || "";
             const type = $(config.type)?.value || "";
             const status = $(config.status)?.value || "";
-            let visible = 0;
             document.querySelectorAll(`${config.body} [data-config-row]`).forEach(
               (row) => {
                 const matched =
                   (!keyword || (row.dataset.keyword || "").includes(keyword)) &&
-                  (!name || row.querySelector("strong")?.textContent.includes(name)) &&
-                  (!code || row.querySelector(".list-sub")?.textContent.includes(code)) &&
+                  (!name || (row.dataset.name || row.querySelector("strong")?.textContent || "").includes(name)) &&
+                  (!code || (row.dataset.code || row.querySelector(".list-sub")?.textContent || "").includes(code)) &&
                   (!group || row.dataset.group === group) &&
                   (!level || (row.dataset.levels || "").split("|").includes(level)) &&
                   (!type || row.dataset.type === type) &&
                   (!status || row.dataset.status === status);
                 row.classList.toggle("hidden", !matched);
-                if (matched) visible += 1;
               },
             );
-            const count = $(config.count);
-            if (count) count.textContent = `共 ${visible} 条`;
+            if (config.pagination)
+              refreshUnifiedTablePagination(config.pagination, true);
           };
-          [config.keyword, config.name, config.code, config.group, config.level, config.type, config.status]
-            .filter(Boolean)
-            .forEach((selector) => {
-              const control = $(selector);
-              if (control) control.oninput = control.onchange = apply;
-            });
+          const applyButton = $(config.apply);
+          if (applyButton) applyButton.onclick = apply;
+          const resetButton = $(config.reset);
+          if (resetButton)
+            resetButton.onclick = () => {
+              [config.keyword, config.name, config.code, config.group, config.level, config.type, config.status]
+                .filter(Boolean)
+                .forEach((selector) => {
+                  const control = $(selector);
+                  if (control) control.value = "";
+                });
+              apply();
+            };
         };
 
         if (settingsSection === "tree") {
@@ -809,7 +822,9 @@
             type: "#ruleConfigType",
             status: "#ruleConfigStatus",
             body: "#ruleConfigBody",
-            count: "#ruleConfigCount",
+            apply: "#applyRuleConfigFilters",
+            reset: "#resetRuleConfigFilters",
+            pagination: "m09-rules",
           });
         if (settingsSection === "industries")
           bindConfigurationFilters({
@@ -817,7 +832,9 @@
             code: "#industryConfigCode",
             status: "#industryConfigStatus",
             body: "#industryConfigBody",
-            count: "#industryConfigCount",
+            apply: "#applyIndustryConfigFilters",
+            reset: "#resetIndustryConfigFilters",
+            pagination: "m09-industries",
           });
         document.querySelectorAll("[data-dept]").forEach(
           (button) =>
@@ -1067,22 +1084,31 @@
               if (input.checked) customerAreaFilter[key].add(input.value);
               else customerAreaFilter[key].delete(input.value);
               if (key === "provinces") {
-                const opts = customerFilterOptions();
-                Array.from(customerAreaFilter.cities).forEach((city) => {
-                  if (!opts.cities.includes(city))
-                    customerAreaFilter.cities.delete(city);
-                });
-                Array.from(customerAreaFilter.districts).forEach((district) => {
-                  if (!opts.districts.includes(district))
-                    customerAreaFilter.districts.delete(district);
-                });
+                if (!customerAreaFilter.provinces.size) {
+                  customerAreaFilter.cities.clear();
+                  customerAreaFilter.districts.clear();
+                } else {
+                  const opts = customerFilterOptions();
+                  Array.from(customerAreaFilter.cities).forEach((city) => {
+                    if (!opts.cities.includes(city))
+                      customerAreaFilter.cities.delete(city);
+                  });
+                  Array.from(customerAreaFilter.districts).forEach((district) => {
+                    if (!opts.districts.includes(district))
+                      customerAreaFilter.districts.delete(district);
+                  });
+                }
               }
               if (key === "cities") {
-                const opts = customerFilterOptions();
-                Array.from(customerAreaFilter.districts).forEach((district) => {
-                  if (!opts.districts.includes(district))
-                    customerAreaFilter.districts.delete(district);
-                });
+                if (!customerAreaFilter.cities.size) {
+                  customerAreaFilter.districts.clear();
+                } else {
+                  const opts = customerFilterOptions();
+                  Array.from(customerAreaFilter.districts).forEach((district) => {
+                    if (!opts.districts.includes(district))
+                      customerAreaFilter.districts.delete(district);
+                  });
+                }
               }
               refreshAreaFilterUI();
             };
@@ -1195,7 +1221,6 @@
           const rows = [
             ...document.querySelectorAll("#taskBody tr[data-execution-group]"),
           ];
-          let matched = 0;
           rows.forEach((row) => {
             const id = row.querySelector('[data-action="task-detail"]')?.dataset.id ||
               row.querySelector("[data-complete]")?.dataset.complete;
@@ -1244,35 +1269,16 @@
               (!dueStart || row.dataset.taskDue >= dueStart) &&
               (!dueEnd || row.dataset.taskDue <= dueEnd);
             row.dataset.filterMatch = String(isMatch);
-            if (isMatch) matched += 1;
           });
-          if ($("#taskFilterCount"))
-            $("#taskFilterCount").textContent = `筛选结果 ${matched} 条`;
           document
             .querySelector('[data-execution-table="main-executions"]')
             ?.applyExecutionState?.();
         };
-        [
-          "#taskParentCode",
-          "#taskExecutionCode",
-          "#taskTitle",
-          "#taskPersonCode",
-          "#taskPersonName",
-          "#taskCompany",
-          "#taskType",
-          "#taskOwner",
-          "#taskRegion",
-          "#taskCityFilter",
-          "#taskRiskScope",
-          "#taskEventType",
-          "#taskEventMonth",
-          "#taskCompletionType",
-          "#taskDueStart",
-          "#taskDueEnd",
-        ].forEach((selector) => {
-          const element = $(selector);
-          if (element) element.oninput = element.onchange = filterTasks;
-        });
+        if ($("#applyTaskFilters"))
+          $("#applyTaskFilters").onclick = () => {
+            executionTableStates["main-executions"].page = 1;
+            filterTasks();
+          };
         if ($("#resetTaskFilters"))
           $("#resetTaskFilters").onclick = () => {
             [
@@ -1335,8 +1341,7 @@
             type = $("#summaryType")?.value || "",
             status = $("#summaryStatus")?.value || "",
             owner = $("#summaryOwner")?.value || "";
-          let matched = 0;
-          document.querySelectorAll("#taskSummaryBody tr").forEach((row) => {
+          document.querySelectorAll("#taskSummaryBody tr[data-page-row]").forEach((row) => {
             const isMatch =
               (!code || row.dataset.summaryCode.includes(code)) &&
               (!name || row.dataset.summaryName.includes(name)) &&
@@ -1350,19 +1355,12 @@
               (!status || row.dataset.summaryStatus === status) &&
               (!owner ||
                 (row.dataset.summaryOwner || "").split("|").includes(owner));
-            row.style.display = isMatch ? "" : "none";
-            if (isMatch) matched += 1;
+            row.classList.toggle("hidden", !isMatch);
           });
-          if ($("#summaryFilterCount"))
-            $("#summaryFilterCount").textContent = `筛选结果 ${matched} 项任务`;
+          refreshUnifiedTablePagination("m03-task-summary", true);
         };
-        ["#summaryCode", "#summaryName", "#summaryScope", "#summaryType", "#summaryStatus", "#summaryOwner"].forEach(
-          (selector) => {
-            const element = $(selector);
-            if (element)
-              element.oninput = element.onchange = filterTaskSummary;
-          },
-        );
+        if ($("#applySummaryFilters"))
+          $("#applySummaryFilters").onclick = filterTaskSummary;
         if ($("#resetSummaryFilters"))
           $("#resetSummaryFilters").onclick = () => {
             [
@@ -1410,7 +1408,6 @@
           $("#recordCreatedEnd")?.setCustomValidity(
             invalidCreatedRange ? "创建日期止不能早于创建日期起" : "",
           );
-          let matched = 0;
           document.querySelectorAll("#recordBody tr:not([data-empty-row])").forEach(
             (row) => {
               const recordId = row.querySelector('[data-action="record-detail"]')?.dataset.id;
@@ -1436,34 +1433,13 @@
                 (!dateEnd || row.dataset.recordDate <= dateEnd) &&
                 (!createdStart || row.dataset.recordCreated >= createdStart) &&
                 (!createdEnd || row.dataset.recordCreated <= createdEnd);
-              row.style.display = isMatch ? "" : "none";
-              if (isMatch) matched += 1;
+              row.classList.toggle("hidden", !isMatch);
             },
           );
-          if ($("#recordFilterCount"))
-            $("#recordFilterCount").textContent =
-              `筛选结果 ${matched} 条 · 数据范围：${currentUser.region}`;
+          refreshUnifiedTablePagination("m03-records", true);
         };
-        [
-          "#recordCode",
-          "#recordPersonCode",
-          "#recordPersonName",
-          "#recordCompany",
-          "#recordSummary",
-          "#recordMethod",
-          "#recordExecutor",
-          "#recordRegion",
-          "#recordCity",
-          "#recordLinkedTask",
-          "#recordAttachment",
-          "#recordDateStart",
-          "#recordDateEnd",
-          "#recordCreatedStart",
-          "#recordCreatedEnd",
-        ].forEach((selector) => {
-          const element = $(selector);
-          if (element) element.oninput = element.onchange = filterRecords;
-        });
+        if ($("#applyRecordFilters"))
+          $("#applyRecordFilters").onclick = filterRecords;
         if ($("#resetRecordFilters"))
           $("#resetRecordFilters").onclick = () => {
             [
@@ -1512,7 +1488,6 @@
             toast("创建日期开始日不能晚于结束日");
             return;
           }
-          let matched = 0;
           document
             .querySelectorAll("#importBody tr[data-import-row]")
             .forEach((row) => {
@@ -1534,14 +1509,10 @@
                 (!start || row.dataset.date >= start) &&
                 (!end || row.dataset.date <= end) &&
                 exceptionMatched;
-              row.style.display = visible ? "" : "none";
-              if (visible) matched += 1;
+              row.classList.toggle("hidden", !visible);
             });
-          if ($("#importFilteredEmpty"))
-            $("#importFilteredEmpty").style.display = matched ? "none" : "";
-          if ($("#importFilterCount"))
-            $("#importFilterCount").textContent = `筛选结果 ${matched} 个批次`;
           if ($("#importStatusSelect")) $("#importStatusSelect").open = false;
+          refreshUnifiedTablePagination("m10-imports", true);
         };
         document.querySelectorAll("[data-import-status]").forEach(
           (input) => (input.onchange = updateImportStatusText),
@@ -1586,9 +1557,8 @@
           const applyEnd = $("#archiveApplyEnd")?.value || "";
           const effectiveStart = $("#archiveEffectiveStart")?.value || "";
           const effectiveEnd = $("#archiveEffectiveEnd")?.value || "";
-          let matched = 0;
           document
-            .querySelectorAll("#archiveBody tr:not([data-empty-row])")
+            .querySelectorAll("#archiveBody tr[data-page-row]")
             .forEach((row) => {
               const archiveId = row.querySelector('[data-action="archive-audit"]')?.dataset.id;
               const archived = archivedItems.find(
@@ -1618,29 +1588,12 @@
                 (!effectiveStart ||
                   row.dataset.effectiveDate >= effectiveStart) &&
                 (!effectiveEnd || row.dataset.effectiveDate <= effectiveEnd);
-              row.style.display = visible ? "" : "none";
-              if (visible) matched += 1;
+              row.classList.toggle("hidden", !visible);
             });
-          if ($("#archiveFilterCount"))
-            $("#archiveFilterCount").textContent = `筛选结果 ${matched} 条`;
+          refreshUnifiedTablePagination("m05-archive", true);
         };
-        [
-          "#archiveObjectName",
-          "#archiveGroup",
-          "#archiveType",
-          "#archiveStatus",
-          "#archiveApprovalStatus",
-          "#archiveApplicant",
-          "#archiveRegion",
-          "#archiveApplyStart",
-          "#archiveApplyEnd",
-          "#archiveEffectiveStart",
-          "#archiveEffectiveEnd",
-        ].forEach((selector) => {
-          const element = $(selector);
-          if (element)
-            element.oninput = element.onchange = applyArchiveFilters;
-        });
+        if ($("#applyArchiveFilters"))
+          $("#applyArchiveFilters").onclick = applyArchiveFilters;
         if ($("#resetArchiveFilters"))
           $("#resetArchiveFilters").onclick = () => {
             [
@@ -1664,23 +1617,29 @@
             applyArchiveFilters();
           };
         if ($("#archiveBody")) applyArchiveFilters();
-        [
-          "#employeeName",
-          "#employeeCode",
-          "#employeePhoneSuffix",
-          "#employeeRole",
-          "#employeeStatus",
-          "#employeeAccountStatus",
-        ].forEach((selector) => {
-          const control = $(selector);
-          if (control)
-            control.oninput = control.onchange = applyEmployeeFilters;
-        });
+        if ($("#applyEmployeeFilters"))
+          $("#applyEmployeeFilters").onclick = applyEmployeeFilters;
+        if ($("#resetEmployeeFilters"))
+          $("#resetEmployeeFilters").onclick = () => {
+            [
+              "#employeeName",
+              "#employeeCode",
+              "#employeePhoneSuffix",
+              "#employeeRole",
+              "#employeeStatus",
+              "#employeeAccountStatus",
+            ].forEach((selector) => {
+              const control = $(selector);
+              if (control) control.value = "";
+            });
+            applyEmployeeFilters();
+          };
         if (dashboardEmployeeStatusFilter && $("#employeeStatus")) {
           $("#employeeStatus").value = dashboardEmployeeStatusFilter;
           dashboardEmployeeStatusFilter = "";
         }
         applyEmployeeFilters();
+        bindUnifiedTablePagination();
       }
 
       function openFilePreview() {
@@ -1691,6 +1650,7 @@
 
       function bindOverlay() {
         bindExecutionTables();
+        bindUnifiedTablePagination();
         document
           .querySelectorAll("[data-close],.drawer-mask,.modal-mask")
           .forEach((x) => (x.onclick = closeOverlay));

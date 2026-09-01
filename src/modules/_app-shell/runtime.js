@@ -6,6 +6,68 @@
         return `<div class="filter-actions">${actions}</div>`;
       }
 
+      const unifiedTablePaginationStates = {};
+      function tablePagination(key, defaultPageSize = 10) {
+        return `<div class="table-pagination" data-table-pagination="${key}"><span data-page-summary></span><label class="table-page-size">每页<select class="input" data-page-size><option value="10" ${defaultPageSize === 10 ? "selected" : ""}>10 条</option><option value="20" ${defaultPageSize === 20 ? "selected" : ""}>20 条</option><option value="50" ${defaultPageSize === 50 ? "selected" : ""}>50 条</option></select></label><button class="icon-btn" type="button" data-page-direction="prev" title="上一页" aria-label="上一页">‹</button><button class="icon-btn" type="button" data-page-direction="next" title="下一页" aria-label="下一页">›</button></div>`;
+      }
+      function refreshUnifiedTablePagination(key, resetPage = false) {
+        const table = document.querySelector(`[data-paged-table="${key}"]`);
+        const pagination = document.querySelector(
+          `[data-table-pagination="${key}"]`,
+        );
+        if (!table || !pagination) return;
+        const sizeControl = pagination.querySelector("[data-page-size]");
+        const requestedPageSize = Number(sizeControl?.value || 10);
+        const state = unifiedTablePaginationStates[key] || {
+          page: 1,
+          pageSize: requestedPageSize,
+        };
+        unifiedTablePaginationStates[key] = state;
+        state.pageSize = requestedPageSize;
+        if (resetPage) state.page = 1;
+        const rows = [...table.querySelectorAll("tbody > tr[data-page-row]")];
+        const filtered = rows.filter((row) => !row.classList.contains("hidden"));
+        const totalPages = Math.max(Math.ceil(filtered.length / state.pageSize), 1);
+        state.page = Math.min(Math.max(state.page, 1), totalPages);
+        rows.forEach((row) => (row.style.display = "none"));
+        filtered
+          .slice((state.page - 1) * state.pageSize, state.page * state.pageSize)
+          .forEach((row) => (row.style.display = ""));
+        const baseEmpty = table.querySelector("tbody > tr[data-empty-row]");
+        const filteredEmpty = table.querySelector("tbody > tr[data-filter-empty]");
+        if (baseEmpty) baseEmpty.style.display = rows.length ? "none" : "";
+        if (filteredEmpty)
+          filteredEmpty.style.display = rows.length && !filtered.length ? "" : "none";
+        const summary = pagination.querySelector("[data-page-summary]");
+        if (summary)
+          summary.textContent = `共 ${filtered.length} 条 · 第 ${state.page}/${totalPages} 页`;
+        const previous = pagination.querySelector('[data-page-direction="prev"]');
+        const next = pagination.querySelector('[data-page-direction="next"]');
+        if (previous) previous.disabled = state.page <= 1;
+        if (next) next.disabled = state.page >= totalPages;
+      }
+      function bindUnifiedTablePagination() {
+        document.querySelectorAll("[data-table-pagination]").forEach((pagination) => {
+          const key = pagination.dataset.tablePagination;
+          pagination.querySelector("[data-page-size]").onchange = () =>
+            refreshUnifiedTablePagination(key, true);
+          pagination.querySelectorAll("[data-page-direction]").forEach((button) => {
+            button.onclick = () => {
+              const state = unifiedTablePaginationStates[key] || {
+                page: 1,
+                pageSize: Number(
+                  pagination.querySelector("[data-page-size]")?.value || 10,
+                ),
+              };
+              unifiedTablePaginationStates[key] = state;
+              state.page += button.dataset.pageDirection === "next" ? 1 : -1;
+              refreshUnifiedTablePagination(key);
+            };
+          });
+          refreshUnifiedTablePagination(key);
+        });
+      }
+
       function enhanceUnifiedFilterPresentation() {
         const wrap = (id, label) => {
           const control = $("#" + id);
@@ -135,6 +197,8 @@
         if (page === "project-detail") return hasPermission("projects");
         if (page === "project-create") return hasPermission("projects");
         if (page === "project-edit") return hasPermission("projects");
+        if (page === "opportunity-detail") return hasPermission("opportunities");
+        if (page === "opportunity-create") return hasPermission("opportunities");
         return hasPermission(page);
       };
       const hasOperationPermission = (operation) =>
@@ -1084,6 +1148,11 @@
         "project-edit": "编辑项目",
         packages: "采购包管理",
         "platform-companies": "平台公司管理",
+        "sales-dashboard": "销售仪表盘",
+        opportunities: "商机列表",
+        "opportunity-detail": "商机详情",
+        "opportunity-create": "新建商机",
+        "sales-targets": "销售指标",
       };
       function renderPage() {
         normalizeTaskStates();
@@ -1125,6 +1194,11 @@
           "project-edit": renderProjectEdit,
           packages: renderProjectPackages,
           "platform-companies": renderPlatformCompanies,
+          "sales-dashboard": renderSalesDashboard,
+          opportunities: renderOpportunities,
+          "opportunity-detail": renderOpportunityDetail,
+          "opportunity-create": renderOpportunityCreate,
+          "sales-targets": renderSalesTargets,
         };
         $("#content").innerHTML = (renderers[currentPage] || renderDashboard)();
         if (pageChanged) $("#content").scrollTop = 0;

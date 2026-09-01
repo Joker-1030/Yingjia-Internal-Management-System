@@ -60,8 +60,14 @@
           )
           .join("");
       }
-      function areaMultiSelectHtml(id, label, values, selectedSet) {
-        return `<div class="multi-select" style="width:170px"><button class="multi-select-trigger" id="${id}Trigger" type="button" aria-haspopup="listbox" aria-expanded="false"><span id="${id}Text">${areaSelectionLabel(selectedSet, label)}</span><span aria-hidden="true">⌄</span></button><div class="multi-select-menu hidden" id="${id}Menu"><input class="input" id="${id}Search" placeholder="搜索${label}" style="margin-bottom:var(--space-2)"><div id="${id}Options">${areaOptionList(values, selectedSet)}</div></div></div>`;
+      function areaMultiSelectHtml(
+        id,
+        label,
+        values,
+        selectedSet,
+        disabledHint = "",
+      ) {
+        return `<div class="multi-select" style="width:170px"><button class="multi-select-trigger" id="${id}Trigger" type="button" aria-haspopup="listbox" aria-expanded="false" ${disabledHint ? "disabled" : ""} title="${disabledHint || label}"><span id="${id}Text">${disabledHint || areaSelectionLabel(selectedSet, label)}</span><span aria-hidden="true">⌄</span></button><div class="multi-select-menu hidden" id="${id}Menu"><input class="input" id="${id}Search" placeholder="搜索${label}" style="margin-bottom:var(--space-2)"><div id="${id}Options">${areaOptionList(values, selectedSet)}</div></div></div>`;
       }
       function refreshAreaFilterUI() {
         const opts = customerFilterOptions();
@@ -79,17 +85,31 @@
           opts.districts,
           customerAreaFilter.districts,
         );
-        $("#customerAreaProvinceText").textContent = areaSelectionLabel(
-          customerAreaFilter.provinces,
-          "省份",
-        );
-        $("#customerAreaCityText").textContent = areaSelectionLabel(
+        const syncTrigger = (id, label, selectedSet, disabledHint = "") => {
+          const trigger = $("#" + id + "Trigger");
+          const text = $("#" + id + "Text");
+          const menu = $("#" + id + "Menu");
+          if (!trigger || !text) return;
+          trigger.disabled = Boolean(disabledHint);
+          trigger.title = disabledHint || label;
+          text.textContent = disabledHint || areaSelectionLabel(selectedSet, label);
+          if (disabledHint) {
+            menu?.classList.add("hidden");
+            trigger.setAttribute("aria-expanded", "false");
+          }
+        };
+        syncTrigger("customerAreaProvince", "业务责任省份", customerAreaFilter.provinces);
+        syncTrigger(
+          "customerAreaCity",
+          "业务责任城市",
           customerAreaFilter.cities,
-          "城市",
+          customerAreaFilter.provinces.size ? "" : "请先选择业务责任省份",
         );
-        $("#customerAreaDistrictText").textContent = areaSelectionLabel(
+        syncTrigger(
+          "customerAreaDistrict",
+          "业务责任区县",
           customerAreaFilter.districts,
-          "区县",
+          customerAreaFilter.cities.size ? "" : "请先选择业务责任城市",
         );
       }
 
@@ -113,7 +133,8 @@
           : selectedLabels.length <= 2
             ? selectedLabels.join("、")
             : `${selectedLabels.slice(0, 2).join("、")}等${selectedLabels.length}项`;
-        return `<div class="multi-select" style="width:170px"><button class="multi-select-trigger" id="${id}Trigger" type="button" aria-haspopup="listbox" aria-expanded="false" ${disabled ? "disabled" : ""} title="${disabled ? "请先选择集团公司" : label}"><span id="${id}Text">${disabled ? `请先选择${label === "关键人部门" || label === "关键人岗位" ? "集团公司" : label}` : summary}</span><span aria-hidden="true">⌄</span></button><div class="multi-select-menu hidden" id="${id}Menu"><input class="input" id="${id}Search" placeholder="搜索${label}" style="margin-bottom:var(--space-2)"><div id="${id}Options">${normalized.map((option) => `<label class="multi-select-option" data-option-label="${option.label}"><input type="checkbox" value="${option.value}" ${selectedSet.has(String(option.value)) ? "checked" : ""}><span>${option.label}</span></label>`).join("") || '<div class="list-sub">暂无可选项</div>'}</div></div></div>`;
+        const disabledText = "请先选择集团公司";
+        return `<div class="multi-select" style="width:170px"><button class="multi-select-trigger" id="${id}Trigger" type="button" aria-haspopup="listbox" aria-expanded="false" ${disabled ? "disabled" : ""} title="${disabled ? disabledText : label}"><span id="${id}Text">${disabled ? disabledText : summary}</span><span aria-hidden="true">⌄</span></button><div class="multi-select-menu hidden" id="${id}Menu"><input class="input" id="${id}Search" placeholder="搜索${label}" style="margin-bottom:var(--space-2)"><div id="${id}Options">${normalized.map((option) => `<label class="multi-select-option" data-option-label="${option.label}"><input type="checkbox" value="${option.value}" ${selectedSet.has(String(option.value)) ? "checked" : ""}><span>${option.label}</span></label>`).join("") || '<div class="list-sub">暂无可选项</div>'}</div></div></div>`;
       }
 
       function checkedFilterValues(id) {
@@ -197,8 +218,8 @@
             value: position.id,
             label: `${position.company} · ${customerDepartments.find((item) => item.id === position.departmentId)?.name || "待配置部门"} · ${position.name}`,
           }));
-        const controls = `${filterField("集团公司", `<select class="input" id="customerTreeGroup"><option value="">全部集团公司</option>${groups.map((item) => `<option ${item === group ? "selected" : ""}>${item}</option>`).join("")}</select>`)}${filterField("行业", customerFilterMultiSelectHtml("customerIndustryMulti", "行业", [...new Set(authorizedCustomers.map((item) => item.industry))].sort(), appliedCustomerFilter.industries))}${filterField("业务责任层级", customerFilterMultiSelectHtml("customerLevelMulti", "业务责任层级", ["省级", "市级", "区县级"], appliedCustomerFilter.levels))}${filterField("客户负责人", customerFilterMultiSelectHtml("customerPmMulti", "客户负责人", [...new Set(authorizedCustomers.map(customerOwnerName).filter(Boolean))].sort(), appliedCustomerFilter.pms))}${filterField("客户部门", customerFilterMultiSelectHtml("customerDepartmentMulti", "客户部门", groupDepartments, appliedCustomerFilter.departments, !group))}${filterField("标准岗位", customerFilterMultiSelectHtml("customerPositionMulti", "标准岗位", groupPositions, appliedCustomerFilter.positions, !group))}${filterField("部门覆盖状态", `<select class="input" id="customerDepartmentCoverage"><option value="">全部覆盖状态</option><option value="covered" ${appliedCustomerFilter.departmentCoverage === "covered" ? "selected" : ""}>已覆盖</option><option value="none" ${appliedCustomerFilter.departmentCoverage === "none" ? "selected" : ""}>未覆盖</option></select>`)}${filterField("岗位覆盖状态", `<select class="input" id="customerPositionCoverage"><option value="">全部覆盖状态</option><option value="covered" ${appliedCustomerFilter.positionCoverage === "covered" ? "selected" : ""}>已覆盖</option><option value="none" ${appliedCustomerFilter.positionCoverage === "none" ? "selected" : ""}>未覆盖</option></select>`)}`;
-        applyButton.closest(".filter-actions").insertAdjacentHTML("beforebegin", controls);
+        const controls = `${filterField("集团公司", `<select class="input" id="customerTreeGroup"><option value="">全部集团公司</option>${groups.map((item) => `<option ${item === group ? "selected" : ""}>${item}</option>`).join("")}</select>`)}${filterField("客户部门", customerFilterMultiSelectHtml("customerDepartmentMulti", "客户部门", groupDepartments, appliedCustomerFilter.departments, !group))}${filterField("部门覆盖状态", `<select class="input" id="customerDepartmentCoverage"><option value="">全部部门覆盖状态</option><option value="covered" ${appliedCustomerFilter.departmentCoverage === "covered" ? "selected" : ""}>已覆盖</option><option value="none" ${appliedCustomerFilter.departmentCoverage === "none" ? "selected" : ""}>未覆盖</option></select>`)}${filterField("标准岗位", customerFilterMultiSelectHtml("customerPositionMulti", "标准岗位", groupPositions, appliedCustomerFilter.positions, !group))}${filterField("岗位覆盖状态", `<select class="input" id="customerPositionCoverage"><option value="">全部岗位覆盖状态</option><option value="covered" ${appliedCustomerFilter.positionCoverage === "covered" ? "selected" : ""}>已覆盖</option><option value="none" ${appliedCustomerFilter.positionCoverage === "none" ? "selected" : ""}>未覆盖</option></select>`)}${filterField("行业", customerFilterMultiSelectHtml("customerIndustryMulti", "行业", [...new Set(authorizedCustomers.map((item) => item.industry))].sort(), appliedCustomerFilter.industries))}${filterField("业务责任层级", customerFilterMultiSelectHtml("customerLevelMulti", "业务责任层级", ["省级", "市级", "区县级"], appliedCustomerFilter.levels))}${filterField("客户负责人", customerFilterMultiSelectHtml("customerPmMulti", "客户负责人", [...new Set(authorizedCustomers.map(customerOwnerName).filter(Boolean))].sort(), appliedCustomerFilter.pms))}`;
+        toolbar.insertAdjacentHTML("afterbegin", controls);
         [
           ["customerIndustryMulti", "行业"],
           ["customerLevelMulti", "业务责任层级"],
@@ -220,11 +241,16 @@
                     `<label class="multi-select-option" data-option-label="${option.label}"><input type="checkbox" value="${option.value}"><span>${option.label}</span></label>`,
                 )
                 .join("") || '<div class="list-sub">暂无可选项</div>';
-            $("#" + id + "Text").textContent = `全部${label}`;
-            $("#" + id + "Trigger").disabled = !selectedGroup;
-            $("#" + id + "Trigger").title = selectedGroup
-              ? label
+            const trigger = $("#" + id + "Trigger");
+            $("#" + id + "Text").textContent = selectedGroup
+              ? `全部${label}`
               : "请先选择集团公司";
+            trigger.disabled = !selectedGroup;
+            trigger.title = selectedGroup ? label : "请先选择集团公司";
+            if (!selectedGroup) {
+              $("#" + id + "Menu")?.classList.add("hidden");
+              trigger.setAttribute("aria-expanded", "false");
+            }
           };
           rebuild(
             "customerDepartmentMulti",
@@ -254,8 +280,8 @@
           updateDimensionCoverageState();
           toast(
             selectedGroup
-              ? "集团已切换，请重新选择部门或岗位"
-              : "未选择集团，关键人部门和岗位筛选已清空",
+              ? "集团公司已切换，请重新选择客户部门或标准岗位"
+              : "未选择集团公司，客户部门和标准岗位筛选已清空",
           );
         };
         groupSelect.onchange = rebuildScopedOptions;
@@ -264,17 +290,25 @@
 
       function updateDimensionCoverageState() {
         [
-          ["customerDepartmentCoverage", "customerDepartmentMulti", "部门"],
-          ["customerPositionCoverage", "customerPositionMulti", "岗位"],
+          ["customerDepartmentCoverage", "customerDepartmentMulti", "客户部门"],
+          ["customerPositionCoverage", "customerPositionMulti", "标准岗位"],
         ].forEach(([controlId, multiId, label]) => {
           const control = $("#" + controlId);
           if (!control) return;
+          const hasGroup = Boolean($("#customerTreeGroup")?.value);
           const targetCount = checkedFilterValues(multiId).size;
           control.disabled = targetCount !== 1;
           if (control.disabled) control.value = "";
-          control.title = targetCount === 1
-            ? `按所选唯一${label}判断覆盖`
-            : `请只选择一个${label}口径`;
+          const hint = !hasGroup
+            ? "请先选择集团公司"
+            : targetCount === 1
+              ? `按所选${label}判断覆盖`
+              : `请只选择一个${label}`;
+          control.title = hint;
+          if (control.options[0])
+            control.options[0].textContent = control.disabled
+              ? hint
+              : `全部${label}覆盖状态`;
         });
       }
 

@@ -86,7 +86,6 @@
           const owner = $("#projectOwner")?.value || "";
           const startFrom = $("#projectStartFrom")?.value || "";
           const endTo = $("#projectEndTo")?.value || "";
-          let matched = 0;
           document
             .querySelectorAll("#projectBody tr[data-project-row]")
             .forEach((row) => {
@@ -105,13 +104,9 @@
                 (!owner || row.dataset.owner === owner) &&
                 (!startFrom || row.dataset.start >= startFrom) &&
                 (!endTo || row.dataset.end <= endTo);
-              row.style.display = visible ? "" : "none";
-              if (visible) matched += 1;
+              row.classList.toggle("hidden", !visible);
             });
-          const filteredEmpty = $("#projectFilteredEmpty");
-          if (filteredEmpty) filteredEmpty.style.display = matched ? "none" : "";
-          const filterCount = $("#projectFilterCount");
-          if (filterCount) filterCount.textContent = `筛选结果 ${matched} 个项目`;
+          refreshUnifiedTablePagination("m11-projects", true);
         };
         if ($("#queryProjectFilters"))
           $("#queryProjectFilters").onclick = applyProjectFilters;
@@ -157,7 +152,7 @@
         return `PT${String((seqs.length ? Math.max(...seqs) : 0) + 1).padStart(6, "0")}`;
       }
       function packageDirectionRowHtml(direction = {}) {
-        return `<div class="package-direction-row"><input class="input package-direction-name" data-pkg-dir-intro value="${direction.intro || ""}" placeholder="一句话课程介绍" required><input class="input package-direction-price" type="number" step="0.01" data-pkg-dir-untaxed value="${direction.untaxedPrice ?? ""}" placeholder="不含税报价" required><input class="input package-direction-price" type="number" step="0.01" data-pkg-dir-taxed value="${direction.taxedPrice ?? ""}" placeholder="含税报价" required><button class="icon-btn package-direction-remove" type="button" data-pkg-dir-remove title="移除该课程方向" aria-label="移除该课程方向">×</button></div>`;
+        return `<div class="package-direction-row"><label class="package-direction-field package-direction-name-field"><span class="form-label"><span class="required-marker" aria-hidden="true">*</span>课程方向一句话介绍</span><input class="input package-direction-name" data-pkg-dir-intro value="${direction.intro || ""}" placeholder="一句话课程介绍" required></label><label class="package-direction-field package-direction-untaxed-field"><span class="form-label"><span class="required-marker" aria-hidden="true">*</span>不含税报价</span><input class="input package-direction-price" type="number" step="0.01" data-pkg-dir-untaxed value="${direction.untaxedPrice ?? ""}" placeholder="不含税报价" required></label><label class="package-direction-field package-direction-taxed-field"><span class="form-label"><span class="required-marker" aria-hidden="true">*</span>含税报价</span><input class="input package-direction-price" type="number" step="0.01" data-pkg-dir-taxed value="${direction.taxedPrice ?? ""}" placeholder="含税报价" required></label><button class="icon-btn package-direction-remove" type="button" data-pkg-dir-remove title="移除该课程方向" aria-label="移除该课程方向">×</button></div>`;
       }
       function openPackageForm(packageId) {
         if (!hasOperationPermission("packages.manage")) return;
@@ -175,10 +170,10 @@
           `<div class="modal-head project-modal-head"><div class="modal-title">${title}</div>` +
             '<button class="icon-btn close" data-close>×</button></div>' +
             '<form id="packageForm" class="project-config-form"><div class="modal-body project-modal-body"><div class="form-grid">' +
-            `<div class="form-group"><label class="form-label">采购包名称</label><input class="input" id="pkgName" value="${editing?.name || ""}" required></div>` +
+            `<div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>采购包名称</label><input class="input" id="pkgName" value="${editing?.name || ""}" required></div>` +
             `<div class="form-group"><label class="form-label">采购包编号</label><input class="input" value="${editing ? editing.id : "保存后自动生成"}" disabled></div>` +
-            `<div class="form-group"><label class="form-label">有效期起</label><input class="input" id="pkgValidFrom" type="date" value="${editing?.validFrom || ""}" required></div>` +
-            `<div class="form-group"><label class="form-label">有效期止</label><input class="input" id="pkgValidTo" type="date" value="${editing?.validTo || ""}" required></div>` +
+            `<div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>有效期起</label><input class="input" id="pkgValidFrom" type="date" value="${editing?.validFrom || ""}" required></div>` +
+            `<div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>有效期止</label><input class="input" id="pkgValidTo" type="date" value="${editing?.validTo || ""}" required></div>` +
             '</div><div class="section-title">课程方向</div>' +
             `<div id="packageDirections">${directionsHtml}</div>` +
             '<button class="btn project-direction-add" type="button" id="addPackageDirection">添加课程方向</button>' +
@@ -248,19 +243,58 @@
           `<div class="modal-head project-modal-head"><div class="modal-title">${title}</div>` +
             '<button class="icon-btn close" data-close>×</button></div>' +
             '<form id="companyForm" class="project-config-form"><div class="modal-body project-modal-body"><div class="form-grid">' +
-            `<div class="form-group"><label class="form-label">平台公司名称</label><input class="input" id="companyName" value="${editing?.name || ""}" required></div>` +
+            `<div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>平台公司名称</label><input class="input" id="companyName" value="${editing?.name || ""}" required></div>` +
             `<div class="form-group"><label class="form-label">平台公司编号</label><input class="input" value="${editing ? editing.id : "保存后自动生成"}" disabled></div>` +
-            `<div class="form-group"><label class="form-label">管理费比例（%）</label><input class="input" id="companyFeeRate" type="number" step="0.01" value="${editing?.managementFeeRate ?? ""}" required></div>` +
-            `<div class="form-group"><label class="form-label">合作课酬（元/天）</label><input class="input" id="companyPay" type="number" step="0.01" value="${editing?.cooperationPay ?? ""}" required></div>` +
+            `<div class="form-group full"><label class="form-label">统一社会信用代码</label><input class="input" id="companyCreditCode" maxlength="18" pattern="[0-9A-HJ-NPQRTUWXY]{18}" value="${editing?.creditCode || ""}"></div>` +
+            `<div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>管理费比例（%）</label><input class="input" id="companyFeeRate" type="number" step="0.01" value="${editing?.managementFeeRate ?? ""}" required></div>` +
+            `<div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>合作课酬（元/天）</label><input class="input" id="companyPay" type="number" step="0.01" value="${editing?.cooperationPay ?? ""}" required></div>` +
             '</div></div><div class="modal-foot project-modal-foot">' +
             '<button class="btn" type="button" data-close>取消</button>' +
             '<button class="btn btn-primary" type="submit">保存</button>' +
             '</div></form>',
         );
+        const creditInput = $("#companyCreditCode");
+        creditInput.oninput = () => {
+          creditInput.value = creditInput.value.toUpperCase();
+          creditInput.setCustomValidity("");
+        };
+        creditInput.oninvalid = () => {
+          if (creditInput.validity.patternMismatch)
+            creditInput.setCustomValidity(
+              "统一社会信用代码需为 18 位标准格式",
+            );
+        };
         $("#companyForm").onsubmit = (event) => {
           event.preventDefault();
+          const creditCode = creditInput.value.trim().toUpperCase();
+          creditInput.value = creditCode;
+          creditInput.setCustomValidity("");
+          if (
+            creditCode &&
+            !/^[0-9A-HJ-NPQRTUWXY]{18}$/.test(creditCode)
+          ) {
+            creditInput.setCustomValidity(
+              "统一社会信用代码需为 18 位标准格式",
+            );
+            creditInput.reportValidity();
+            return;
+          }
+          const duplicate = platformCompanies.some(
+            (company) =>
+              company !== editing &&
+              company.creditCode &&
+              company.creditCode.toUpperCase() === creditCode,
+          );
+          if (creditCode && duplicate) {
+            creditInput.setCustomValidity(
+              "统一社会信用代码已存在，请核对后重试",
+            );
+            creditInput.reportValidity();
+            return;
+          }
           const data = {
             name: $("#companyName").value.trim(),
+            creditCode,
             managementFeeRate: Number($("#companyFeeRate").value),
             cooperationPay: Number($("#companyPay").value),
           };
@@ -322,6 +356,46 @@
           button.onclick = () =>
             dispatchConfigAction(button.dataset.configAction, button.dataset.configId);
         });
+        const applyPlatformCompanyFilters = () => {
+          const id =
+            $("#platformCompanyIdFilter")?.value.trim().toUpperCase() || "";
+          const name =
+            $("#platformCompanyNameFilter")?.value.trim().toLowerCase() || "";
+          const creditCode =
+            $("#platformCompanyCreditFilter")?.value.trim().toUpperCase() || "";
+          const status = $("#platformCompanyStatusFilter")?.value || "";
+          const rows = [
+            ...document.querySelectorAll("[data-platform-company-row]"),
+          ];
+          let matched = 0;
+          rows.forEach((row) => {
+            const visible =
+              (!id || row.dataset.companyId === id) &&
+              (!name || row.dataset.companyName.includes(name)) &&
+              (!creditCode || row.dataset.companyCredit === creditCode) &&
+              (!status || row.dataset.companyStatus === status);
+            row.classList.toggle("hidden", !visible);
+            if (visible) matched += 1;
+          });
+          const empty = $("#platformCompanyFilterEmpty");
+          if (empty) empty.style.display = rows.length && !matched ? "" : "none";
+        };
+        const applyButton = $("#applyPlatformCompanyFilters");
+        if (applyButton) applyButton.onclick = applyPlatformCompanyFilters;
+        const resetButton = $("#resetPlatformCompanyFilters");
+        if (resetButton)
+          resetButton.onclick = () => {
+            [
+              "#platformCompanyIdFilter",
+              "#platformCompanyNameFilter",
+              "#platformCompanyCreditFilter",
+              "#platformCompanyStatusFilter",
+            ].forEach((selector) => {
+              const element = $(selector);
+              if (element) element.value = "";
+            });
+            applyPlatformCompanyFilters();
+          };
       }
       function nextProjectIdForYear(year) {
         const prefix = `XM${year}`;
@@ -504,10 +578,10 @@
           );
         if (!Number.isFinite(days) || days < 0.5 || days % 0.5 !== 0)
           addIssue(
-            "项目天数",
+            "项目确认天数",
             "IMP-PROJECT-FIELD-003",
-            "项目天数最小为 0.5 天且必须为 0.5 的整数倍",
-            "修正项目天数后重新上传",
+            "项目确认天数最小为 0.5 天且必须为 0.5 的整数倍",
+            "修正项目确认天数后重新上传",
           );
 
         const customer = projectImportCustomer(row);
@@ -838,15 +912,45 @@
         });
         return conflicts;
       }
-      function refreshProjectFormDays() {
-        const startValue = $("#pfStart").value;
-        const endValue = $("#pfEnd").value;
-        if (!startValue || !endValue) return;
+      function refreshProjectFormDays(fallbackStartTime) {
+        const startValue =
+          $("#pfStart")?.value || fallbackStartTime?.replace(" ", "T") || "";
+        const endValue = $("#pfEnd")?.value || $("#pfStageEnd")?.value || "";
+        const calculatedInput = $("#pfCalculatedDays");
+        const confirmedInput = $("#pfDays");
+        if (!startValue || !endValue) {
+          if (calculatedInput) calculatedInput.value = "";
+          if (confirmedInput?.dataset.userEdited !== "true")
+            confirmedInput.value = "";
+          return null;
+        }
         const startTime = startValue.replace("T", " ");
         const endTime = endValue.replace("T", " ");
-        if (startTime <= endTime) {
-          $("#pfDays").value = naturalDayCount(startTime, endTime);
+        if (startTime > endTime) {
+          if (calculatedInput) calculatedInput.value = "";
+          return null;
         }
+        const calculatedDays = naturalDayCount(startTime, endTime);
+        if (calculatedInput) calculatedInput.value = calculatedDays;
+        if (confirmedInput?.dataset.userEdited !== "true")
+          confirmedInput.value = calculatedDays;
+        return calculatedDays;
+      }
+      function openProjectDaysConfirm(calculatedDays, confirmedDays, onConfirm) {
+        openModal(
+          '<div class="modal-head project-modal-head"><div class="modal-title">确认使用不同的项目天数</div><button class="icon-btn close" data-close title="返回修改">×</button></div>' +
+            '<div class="modal-body project-modal-body">' +
+            `<div>系统计算天数：${calculatedDays}天；</div>` +
+            `<div>项目确认天数：${confirmedDays}天；</div>` +
+            '</div><div class="modal-foot project-modal-foot">' +
+            '<button class="btn" type="button" data-close>返回修改</button>' +
+            '<button class="btn btn-primary" type="button" id="confirmProjectDaysSave">确认保存</button>' +
+            "</div>",
+        );
+        $("#confirmProjectDaysSave").onclick = () => {
+          closeOverlay();
+          onConfirm();
+        };
       }
       function projectFormResourceChanged(project) {
         if (!project) return false;
@@ -924,8 +1028,17 @@
         const showCompany = ["师资合作", "走账合作"].includes(cooperation);
         const showUnitPrice = type === "培训项目";
         const personnelSection = $("#pfPersonnelSection");
+        const daysHelp = $("#pfDaysHelp");
         if (personnelSection)
           personnelSection.style.display = showPersonnel ? "" : "none";
+        if (daysHelp) {
+          daysHelp.textContent = type
+            ? showPersonnel
+              ? "项目费用按此天数计算"
+              : "仅用于记录项目周期，不参与项目金额计算"
+            : "";
+          daysHelp.style.display = type ? "" : "none";
+        }
         setProjectFieldVisible("pfPackage", showPackage);
         setProjectFieldVisible("pfDirection", showPackage);
         setProjectFieldVisible("pfCompany", showCompany);
@@ -933,6 +1046,11 @@
         refreshProjectFormAmounts();
       }
       function writePreStartEditHistory(project, payload) {
+        const previousCalculatedDays = projectCalculatedDays(project);
+        const nextCalculatedDays = naturalDayCount(
+          payload.startTime,
+          payload.endTime,
+        );
         if (project.name !== payload.name)
           recordProjectChange(project, "项目名称", project.name, payload.name);
         if (project.startTime !== payload.startTime)
@@ -984,10 +1102,17 @@
             projectCompanyLabel(project.companyId),
             projectCompanyLabel(payload.companyId),
           );
+        if (previousCalculatedDays !== nextCalculatedDays)
+          recordProjectChange(
+            project,
+            "系统计算天数",
+            `${previousCalculatedDays} 天`,
+            `${nextCalculatedDays} 天`,
+          );
         if (project.days !== payload.days)
           recordProjectChange(
             project,
-            "项目天数",
+            "项目确认天数",
             `${project.days} 天`,
             `${payload.days} 天`,
           );
@@ -1027,7 +1152,7 @@
             staffDisplay(payload.teachingAssistants),
           );
       }
-      function handleStageProjectEditSubmit(project, mode) {
+      function handleStageProjectEditSubmit(project, mode, daysConfirmed = false) {
         clearProjectFormErrors();
         const isTraining = project.type === "培训项目";
         const name = $("#pfStageName").value.trim();
@@ -1077,11 +1202,24 @@
 
         const endChanged = mode === "in-progress" && endTime !== project.endTime;
 
+        const previousCalculatedDays = projectCalculatedDays(project);
+        let calculatedDays = previousCalculatedDays;
         let days = project.days;
         let amount = project.amount;
         let settlementAmount = project.settlementAmount;
         if (mode === "in-progress" && endTime && endTime >= project.startTime) {
-          days = naturalDayCount(project.startTime, endTime);
+          calculatedDays = naturalDayCount(project.startTime, endTime);
+          const daysValue = $("#pfDays").value.trim();
+          if (daysValue === "") {
+            errors.pfDays = "请填写项目确认天数";
+          } else {
+            days = Number(daysValue);
+            if (!Number.isFinite(days) || days <= 0)
+              errors.pfDays = "请填写项目确认天数";
+            else if (days < 0.5 || days % 0.5 !== 0)
+              errors.pfDays =
+                "项目确认天数最小为0.5天，且必须为0.5天的整数倍";
+          }
           if (isTraining && project.snapshot?.unitPrice != null) {
             amount = round2(project.snapshot.unitPrice * days);
             const feeRate =
@@ -1125,32 +1263,50 @@
           return;
         }
 
+        if (
+          mode === "in-progress" &&
+          !daysConfirmed &&
+          days !== calculatedDays
+        ) {
+          openProjectDaysConfirm(calculatedDays, days, () =>
+            handleStageProjectEditSubmit(project, mode, true),
+          );
+          return;
+        }
+
         if (name !== project.name)
           recordProjectChange(project, "项目名称", project.name, name);
         if (endChanged) {
           recordProjectChange(project, "结束时间", project.endTime, endTime);
-          if (days !== project.days)
+          if (calculatedDays !== previousCalculatedDays)
             recordProjectChange(
               project,
-              "项目天数",
-              `${project.days} 天`,
-              `${days} 天`,
-            );
-          if (isTraining && amount !== project.amount)
-            recordProjectChange(
-              project,
-              "项目金额",
-              `¥${formatProjectMoney(project.amount)}`,
-              `¥${formatProjectMoney(amount)}`,
-            );
-          if (isTraining && settlementAmount !== project.settlementAmount)
-            recordProjectChange(
-              project,
-              "结账金额",
-              `¥${formatProjectMoney(project.settlementAmount)}`,
-              `¥${formatProjectMoney(settlementAmount)}`,
+              "系统计算天数",
+              `${previousCalculatedDays} 天`,
+              `${calculatedDays} 天`,
             );
         }
+        if (isTraining && amount !== project.amount)
+          recordProjectChange(
+            project,
+            "项目金额",
+            `¥${formatProjectMoney(project.amount)}`,
+            `¥${formatProjectMoney(amount)}`,
+          );
+        if (isTraining && settlementAmount !== project.settlementAmount)
+          recordProjectChange(
+            project,
+            "结账金额",
+            `¥${formatProjectMoney(project.settlementAmount)}`,
+            `¥${formatProjectMoney(settlementAmount)}`,
+          );
+        if (days !== project.days)
+          recordProjectChange(
+            project,
+            "项目确认天数",
+            `${project.days} 天`,
+            `${days} 天`,
+          );
         if (!staffSetsEqual(project.lecturers, lecturers))
           recordProjectChange(
             project,
@@ -1198,7 +1354,7 @@
         renderPage();
         toast("保存成功");
       }
-      function handleProjectFormSubmit(editing) {
+      function handleProjectFormSubmit(editing, daysConfirmed = false) {
         const project = editing ? projectById(selectedProjectId) : null;
         if (editing) {
           normalizeProjectLifecycle(project);
@@ -1306,13 +1462,14 @@
           }
         }
         if (daysValue === "") {
-          errors.pfDays = "请填写项目天数";
+          errors.pfDays = "请填写项目确认天数";
         } else {
           const daysNum = Number(daysValue);
           if (!Number.isFinite(daysNum) || daysNum <= 0)
-            errors.pfDays = "请填写项目天数";
+            errors.pfDays = "请填写项目确认天数";
           else if (daysNum < 0.5 || daysNum % 0.5 !== 0)
-            errors.pfDays = "项目天数最小为0.5天，且必须为0.5天的整数倍";
+            errors.pfDays =
+              "项目确认天数最小为0.5天，且必须为0.5天的整数倍";
         }
         if (type === "AI软件项目" && !amount)
           errors.pfAmount = "请填写项目金额";
@@ -1403,6 +1560,7 @@
           return;
         }
         const days = Number(daysValue);
+        const calculatedDays = naturalDayCount(startTime, endTime);
         const projectAmount =
           type === "培训项目" ? round2(unitPrice * days) : round2(amount);
         const feeRate =
@@ -1437,6 +1595,12 @@
           assistantLecturers: assistants,
           teachingAssistants: helpers,
         };
+        if (!daysConfirmed && days !== calculatedDays) {
+          openProjectDaysConfirm(calculatedDays, days, () =>
+            handleProjectFormSubmit(editing, true),
+          );
+          return;
+        }
         if (editing) {
           writePreStartEditHistory(project, payload);
           Object.assign(project, payload);
@@ -1838,7 +2002,7 @@
         openModal(
           `<div class="modal-head project-modal-head"><div class="modal-title">确认取消项目</div><button class="icon-btn close" data-close>×</button></div>` +
             '<form id="projectCancelForm" class="project-config-form"><div class="modal-body project-modal-body">' +
-            '<div class="form-group"><label class="form-label">取消原因 *</label><textarea class="input" id="projectCancelReason" rows="3" maxlength="500"></textarea><div class="field-error" id="err-cancelReason"></div></div>' +
+            '<div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>取消原因</label><textarea class="input" id="projectCancelReason" rows="3" maxlength="500"></textarea><div class="field-error" id="err-cancelReason"></div></div>' +
             '</div><div class="modal-foot project-modal-foot"><button class="btn" type="button" data-close>取消</button><button class="btn btn-primary" type="submit">确认</button></div></form>',
         );
         $("#projectCancelForm").onsubmit = (event) => {
@@ -1882,6 +2046,17 @@
         const stageEdit =
           editMode === "in-progress" || editMode === "delivered";
         if (stageEdit) {
+          if (editMode === "in-progress") {
+            const stageEnd = $("#pfStageEnd");
+            const confirmedDays = $("#pfDays");
+            if (stageEnd)
+              stageEnd.onchange = () =>
+                refreshProjectFormDays(editingProject.startTime);
+            if (confirmedDays)
+              confirmedDays.onchange = () => {
+                confirmedDays.dataset.userEdited = "true";
+              };
+          }
           form.onsubmit = (event) => {
             event.preventDefault();
             handleProjectFormSubmit(editing);
@@ -1939,16 +2114,31 @@
             refreshProjectFormAmounts();
           };
         }
-        ["#pfCooperation", "#pfDirection", "#pfCompany", "#pfDays"].forEach(
-          (selector) => {
-            const el = $(selector);
-            if (el) el.onchange = refreshProjectFormAmounts;
-          },
-        );
+        const cooperationSelect = $("#pfCooperation");
+        if (cooperationSelect)
+          cooperationSelect.onchange = refreshProjectFormDynamics;
+        ["#pfDirection", "#pfCompany"].forEach((selector) => {
+          const el = $(selector);
+          if (el) el.onchange = refreshProjectFormAmounts;
+        });
+        const confirmedDays = $("#pfDays");
+        if (confirmedDays)
+          confirmedDays.onchange = () => {
+            confirmedDays.dataset.userEdited = "true";
+            refreshProjectFormAmounts();
+          };
         const startEl = $("#pfStart");
         const endEl = $("#pfEnd");
-        if (startEl) startEl.onchange = () => { refreshProjectFormDays(); refreshProjectFormAmounts(); };
-        if (endEl) endEl.onchange = () => { refreshProjectFormDays(); refreshProjectFormAmounts(); };
+        if (startEl)
+          startEl.onchange = () => {
+            refreshProjectFormDays();
+            refreshProjectFormAmounts();
+          };
+        if (endEl)
+          endEl.onchange = () => {
+            refreshProjectFormDays();
+            refreshProjectFormAmounts();
+          };
         const customerSelect = $("#pfCustomer");
         if (customerSelect && !editing) {
           customerSelect.onchange = () => {

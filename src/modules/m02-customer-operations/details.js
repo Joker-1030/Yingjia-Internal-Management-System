@@ -160,7 +160,7 @@
           "refresh-execution-list": () => {
             taskDataUpdatedAt = formatTaskUpdateTime(new Date());
             renderPage();
-            toast("执行明细已更新");
+            toast("任务数据已更新");
           },
           "change-task": () => openTaskChange(Number(id)),
           "new-campaign": () => openCampaign(),
@@ -843,6 +843,14 @@
           const company = customers.find(
             (item) => item.name === $("#pfCompany").value,
           );
+          const contactOperation = person
+            ? "customers.edit_contact"
+            : "customers.create_contact";
+          if (
+            !company ||
+            !canMaintainContactForCompany(company, contactOperation)
+          )
+            return toast("当前选择不可用于新增关键人，请重新选择");
           const department = customerDepartments.find(
             (item) =>
               String(item.id) === String($("#pfDept").value) &&
@@ -855,7 +863,7 @@
               item.departmentId === department?.id &&
               item.status === "正常",
           );
-          if (!company || !department || !position)
+          if (!department || !position)
             return toast("请按行业、集团、客户公司、部门、岗位逐级完成选择");
           const name = $("#pfName").value.trim();
           const phone = $("#pfPhone").value.trim();

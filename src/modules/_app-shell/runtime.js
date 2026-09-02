@@ -987,6 +987,7 @@
         approvalView = "pending";
         dashboardTaskFilter = null;
         dashboardEmployeeStatusFilter = "在职";
+        customerFilterExpanded = false;
         selectedCustomerGroup = "";
         customerTreeDimension = "group";
         selectedOperationRegion = "";
@@ -1073,7 +1074,7 @@
       function confirmLogout() {
         closeNoticePanel();
         openModal(
-          `<div class="modal-head"><div class="modal-title">确认退出登录</div><button class="icon-btn close" data-close title="取消退出">×</button></div><div class="modal-body"><div class="role-note">退出后将返回登录页面，当前 Demo 中尚未保存的内存操作会在刷新页面后恢复初始数据。</div></div><div class="modal-foot"><button class="btn" type="button" data-close>取消</button><button class="btn btn-danger" type="button" id="confirmLogoutBtn">确认退出</button></div>`,
+          `<div class="modal-head"><div class="modal-title">确认退出登录</div><button class="icon-btn close" data-close title="取消退出">×</button></div><div class="modal-body"><div class="role-note">退出后将返回登录页面，是否继续？</div></div><div class="modal-foot"><button class="btn" type="button" data-close>取消</button><button class="btn btn-danger" type="button" id="confirmLogoutBtn">确认退出</button></div>`,
         );
         $("#confirmLogoutBtn").onclick = performLogout;
       }

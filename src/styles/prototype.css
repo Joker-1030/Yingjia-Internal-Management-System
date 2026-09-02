@@ -690,6 +690,11 @@
         font-weight: var(--font-weight-semibold);
         line-height: var(--line-height-body);
       }
+      .operation-filter-toggle {
+        flex: 0 0 var(--control-height-default);
+        margin-left: auto;
+        font-size: var(--font-size-body);
+      }
       .operation-filter-panel > summary {
         height: var(--control-height-large);
         display: flex;

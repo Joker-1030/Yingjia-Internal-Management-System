@@ -37,6 +37,9 @@
           due: addDays(baseDate, maintenanceConfig.cycles[person.level] || 30),
           status: "pending",
           level: person.level,
+          requirement:
+            maintenanceConfig.requirements[person.level] ||
+            "完成客户沟通并记录反馈与下一步行动。",
         });
         return true;
       }
@@ -299,5 +302,4 @@
       }
 
       /* V1.1.0 product-review overrides: structured scopes and master-detail views. */
-
 

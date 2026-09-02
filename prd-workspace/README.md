@@ -34,6 +34,8 @@
 ## 维护规则
 
 - Current 产品变化写入 Owner 模块及必要的 Acceptance、Decision、Flow、Shared、Glossary 或 Product Boundary。
+- 独立 Decision 只用于需要长期单独追溯的重要产品选择；普通文案、字段说明、单模块交互、列表列和一般 UI 调整直接维护在 Owner 模块 PRD 及必要的 Acceptance/修订记录中，不为留痕额外创建 DEC。
+- Shared 只维护多个模块真正共用且必须唯一维护的事实；单模块规则、页面细节、UI 文案、普通交互、单模块验收、AI 建议和技术实现说明留在各自 Owner。疑似过度 Shared 只记录为后续问题，不在普通结构任务中搬迁。
 - 总 PRD 与直接受影响模块维护同日修订记录；同一天一行，按功能板块分组。
 - 历史 Task、Result、Decision 和 Baseline 不因后续规则变化而改写。
 - 新模块只从 Product Owner 明确授权进入 Current，并独立记录 Review 与 Engineering 状态。

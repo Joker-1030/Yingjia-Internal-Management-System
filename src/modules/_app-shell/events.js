@@ -1337,15 +1337,38 @@
         const filterTaskSummary = () => {
           const code = $("#summaryCode")?.value.trim() || "",
             name = $("#summaryName")?.value.trim() || "",
-            scope = $("#summaryScope")?.value.trim() || "",
             type = $("#summaryType")?.value || "",
             status = $("#summaryStatus")?.value || "",
-            owner = $("#summaryOwner")?.value || "";
+            progressMinInput = $("#summaryProgressMin"),
+            progressMaxInput = $("#summaryProgressMax"),
+            progressMinRaw = progressMinInput?.value.trim() || "",
+            progressMaxRaw = progressMaxInput?.value.trim() || "",
+            progressMin = progressMinRaw === "" ? null : Number(progressMinRaw),
+            progressMax = progressMaxRaw === "" ? null : Number(progressMaxRaw);
+          if (progressMinInput && !progressMinInput.checkValidity()) {
+            progressMinInput.reportValidity();
+            return;
+          }
+          if (progressMaxInput && !progressMaxInput.checkValidity()) {
+            progressMaxInput.reportValidity();
+            return;
+          }
+          if (
+            progressMin !== null &&
+            progressMax !== null &&
+            progressMin > progressMax
+          ) {
+            toast("最低进度不能高于最高进度");
+            return;
+          }
           document.querySelectorAll("#taskSummaryBody tr[data-page-row]").forEach((row) => {
+            const progress =
+              row.dataset.summaryProgress === ""
+                ? null
+                : Number(row.dataset.summaryProgress);
             const isMatch =
               (!code || row.dataset.summaryCode.includes(code)) &&
               (!name || row.dataset.summaryName.includes(name)) &&
-              (!scope || row.dataset.summaryScope.includes(scope)) &&
               (!type ||
                 (type === "care"
                   ? ["生日关怀", "节假日关怀"].includes(
@@ -1353,8 +1376,10 @@
                     )
                   : row.dataset.summaryType === type)) &&
               (!status || row.dataset.summaryStatus === status) &&
-              (!owner ||
-                (row.dataset.summaryOwner || "").split("|").includes(owner));
+              ((progressMin === null && progressMax === null) ||
+                (progress !== null &&
+                  (progressMin === null || progress >= progressMin) &&
+                  (progressMax === null || progress <= progressMax)));
             row.classList.toggle("hidden", !isMatch);
           });
           refreshUnifiedTablePagination("m03-task-summary", true);
@@ -1366,10 +1391,10 @@
             [
               "#summaryCode",
               "#summaryName",
-              "#summaryScope",
               "#summaryType",
               "#summaryStatus",
-              "#summaryOwner",
+              "#summaryProgressMin",
+              "#summaryProgressMax",
             ].forEach((selector) => {
               const element = $(selector);
               if (element) element.value = "";

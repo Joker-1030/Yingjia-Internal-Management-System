@@ -48,7 +48,9 @@
           lateEntryPending,
           expired,
           total: active.length,
-          rate: active.length ? Math.round((done / active.length) * 100) : 0,
+          rate: active.length
+            ? Number(((done / active.length) * 100).toFixed(1))
+            : null,
           onTimeRate: active.length
             ? Math.round((onTimeDone / active.length) * 100)
             : 0,
@@ -60,20 +62,33 @@
       }
 
       function taskThemeStatus(row) {
-        if (row.total > 0 && row.done === row.total) return "已完成";
         if (row.startDate && row.startDate > DEMO_TODAY) return "待开始";
-        if (row.endDate && row.endDate < DEMO_TODAY) return "已过期";
+        if (row.endDate && row.endDate < DEMO_TODAY) return "已结束";
         return "进行中";
       }
 
       function taskThemeStatusTag(status) {
-        const tone =
-          status === "已完成"
-            ? "green"
-            : status === "已过期"
-              ? "red"
-              : "blue";
+        const tone = status === "已结束" ? "" : "blue";
         return `<span class="tag ${tone}">${status}</span>`;
+      }
+
+      function taskProgressDisplay(row) {
+        return row.rate === null ? "--" : `${row.rate.toFixed(1)}%`;
+      }
+
+      function monthEndDate(monthKey) {
+        const [year, month] = monthKey.split("-").map(Number);
+        return `${monthKey}-${String(new Date(year, month, 0).getDate()).padStart(2, "0")}`;
+      }
+
+      function holidayPeriod(holidayName) {
+        const holiday = holidayCalendar.holidays.find(
+          (item) => item.name === holidayName,
+        );
+        return {
+          startDate: holiday?.startDate || "-",
+          endDate: holiday?.endDate || "-",
+        };
       }
 
       function taskUpdateFooter(refreshAction, refreshId) {
@@ -166,6 +181,31 @@
         );
       }
 
+      function configuredTaskRequirement(task) {
+        const campaign = campaigns.find((item) => item.id === task.campaignId);
+        if (campaign) return campaign.description;
+        if (["生日关怀", "节假日关怀"].includes(task.type)) {
+          const rule = ruleData.find(
+            (item) =>
+              item.type === (task.type === "生日关怀" ? "birthday" : "holiday"),
+          );
+          return rule?.content || "-";
+        }
+        return (
+          maintenanceConfig.requirements[task.level] ||
+          "完成客户沟通并记录反馈与下一步行动。"
+        );
+      }
+
+      function taskRequirementText(task) {
+        return task.requirement || configuredTaskRequirement(task);
+      }
+
+      tasks.forEach((task) => {
+        if (!task.requirement)
+          task.requirement = configuredTaskRequirement(task);
+      });
+
       function taskMatchesDashboardFilter(task, filter) {
         if (!filter) return true;
         const completionType =
@@ -230,14 +270,7 @@
         if (!executionTableStates[key])
           executionTableStates[key] = { status: "pending", page: 1, pageSize: 10 };
         const state = executionTableStates[key];
-        return `<div class="execution-table" data-execution-table="${key}"><div class="tabs execution-tabs">${executionStatusTabsHtml(counts, state.status)}</div><div class="table-wrap"><table style="min-width:1480px"><thead><tr><th>客户公司</th><th>关键人</th><th>任务名称</th><th>任务编号</th><th>任务执行编号</th><th>区域</th><th>城市</th><th>执行人</th><th>截止日</th><th>执行状态</th><th>操作</th></tr></thead><tbody>${activeRows.map((task) => {
-          const record = taskRecord(task);
-          const action =
-            task.status === "done" && record
-              ? `<span class="link" data-action="record-detail" data-id="${record.id}">维系记录</span>`
-              : `<span class="link" data-action="task-detail" data-id="${task.id}">任务详情</span>`;
-          return `<tr data-execution-group="${executionStatusGroup(task.status)}"><td><strong>${task.company}</strong></td><td>${task.person}</td><td>${task.title}</td><td>${task.parentTaskCode}</td><td>${task.executionCode}</td><td>${task.region || "待配置"}</td><td>${taskCity(task)}</td><td>${task.pm}</td><td>${task.due}</td><td><span class="tag ${taskStatusTone(task)}">${taskStatusName(task.status, task)}</span></td><td>${action}</td></tr>`;
-        }).join("") || '<tr data-empty-row><td colspan="11">当前范围暂无执行明细</td></tr>'}</tbody></table></div><div class="table-pagination"><span data-page-summary></span><label class="table-page-size">每页<select class="input" data-execution-page-size><option value="10">10 条</option><option value="20">20 条</option><option value="50">50 条</option></select></label><button class="icon-btn" type="button" data-page-direction="prev" title="上一页" aria-label="上一页">‹</button><button class="icon-btn" type="button" data-page-direction="next" title="下一页" aria-label="下一页">›</button></div></div>`;
+        return `<div class="execution-table" data-execution-table="${key}"><div class="tabs execution-tabs">${executionStatusTabsHtml(counts, state.status)}</div><div class="table-wrap"><table style="min-width:1360px"><thead><tr><th>客户公司</th><th>关键人</th><th>任务标题</th><th>任务编号</th><th>任务执行记录编号</th><th>区域</th><th>城市</th><th>执行人</th><th>截止时间</th><th>当前状态</th></tr></thead><tbody>${activeRows.map((task) => `<tr data-execution-group="${executionStatusGroup(task.status)}"><td><strong>${task.company}</strong></td><td>${task.person}</td><td>${task.title}</td><td>${task.parentTaskCode}</td><td>${task.executionCode}</td><td>${task.region || "待配置"}</td><td>${taskCity(task)}</td><td>${task.pm}</td><td>${task.due}</td><td><span class="tag ${taskStatusTone(task)}">${taskStatusName(task.status, task)}</span></td></tr>`).join("") || '<tr data-empty-row><td colspan="10">当前范围暂无执行明细</td></tr>'}</tbody></table></div><div class="table-pagination"><span data-page-summary></span><label class="table-page-size">每页<select class="input" data-execution-page-size><option value="10">10 条</option><option value="20">20 条</option><option value="50">50 条</option></select></label><button class="icon-btn" type="button" data-page-direction="prev" title="上一页" aria-label="上一页">‹</button><button class="icon-btn" type="button" data-page-direction="next" title="下一页" aria-label="下一页">›</button></div></div>`;
       }
 
       function bindExecutionTables() {
@@ -323,9 +356,6 @@
       }
 
       function renderTaskSummary(ts) {
-        const summaryOwnerOptions = [
-          ...new Set(ts.map((task) => task.pm).filter(Boolean)),
-        ].sort();
         const regularItems = ts.filter((task) => task.type === "常规维系");
         const regularRows = [{
           key: "常规维系",
@@ -334,7 +364,8 @@
           name: "关键人定期维系计划",
           type: "常规维系",
           scope: currentUser.role === "pm" ? "本人负责客户" : currentUser.region,
-          period: "按职级周期持续执行",
+          startDate: "长期",
+          endDate: "-",
           ...taskSummaryNumbers(regularItems),
         }];
         const birthdayRows = [
@@ -358,7 +389,8 @@
             name: `${year}年${Number(month)}月生日关怀`,
             type: "生日关怀",
             scope: currentUser.role === "pm" ? "本人负责客户" : currentUser.region,
-            period: `${year}年${Number(month)}月 · 按生日规则自动生成`,
+            startDate: `${monthKey}-01`,
+            endDate: monthEndDate(monthKey),
             birthdayMonth: monthKey,
             ...taskSummaryNumbers(items),
           };
@@ -377,7 +409,7 @@
                 holidayName,
           );
           const numbers = taskSummaryNumbers(items);
-          const dueDates = items.map((task) => task.due).filter(Boolean);
+          const period = holidayPeriod(holidayName);
           return {
             key: `节假日关怀:${holidayName}`,
             themeKey: `holiday:${holidayName}`,
@@ -385,8 +417,8 @@
             name: `${holidayName}客户关怀`,
             type: "节假日关怀",
             scope: currentUser.role === "pm" ? "本人负责客户" : currentUser.region,
-            period: `节日任务 · 截止 ${dueDates.sort().at(-1) || "待同步"}`,
-            endDate: dueDates.sort().at(-1),
+            startDate: period.startDate,
+            endDate: period.endDate,
             holidayName,
             ...numbers,
           };
@@ -396,14 +428,11 @@
         );
         const campaignRows = visibleCampaigns.map((campaign) => {
           const local = taskSummaryNumbers(ts.filter((task) => task.campaignId === campaign.id));
-          return { key: campaign.id, themeKey: `campaign:${campaign.id}`, taskCode: campaign.code || taskThemes.find((theme) => theme.key === `campaign:${campaign.id}`)?.code, name: campaign.name, type: campaign.category, scope: campaign.scope, period: campaign.period, startDate: campaign.startDate, endDate: campaign.endDate, updatedAt: campaign.updatedAt, ...local, campaignId: campaign.id };
+          return { key: campaign.id, themeKey: `campaign:${campaign.id}`, taskCode: campaign.code, name: campaign.name, type: campaign.category, scope: campaign.scope, startDate: campaign.startDate, endDate: campaign.endDate, ...local, campaignId: campaign.id };
         });
         const rows = [...campaignRows, ...regularRows, ...birthdayRows, ...holidayRows]
           .map((row) => ({ ...row, themeStatus: taskThemeStatus(row) }));
-        return `<div class="toolbar filter-toolbar" id="taskSummaryFilters">${filterField("父任务编号", '<input class="input" id="summaryCode">')}${filterField("任务名称", '<input class="input" id="summaryName">')}${filterField("目标范围", '<input class="input" id="summaryScope">')}${filterField("任务类型", `<select class="input" id="summaryType"><option value="">全部任务类型</option><option>常规维系</option><option>专项维系</option><option>关键人覆盖 KPI</option><option>生日关怀</option><option>节假日关怀</option><option value="care">生日/节日关怀</option></select>`)}${filterField("父任务状态", '<select class="input" id="summaryStatus"><option value="">全部主题状态</option><option>进行中</option><option>待开始</option><option>已过期</option><option>已完成</option></select>')}${filterField("执行人", `<select class="input" id="summaryOwner"><option value="">全部执行人</option>${summaryOwnerOptions.map((name) => `<option>${name}</option>`).join("")}</select>`)}${filterActions('<button class="btn btn-primary" id="applySummaryFilters" type="button">筛选</button><button class="btn" id="resetSummaryFilters" type="button">重置</button>')}</div><div class="table-wrap"><table data-paged-table="m03-task-summary" style="min-width:1740px"><thead><tr><th>任务</th><th>任务编号</th><th>任务类型</th><th>任务状态</th><th>目标范围</th><th>执行周期</th><th>覆盖客户</th><th>覆盖关键人</th><th>已完成</th><th>待执行/暂停</th><th>当前逾期</th><th>补录审核中</th><th>已过期未完成</th><th>任务完成进度</th><th>更新时间</th><th>操作</th></tr></thead><tbody id="taskSummaryBody">${rows.map((row) => {
-          const owners = [...new Set(ts.filter((task) => row.campaignId ? task.campaignId === row.campaignId : task.type === row.type).map((task) => task.pm).filter(Boolean))].join("|");
-          return `<tr data-page-row data-summary-code="${row.taskCode || ""}" data-summary-name="${row.name}" data-summary-scope="${row.scope}" data-summary-type="${row.type}" data-summary-status="${row.themeStatus}" data-summary-owner="${owners}"><td><strong>${row.name}</strong></td><td>${row.taskCode || "待生成"}</td><td><span class="tag ${taskTypeMeta(row.type).tone}">${row.type}</span></td><td>${taskThemeStatusTag(row.themeStatus)}</td><td>${row.scope}</td><td>${row.period}</td><td>${row.customers}</td><td><strong>${row.contacts}</strong></td><td><span class="tag green">${row.done}</span></td><td>${row.pending}</td><td><span class="tag ${row.overdue ? "red" : "green"}">${row.overdue}</span></td><td>${row.lateEntryPending}</td><td>${row.expired}</td><td style="min-width:150px"><div style="display:flex;justify-content:space-between;margin-bottom:var(--space-1)"><span>${row.done}/${row.total}</span><strong>${row.rate}%</strong></div><div class="progress"><i style="width:${row.rate}%"></i></div></td><td>${row.updatedAt || taskDataUpdatedAt}</td><td><span class="link" data-action="${row.campaignId ? "campaign-detail" : "task-theme-detail"}" data-id="${row.campaignId || row.key}">详情</span></td></tr>`;
-        }).join("") || '<tr data-empty-row><td colspan="16"><div class="empty">暂无任务</div></td></tr>'}<tr data-filter-empty style="display:none"><td colspan="16"><div class="empty">未找到符合条件的任务，请调整条件或重置筛选</div></td></tr></tbody></table></div>${tablePagination("m03-task-summary")}`;
+        return `<div class="toolbar filter-toolbar" id="taskSummaryFilters">${filterField("任务编号", '<input class="input" id="summaryCode">')}${filterField("任务标题", '<input class="input" id="summaryName">')}${filterField("任务类型", `<select class="input" id="summaryType"><option value="">全部任务类型</option><option>常规维系</option><option>专项维系</option><option>关键人覆盖 KPI</option><option>生日关怀</option><option>节假日关怀</option><option value="care">生日/节日关怀</option></select>`)}${filterField("任务状态", '<select class="input" id="summaryStatus"><option value="">全部任务状态</option><option>待开始</option><option>进行中</option><option>已结束</option></select>')}${filterField("最低任务完成进度", '<input class="input" id="summaryProgressMin" type="number" min="0" max="100" step="0.1" inputmode="decimal">')}${filterField("最高任务完成进度", '<input class="input" id="summaryProgressMax" type="number" min="0" max="100" step="0.1" inputmode="decimal">')}${filterActions('<button class="btn btn-primary" id="applySummaryFilters" type="button">筛选</button><button class="btn" id="resetSummaryFilters" type="button">重置</button>')}</div>${taskUpdateFooter("refresh-execution-list", "summary")}<div class="table-wrap"><table data-paged-table="m03-task-summary" style="min-width:1540px"><thead><tr><th>任务标题</th><th>任务编号</th><th>任务类型</th><th>任务状态</th><th>开始时间</th><th>结束时间</th><th>覆盖客户</th><th>覆盖关键人</th><th>已完成</th><th>待执行/暂停</th><th>当前逾期</th><th>补录审核中</th><th>已过期未完成</th><th>任务完成进度</th><th>操作</th></tr></thead><tbody id="taskSummaryBody">${rows.map((row) => `<tr data-page-row data-summary-code="${row.taskCode || ""}" data-summary-name="${row.name}" data-summary-type="${row.type}" data-summary-status="${row.themeStatus}" data-summary-progress="${row.rate === null ? "" : row.rate}"><td><strong>${row.name}</strong></td><td>${row.taskCode || "待生成"}</td><td><span class="tag ${taskTypeMeta(row.type).tone}">${row.type}</span></td><td>${taskThemeStatusTag(row.themeStatus)}</td><td>${row.startDate || "-"}</td><td>${row.endDate || "-"}</td><td>${row.customers}</td><td><strong>${row.contacts}</strong></td><td><span class="tag green">${row.done}</span></td><td>${row.pending}</td><td><span class="tag ${row.overdue ? "red" : "green"}">${row.overdue}</span></td><td>${row.lateEntryPending}</td><td>${row.expired}</td><td><strong>${taskProgressDisplay(row)}</strong></td><td><span class="link" data-action="${row.campaignId ? "campaign-detail" : "task-theme-detail"}" data-id="${row.campaignId || row.key}">详情</span></td></tr>`).join("") || '<tr data-empty-row><td colspan="15"><div class="empty">暂无任务</div></td></tr>'}<tr data-filter-empty style="display:none"><td colspan="15"><div class="empty">未找到符合条件的任务，请调整条件或重置筛选</div></td></tr></tbody></table></div>${tablePagination("m03-task-summary")}`;
       }
 
       function renderTaskExecutions(ts) {
@@ -445,7 +474,7 @@
             status: preferredStatus,
             page: 1,
           };
-        return `<div class="toolbar filter-toolbar" id="taskExecutionFilters">${filterField("父任务编号", '<input class="input" id="taskParentCode">')}${filterField("任务执行编号", '<input class="input" id="taskExecutionCode">')}${filterField("任务名称", '<input class="input" id="taskTitle">')}${filterField("关键人编号", '<input class="input" id="taskPersonCode">')}${filterField("关键人名称", '<input class="input" id="taskPersonName">')}${filterField("客户公司", '<input class="input" id="taskCompany">')}${filterField("任务类型", `<select class="input" id="taskType"><option value="">全部类型</option><option>常规维系</option><option>专项维系</option><option>关键人覆盖 KPI</option><option>生日关怀</option><option>节假日关怀</option><option value="care">生日/节日关怀</option></select>`)}${filterField("执行人", `<select class="input" id="taskOwner"><option value="">全部执行人</option>${ownerOptions.map((name) => `<option>${name}</option>`).join("")}</select>`)}${filterField("区域", `<select class="input" id="taskRegion"><option value="">全部区域</option>${regionOptions.map((name) => `<option>${name}</option>`).join("")}</select>`)}${filterField("城市", `<select class="input" id="taskCityFilter"><option value="">全部城市</option>${cityOptions.map((name) => `<option>${name}</option>`).join("")}</select>`)}${filterField("风险范围", '<select class="input" id="taskRiskScope"><option value="">全部风险范围</option><option value="risk">风险任务</option></select>')}${filterField("业务事件", '<select class="input" id="taskEventType"><option value="">全部业务事件</option><option value="done">完成事件</option><option value="overdue">首次逾期事件</option></select>')}${filterField("业务事件月份", '<input class="input" id="taskEventMonth" type="month">')}${filterField("完成认定", '<select class="input" id="taskCompletionType"><option value="">全部完成认定</option><option value="on-time">按期完成</option><option value="late-entry">逾期补录</option><option value="late-completion">逾期补完成</option></select>')}${filterField("截止开始日期", '<input class="input" id="taskDueStart" type="date">')}${filterField("截止结束日期", '<input class="input" id="taskDueEnd" type="date">')}${filterActions('<button class="btn btn-primary" id="applyTaskFilters" type="button">筛选</button><button class="btn" id="resetTaskFilters" type="button">重置</button>')}</div>${taskUpdateFooter("refresh-execution-list", "main")}<div class="execution-table" data-execution-table="main-executions"><div class="tabs execution-tabs">${executionStatusTabsHtml(counts, preferredStatus)}</div><div class="table-wrap"><table><thead><tr><th>执行任务</th><th>类型</th><th>关键人</th><th>区域</th><th>城市</th><th>执行人</th><th>截止日</th><th>状态</th><th>操作</th></tr></thead><tbody id="taskBody">${active.map((t) => {
+        return `<div class="toolbar filter-toolbar" id="taskExecutionFilters">${filterField("任务编号", '<input class="input" id="taskParentCode">')}${filterField("任务执行记录编号", '<input class="input" id="taskExecutionCode">')}${filterField("任务标题", '<input class="input" id="taskTitle">')}${filterField("关键人编号", '<input class="input" id="taskPersonCode">')}${filterField("关键人名称", '<input class="input" id="taskPersonName">')}${filterField("客户公司", '<input class="input" id="taskCompany">')}${filterField("任务类型", `<select class="input" id="taskType"><option value="">全部类型</option><option>常规维系</option><option>专项维系</option><option>关键人覆盖 KPI</option><option>生日关怀</option><option>节假日关怀</option><option value="care">生日/节日关怀</option></select>`)}${filterField("执行人", `<select class="input" id="taskOwner"><option value="">全部执行人</option>${ownerOptions.map((name) => `<option>${name}</option>`).join("")}</select>`)}${filterField("区域", `<select class="input" id="taskRegion"><option value="">全部区域</option>${regionOptions.map((name) => `<option>${name}</option>`).join("")}</select>`)}${filterField("城市", `<select class="input" id="taskCityFilter"><option value="">全部城市</option>${cityOptions.map((name) => `<option>${name}</option>`).join("")}</select>`)}${filterField("风险范围", '<select class="input" id="taskRiskScope"><option value="">全部风险范围</option><option value="risk">风险任务</option></select>')}${filterField("业务事件", '<select class="input" id="taskEventType"><option value="">全部业务事件</option><option value="done">完成事件</option><option value="overdue">首次逾期事件</option></select>')}${filterField("业务事件月份", '<input class="input" id="taskEventMonth" type="month">')}${filterField("完成认定", '<select class="input" id="taskCompletionType"><option value="">全部完成认定</option><option value="on-time">按期完成</option><option value="late-entry">逾期补录</option><option value="late-completion">逾期补完成</option></select>')}${filterField("截止开始日期", '<input class="input" id="taskDueStart" type="date">')}${filterField("截止结束日期", '<input class="input" id="taskDueEnd" type="date">')}${filterActions('<button class="btn btn-primary" id="applyTaskFilters" type="button">筛选</button><button class="btn" id="resetTaskFilters" type="button">重置</button>')}</div>${taskUpdateFooter("refresh-execution-list", "main")}<div class="execution-table" data-execution-table="main-executions"><div class="tabs execution-tabs">${executionStatusTabsHtml(counts, preferredStatus)}</div><div class="table-wrap"><table><thead><tr><th>任务标题</th><th>任务类型</th><th>关键人</th><th>区域</th><th>城市</th><th>执行人</th><th>截止时间</th><th>当前状态</th><th>操作</th></tr></thead><tbody id="taskBody">${active.map((t) => {
           const record = taskRecord(t);
           const detail =
             t.status === "done" && record
@@ -472,18 +501,18 @@
         const executorOptions = [...new Set(records.map((record) => record.pm).filter(Boolean))].sort();
         const regionOptions = [...new Set(records.map((record) => record.region).filter(Boolean))].sort();
         const cityOptions = [...new Set(records.map(recordCity).filter(Boolean))].sort();
-        return `<div class="toolbar filter-toolbar" id="recordFilters">${filterField("记录编号", '<input class="input" id="recordCode">')}${filterField("关键人编号", '<input class="input" id="recordPersonCode">')}${filterField("关键人名称", '<input class="input" id="recordPersonName">')}${filterField("客户公司", '<input class="input" id="recordCompany">')}${filterField("沟通摘要", '<input class="input" id="recordSummary">', "filter-field-wide")}${filterField("维系方式", '<select class="input" id="recordMethod"><option value="">全部方式</option><option>电话</option><option>微信</option><option>线下拜访</option><option>视频会议</option><option>邮件</option><option>其他</option></select>')}${filterField("维系人", `<select class="input" id="recordExecutor"><option value="">全部维系人</option>${executorOptions.map((name) => `<option>${name}</option>`).join("")}</select>`)}${filterField("区域", `<select class="input" id="recordRegion"><option value="">全部区域</option>${regionOptions.map((name) => `<option>${name}</option>`).join("")}</select>`)}${filterField("城市", `<select class="input" id="recordCity"><option value="">全部城市</option>${cityOptions.map((name) => `<option>${name}</option>`).join("")}</select>`)}${filterField("关联任务", '<select class="input" id="recordLinkedTask"><option value="">全部关联情况</option><option value="yes">已关联任务</option><option value="no">未关联任务</option></select>')}${filterField("附件", '<select class="input" id="recordAttachment"><option value="">全部附件情况</option><option value="yes">有附件</option><option value="no">无附件</option></select>')}${filterField("维系开始日期", '<input class="input" id="recordDateStart" type="date">')}${filterField("维系结束日期", '<input class="input" id="recordDateEnd" type="date">')}${filterField("创建开始日期", '<input class="input" id="recordCreatedStart" type="date">')}${filterField("创建结束日期", '<input class="input" id="recordCreatedEnd" type="date">')}${filterActions('<button class="btn btn-primary" id="applyRecordFilters" type="button">筛选</button><button class="btn" id="resetRecordFilters" type="button">重置</button>')}</div><div class="table-wrap"><table data-paged-table="m03-records" style="min-width:1740px"><thead><tr><th>记录编号</th><th>维系时间</th><th>关键人</th><th>客户单位</th><th>维系方式</th><th>沟通摘要</th><th>维系人</th><th>录入人</th><th>关联任务</th><th>附件数</th><th>创建时间</th><th>更新时间</th><th>操作</th></tr></thead><tbody id="recordBody">${records.map((r) => { const linkedTask = tasks.find((task) => task.id === r.taskId); const code = maintenanceRecordCode(r); return `<tr data-page-row data-record-code="${code}" data-record-person="${r.person}" data-record-company="${r.company}" data-record-summary="${r.summary}" data-record-method="${r.method}" data-record-executor="${r.pm}" data-record-region="${r.region}" data-record-city="${recordCity(r)}" data-record-date="${r.date}" data-record-created="${(r.createdAt || r.date).slice(0, 10)}" data-record-linked="${r.taskId ? "yes" : "no"}" data-record-attachment="${r.attachments.length ? "yes" : "no"}"><td><strong>${code}</strong></td><td>${r.maintenanceAt || r.date}</td><td><strong>${r.person}</strong></td><td>${r.company}</td><td><span class="tag blue">${r.method}</span>${r.method === "其他" ? `<div class="list-sub">${r.otherMethod || "未说明"}</div>` : ""}</td><td style="max-width:320px">${r.summary}</td><td>${r.pm}</td><td>${r.createdBy || r.pm}${r.proxyOperator ? ' <span class="tag orange">代办</span>' : ""}</td><td>${linkedTask ? `<button class="link" data-action="task-detail" data-id="${linkedTask.id}">${linkedTask.executionCode}</button>` : "未关联任务"}</td><td>${r.attachments.length ? `<button class="link" data-action="preview-file" title="点击预览附件">${r.attachments.length}</button>` : "0"}</td><td>${r.createdAt || r.date}</td><td>${r.updatedAt || r.createdAt || r.date}</td><td><button class="link" data-action="record-detail" data-id="${r.id}">详情</button>${canEditMaintenanceRecord(r) ? ` · <button class="link" data-action="edit-record" data-id="${r.id}">编辑</button>` : ""}</td></tr>`; }).join("") || '<tr data-empty-row><td colspan="13">当前范围暂无维系记录</td></tr>'}<tr data-filter-empty style="display:none"><td colspan="13"><div class="empty">未找到符合条件的维系记录，请调整条件或重置筛选</div></td></tr></tbody></table></div>${tablePagination("m03-records")}`;
+        return `<div class="toolbar filter-toolbar" id="recordFilters">${filterField("记录编号", '<input class="input" id="recordCode">')}${filterField("关键人编号", '<input class="input" id="recordPersonCode">')}${filterField("关键人名称", '<input class="input" id="recordPersonName">')}${filterField("客户公司", '<input class="input" id="recordCompany">')}${filterField("沟通摘要", '<input class="input" id="recordSummary">', "filter-field-wide")}${filterField("维系方式", '<select class="input" id="recordMethod"><option value="">全部方式</option><option>电话</option><option>微信</option><option>线下拜访</option><option>视频会议</option><option>邮件</option><option>其他</option></select>')}${filterField("维系人", `<select class="input" id="recordExecutor"><option value="">全部维系人</option>${executorOptions.map((name) => `<option>${name}</option>`).join("")}</select>`)}${filterField("区域", `<select class="input" id="recordRegion"><option value="">全部区域</option>${regionOptions.map((name) => `<option>${name}</option>`).join("")}</select>`)}${filterField("城市", `<select class="input" id="recordCity"><option value="">全部城市</option>${cityOptions.map((name) => `<option>${name}</option>`).join("")}</select>`)}${filterField("关联任务", '<select class="input" id="recordLinkedTask"><option value="">全部关联情况</option><option value="yes">已关联任务</option><option value="no">未关联任务</option></select>')}${filterField("附件", '<select class="input" id="recordAttachment"><option value="">全部附件情况</option><option value="yes">有附件</option><option value="no">无附件</option></select>')}${filterField("维系开始日期", '<input class="input" id="recordDateStart" type="date">')}${filterField("维系结束日期", '<input class="input" id="recordDateEnd" type="date">')}${filterField("创建开始日期", '<input class="input" id="recordCreatedStart" type="date">')}${filterField("创建结束日期", '<input class="input" id="recordCreatedEnd" type="date">')}${filterActions('<button class="btn btn-primary" id="applyRecordFilters" type="button">筛选</button><button class="btn" id="resetRecordFilters" type="button">重置</button>')}</div>${taskUpdateFooter("refresh-execution-list", "records")}<div class="table-wrap"><table data-paged-table="m03-records" style="min-width:1600px"><thead><tr><th>记录编号</th><th>维系时间</th><th>关键人</th><th>客户单位</th><th>维系方式</th><th>沟通摘要</th><th>维系人</th><th>录入人</th><th>关联任务</th><th>附件数</th><th>创建时间</th><th>操作</th></tr></thead><tbody id="recordBody">${records.map((r) => { const linkedTask = tasks.find((task) => task.id === r.taskId); const code = maintenanceRecordCode(r); return `<tr data-page-row data-record-code="${code}" data-record-person="${r.person}" data-record-company="${r.company}" data-record-summary="${r.summary}" data-record-method="${r.method}" data-record-executor="${r.pm}" data-record-region="${r.region}" data-record-city="${recordCity(r)}" data-record-date="${r.date}" data-record-created="${(r.createdAt || r.date).slice(0, 10)}" data-record-linked="${r.taskId ? "yes" : "no"}" data-record-attachment="${r.attachments.length ? "yes" : "no"}"><td><strong>${code}</strong></td><td>${r.maintenanceAt || r.date}</td><td><strong>${r.person}</strong></td><td>${r.company}</td><td><span class="tag blue">${r.method}</span>${r.method === "其他" ? `<div class="list-sub">${r.otherMethod || "未说明"}</div>` : ""}</td><td style="max-width:320px">${r.summary}</td><td>${r.pm}</td><td>${r.createdBy || r.pm}${r.proxyOperator ? ' <span class="tag orange">代办</span>' : ""}</td><td>${linkedTask ? `<button class="link" data-action="task-detail" data-id="${linkedTask.id}">${linkedTask.executionCode}</button>` : "未关联任务"}</td><td>${r.attachments.length ? `<button class="link" data-action="preview-file" title="点击预览附件">${r.attachments.length}</button>` : "0"}</td><td>${r.createdAt || r.date}</td><td><button class="link" data-action="record-detail" data-id="${r.id}">详情</button>${canEditMaintenanceRecord(r) ? ` · <button class="link" data-action="edit-record" data-id="${r.id}">编辑</button>` : ""}</td></tr>`; }).join("") || '<tr data-empty-row><td colspan="12">当前范围暂无维系记录</td></tr>'}<tr data-filter-empty style="display:none"><td colspan="12"><div class="empty">未找到符合条件的维系记录，请调整条件或重置筛选</div></td></tr></tbody></table></div>${tablePagination("m03-records")}`;
       }
 
       function enhanceTaskExecutionTable() {
         const body = $("#taskBody");
         if (!body) return;
         const table = body.closest("table");
-        table.style.minWidth = "1880px";
+        table.style.minWidth = "1760px";
         table.querySelector("thead tr").innerHTML =
-          "<th>任务执行记录编号</th><th>任务编号</th><th>任务标题</th><th>类型</th><th>关键人 / 覆盖目标</th><th>客户单位 / 集合</th><th>区域</th><th>城市</th><th>执行人</th><th>截止时间</th><th>当前状态</th><th>完成认定</th><th>首次逾期时间</th><th>更新时间</th><th>操作</th>";
+          "<th>任务执行记录编号</th><th>任务编号</th><th>任务标题</th><th>任务类型</th><th>关键人 / 覆盖目标</th><th>客户单位 / 集合</th><th>区域</th><th>城市</th><th>执行人</th><th>截止时间</th><th>当前状态</th><th>完成认定</th><th>首次逾期时间</th><th>操作</th>";
         const emptyCell = body.querySelector("tr[data-empty-row] td");
-        if (emptyCell) emptyCell.colSpan = 15;
+        if (emptyCell) emptyCell.colSpan = 14;
         body.querySelectorAll("tr[data-execution-group]").forEach((row) => {
           const directTaskId =
             row.querySelector("[data-complete]")?.dataset.complete ||
@@ -509,7 +538,7 @@
             : task.company;
           const record = taskRecord(task);
           const actions = `<button class="link" type="button" data-action="task-detail" data-id="${task.id}">任务详情</button>${record ? ` · <button class="link" type="button" data-action="record-detail" data-id="${record.id}">维系记录</button>` : ""}${taskCanTakeAction(task) ? ` · <button class="link" type="button" data-complete="${task.id}">${currentUser.fullAccess ? "代办完成" : "完成"}</button>` : ""}`;
-          row.innerHTML = `<td><strong>${task.executionCode}</strong></td><td>${task.parentTaskCode}</td><td><strong>${task.title}</strong></td><td><span class="tag ${taskTypeMeta(task.type).tone}">${task.type}</span></td><td>${targetLabel}</td><td>${customerLabel}</td><td>${task.region || "待配置"}</td><td>${taskCity(task)}</td><td>${task.pm}</td><td>${task.due} 23:59:59</td><td><span class="tag ${taskStatusTone(task)}">${taskStatusName(task.status, task)}</span>${task.status === "paused" && taskIsHealthRisk(task) ? '<div class="list-sub" style="color:var(--color-error)">暂停中仍属健康风险</div>' : ""}</td><td>${task.status === "done" ? completionTypeName(task.completionType) : task.type === "关键人覆盖 KPI" ? "待系统达标" : "—"}</td><td>${task.firstOverdueAt || "—"}</td><td>${task.updatedAt || task.createdAt || taskDataUpdatedAt}</td><td>${actions}</td>`;
+          row.innerHTML = `<td><strong>${task.executionCode}</strong></td><td>${task.parentTaskCode}</td><td><strong>${task.title}</strong></td><td><span class="tag ${taskTypeMeta(task.type).tone}">${task.type}</span></td><td>${targetLabel}</td><td>${customerLabel}</td><td>${task.region || "待配置"}</td><td>${taskCity(task)}</td><td>${task.pm}</td><td>${task.due} 23:59:59</td><td><span class="tag ${taskStatusTone(task)}">${taskStatusName(task.status, task)}</span>${task.status === "paused" && taskIsHealthRisk(task) ? '<div class="list-sub" style="color:var(--color-error)">暂停中仍属健康风险</div>' : ""}</td><td>${task.status === "done" ? completionTypeName(task.completionType) : task.type === "关键人覆盖 KPI" ? "待系统达标" : "—"}</td><td>${task.firstOverdueAt || "—"}</td><td>${actions}</td>`;
         });
       }
 
@@ -528,6 +557,20 @@
         };
         eventType.addEventListener("change", syncEventMonth);
         syncEventMonth();
+      }
+
+      function taskThemeRuleDetails(type, themeValue, theme) {
+        if (type === "常规维系") {
+          return `<div class="detail-grid"><div class="detail-item"><label>任务编号</label><div>${theme?.code || "待生成"}</div></div><div class="detail-item"><label>任务类型</label><div>${type}</div></div><div class="detail-item"><label>开始时间</label><div>长期</div></div><div class="detail-item"><label>结束时间</label><div>-</div></div><div class="detail-item"><label>更新时间</label><div>${theme?.updatedAt || "-"}</div></div><div class="detail-item"><label>适用职级</label><div>一级、二级、三级、四级</div></div><div class="detail-item full"><label>业务责任范围</label><div>省级、市级、区县级业务责任客户</div></div></div>`;
+        }
+        const isBirthday = type === "生日关怀";
+        const rule = ruleData.find(
+          (item) => item.type === (isBirthday ? "birthday" : "holiday"),
+        );
+        const period = isBirthday
+          ? { startDate: `${themeValue}-01`, endDate: monthEndDate(themeValue) }
+          : holidayPeriod(themeValue);
+        return `<div class="detail-grid"><div class="detail-item"><label>任务编号</label><div>${theme?.code || "待生成"}</div></div><div class="detail-item"><label>任务类型</label><div>${type}</div></div><div class="detail-item"><label>开始时间</label><div>${period.startDate}</div></div><div class="detail-item"><label>结束时间</label><div>${period.endDate}</div></div><div class="detail-item"><label>更新时间</label><div>${theme?.updatedAt || "-"}</div></div><div class="detail-item"><label>${isBirthday ? "事件月份" : "关联节假日"}</label><div>${themeValue}</div></div><div class="detail-item"><label>适用职级</label><div>${rule?.levels || "-"}</div></div><div class="detail-item"><label>业务责任范围</label><div>省级、市级、区县级业务责任客户</div></div><div class="detail-item full"><label>任务标题模板</label><div>${rule?.title || "-"}</div></div><div class="detail-item full"><label>执行要求</label><div>${rule?.content || "-"}</div></div></div>`;
       }
 
       function openTaskThemeDetail(themeKey) {
@@ -555,8 +598,28 @@
             ? `birthday:${themeValue}`
             : `holiday:${themeValue}`;
         const theme = taskThemes.find((item) => item.key === registryKey);
+        const detailContent = taskThemeRuleDetails(type, themeValue, theme);
+        const dashboardContent = `<div class="metrics compact-metrics" style="grid-template-columns:repeat(4,1fr)">${metric("覆盖客户", numbers.customers, "去重统计")}${metric("覆盖关键人", numbers.contacts, "去重统计", "blue")}${metric("任务完成进度", taskProgressDisplay(numbers), `${numbers.done}/${numbers.total}`)}${metric("已完成", numbers.done, "执行明细")}${metric("待执行/暂停", numbers.pending, "当前待处理", "yellow")}${metric("当前逾期", numbers.overdue, "需优先处理", "red")}${metric("补录审核中", numbers.lateEntryPending, "等待审核", "blue")}${metric("已过期未完成", numbers.expired, "不再执行", "red")}</div>`;
+        const executionContent = `${taskExecutionHeader("refresh-task-theme", themeKey)}${pmExecutionTable(rows, `theme-${themeKey}`)}`;
         openDrawer(
-          `<div class="drawer-head"><div class="modal-title">${title}详情</div><button class="icon-btn close" data-close>×</button></div><div class="drawer-body"><div class="detail-hero"><div class="avatar">任</div><div><div class="detail-name">${title}</div><div class="detail-sub">任务编号 ${theme?.code || "待生成"} · ${taskTypeMeta(type).note}</div></div><div class="spacer"></div>${taskThemeStatusTag(taskThemeStatus({ ...numbers, endDate: type === "节假日关怀" && themeValue ? rows.map((task) => task.due).sort().at(-1) : undefined }))}</div><div class="metrics compact-metrics" style="grid-template-columns:repeat(4,1fr)">${metric("覆盖客户", numbers.customers, "去重统计")}${metric("覆盖关键人", numbers.contacts, "去重统计", "blue")}${metric("任务完成进度", `${numbers.rate}%`, `${numbers.done}/${numbers.total}`)}${metric("已完成", numbers.done, "执行明细")}${metric("待执行/暂停", numbers.pending, "当前待处理", "yellow")}${metric("当前逾期", numbers.overdue, "需优先处理", "red")}${metric("补录审核中", numbers.lateEntryPending, "等待审核", "blue")}${metric("已过期未完成", numbers.expired, "不再执行", "red")}</div>${taskExecutionHeader("refresh-task-theme", themeKey)}${pmExecutionTable(rows, `theme-${themeKey}`)}</div><div class="drawer-foot"><button class="btn" data-close>关闭</button></div>`,
+          `<div class="drawer-head"><div class="modal-title">任务详情</div><button class="icon-btn close" data-close>×</button></div><div class="drawer-body"><div class="detail-hero"><div class="avatar">任</div><div class="detail-name">${title}</div><div class="spacer"></div>${taskThemeStatusTag(taskThemeStatus({ ...numbers, endDate: type === "节假日关怀" && themeValue ? holidayPeriod(themeValue).endDate : undefined }))}</div><div class="tabs"><button class="tab active" type="button" data-task-theme-detail-tab="detail">任务详情</button><button class="tab" type="button" data-task-theme-detail-tab="dashboard">数据看板</button><button class="tab" type="button" data-task-theme-detail-tab="executions">执行明细</button></div><div data-task-theme-detail-panel="detail">${detailContent}</div><div class="hidden" data-task-theme-detail-panel="dashboard">${dashboardContent}</div><div class="hidden" data-task-theme-detail-panel="executions">${executionContent}</div></div><div class="drawer-foot"><button class="btn" data-close>关闭</button></div>`,
+        );
+        document.querySelectorAll("[data-task-theme-detail-tab]").forEach(
+          (button) =>
+            (button.onclick = () => {
+              document
+                .querySelectorAll("[data-task-theme-detail-tab]")
+                .forEach((item) => item.classList.toggle("active", item === button));
+              document
+                .querySelectorAll("[data-task-theme-detail-panel]")
+                .forEach((panel) =>
+                  panel.classList.toggle(
+                    "hidden",
+                    panel.dataset.taskThemeDetailPanel !==
+                      button.dataset.taskThemeDetailTab,
+                  ),
+                );
+            }),
         );
       }
 

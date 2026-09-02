@@ -67,6 +67,7 @@ Product Boundary
 - Demo 只表达当前产品方案，不是最终产品需求来源。
 - Demo 与 PRD 不一致时，以 Current PRD 链为准。
 - 需求确认应正式写入适当的 PRD、Decision、Acceptance、Flow、Shared、Glossary 或 Product Boundary，不能只存在于临时沟通中。
+- 尚未进入 Current PRD 但仍在澄清、评估或等待确认的内容位于 `docs/requirement-discussions/`，属于 Active Requirement Discussion；它不是 Current Rule，也不能因“讨论过”或“尚未落地”而归档。
 - Current 产品来源无法得出唯一答案时，不应从代码或 Demo 补猜业务规则。
 
 ## 5. 产品模块说明
@@ -125,6 +126,7 @@ Demo 历史以 Git 为准，不创建 `prototype-v1/v2/v3` 或 `final` 副本。
 ```text
 prd-workspace/   当前 PRD、模块、验收、决策、流程和共享产品事实
 docs/            面向研发的项目总览
+docs/requirement-discussions/  尚未正式进入 Current PRD 的活动需求讨论
 src/             当前 Prototype 的可维护源码、模块、数据和样式
 demo/            生成的当前 Prototype 与 Artifact provenance
 demo-src/        Product Boundary 等 Prototype 结构化产品输入
@@ -142,6 +144,7 @@ archive/         产品、Demo、治理、Task/Result 与快照的统一历史�
 - 修改 Prototype 后必须验证 Source / Artifact 无漂移。
 - Demo 用于方案验证，不是最终产品事实或生产代码。
 - Current Demo 持续迭代；重要阶段才建立 Demo Baseline，普通修改由 Git 和 Task/Result 保留历史。
+- 当前目录职责已经稳定；后续在既有入口内增量维护，不为单次需求、审计或 AI 建议新增平行产品源、重复 Registry/Index 或新的生命周期和归档层级。
 
 ## 10. 研发入场指南
 

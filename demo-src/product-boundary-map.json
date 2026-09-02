@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "product": "英嘉科技内部管理系统",
-  "updatedAt": "2026-09-01",
+  "updatedAt": "2026-09-02",
   "purpose": "AI feature classification and product impact analysis",
   "scope": {
     "primary_features": ["M01", "M02", "M03", "M04", "M05", "M06", "M07", "M08", "M09", "M10", "M11", "M12"],
@@ -95,7 +95,7 @@
       ],
       "core_objects": ["父任务", "任务执行记录", "专项", "覆盖 KPI 执行项", "维系记录", "附件"],
       "pages": ["任务总览", "执行明细/我的任务", "专项详情", "维系记录"],
-      "states": ["page:Loading/Empty/EmptyResult/Error/PermissionDenied", "business-task:待执行/当前逾期/补录审核中/已完成/已过期未完成/已取消", "business-special:草稿/待开始/进行中/已完成/已过期", "runtime:暂停事实/局部数据不可用"],
+      "states": ["page:Loading/Empty/EmptyResult/Error/PermissionDenied", "business-task:待执行/当前逾期/补录审核中/已完成/已过期未完成/已取消", "business-parent:待开始/进行中/已结束", "business-special:草稿/待开始/进行中/已结束", "runtime:暂停事实/局部数据不可用"],
       "related_features": ["M01", "M02", "M04", "M05", "M06", "M07", "M08", "M09", "M10", "P01"],
       "common_changes": ["任务筛选或字段调整", "任务状态或完成口径调整", "维系规则调整", "专项范围或 KPI 口径调整", "维系记录字段调整"],
       "classification_guide": {

@@ -190,6 +190,29 @@
 
       function enhanceCustomerFilterToolbar() {
         const toolbar = $("#customerFilterToolbar");
+        const toggleButton = $("#customerFilterToggle");
+        const syncFilterVisibility = () => {
+          if (!toolbar || !toggleButton) return;
+          toolbar.classList.toggle("hidden", !customerFilterExpanded);
+          const label = customerFilterExpanded
+            ? "收起筛选条件"
+            : "展开筛选条件";
+          toggleButton.title = label;
+          toggleButton.setAttribute("aria-label", label);
+          toggleButton.setAttribute(
+            "aria-expanded",
+            String(customerFilterExpanded),
+          );
+          toggleButton.querySelector("[aria-hidden]").textContent =
+            customerFilterExpanded ? "▾" : "▸";
+        };
+        if (toggleButton) {
+          toggleButton.onclick = () => {
+            customerFilterExpanded = !customerFilterExpanded;
+            syncFilterVisibility();
+          };
+          syncFilterVisibility();
+        }
         const applyButton = $("#applyCustomerFilter");
         if (!toolbar || !applyButton || currentPage !== "operations") return;
         ["#customerTreeIndustry", "#customerTreeLevel", "#customerTreePm"].forEach(

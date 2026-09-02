@@ -13,9 +13,10 @@
 | 当前可点击 Demo | [`demo/prototype.html`](demo/prototype.html) |
 | 当前源码 | [`src/`](src/) |
 | 每类文件的用途 | [`docs/PROJECT_OVERVIEW.md`](docs/PROJECT_OVERVIEW.md#8-当前项目主要目录) 的“当前项目主要目录” |
+| 仍在形成中的需求 | Local Workspace 的 `docs/requirement-discussions/`（不是 Current Product Rule） |
 | 历史文件与恢复方式 | Local Workspace 的 `archive/`（GitHub 镜像不包含历史资料） |
 
-日常工作只需要使用上表入口。旧 PRD、旧 Demo、阶段报告、已完成 Task/Result 和快照统一保存在 `archive/`，不再散落在根目录、`docs/`、`demo/` 或 `prd-workspace/current/`。
+日常工作只需要使用上表入口。尚未正式进入 Current PRD、仍在推进或等待确认的内容属于 Active Requirement Discussion，不是历史，也不能覆盖 Current Product。旧 PRD、旧 Demo、阶段报告、已完成 Task/Result、已结束讨论和快照统一保存在 `archive/`。
 
 ## 需求状态与研发边界
 
@@ -99,6 +100,7 @@ prd-workspace/current/  当前产品事实
 src/                    Prototype 唯一维护源
 demo/                   当前生成产物
 docs/                   当前项目说明与有效治理入口
+docs/requirement-discussions/  尚未正式进入 Current PRD 的活动需求讨论
 references/             当前 Prototype 维护规范
 scripts/                构建、检查与审计
 archive/                所有历史产品、Demo、治理记录和快照

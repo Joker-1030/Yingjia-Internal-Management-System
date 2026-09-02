@@ -110,7 +110,15 @@
             holidayName,
           })),
         ];
-        descriptors.forEach(ensureTaskTheme);
+        descriptors.forEach((descriptor) => {
+          const theme = ensureTaskTheme(descriptor);
+          if (descriptor.campaignId) {
+            const campaign = campaigns.find(
+              (item) => item.id === descriptor.campaignId,
+            );
+            if (campaign) campaign.code = theme.code;
+          }
+        });
         tasks.forEach((task) => {
           const theme = ensureTaskTheme(task);
           task.parentTaskCode = theme.code;

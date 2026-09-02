@@ -1,9 +1,10 @@
       const campaigns = [
         {
           id: 401,
-          code: "ZX-2026-0001",
           category: "专项维系",
           name: "AI岗位能力实训课程全国推广",
+          taskTitleTemplate: "{{专项标题}} - {{关键人姓名}}",
+          description: "面向目标关键人完成专项要求，并按时提交执行结果。",
           owner: "王静",
           scope: "通信行业 · 一级至四级",
           targets: {
@@ -31,9 +32,10 @@
         },
         {
           id: 402,
-          code: "ZX-2026-0002",
           category: "专项维系",
           name: "运营商数字化课程年度需求摸排",
+          taskTitleTemplate: "{{专项标题}} - {{关键人姓名}}",
+          description: "面向目标关键人完成专项要求，并按时提交执行结果。",
           owner: "刘总",
           scope: "中国移动 · 全国",
           targets: {
@@ -61,9 +63,10 @@
         },
         {
           id: 403,
-          code: "ZX-2026-0003",
           category: "专项维系",
           name: "华电AI知识库产品专项沟通",
+          taskTitleTemplate: "{{专项标题}} - {{关键人姓名}}",
+          description: "面向目标关键人完成专项要求，并按时提交执行结果。",
           owner: "王静",
           scope: "能源行业 · 省公司",
           targets: {
@@ -86,9 +89,9 @@
         },
         {
           id: 404,
-          code: "ZX-2026-0004",
           category: "关键人覆盖 KPI",
           name: "中国移动省公司关键决策人岗位覆盖提升",
+          description: "按目标岗位覆盖口径完成责任范围内客户覆盖。",
           owner: "刘总",
           scope: "中国移动 · 省公司 · 关键决策人",
           targets: {
@@ -240,4 +243,3 @@
           targetCoverageRate: 90,
         },
       );
-

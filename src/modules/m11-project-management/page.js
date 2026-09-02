@@ -839,7 +839,12 @@
         normalizeAllProjectLifecycles();
         const visible = scopedProjects()
           .slice()
-          .sort((left, right) => left.id.localeCompare(right.id));
+          .sort(
+            (left, right) =>
+              String(right.createdAt || "").localeCompare(
+                String(left.createdAt || ""),
+              ) || right.id.localeCompare(left.id),
+          );
         const customerOptions = [
           ...new Set(
             visible.map((project) => projectCustomerFacts(project)?.name).filter(Boolean),
@@ -954,7 +959,6 @@
           : "";
         const items = [
           ["项目编号", project.id],
-          ["项目名称", project.name],
           ["项目类型", project.type],
           ["所属商机编号", project.opportunityId || "—"],
           ["客户编号", facts?.customerCode || "—"],
@@ -1164,7 +1168,6 @@
             "</div>"
           );
         }
-        const customer = projectCustomerFacts(project);
         const tabs = [
           ["basic", "基本信息"],
           ["staff", "人员安排"],
@@ -1201,7 +1204,7 @@
             "",
             detailActions,
           ) +
-          `<section class="panel project-detail-panel"><div class="detail-hero project-detail-hero"><div class="avatar">项</div><div class="project-detail-identity"><div class="detail-name">${escapeHtml(project.name)}</div><div class="detail-sub">${escapeHtml(project.id)} · ${project.type} · ${escapeHtml(customer?.name || "—")} · ${escapeHtml(projectArea(project))}</div></div><div class="spacer"></div>${projectStageTag(project.stage)}</div><div class="tabs detail-tabs">${tabs
+          `<section class="panel project-detail-panel"><div class="detail-hero project-detail-hero"><div class="avatar">项</div><div class="project-detail-identity"><div class="detail-name">${escapeHtml(project.name)}</div></div><div class="spacer"></div>${projectStageTag(project.stage)}</div><div class="tabs detail-tabs">${tabs
             .map(
               ([key, label]) =>
                 `<button class="tab ${projectDetailTab === key ? "active" : ""}" data-project-tab="${key}">${label}</button>`,

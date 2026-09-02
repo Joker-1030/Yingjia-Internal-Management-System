@@ -375,16 +375,13 @@
       function opportunityOverviewHtml(item) {
         const fields = [
           salesField("商机编号", item.id),
-          salesField("商机名称", item.name),
           salesField("商机类型", item.type),
-          salesField("阶段", salesStageTag(item.stage)),
           salesField("客户单位", item.customer),
           salesField("客户编号", item.customerCode),
           salesField("所属集团", item.group),
           salesField("行业", item.industry),
           salesField("业务责任区域", item.region),
           salesField("地区", item.city || "—"),
-          salesField("负责人", item.owner),
           salesField("优先级", salesPriorityTag(item.priority)),
           salesField("预估金额", salesMoney(item.estimateAmount)),
           salesField("预计成交日期", item.expectedWinDate),
@@ -392,7 +389,6 @@
           item.stage === "中选" ? salesField("预计签约金额", salesMoney(item.expectedContractAmount)) : "",
           salesField("商机关键人", item.keyPeople.join("、") || "—", "full"),
           salesField("商机需求描述", item.requirement, "full"),
-          salesField("下次跟进日期", item.nextFollowDate || "—"),
           salesField("创建信息", `${item.createdDate} · ${item.createdBy}`),
         ];
         return `<div class="detail-grid sales-detail-grid">${fields.join("")}</div>`;
@@ -464,7 +460,7 @@
         return (
           pageHead(
             item.name,
-            `${item.id} · ${item.customer}`,
+            "",
             `<button class="btn" id="backToOpportunities">返回列表</button>${salesCanReassign(item) && item.stage !== "落选" ? '<button class="btn" data-sales-reassign>改派负责人</button>' : ""}${canOperate ? '<button class="btn btn-primary" data-sales-stage-open>推进阶段</button>' : ""}`,
           ) +
           `<section class="panel sales-detail-panel"><div class="sales-detail-identity"><div><span class="list-sub">当前阶段</span><div class="sales-detail-stage">${salesStageTag(item.stage)}</div></div><div><span class="list-sub">负责人</span><strong>${item.owner}</strong></div><div><span class="list-sub">下次跟进日期</span><strong>${item.nextFollowDate || "—"}</strong></div></div><div class="tabs detail-tabs">${tabs

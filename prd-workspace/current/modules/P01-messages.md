@@ -93,7 +93,7 @@ Loading、Empty、Error、PermissionDenied 是页面反馈表达，不新增业�
 
 ## 迁移边界
 
-本文件迁移模块目标、角色、对象、页面范围、功能、状态、权限和非职责边界，但不直接复制旧章节全文。第一阶段内，字段长度、表单校验、提示语、流程细节或本文件未覆盖的事实仍以旧完整 PRD 为准；发现差异必须报告，不得猜测。
+本文件与 `prd-workspace/current/PRD.md` 及其当前引用链共同构成 P01 的 Current Product Source。旧完整 PRD 和 Archive 仅为 Historical Evidence，不能补充或覆盖本文件未定义的字段、校验、提示或流程；Current 来源没有唯一答案时标记 `PRODUCT DEFINITION GAP / PRODUCT CONFIRMATION REQUIRED`，不得回退历史资料自行补齐。
 
 ## 修订记录 / PRD Revision History
 
@@ -101,6 +101,7 @@ Loading、Empty、Error、PermissionDenied 是页面反馈表达，不新增业�
 
 | 日期 | 修订内容 |
 | --- | --- |
+| 2026-09-02 | • 明确 P01 未定义行为不得回退旧完整 PRD 或 Archive 补齐；缺失事实按 Product Definition Gap 处理。 |
 | 2026-09-01 | • 增加 M12 商机跟进到期/逾期升级和方案支撑首次回应超时消息；消息失败不回滚 M12 事实，也不创建审批关系或新业务状态。 |
 | 2026-08-31 | • 侧栏未读数字角标 1-99 显示实际数量，超过 99 显示 `99+`；未读消息项同时显示红点和未读状态。<br>• 打开浮窗不自动全量已读；点击或明确标记单条消息只更新该条，“全部已读”原子清除数量、红点和未读状态。 |
 | 2026-08-28 | • 页面级筛选字段标签改为紧邻对应控件左侧并与控件同行，筛选区换行时按“标签 + 控件”整组换行。 |

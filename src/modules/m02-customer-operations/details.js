@@ -3,28 +3,70 @@
       function personDetailCanMaintain(person) {
         return canMaintainContact(person);
       }
+      function bindPersonDetailInteractions(person) {
+        document.querySelectorAll("#overlay [data-person-detail-tab]").forEach(
+          (button) =>
+            (button.onclick = () => {
+              selectedPersonDetailTab = button.dataset.personDetailTab;
+              renderPersonDetail(person);
+            }),
+        );
+        document.querySelectorAll("#overlay [data-person-task-scope]").forEach(
+          (button) =>
+            (button.onclick = () => {
+              selectedPersonTaskScope = button.dataset.personTaskScope;
+              renderPersonDetail(person);
+            }),
+        );
+      }
       function personTaskOrder(task) {
         if (task.status === "overdue") return 1;
         if (task.status === "pending" && task.due === DEMO_TODAY) return 2;
-        if (task.status === "pending" && task.due <= addDays(DEMO_TODAY, 7)) return 3;
+        if (
+          task.status === "pending" &&
+          task.due > DEMO_TODAY &&
+          task.due <= addDays(DEMO_TODAY, 7)
+        )
+          return 3;
         if (task.status === "pending") return 4;
         if (task.status === "paused") return 5;
         if (task.status === "late_entry_pending") return 6;
         return 7;
       }
+      function personTaskEndTime(task) {
+        return task.completedAt || task.closedAt || task.updatedAt || task.due || "";
+      }
+      function sortPersonTasks(left, right) {
+        const orderDifference = personTaskOrder(left) - personTaskOrder(right);
+        if (orderDifference) return orderDifference;
+        if (personTaskOrder(left) === 7)
+          return (
+            personTaskEndTime(right).localeCompare(personTaskEndTime(left)) ||
+            right.executionCode.localeCompare(left.executionCode)
+          );
+        return (
+          left.due.localeCompare(right.due) ||
+          left.executionCode.localeCompare(right.executionCode)
+        );
+      }
+      function taskMatchesPersonIdentity(task, person) {
+        if (task.personId != null)
+          return String(task.personId) === String(person.id);
+        if (task.person !== person.name) return false;
+        const employmentCompanies = new Set([
+          person.company,
+          ...(person.employmentHistory || []).map((history) => history.company),
+        ]);
+        return employmentCompanies.has(task.company);
+      }
       function renderPersonDetail(person, initial = false) {
         const personTasks = scopedTasks()
-          .filter(
-            (task) =>
-              task.person === person.name && task.company === person.company,
-          )
-          .sort(
-            (left, right) =>
-              personTaskOrder(left) - personTaskOrder(right) ||
-              left.due.localeCompare(right.due) ||
-              left.executionCode.localeCompare(right.executionCode),
-          );
-        const activeTasks = personTasks.filter(
+          .filter((task) => taskMatchesPersonIdentity(task, person))
+          .sort(sortPersonTasks);
+        const currentEmploymentTasks = personTasks.filter(
+          (task) => task.company === person.company,
+        );
+        const activeTasks = currentEmploymentTasks.filter(
           (task) => !["done", "cancelled", "expired"].includes(task.status),
         );
         const records = scopedRecords()
@@ -47,7 +89,7 @@
           review: activeTasks.filter((task) => task.status === "late_entry_pending").length,
         };
         const taskRows = (rows) =>
-          rows.map((task) => `<tr><td><strong>${task.executionCode}</strong><div class="list-sub">父任务 ${task.parentTaskCode}</div></td><td>${taskDisplayType(task)}</td><td>${task.title}</td><td><span class="tag ${taskStatusTone(task)}">${taskStatusName(task.status, task)}</span></td><td>${task.due} 23:59:59</td><td>${task.status === "overdue" || (task.status === "paused" && task.due < DEMO_TODAY) ? Math.max(dayDiff(task.due, DEMO_TODAY), 1) + (task.status === "paused" ? " 天（健康风险）" : " 天") : "—"}</td><td>${task.pm}</td><td>${task.status === "done" ? completionTypeName(task.completionType) : "待完成"}</td><td>${task.updatedAt || task.createdAt || "2026-08-17 09:30"}</td><td><button class="link" data-action="task-detail" data-id="${task.id}">详情</button></td></tr>`).join("");
+          rows.map((task) => `<tr><td><strong>${task.executionCode}</strong></td><td>${task.company}</td><td>${taskDisplayType(task)}</td><td>${task.title}</td><td><span class="tag ${taskStatusTone(task)}">${taskStatusName(task.status, task)}</span></td><td>${task.due} 23:59:59</td><td>${task.status === "overdue" || (task.status === "paused" && task.due < DEMO_TODAY) ? Math.max(dayDiff(task.due, DEMO_TODAY), 1) + (task.status === "paused" ? " 天（健康风险）" : " 天") : "—"}</td><td>${task.pm}</td><td>${task.status === "done" ? completionTypeName(task.completionType) : "待完成"}</td><td><button class="link" data-action="task-detail" data-id="${task.id}">详情</button></td></tr>`).join("");
         const tabs = [
           ["base", "基本信息"],
           ["employment", "当前任职"],
@@ -59,7 +101,7 @@
         ];
         let content = "";
         if (selectedPersonDetailTab === "base") {
-          content = `<div class="detail-grid"><div class="detail-item"><label>关键人编号</label><div>${person.code}</div></div><div class="detail-item"><label>状态</label><div><span class="tag green">正常</span></div></div><div class="detail-item"><label>手机号</label><div>${person.phone}</div></div><div class="detail-item"><label>微信号</label><div>${person.wechat || "未填写"}</div></div><div class="detail-item"><label>邮箱</label><div>${person.email || "未填写"}</div></div><div class="detail-item"><label>性别</label><div>${person.gender || "未说明"}</div></div><div class="detail-item"><label>生日</label><div>${person.birthday || "未填写"}</div></div><div class="detail-item"><label>关键决策人</label><div>${person.decision ? "是" : "否"}</div></div><div class="detail-item"><label>最近维系</label><div>${person.last || "从未"}</div></div><div class="detail-item"><label>写入来源</label><div>${person.source === "import" ? "批量导入" : person.source === "system" ? "系统生成" : "手工录入"}</div></div><div class="detail-item"><label>创建时间</label><div>${person.createdAt || "待补录"}</div></div><div class="detail-item"><label>更新时间</label><div>${person.updatedAt}</div></div></div><div class="section-title">当前任务摘要</div><div class="metrics compact-metrics">${metric("当前逾期", taskCounts.overdue, "持续标红直至闭环", "red")}${metric("今日到期", taskCounts.today, "当前业务日", "orange")}${metric("未来 7 天", taskCounts.next7, "待执行", "yellow")}${metric("暂停 / 审核", taskCounts.paused + taskCounts.review, `暂停 ${taskCounts.paused} · 补录审核 ${taskCounts.review}`, "blue")}</div><div class="table-wrap"><table><thead><tr><th>执行编号</th><th>类型</th><th>任务</th><th>状态</th><th>截止</th><th>逾期</th><th>执行人</th><th>完成认定</th><th>更新时间</th><th>操作</th></tr></thead><tbody>${taskRows(activeTasks.slice(0, 5)) || '<tr><td colspan="10">暂无未结束任务</td></tr>'}</tbody></table></div>${activeTasks.length > 5 ? `<button class="btn" type="button" data-person-detail-tab="tasks">查看全部任务（共 ${activeTasks.length} 条）</button>` : ""}`;
+          content = `<div class="detail-grid"><div class="detail-item"><label>关键人编号</label><div>${person.code}</div></div><div class="detail-item"><label>状态</label><div><span class="tag green">正常</span></div></div><div class="detail-item"><label>手机号</label><div>${person.phone}</div></div><div class="detail-item"><label>微信号</label><div>${person.wechat || "未填写"}</div></div><div class="detail-item"><label>邮箱</label><div>${person.email || "未填写"}</div></div><div class="detail-item"><label>性别</label><div>${person.gender || "未说明"}</div></div><div class="detail-item"><label>生日</label><div>${person.birthday || "未填写"}</div></div><div class="detail-item"><label>关键决策人</label><div>${person.decision ? "是" : "否"}</div></div><div class="detail-item"><label>最近维系</label><div>${person.last || "从未"}</div></div><div class="detail-item"><label>写入来源</label><div>${person.source === "import" ? "批量导入" : person.source === "system" ? "系统生成" : "手工录入"}</div></div><div class="detail-item"><label>创建时间</label><div>${person.createdAt || "待补录"}</div></div><div class="detail-item"><label>更新时间</label><div>${person.updatedAt}</div></div></div><div class="section-title">当前任务摘要</div><div class="metrics compact-metrics">${metric("当前逾期", taskCounts.overdue, "持续标红直至闭环", "red")}${metric("今日到期", taskCounts.today, "当前业务日", "orange")}${metric("未来 7 天", taskCounts.next7, "待执行", "yellow")}${metric("暂停 / 审核", taskCounts.paused + taskCounts.review, `暂停 ${taskCounts.paused} · 补录审核 ${taskCounts.review}`, "blue")}</div><button class="btn" type="button" data-person-detail-tab="tasks">查看全部任务</button>`;
         }
         if (selectedPersonDetailTab === "employment")
           content = `<div class="detail-grid"><div class="detail-item full"><label>客户公司</label><div>${person.company}</div></div><div class="detail-item"><label>客户部门</label><div>${person.department}</div></div><div class="detail-item"><label>关键人岗位</label><div>${person.positionName}${person.positionId ? ` · ${person.positionId}` : ""}</div></div><div class="detail-item"><label>职级</label><div>${person.level}</div></div><div class="detail-item"><label>任职生效日</label><div>${person.effectiveDate}</div></div><div class="detail-item"><label>当前负责人</label><div>${contactOwnerName(person)}</div></div></div><div class="role-note">客户公司、部门和关键人岗位不能普通编辑。任一变化必须发起关键人调岗审批，审批生效后才进入覆盖率与覆盖 KPI。</div>`;
@@ -73,7 +115,7 @@
               : selectedPersonTaskScope === "done"
                 ? finishedTasks
                 : activeTasks;
-          content = `<div class="metrics compact-metrics">${metric("当前逾期", taskCounts.overdue, "按截止时间升序", "red")}${metric("今日到期", taskCounts.today, "待执行", "orange")}${metric("未来 7 天", taskCounts.next7, "待执行", "yellow")}${metric("其他待执行", taskCounts.pending, "七天以后")}${metric("暂停中", taskCounts.paused, "超截止仍影响健康", "blue")}${metric("补录审核中", taskCounts.review, "不计当前逾期", "blue")}</div><div class="tabs execution-tabs"><button class="tab ${selectedPersonTaskScope === "unfinished" ? "active" : ""}" type="button" data-person-task-scope="unfinished">未结束 <span class="tab-count">${activeTasks.length}</span></button><button class="tab ${selectedPersonTaskScope === "all" ? "active" : ""}" type="button" data-person-task-scope="all">全部 <span class="tab-count">${personTasks.length}</span></button><button class="tab ${selectedPersonTaskScope === "done" ? "active" : ""}" type="button" data-person-task-scope="done">已完成 <span class="tab-count">${finishedTasks.length}</span></button></div><div class="table-wrap"><table style="min-width:1120px"><thead><tr><th>执行编号</th><th>类型</th><th>任务</th><th>状态</th><th>截止时间</th><th>逾期天数</th><th>执行人</th><th>完成认定</th><th>更新时间</th><th>操作</th></tr></thead><tbody>${taskRows(scopedTaskRows) || '<tr><td colspan="10">当前范围暂无任务</td></tr>'}</tbody></table></div>`;
+          content = `<div class="metrics compact-metrics">${metric("当前逾期", taskCounts.overdue, "按截止时间升序", "red")}${metric("今日到期", taskCounts.today, "待执行", "orange")}${metric("未来 7 天", taskCounts.next7, "待执行", "yellow")}${metric("其他待执行", taskCounts.pending, "七天以后")}${metric("暂停中", taskCounts.paused, "超截止仍影响健康", "blue")}${metric("补录审核中", taskCounts.review, "不计当前逾期", "blue")}</div><div class="tabs execution-tabs"><button class="tab ${selectedPersonTaskScope === "unfinished" ? "active" : ""}" type="button" data-person-task-scope="unfinished">未结束 <span class="tab-count">${activeTasks.length}</span></button><button class="tab ${selectedPersonTaskScope === "all" ? "active" : ""}" type="button" data-person-task-scope="all">全部 <span class="tab-count">${personTasks.length}</span></button><button class="tab ${selectedPersonTaskScope === "done" ? "active" : ""}" type="button" data-person-task-scope="done">已完成 <span class="tab-count">${finishedTasks.length}</span></button></div><div class="table-wrap"><table style="min-width:1200px"><thead><tr><th>任务执行记录编号</th><th>客户公司</th><th>任务类型</th><th>任务标题</th><th>状态</th><th>截止时间</th><th>逾期天数</th><th>执行人</th><th>完成认定</th><th>操作</th></tr></thead><tbody>${taskRows(scopedTaskRows) || '<tr><td colspan="10">当前范围暂无任务</td></tr>'}</tbody></table></div>`;
         }
         if (selectedPersonDetailTab === "records")
           content = `<div class="table-wrap"><table><thead><tr><th>记录编号</th><th>维系时间</th><th>方式</th><th>沟通摘要</th><th>维系人</th><th>关联任务</th><th>创建 / 更新时间</th><th>操作</th></tr></thead><tbody>${records.map((record) => { const linkedTask = tasks.find((task) => task.id === record.taskId); return `<tr><td>${maintenanceRecordCode(record)}</td><td>${record.maintenanceAt || record.date}</td><td>${record.method}${record.method === "其他" ? ` · ${record.otherMethod || "未说明"}` : ""}</td><td>${record.summary}</td><td>${record.pm}</td><td>${linkedTask?.executionCode || "未关联"}</td><td>${record.createdAt || record.date}<div class="list-sub">更新 ${record.updatedAt || record.createdAt || record.date}</div></td><td><button class="link" data-action="record-detail" data-id="${record.id}">详情</button></td></tr>`; }).join("") || '<tr><td colspan="8">暂无维系记录</td></tr>'}</tbody></table></div>`;
@@ -81,23 +123,11 @@
           content = `<div class="table-wrap"><table><thead><tr><th>流程编号</th><th>类型</th><th>申请事项</th><th>当前环节</th><th>状态</th><th>发起时间</th><th>操作</th></tr></thead><tbody>${relatedApprovals.map((approval) => `<tr><td>${approval.code}</td><td>${approval.type}</td><td>${approval.title}</td><td>${approval.status === "pending" ? approval.current : approvalFinalNodeTitle(approval)}</td><td><span class="tag ${approval.status === "approved" ? "green" : approval.status === "rejected" ? "red" : "yellow"}">${approvalStatusName(approval.status)}</span></td><td>${approval.date}</td><td><button class="link" data-action="approval-detail" data-id="${approval.id}">详情</button></td></tr>`).join("") || '<tr><td colspan="7">暂无相关审批</td></tr>'}</tbody></table></div>`;
         if (selectedPersonDetailTab === "logs")
           content = `<div class="timeline"><div class="timeline-item is-done"><div class="timeline-title">${person.updatedAt} · 信息更新</div><div class="timeline-content">更新手机号、关键决策人或展示字段；任职字段未变更。</div></div><div class="timeline-item is-done"><div class="timeline-title">${person.createdAt || person.effectiveDate} · 关键人创建</div><div class="timeline-content">${person.source === "import" ? "批量导入" : "手工录入"}，生成编号 ${person.code}。</div></div></div>`;
-        const html = `<div class="drawer-head"><div class="modal-title">关键人详情</div><button class="icon-btn close" data-close>×</button></div><div class="drawer-body"><div class="detail-hero"><div class="avatar">${person.name[0]}</div><div><div class="detail-name">${person.name} <span class="tag blue">${person.level}</span> ${person.decision ? '<span class="tag blue">关键决策人</span>' : ""} ${contactHasOverdue(person) ? '<span class="tag red">当前逾期</span>' : '<span class="tag green">健康</span>'}</div><div class="detail-sub">${person.code} · ${person.company} · ${person.positionName}</div></div></div><div class="tabs detail-tabs">${tabs.map(([key, label]) => `<button class="tab ${selectedPersonDetailTab === key ? "active" : ""}" type="button" data-person-detail-tab="${key}">${label}</button>`).join("")}</div><div class="person-detail-content">${content}</div></div><div class="drawer-foot"><button class="btn" data-close>关闭</button>${stopObjectActionHtml("contact", person.id)}${personDetailCanMaintain(person) && !pendingStopApproval("contact", person.id) ? `<button class="btn" data-action="edit-contact" data-id="${person.id}">编辑身份</button>` : ""}${canTransferContact(person) && !pendingStopApproval("contact", person.id) ? `<button class="btn" data-action="transfer" data-id="${person.id}">发起调岗</button>` : ""}${canCreateMaintenanceForPerson(person) && !pendingStopApproval("contact", person.id) ? `<button class="btn btn-primary" data-action="new-record" data-id="${person.id}">新增记录</button>` : ""}</div>`;
-        if (initial) openDrawer(html);
+        const html = `<div class="drawer-head"><div class="modal-title">关键人详情</div><button class="icon-btn close" data-close>×</button></div><div class="drawer-body"><div class="detail-hero"><div class="avatar">${person.name[0]}</div><div><div class="detail-name">${person.name} ${contactHasOverdue(person) ? '<span class="tag red">当前逾期</span>' : '<span class="tag green">健康</span>'}</div></div></div><div class="tabs detail-tabs">${tabs.map(([key, label]) => `<button class="tab ${selectedPersonDetailTab === key ? "active" : ""}" type="button" data-person-detail-tab="${key}">${label}</button>`).join("")}</div><div class="person-detail-content">${content}</div></div><div class="drawer-foot"><button class="btn" data-close>关闭</button>${stopObjectActionHtml("contact", person.id)}${personDetailCanMaintain(person) && !pendingStopApproval("contact", person.id) ? `<button class="btn" data-action="edit-contact" data-id="${person.id}">编辑身份</button>` : ""}${canTransferContact(person) && !pendingStopApproval("contact", person.id) ? `<button class="btn" data-action="transfer" data-id="${person.id}">发起调岗</button>` : ""}${canCreateMaintenanceForPerson(person) && !pendingStopApproval("contact", person.id) ? `<button class="btn btn-primary" data-action="new-record" data-id="${person.id}">新增记录</button>` : ""}</div>`;
+        if (initial)
+          openDrawer(html, () => bindPersonDetailInteractions(person));
         else renderDrawerLayer(html);
-        document.querySelectorAll("#overlay [data-person-detail-tab]").forEach(
-          (button) =>
-            (button.onclick = () => {
-              selectedPersonDetailTab = button.dataset.personDetailTab;
-              renderPersonDetail(person);
-            }),
-        );
-        document.querySelectorAll("#overlay [data-person-task-scope]").forEach(
-          (button) =>
-            (button.onclick = () => {
-              selectedPersonTaskScope = button.dataset.personTaskScope;
-              renderPersonDetail(person);
-            }),
-        );
+        bindPersonDetailInteractions(person);
       }
       function openPerson(id) {
         const person = contacts.find((item) => item.id === id);

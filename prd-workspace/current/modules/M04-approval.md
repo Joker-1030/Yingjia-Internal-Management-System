@@ -474,7 +474,13 @@ M04 只展示该来源业务投影，不为没有计划生效字段的业务新�
 | M12 指标调整 | AC-F011-34 | 区域目标调整路由总裁，PM 目标调整路由市场副总/总裁；生效归 M12 | Coverage；DEC-194 |
 | 处理人失效 | AC-F011-33 | 流程暂停、受控替换、无候选持续告警，业务对象不变 | Coverage |
 
-映射结果：26/26 条 AC 已建立主题索引；未修改任何 AC ID、优先级或顺序，已确认规则的旧措辞通过源级治理注记保留。
+映射结果：27/27 条 AC 已建立主题索引；未修改任何 AC ID、优先级或顺序，已确认规则的旧措辞通过源级治理注记保留。
+
+### 11.1 核心深入阅读入口
+
+- Acceptance：`AC-F011-08` 至 `AC-F011-34`，见 [`prd-workspace/current/acceptance/M04.md`](../acceptance/M04.md) → 对应 AC 编号。
+- 通用审批生命周期：`FLOW-09《M04-approval-lifecycle》`，见 [`prd-workspace/current/user-flows/FLOW-09-M04-approval-lifecycle.md`](../user-flows/FLOW-09-M04-approval-lifecycle.md) → 文档标题下主流程；来源业务专用流程继续以本文件第 8 节列出的精确路径为准。
+- MVP 审批动作边界：`DEC-187《M04 MVP 审批动作收缩并保留业务正确性保障》`，见 [`prd-workspace/decisions/DEC-187-M04-MVP-审批动作收缩并保留业务正确性保障.md`](../../decisions/DEC-187-M04-MVP-审批动作收缩并保留业务正确性保障.md) → “决策”条目。
 
 ## 12. Decision / Governance
 

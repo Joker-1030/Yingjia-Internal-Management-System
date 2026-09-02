@@ -239,6 +239,7 @@
             )
           : [];
         const nextTask = activeTasks
+          .filter(taskCanTakeAction)
           .slice()
           .sort(
             (a, b) =>
@@ -255,9 +256,9 @@
               )
               .sort(
                 (a, b) =>
-                  `${b.date} ${b.createdAt || ""}`.localeCompare(
-                    `${a.date} ${a.createdAt || ""}`,
-                  ),
+                  String(b.maintenanceAt || b.date || "").localeCompare(
+                    String(a.maintenanceAt || a.date || ""),
+                  ) || String(b.id).localeCompare(String(a.id)),
               )
           : [];
         const records = allPersonRecords.slice(0, 3);
@@ -327,8 +328,13 @@
               completenessHtml(selectedPerson),
             );
           const subtitle = hero?.querySelector(".detail-sub");
-          if (subtitle)
-            subtitle.textContent = `${selectedPerson.code} · ${selectedPerson.title || "职务待完善"} · ${selectedPerson.department || "部门待完善"}`;
+          if (subtitle) subtitle.remove();
+          personDetailHost
+            .querySelectorAll(".recent-record-date")
+            .forEach((item, index) => {
+              item.textContent =
+                records[index]?.maintenanceAt || records[index]?.date || "—";
+            });
           const detailGrid = personDetailHost.querySelector(".detail-grid");
           if (detailGrid) {
             const codeItem = document.createElement("div");

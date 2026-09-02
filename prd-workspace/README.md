@@ -34,6 +34,9 @@
 ## 维护规则
 
 - Current 产品变化写入 Owner 模块及必要的 Acceptance、Decision、Flow、Shared、Glossary 或 Product Boundary。
+- Owner PRD 是本模块完整的产品入口，必须直接说明核心产品语义、对象、状态、操作、业务规则、指标、权限、流程和模块关系。复杂细节可以由 Shared、Decision、Acceptance 或 Flow 唯一维护，但 Owner PRD 必须保留足以理解业务的核心结论，并提供一次跳转即可定位的精确引用；不得只写“详见 Decision / Shared / Flow”来替代本模块的核心说明。
+- Owner PRD 引用外部 Current Source 时，首次核心引用至少同时写明稳定 ID（如有）、仓库实际路径与文件名、文档标题，以及目标章节/标题或 AC 编号。只写编号、只写文件名、只链接目录或使用“相关文档”等模糊表述均不构成完整引用。
+- 会改变用户看到的数据、排除项、排序、同序规则、展示字段、Top N、默认筛选/时间/展开、状态组合、指标结果或操作后结果的规则均属于 Product Behavior。Current 已确认但 Owner 缺失时标记 `DISCOVERABILITY GAP` 并补齐；仅在 Code/Prototype 存在时标记 `PRODUCT DEFINITION GAP` 并等待产品确认；不同 Current Source 冲突时标记 `SOURCE CONFLICT / PRODUCT DECISION REQUIRED`，不得自行选择。
 - 独立 Decision 只用于需要长期单独追溯的重要产品选择；普通文案、字段说明、单模块交互、列表列和一般 UI 调整直接维护在 Owner 模块 PRD 及必要的 Acceptance/修订记录中，不为留痕额外创建 DEC。
 - Shared 只维护多个模块真正共用且必须唯一维护的事实；单模块规则、页面细节、UI 文案、普通交互、单模块验收、AI 建议和技术实现说明留在各自 Owner。疑似过度 Shared 只记录为后续问题，不在普通结构任务中搬迁。
 - 总 PRD 与直接受影响模块维护同日修订记录；同一天一行，按功能板块分组。

@@ -286,6 +286,12 @@ M07 不定义草稿状态或独立发布操作。保存确认成功后新配置�
 | DEC-085 | Historical / Replaced | “本人信息展示数据范围摘要”被 DEC-091 移除；F002 admin 独占、版本与审计部分继续有效 | 替代元数据已闭合；本人信息只展示角色名称，不返回范围计算来源 |
 | 其他未形成正式结论的差异 | Governance Needed | 旧 PRD、Decision、AC、Glossary、Product Boundary 或候选模块之间如出现未列明冲突 | 不由 M07 Candidate Completion 选择；新增治理注记并等待产品确认 |
 
+### 11.1 核心深入阅读入口
+
+- Acceptance：`AC-F002-13` 至 `AC-F002-36`，见 [`prd-workspace/current/acceptance/M07.md`](../acceptance/M07.md) → 对应 AC 编号。
+- 跨模块权限与数据范围：Shared Product Facts [`prd-workspace/current/shared/01-roles-permissions-and-data-scope.md`](../shared/01-roles-permissions-and-data-scope.md) → “用户、角色、权限与数据范围”。M07 没有独立 User Flow，权限树依赖、保存、立即鉴权和日志行为以本文件正文及 Acceptance 为准。
+- 直接生效与只读日志：`DEC-189《M07 权限直接生效并仅保留只读变更日志》`，见 [`prd-workspace/decisions/DEC-189-M07-权限直接生效并仅保留只读变更日志.md`](../../decisions/DEC-189-M07-权限直接生效并仅保留只读变更日志.md) → “决策”条目。
+
 ## 12. Decision / Governance
 
 Decision 原文和状态以 [Decision Index](../../decisions/index.md) 为准。本模块只映射当前约束、外部消费事实和替代/冲突关系，不改写 Decision。

@@ -8,6 +8,14 @@
             `${hasOperationPermission("tasks.publish_campaign") ? '<button class="btn" data-action="new-campaign">＋ 发布专项任务</button>' : ""}${canCreateMaintenanceRecord() ? '<button class="btn btn-primary" data-action="new-record">＋ 新增维系记录</button>' : ""}`,
           ) + tabs
         );
+        if (taskView === "records") {
+          const host = document.createElement("div");
+          host.innerHTML = html;
+          host.querySelectorAll('[data-action="edit-record"]').forEach((button) => {
+            button.textContent = "追加附件";
+          });
+          return host.innerHTML;
+        }
         return html;
       }
 

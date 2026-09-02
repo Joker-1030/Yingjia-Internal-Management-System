@@ -9,6 +9,7 @@
       }
 
       let drawerStack = [];
+      let currentDrawerRestoreInteractions = null;
       function renderDrawerLayer(html) {
         const depth = drawerStack.length;
         const back = depth
@@ -22,14 +23,16 @@
           `<div class="drawer-mask"></div><aside class="drawer">${enhanced}</aside>`;
         bindOverlay();
       }
-      function openDrawer(html) {
+      function openDrawer(html, restoreInteractions = null) {
         const current = $("#overlay .drawer");
         if (current)
           drawerStack.push({
             html: current.dataset.rawHtml || current.innerHTML,
             scrollTop: current.scrollTop,
+            restoreInteractions: currentDrawerRestoreInteractions,
           });
         else drawerStack = [];
+        currentDrawerRestoreInteractions = restoreInteractions;
         renderDrawerLayer(html);
         const drawer = $("#overlay .drawer");
         if (drawer) drawer.dataset.rawHtml = html;
@@ -37,12 +40,15 @@
       function backDrawer() {
         const previous = drawerStack.pop();
         if (!previous) return closeOverlay();
+        currentDrawerRestoreInteractions = previous.restoreInteractions || null;
         renderDrawerLayer(previous.html);
         const drawer = $("#overlay .drawer");
         if (drawer) {
           drawer.dataset.rawHtml = previous.html;
           drawer.scrollTop = previous.scrollTop || 0;
         }
+        if (currentDrawerRestoreInteractions)
+          currentDrawerRestoreInteractions();
       }
       function openModal(html) {
         $("#modalLayer").innerHTML =
@@ -56,6 +62,7 @@
           return;
         }
         drawerStack = [];
+        currentDrawerRestoreInteractions = null;
         $("#overlay").innerHTML = "";
         const n = $(".notice-panel");
         if (n) n.remove();
@@ -63,6 +70,7 @@
       function closeAllOverlays() {
         $("#modalLayer").innerHTML = "";
         drawerStack = [];
+        currentDrawerRestoreInteractions = null;
         $("#overlay").innerHTML = "";
         const n = $(".notice-panel");
         if (n) n.remove();

@@ -361,6 +361,12 @@ M05 不拥有员工/账号停用、客户主数据普通编辑、关键人普通
 
 映射结果：13/13 条 AC 已建立主题索引；未修改任何既有 AC ID、优先级或顺序。
 
+### 11.1 核心深入阅读入口
+
+- Acceptance：`AC-F012-06` 至 `AC-F012-18`，见 [`prd-workspace/current/acceptance/M05.md`](../acceptance/M05.md) → 对应 AC 编号。
+- 当前停用与恢复流程：`FLOW-13《M05-deactivation-and-restore》`，见 [`prd-workspace/current/user-flows/FLOW-13-M05-deactivation-and-restore.md`](../user-flows/FLOW-13-M05-deactivation-and-restore.md) → “Current Product Flow”；较早的 `FLOW-04` 仅按本文件治理说明保留被替代证据。
+- 业务状态与失败重试：`DEC-184《客户停用恢复只展示业务状态并锁定失败重试》`，见 [`prd-workspace/decisions/DEC-184-客户停用恢复只展示业务状态并锁定失败重试.md`](../../decisions/DEC-184-客户停用恢复只展示业务状态并锁定失败重试.md) → “决策”条目。
+
 ## 12. Decision / Governance
 
 ### Direct Decisions

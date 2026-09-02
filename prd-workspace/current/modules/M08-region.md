@@ -406,6 +406,13 @@ Shared 01 的 F004 功能矩阵已按 DEC-143 同步：市场副总不承担普�
 
 映射结果：既有 M08 AC 均保留稳定 ID，并新增 AC-F004-13/14/15；已确认的措辞替代可追溯至 DEC-167/168/169/173/175。
 
+### 11.1 核心深入阅读入口
+
+- Acceptance：`AC-F003-11` 至 `AC-F003-25`、`AC-F004-05` 至 `AC-F004-15`，见 [`prd-workspace/current/acceptance/M08.md`](../acceptance/M08.md) → 对应 AC 编号。
+- 当前地市交接审批：`FLOW-10《M08-city-handover-approval》`，见 [`prd-workspace/current/user-flows/FLOW-10-M08-city-handover-approval.md`](../user-flows/FLOW-10-M08-city-handover-approval.md) → 文档标题下主流程；项目责任同步见 `FLOW-16《M11-project-responsibility-handover》`：[`prd-workspace/current/user-flows/FLOW-16-M11-project-responsibility-handover.md`](../user-flows/FLOW-16-M11-project-responsibility-handover.md) → 文档标题下主流程。
+- 交接发起权：`DEC-143《地市交接发起权收紧至仅原负责 PM 本人》`，见 [`prd-workspace/decisions/DEC-143-地市交接发起权收紧至仅原负责-PM-本人.md`](../../decisions/DEC-143-地市交接发起权收紧至仅原负责-PM-本人.md) → “决策”条目。
+- 项目负责人迁移：`DEC-175《项目负责人由地区责任唯一驱动并随交接迁移》`，见 [`prd-workspace/decisions/DEC-175-项目负责人由地区责任唯一驱动并随交接迁移.md`](../../decisions/DEC-175-项目负责人由地区责任唯一驱动并随交接迁移.md) → “决策”条目。
+
 ## 12. Decision / Governance
 
 Decision 原文和状态以 [Decision Index](../../decisions/index.md) 及当前原始 Decision 记录为准。本节只建立约束、外部消费、替代和未决索引，不改写 Decision 结论。

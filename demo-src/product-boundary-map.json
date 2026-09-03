@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "product": "英嘉科技内部管理系统",
-  "updatedAt": "2026-09-02",
+  "updatedAt": "2026-09-03",
   "purpose": "AI feature classification and product impact analysis",
   "scope": {
     "primary_features": ["M01", "M02", "M03", "M04", "M05", "M06", "M07", "M08", "M09", "M10", "M11", "M12"],
@@ -22,6 +22,7 @@
     "prd-workspace/decisions/DEC-190-M10-导入成功后五分钟内幂等生成适用-M03-任务.md",
     "prd-workspace/decisions/DEC-191-P01-数字角标与消息未读状态按明确动作联动.md",
     "prd-workspace/decisions/DEC-194-M12-收口销售与商机管理并排除合同财务.md",
+    "prd-workspace/decisions/DEC-198-客户侧停用恢复仅管理员直接生效.md",
     "prd-workspace/GLOSSARY.md",
     "prd-workspace/current/modules/"
   ],
@@ -59,7 +60,7 @@
       "responsibility": [
         "作为客户资产的业务使用入口浏览集团、客户公司和关键人",
         "按显式组织上级浏览客户组织树，并按业务责任区域查看客户档案、责任、健康状态及关键人任职信息",
-        "维护关键人并发起关键人调岗、停用和维系行动"
+        "维护关键人并发起关键人调岗和维系行动；仅向admin提供客户侧停用/恢复对象入口"
       ],
       "not_responsible_for": [
         "人工维护行业、集团、客户公司、客户部门或标准岗位主数据",
@@ -68,7 +69,7 @@
       ],
       "core_objects": ["集团公司", "客户公司", "关键人", "关键人任职", "客户责任", "客户健康"],
       "pages": ["客户经营", "集团公司详情", "客户公司详情", "关键人详情", "关键人全部客户动态", "关键人调岗"],
-      "states": ["page:Loading/Empty/EmptyResult/Error/PermissionDenied", "selection:未选择客户/未选择关键人", "business:关键人正常/已停用", "related-approval:停用审批中/恢复审批中/调岗审批中", "runtime:责任配置异常"],
+      "states": ["page:Loading/Empty/EmptyResult/Error/PermissionDenied", "selection:未选择客户/未选择关键人", "business:关键人正常/已停用", "related-approval:调岗审批中", "runtime:责任配置异常"],
       "related_features": ["M01", "M03", "M04", "M05", "M06", "M08", "M09", "M10", "M11", "M12", "P01"],
       "common_changes": ["客户或关键人字段调整", "客户筛选调整", "客户详情展示调整", "关键人任职或调岗规则调整", "客户责任与可见范围调整"],
       "classification_guide": {
@@ -118,7 +119,7 @@
         "定义业务对象自身的字段和生命周期",
         "替代发起模块完成业务数据维护",
         "提供流程设计器或任意流程配置",
-        "承载员工部门/角色编辑或员工停用/恢复审批"
+        "承载员工部门/角色编辑、员工停用/恢复或客户侧停用/恢复审批"
       ],
       "core_objects": ["审批实例", "审批节点", "处理动作", "抄送关系", "流程记录"],
       "pages": ["待我处理", "我已处理", "我发起的", "抄送我的", "审批详情"],
@@ -138,17 +139,17 @@
       "name": "停用记录",
       "responsibility": [
         "统一承载客户侧对象的停用、恢复和历史查询",
-        "按显式组织上级识别正常下级并展示停用原因、审批、级联处理、替代关系及恢复记录",
-        "保持停用对象的审计链和受控恢复流程"
+        "按显式组织上级识别正常下级并展示停用原因、影响校验、级联处理、替代关系及恢复记录",
+        "仅由唯一内置admin二次确认后直接原子生效，并保持停用对象的审计链"
       ],
       "not_responsible_for": [
         "物理删除业务对象",
         "处理行业直接停用或内部员工停用",
         "普通编辑客户、关键人或客户部门"
       ],
-      "core_objects": ["停用申请", "恢复申请", "对象快照", "影响摘要", "停用记录"],
-      "pages": ["停用记录列表", "停用记录详情", "恢复申请"],
-      "states": ["page:Loading/Empty/EmptyResult/Error/PermissionDenied/Submitting", "business:正常/已停用", "related-approval:停用审批中/恢复审批中", "operation:业务处理失败"],
+      "core_objects": ["停用操作", "恢复操作", "对象快照", "影响摘要", "停用记录"],
+      "pages": ["停用记录列表", "停用记录详情", "恢复操作"],
+      "states": ["page:Loading/Empty/EmptyResult/Error/PermissionDenied/Submitting", "business:正常/已停用"],
       "related_features": ["M02", "M03", "M04", "M06", "M08", "M09", "M10", "P01"],
       "common_changes": ["适用对象调整", "停用或恢复规则调整", "级联影响调整", "筛选与历史展示调整", "阻断条件调整"],
       "classification_guide": {
@@ -255,8 +256,8 @@
       ],
       "core_objects": ["职级周期规则", "提醒规则", "行业", "集团公司", "客户公司", "客户部门", "标准关键人岗位", "生日/节假日规则"],
       "pages": ["职级周期与提醒", "客户组织树", "生日/节假日规则"],
-      "states": ["page:Loading/Empty/EmptyResult/Error/PermissionDenied/Submitting", "business-master-data:正常/已停用", "business-rule:启用/停用", "operation:配置版本已更新/同步失败", "related-approval:停用审批中/恢复审批中"],
-      "related_features": ["M01", "M02", "M03", "M04", "M05", "M06", "M07", "M08", "M10", "M12", "P01"],
+      "states": ["page:Loading/Empty/EmptyResult/Error/PermissionDenied/Submitting", "business-master-data:正常/已停用", "business-rule:启用/停用", "operation:配置版本已更新/同步失败"],
+      "related_features": ["M01", "M02", "M03", "M05", "M06", "M07", "M08", "M10", "M12", "P01"],
       "common_changes": ["维系周期或提醒调整", "客户主数据字段、显式组织上级或业务责任调整", "部门岗位归属调整", "生日/节假日规则调整", "配置权限调整"],
       "classification_guide": {
         "module_upgrade": "既有配置对象的字段、层级、规则、状态或维护入口变化",

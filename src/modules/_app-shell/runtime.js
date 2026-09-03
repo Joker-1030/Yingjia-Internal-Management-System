@@ -775,13 +775,49 @@
               }
             }
           }
-          if (
-            t.status === "paused" &&
-            t.resumeDate &&
-            t.resumeDate <= DEMO_TODAY
-          ) {
-            t.status = t.due < DEMO_TODAY ? "overdue" : "pending";
-            t.resumedAt = DEMO_TODAY;
+          if (t.status === "paused") {
+            t.originalDue = t.originalDue || t.due;
+            t.everOverdue = false;
+            delete t.firstOverdueAt;
+            delete t.lateDays;
+            if (
+              ["生日关怀", "节假日关怀"].includes(t.type) &&
+              t.due < DEMO_TODAY
+            ) {
+              t.status = "cancelled";
+              t.closureSource = "paused_event_deadline";
+              t.closedAt = `${addDays(t.due, 1)} 00:00:00`;
+              t.closeReason = "暂停期间已越过事件截止，系统自动关闭";
+              return;
+            }
+            if (t.resumeDate && t.resumeDate <= DEMO_TODAY) {
+              const previousDue = t.due;
+              if (t.type === "常规维系") {
+                const person = contacts.find(
+                  (item) =>
+                    (t.personId && item.id === t.personId) ||
+                    (item.name === t.person && item.company === t.company),
+                );
+                const resumedLevel = person?.level || t.level;
+                const cycleDays = maintenanceConfig.cycles[resumedLevel] || 30;
+                t.due = addDays(t.resumeDate, cycleDays);
+                t.level = resumedLevel;
+                t.resumeHistory = [
+                  ...(t.resumeHistory || []),
+                  {
+                    resumedAt: t.resumeDate,
+                    previousDue,
+                    currentDue: t.due,
+                    level: resumedLevel,
+                    cycleDays,
+                  },
+                ];
+              }
+              t.status = "pending";
+              t.resumedAt = t.resumeDate;
+            } else {
+              return;
+            }
           }
           if (t.status === "overdue") {
             t.everOverdue = true;
@@ -802,8 +838,11 @@
             t.type === "常规维系" &&
             !["done", "cancelled", "late_entry_pending", "paused"].includes(t.status) &&
             t.due < DEMO_TODAY
-          )
+          ) {
             t.status = "overdue";
+            t.everOverdue = true;
+            t.firstOverdueAt = t.firstOverdueAt || addDays(t.due, 1);
+          }
           if (
             ["生日关怀", "节假日关怀"].includes(t.type) &&
             !["done", "cancelled", "late_entry_pending", "paused"].includes(t.status)
@@ -882,8 +921,16 @@
         return Boolean(
           task &&
             ["常规维系", "生日关怀", "节假日关怀"].includes(task.type) &&
-            (task.status === "overdue" ||
-              (task.status === "paused" && task.due < DEMO_TODAY)),
+            task.status === "overdue",
+        );
+      }
+      function taskCanPause(task) {
+        return Boolean(
+          task &&
+            ["常规维系", "生日关怀", "节假日关怀"].includes(task.type) &&
+            task.status === "pending" &&
+            task.due >= DEMO_TODAY &&
+            task.everOverdue !== true,
         );
       }
       function customerHasOverdue(company) {

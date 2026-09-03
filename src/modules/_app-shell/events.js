@@ -5,7 +5,6 @@
         bindProjectFormEvents();
         enhanceCustomerFilterToolbar();
         enhanceTaskExecutionTable();
-        enhanceTaskExecutionFilters();
         enhanceUnifiedFilterPresentation();
         bindExecutionTables();
         document.querySelectorAll("[data-admin-dashboard-view]").forEach(
@@ -1201,17 +1200,11 @@
           const parentCode = $("#taskParentCode")?.value.trim() || "",
             executionCode = $("#taskExecutionCode")?.value.trim() || "",
             title = $("#taskTitle")?.value.trim() || "",
-            personCode = $("#taskPersonCode")?.value.trim() || "",
             personName = $("#taskPersonName")?.value.trim() || "",
             company = $("#taskCompany")?.value.trim() || "",
             type = $("#taskType")?.value || "",
             owner = $("#taskOwner")?.value || "",
-            region = $("#taskRegion")?.value || "",
-            city = $("#taskCityFilter")?.value || "",
             riskScope = $("#taskRiskScope")?.value || "",
-            eventType = $("#taskEventType")?.value || "",
-            eventMonth = $("#taskEventMonth")?.value || "",
-            completionType = $("#taskCompletionType")?.value || "",
             dueStart = $("#taskDueStart")?.value || "",
             dueEnd = $("#taskDueEnd")?.value || "";
           const invalidDueRange = dueStart && dueEnd && dueStart > dueEnd;
@@ -1225,14 +1218,10 @@
             const id = row.querySelector('[data-action="task-detail"]')?.dataset.id ||
               row.querySelector("[data-complete]")?.dataset.complete;
             const task = tasks.find((item) => String(item.id) === String(id));
-            const contact = contacts.find(
-              (item) => item.name === task?.person && item.company === task?.company,
-            );
             const isMatch = !invalidDueRange &&
               (!parentCode || String(task?.parentTaskCode || "").includes(parentCode)) &&
               (!executionCode || String(task?.executionCode || "").includes(executionCode)) &&
               (!title || String(task?.title || "").includes(title)) &&
-              (!personCode || String(contact?.code || "").includes(personCode)) &&
               (!personName || String(task?.person || "").includes(personName)) &&
               (!company || String(task?.company || "").includes(company)) &&
               (!type ||
@@ -1242,30 +1231,12 @@
                     )
                   : row.dataset.taskType === type)) &&
               (!owner || row.dataset.taskOwner === owner) &&
-              (!region || regionsMatch(row.dataset.taskRegion, region)) &&
-              (!city || row.dataset.taskCity === city) &&
               (!riskScope ||
                 (riskScope === "current" && row.dataset.taskRisk === "true") ||
-                (riskScope === "ever" && Boolean(row.dataset.taskOverdueMonth)) ||
                 (riskScope === "next7" &&
-                  row.dataset.executionGroup === "pending" &&
+                  task?.status === "pending" &&
                   row.dataset.taskDue > DEMO_TODAY &&
-                  row.dataset.taskDue <= addDays(DEMO_TODAY, 7)) ||
-                (riskScope === "none" && row.dataset.taskRisk !== "true")) &&
-              (!eventType ||
-                (eventType === "done"
-                  ? Boolean(row.dataset.taskDoneMonth) &&
-                    (!eventMonth || row.dataset.taskDoneMonth === eventMonth)
-                  : Boolean(row.dataset.taskOverdueMonth) &&
-                    (!eventMonth || row.dataset.taskOverdueMonth === eventMonth))) &&
-              (!completionType ||
-                (completionType === "on-time"
-                  ? ["on_time", "late_entry_approved"].includes(
-                      row.dataset.taskCompletionType,
-                    )
-                  : completionType === "late-entry"
-                    ? row.dataset.taskCompletionType === "late_entry_approved"
-                    : row.dataset.taskCompletionType === "late_completion")) &&
+                  row.dataset.taskDue <= addDays(DEMO_TODAY, 7))) &&
               (!dueStart || row.dataset.taskDue >= dueStart) &&
               (!dueEnd || row.dataset.taskDue <= dueEnd);
             row.dataset.filterMatch = String(isMatch);
@@ -1285,17 +1256,11 @@
               "#taskParentCode",
               "#taskExecutionCode",
               "#taskTitle",
-              "#taskPersonCode",
               "#taskPersonName",
               "#taskCompany",
               "#taskType",
               "#taskOwner",
-              "#taskRegion",
-              "#taskCityFilter",
               "#taskRiskScope",
-              "#taskEventType",
-              "#taskEventMonth",
-              "#taskCompletionType",
               "#taskDueStart",
               "#taskDueEnd",
             ].forEach((selector) => {
@@ -1311,20 +1276,13 @@
           const filter = dashboardTaskFilter;
           if ($("#taskType")) $("#taskType").value = filter.type || "";
           if ($("#taskOwner")) $("#taskOwner").value = filter.pm || "";
-          if ($("#taskRegion")) $("#taskRegion").value = filter.region || "";
-          if ($("#taskCityFilter"))
-            $("#taskCityFilter").value =
-              filter.city === "省公司" ? "省级" : filter.city || "";
           if ($("#taskRiskScope"))
             $("#taskRiskScope").value =
-              filter.group === "risk" ? "current" : "";
-          if ($("#taskEventType"))
-            $("#taskEventType").value = filter.event || "";
-          if ($("#taskEventMonth"))
-            $("#taskEventMonth").value = filter.month || "";
-          if ($("#taskCompletionType"))
-            $("#taskCompletionType").value =
-              filter.group === "on-time" ? "on-time" : "";
+              filter.group === "risk"
+                ? "current"
+                : filter.group === "next7"
+                  ? "next7"
+                  : "";
           if ($("#taskDueStart"))
             $("#taskDueStart").value = filter.dueStart || "";
           if ($("#taskDueEnd"))
@@ -1410,54 +1368,28 @@
         }
         const filterRecords = () => {
           const code = $("#recordCode")?.value.trim() || "",
-            personCode = $("#recordPersonCode")?.value.trim() || "",
             personName = $("#recordPersonName")?.value.trim() || "",
             company = $("#recordCompany")?.value.trim() || "",
-            summary = $("#recordSummary")?.value.trim() || "",
             method = $("#recordMethod")?.value || "",
             executor = $("#recordExecutor")?.value || "",
-            region = $("#recordRegion")?.value || "",
-            city = $("#recordCity")?.value || "",
             linkedTask = $("#recordLinkedTask")?.value || "",
-            attachment = $("#recordAttachment")?.value || "",
             dateStart = $("#recordDateStart")?.value || "",
-            dateEnd = $("#recordDateEnd")?.value || "",
-            createdStart = $("#recordCreatedStart")?.value || "",
-            createdEnd = $("#recordCreatedEnd")?.value || "";
+            dateEnd = $("#recordDateEnd")?.value || "";
           const invalidDateRange = dateStart && dateEnd && dateStart > dateEnd;
-          const invalidCreatedRange =
-            createdStart && createdEnd && createdStart > createdEnd;
           $("#recordDateEnd")?.setCustomValidity(
             invalidDateRange ? "维系日期止不能早于维系日期起" : "",
           );
-          $("#recordCreatedEnd")?.setCustomValidity(
-            invalidCreatedRange ? "创建日期止不能早于创建日期起" : "",
-          );
           document.querySelectorAll("#recordBody tr:not([data-empty-row])").forEach(
             (row) => {
-              const recordId = row.querySelector('[data-action="record-detail"]')?.dataset.id;
-              const record = maintenanceRecords.find(
-                (item) => String(item.id) === String(recordId),
-              );
-              const contact = contacts.find(
-                (item) => item.name === record?.person && item.company === record?.company,
-              );
-              const isMatch = !invalidDateRange && !invalidCreatedRange &&
+              const isMatch = !invalidDateRange &&
                 (!code || row.dataset.recordCode.includes(code)) &&
-                (!personCode || String(contact?.code || "").includes(personCode)) &&
                 (!personName || row.dataset.recordPerson.includes(personName)) &&
                 (!company || row.dataset.recordCompany.includes(company)) &&
-                (!summary || row.dataset.recordSummary.includes(summary)) &&
                 (!method || row.dataset.recordMethod === method) &&
                 (!executor || row.dataset.recordExecutor === executor) &&
-                (!region || regionsMatch(row.dataset.recordRegion, region)) &&
-                (!city || row.dataset.recordCity === city) &&
                 (!linkedTask || row.dataset.recordLinked === linkedTask) &&
-                (!attachment || row.dataset.recordAttachment === attachment) &&
                 (!dateStart || row.dataset.recordDate >= dateStart) &&
-                (!dateEnd || row.dataset.recordDate <= dateEnd) &&
-                (!createdStart || row.dataset.recordCreated >= createdStart) &&
-                (!createdEnd || row.dataset.recordCreated <= createdEnd);
+                (!dateEnd || row.dataset.recordDate <= dateEnd);
               row.classList.toggle("hidden", !isMatch);
             },
           );
@@ -1469,20 +1401,13 @@
           $("#resetRecordFilters").onclick = () => {
             [
               "#recordCode",
-              "#recordPersonCode",
               "#recordPersonName",
               "#recordCompany",
-              "#recordSummary",
               "#recordMethod",
               "#recordExecutor",
-              "#recordRegion",
-              "#recordCity",
               "#recordLinkedTask",
-              "#recordAttachment",
               "#recordDateStart",
               "#recordDateEnd",
-              "#recordCreatedStart",
-              "#recordCreatedEnd",
             ].forEach((selector) => {
               const element = $(selector);
               if (element) element.value = "";

@@ -138,7 +138,7 @@
         const canRetryBusiness =
           a.status === "processing_failed" &&
           currentUser.fullAccess &&
-          Boolean(a.targetKind || a.targetArchiveId);
+          Boolean(a.targetKind || a.targetArchiveId || a.targetTaskId);
         const transferPerson = a.transferContactId
           ? contacts.find((x) => x.id === a.transferContactId)
           : null;
@@ -153,7 +153,7 @@
           : "";
         const businessFailure =
           a.status === "processing_failed" && a.businessError
-          ? `<div class="section-title">业务回写结果</div><div class="role-note danger-note"><strong>审批已通过，但业务处理失败</strong><br>${a.businessError}<br>业务对象保持审批前状态，由系统管理员复核后受控重试；重试成功前不能重新发起该对象的停用或恢复。</div>`
+          ? `<div class="section-title">业务回写结果</div><div class="role-note danger-note"><strong>审批已通过，但业务处理失败</strong><br>${a.businessError}<br>业务对象保持审批前状态，由系统管理员复核后受控重试；重试成功前不改变原业务状态。</div>`
           : "";
         const businessFailureHistory = a.businessFailureHistory?.length
           ? `<div class="section-title">业务处理失败记录</div><div class="timeline">${a.businessFailureHistory.map((entry) => `<div class="timeline-item is-current"><div class="timeline-title">${entry.time} · 业务处理失败</div><div class="timeline-content">${entry.error}</div></div>`).join("")}</div>`
@@ -491,7 +491,7 @@
         if (
           !approval ||
           approval.status !== "processing_failed" ||
-          !(approval.targetKind || approval.targetArchiveId)
+          !(approval.targetKind || approval.targetArchiveId || approval.targetTaskId)
         )
           return toast("当前流程无需受控重试");
         const decisionSnapshot = {
@@ -785,17 +785,49 @@
         }
         if (pass && a.targetTaskId) {
           const t = tasks.find((x) => x.id === a.targetTaskId);
+          if (!t)
+            return recordApprovalBusinessFailure(
+              a,
+              "关联任务已不存在，任务变更未生效",
+              "审批已通过，但关联任务不存在，已进入业务处理失败",
+            );
+          if (
+            a.changeType === "暂停维系至某日" &&
+            !taskCanPause(t)
+          ) {
+            if (
+              t.status === "pending" &&
+              t.due < DEMO_TODAY &&
+              !t.everOverdue
+            ) {
+              t.status = "overdue";
+              t.everOverdue = true;
+              t.firstOverdueAt = addDays(t.due, 1);
+            }
+            return recordApprovalBusinessFailure(
+              a,
+              "暂停生效时任务已不满足未逾期且从未逾期条件，原任务状态保持不变",
+              "审批已通过，但任务已不满足暂停条件，已进入业务处理失败",
+            );
+          }
           if (a.changeType === "取消") {
             t.status = "cancelled";
             t.closeReason = a.reason;
           }
           if (a.changeType === "延期") {
+            t.originalDue = t.originalDue || t.due;
             t.due = a.changeDate;
             t.status = t.due < DEMO_TODAY ? "overdue" : "pending";
           }
           if (a.changeType === "暂停维系至某日") {
+            t.originalDue = t.originalDue || t.due;
             t.status = "paused";
             t.resumeDate = a.changeDate;
+            t.pausedAt = a.decidedAt;
+            t.pauseApprovalId = a.id;
+            t.everOverdue = false;
+            delete t.firstOverdueAt;
+            delete t.lateDays;
           }
         }
         if (pass && a.transferContactId) {

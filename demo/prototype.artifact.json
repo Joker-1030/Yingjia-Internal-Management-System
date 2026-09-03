@@ -1,11 +1,11 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-09-02T16:02:17.190Z",
+  "generatedAt": "2026-09-03T07:53:41.077Z",
   "generator": "scripts/build-prototype.mjs",
   "buildCommand": "node scripts/build-prototype.mjs",
   "sourceRoot": "src",
   "entry": "src/prototype.html",
-  "sourceDigest": "dfb48752e96a6b01a81f57219291eed97fec254446afeeae72dedbd8b2baa6fc",
+  "sourceDigest": "eaef2c54d4383085608a0da05d9163270bf08388fc688ced17281238b2f31c30",
   "sourceFiles": [
     {
       "path": "src/app.js",
@@ -19,8 +19,8 @@
     },
     {
       "path": "src/data/approvals.js",
-      "sha256": "18a4b07b834241bb95f48cbcc82c740608e091765d7e9e3ea2895d014e80a5fc",
-      "bytes": 9643
+      "sha256": "eec168062b8e8bdffc4cfa537951068d1ac199aaf8971d80ce38b2df764d3dc2",
+      "bytes": 9661
     },
     {
       "path": "src/data/archive.js",
@@ -144,8 +144,8 @@
     },
     {
       "path": "src/modules/_app-shell/events.js",
-      "sha256": "46fff59ad47efdd278bf4bd81d7bdd0f054771b1180f9e9eeba7888c0240d790",
-      "bytes": 77272
+      "sha256": "e050337c95b1cc4b4568cf764e3827d99a5ad4fbd8b9375a359758b261dcdaff",
+      "bytes": 73036
     },
     {
       "path": "src/modules/_app-shell/notifications.js",
@@ -159,8 +159,8 @@
     },
     {
       "path": "src/modules/_app-shell/runtime.js",
-      "sha256": "0cacb668e26bf593a15a54c7cb39cc5e5e454afaa73eaf00f8e50bb8d4c73925",
-      "bytes": 56480
+      "sha256": "30e1ebfb8b834d3dd77d7e77ed4899e8232c7ef6314c590a70f2b720441c4c18",
+      "bytes": 58304
     },
     {
       "path": "src/modules/_app-shell/state.js",
@@ -174,8 +174,8 @@
     },
     {
       "path": "src/modules/m01-dashboard/page.js",
-      "sha256": "9bcec3fea0af6702aa85e152772a8239c74c444e5f0b8976ef64d2fe4c5a35c4",
-      "bytes": 38899
+      "sha256": "e73082b719ffee3e06a8c3e284f6915c841bb322f87da861e1c4097fc45392d0",
+      "bytes": 38663
     },
     {
       "path": "src/modules/m02-customer-operations/customer-tree.js",
@@ -184,8 +184,8 @@
     },
     {
       "path": "src/modules/m02-customer-operations/details.js",
-      "sha256": "96910a3c4f824ab8258a54ab90428ba4c59d6963a72cc25bd04e48b6b34623f9",
-      "bytes": 80374
+      "sha256": "908969e84f727935e878d2fce1f2875e95d1e67ebe1288d46af4a5d166cf450a",
+      "bytes": 80266
     },
     {
       "path": "src/modules/m02-customer-operations/module.json",
@@ -214,8 +214,8 @@
     },
     {
       "path": "src/modules/m03-maintenance/details.js",
-      "sha256": "5d6ad3e2becffaefdf30f8cc2f7e5e469d04cfb6765dd06f7d209892e723790c",
-      "bytes": 53583
+      "sha256": "40d48a4a2128401e5d7c798ab9b337eaf7863a3ef0fd14d681291fbe71bb4b9a",
+      "bytes": 54427
     },
     {
       "path": "src/modules/m03-maintenance/module.json",
@@ -224,8 +224,8 @@
     },
     {
       "path": "src/modules/m03-maintenance/page.js",
-      "sha256": "84cfbf4175b0fcb9c3e07da9fee1f0f078cd3439d3f76b02551304633131a079",
-      "bytes": 48425
+      "sha256": "9132a48dbeb0874ad687c83415517cc1a83ff143f45b90b798c44ce238eddf89",
+      "bytes": 44502
     },
     {
       "path": "src/modules/m03-maintenance/task-actions.js",
@@ -234,8 +234,8 @@
     },
     {
       "path": "src/modules/m04-approvals/interactions.js",
-      "sha256": "b3f7c5879b63fd3710ae97b46c800c214f3f74b4b8f88e9fc6d75bc0c415361c",
-      "bytes": 52066
+      "sha256": "dad329a0ca74e1a8b5e5cc8820a032e33b13e653ea3e4b6077a79f842b3d6f5f",
+      "bytes": 53321
     },
     {
       "path": "src/modules/m04-approvals/module.json",
@@ -456,8 +456,8 @@
   ],
   "artifact": {
     "path": "demo/prototype.html",
-    "sha256": "dfc55548de8f9f913327a74b205270347875f33f973d14d3dc76d9f3868d0401",
-    "bytes": 1497140
+    "sha256": "520f7b86c52ac596e25cfd1e6f0097a4d1041019c98b8037f9a714c6f048ed47",
+    "bytes": 1492578
   },
   "legacyBridge": false,
   "architecture": "lightweight-modular",

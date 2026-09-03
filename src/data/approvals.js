@@ -169,7 +169,7 @@
           expectedApprover: "林哲",
           decidedBy: "林哲",
           decidedAt: "2026-08-11 10:20",
-          decisionComment: "同意暂停，恢复后按当时截止状态继续执行。",
+          decisionComment: "同意暂停；恢复后按关键人当前职级和当前周期重算截止。",
           targetTaskId: 229,
           changeType: "暂停维系至某日",
           changeDate: "2026-08-24",

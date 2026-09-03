@@ -67,12 +67,7 @@
         if (!people.length) return 0;
         const overdueContacts = new Set(
           rows
-            .filter(
-              (task) =>
-                ["常规维系", "生日关怀", "节假日关怀"].includes(task.type) &&
-                (task.status === "overdue" ||
-                  (task.status === "paused" && task.due < DEMO_TODAY)),
-            )
+            .filter(taskIsHealthRisk)
             .map((task) => `${task.company}:${task.person}`),
         );
         return Math.round(
@@ -352,7 +347,7 @@
         );
         const riskCompanies = scopedCustomers().filter((company) => customerHealth(company) === "逾期").length;
         if (riskCompanies)
-          items.push({ icon: "险", title: "客户风险", detail: `当前 ${riskCompanies} 家客户存在三类维系逾期风险，含暂停超截止风险`, tone: "red", nav: "tasks", group: "risk" });
+          items.push({ icon: "险", title: "客户风险", detail: `当前 ${riskCompanies} 家客户存在三类维系逾期风险，不含暂停任务`, tone: "red", nav: "tasks", group: "risk" });
         return items.slice(0, 10);
       }
 

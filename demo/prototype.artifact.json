@@ -1,11 +1,11 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-09-04T17:07:47.838Z",
+  "generatedAt": "2026-09-04T18:06:32.044Z",
   "generator": "scripts/build-prototype.mjs",
   "buildCommand": "node scripts/build-prototype.mjs",
   "sourceRoot": "src",
   "entry": "src/prototype.html",
-  "sourceDigest": "8f4bac59527c7a01786e3d95cf6eeeb4411cff7f6a2e696d308bd8245d7b5eed",
+  "sourceDigest": "df03eafdc645f6ccbd8883f9a6d3063a25d0bb84c7d3edc921edfaa4ae88e4e7",
   "sourceFiles": [
     {
       "path": "src/app.js",
@@ -209,8 +209,8 @@
     },
     {
       "path": "src/modules/m02-customer-operations/transfers.js",
-      "sha256": "a1eadd2fcd608ca5c29ea8aa96606158281a314eb413261fa8f0d596c31bb075",
-      "bytes": 13983
+      "sha256": "dd18b68f4e3a3546dab027f9e13c989595a22995efa494309895427591767d01",
+      "bytes": 15300
     },
     {
       "path": "src/modules/m03-maintenance/details.js",
@@ -456,8 +456,8 @@
   ],
   "artifact": {
     "path": "demo/prototype.html",
-    "sha256": "087c6b347ca1fb08ed1f8096d430f940e1371e092be10181587afb1e2eee9a4b",
-    "bytes": 1515358
+    "sha256": "a23f92fa92aaa661e0d9841f9b304675e25c15f76b2ab03e5e3ccaed2097fe70",
+    "bytes": 1516675
   },
   "legacyBridge": false,
   "architecture": "lightweight-modular",

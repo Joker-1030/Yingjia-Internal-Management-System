@@ -24397,83 +24397,150 @@
         const sourceCompany = customers.find(
           (item) => item.name === person.company,
         );
-        const selectable = scopedCustomers().filter(
-          (company) => !company.archived && company.name !== person.company,
+        const normalIndustries = industries.filter(
+          (industry) => industry.enabled !== false,
         );
+        const normalGroupsForIndustry = (industryName) =>
+          customerGroupNames.filter(
+            (group) =>
+              customerGroupIndustries[group] === industryName &&
+              customers.some(
+                (company) => !company.archived && company.group === group,
+              ),
+          );
+        const normalCompaniesForGroup = (group) =>
+          customers.filter(
+            (company) =>
+              !company.archived &&
+              company.group === group &&
+              company.name !== person.company,
+          );
+        const optionHtml = (value, label = value, selected = "") =>
+          `<option value="${value}" ${value === selected ? "selected" : ""}>${label}</option>`;
         openModal(
-          `<div class="modal-head"><div class="modal-title">关键人调岗</div><button class="icon-btn close" data-close>×</button></div><form id="transferForm"><div class="modal-body"><div class="role-note"><strong>${person.name}</strong> 当前任职：${person.company} / ${person.department} / ${person.positionName} / ${person.level}</div><div class="form-grid"><div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>变更类型</label><select class="input" id="tfChangeMode"><option value="same">同单位任职变更</option><option value="cross" selected>跨单位调岗</option></select></div><div class="form-group" id="tfLocateModeGroup"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>目标单位定位方式</label><select class="input" id="tfLocateMode"><option value="select">权限内选择</option><option value="exact" ${currentUser.role === "pm" ? "selected" : ""}>精确信息查找</option></select></div><div class="form-group full" id="tfSelectCompanyGroup"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>目标客户公司</label><select class="input" id="tfCompany"><option value="">请选择目标客户公司</option>${selectable.map((company) => `<option value="${company.name}">${company.name} · ${company.level} · ${adminArea(company)}</option>`).join("")}</select></div><div class="form-group full" id="tfExactCompanyGroup"><div class="form-grid"><div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>目标公司完整名称</label><input class="input" id="tfExactName" minlength="2" maxlength="100"></div><div class="form-group"><label class="form-label">统一社会信用代码</label><input class="input" id="tfCreditCode" maxlength="18"></div><div class="form-group"><label class="form-label">所属集团</label><select class="input" id="tfExactGroup"><option value="">未填信用代码时请选择</option>${customerGroupNames.map((group) => `<option>${group}</option>`).join("")}</select></div><div class="form-group"><label class="form-label">完整区划</label><input class="input" id="tfExactArea" maxlength="100" placeholder="例如：江苏省 / 南京市"></div></div><div class="list-sub">Demo 使用预置客户档案精确匹配，不返回无权客户候选。</div></div><div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>新客户部门</label><select class="input" id="tfDepartment"><option value="">请先选择目标公司</option></select></div><div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>新关键人岗位</label><select class="input" id="tfStandardPosition"><option value="">请先选择目标部门</option></select></div><div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>新职级</label><select class="input" id="tfLevel">${contactLevelOptions(person.level)}</select></div><div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>新任职生效日</label><input class="input" id="tfEffectiveDate" type="date" min="${DEMO_TODAY}" value="${DEMO_TODAY}" required></div><div class="form-group full"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>调岗原因</label><textarea class="input" id="tfReason" minlength="5" maxlength="500" required>客户本人确认任职发生变化，申请按最新信息调整。</textarea></div><div class="form-group full"><label class="form-label">影响摘要</label><div id="transferImpact" class="impact-summary"></div></div></div><div class="role-note" id="transferFlowNote"></div></div><div class="modal-foot"><button class="btn" type="button" data-close>取消</button><button class="btn btn-primary" type="submit">确认调岗</button></div></form>`,
+          `<div class="modal-head"><div class="modal-title">关键人调岗</div><button class="icon-btn close" data-close>×</button></div><form id="transferForm"><div class="modal-body"><div class="role-note"><strong>${person.name}</strong> 当前任职：${person.company} / ${person.department} / ${person.positionName} / ${person.level}</div><div class="form-grid"><div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>变更类型</label><select class="input" id="tfChangeMode"><option value="same">同单位任职变更</option><option value="cross" selected>跨单位调岗</option></select></div><div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>目标行业</label><select class="input" id="tfIndustry"><option value="">请选择目标行业</option>${normalIndustries.map((industry) => optionHtml(industry.name)).join("")}</select></div><div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>目标集团</label><select class="input" id="tfGroup" disabled><option value="">请先选择目标行业</option></select></div><div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>目标客户公司</label><select class="input" id="tfCompany" disabled><option value="">请先选择目标集团</option></select></div><div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>新客户部门</label><select class="input" id="tfDepartment" disabled><option value="">请先选择目标公司</option></select></div><div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>新关键人岗位</label><select class="input" id="tfStandardPosition" disabled><option value="">请先选择目标部门</option></select></div><div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>新职级</label><select class="input" id="tfLevel">${contactLevelOptions(person.level)}</select></div><div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>新任职生效日</label><input class="input" id="tfEffectiveDate" type="date" min="${DEMO_TODAY}" value="${DEMO_TODAY}" required></div><div class="form-group full"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>调岗原因</label><textarea class="input" id="tfReason" minlength="5" maxlength="500" required>客户本人确认任职发生变化，申请按最新信息调整。</textarea></div><div class="form-group full"><label class="form-label">影响摘要</label><div id="transferImpact" class="impact-summary"></div></div></div><div class="role-note" id="transferFlowNote"></div></div><div class="modal-foot"><button class="btn" type="button" data-close>取消</button><button class="btn btn-primary" type="submit">确认调岗</button></div></form>`,
         );
         const resolveTarget = () => {
-          if ($("#tfChangeMode").value === "same") return sourceCompany;
-          if ($("#tfLocateMode").value === "select")
-            return customers.find(
-              (company) => company.name === $("#tfCompany").value,
-            );
-          const exactName = $("#tfExactName").value.trim();
-          const creditCode = $("#tfCreditCode").value.trim().toUpperCase();
-          const exactGroup = $("#tfExactGroup").value;
-          const exactArea = $("#tfExactArea").value.replace(
-            /[省市区县\s/]/g,
-            "",
+          if ($("#tfChangeMode").value === "same")
+            return sourceCompany && !sourceCompany.archived
+              ? sourceCompany
+              : null;
+          const industry = normalIndustries.find(
+            (item) => item.name === $("#tfIndustry").value,
           );
-          return customers.find((company) => {
-            if (company.archived || company.name !== exactName) return false;
-            if (creditCode) return company.creditCode === creditCode;
-            return (
-              company.group === exactGroup &&
-              adminArea(company).replace(/[省市区县\s/]/g, "") === exactArea
-            );
-          });
+          const group = $("#tfGroup").value;
+          if (
+            !industry ||
+            !normalGroupsForIndustry(industry.name).includes(group)
+          )
+            return null;
+          return normalCompaniesForGroup(group).find(
+            (company) => company.name === $("#tfCompany").value,
+          );
         };
         const refreshTransfer = (source = "initial") => {
           const same = $("#tfChangeMode").value === "same";
-          $("#tfLocateModeGroup").classList.toggle("hidden", same);
-          const locateMode = same ? "same" : $("#tfLocateMode").value;
-          $("#tfSelectCompanyGroup").classList.toggle(
-            "hidden",
-            locateMode !== "select",
-          );
-          $("#tfExactCompanyGroup").classList.toggle(
-            "hidden",
-            locateMode !== "exact",
-          );
+          let industryValue = $("#tfIndustry").value;
+          let groupValue = $("#tfGroup").value;
+          let companyValue = $("#tfCompany").value;
+          let departmentValue = $("#tfDepartment").value;
+          let positionValue = $("#tfStandardPosition").value;
+          if (source === "mode") {
+            industryValue = "";
+            groupValue = "";
+            companyValue = "";
+            departmentValue = "";
+            positionValue = "";
+          } else if (source === "industry") {
+            groupValue = "";
+            companyValue = "";
+            departmentValue = "";
+            positionValue = "";
+          } else if (source === "group") {
+            companyValue = "";
+            departmentValue = "";
+            positionValue = "";
+          } else if (source === "company") {
+            departmentValue = "";
+            positionValue = "";
+          } else if (source === "department") {
+            positionValue = "";
+          }
+          if (same) {
+            industryValue =
+              customerGroupIndustries[sourceCompany?.group] ||
+              sourceCompany?.industry ||
+              "";
+            groupValue = sourceCompany?.group || "";
+            companyValue = sourceCompany?.name || "";
+            if (["initial", "mode"].includes(source)) {
+              departmentValue = String(
+                customerDepartmentsForCompany(person.company).find(
+                  (item) => item.name === person.department,
+                )?.id || "",
+              );
+              positionValue = person.positionId || "";
+            }
+          }
+          $("#tfIndustry").innerHTML =
+            '<option value="">请选择目标行业</option>' +
+            (same && industryValue
+              ? optionHtml(industryValue, industryValue, industryValue)
+              : normalIndustries
+                  .map((industry) =>
+                    optionHtml(industry.name, industry.name, industryValue),
+                  )
+                  .join(""));
+          $("#tfIndustry").disabled = same;
+          const groups = same
+            ? groupValue
+              ? [groupValue]
+              : []
+            : normalGroupsForIndustry(industryValue);
+          $("#tfGroup").innerHTML =
+            '<option value="">请先选择目标行业</option>' +
+            groups
+              .map((group) => optionHtml(group, group, groupValue))
+              .join("");
+          $("#tfGroup").disabled = same || !industryValue;
+          const companies = same
+            ? sourceCompany
+              ? [sourceCompany]
+              : []
+            : normalCompaniesForGroup(groupValue);
+          $("#tfCompany").innerHTML =
+            '<option value="">请先选择目标集团</option>' +
+            companies
+              .map((company) =>
+                optionHtml(company.name, company.name, companyValue),
+              )
+              .join("");
+          $("#tfCompany").disabled = same || !groupValue;
           const target = resolveTarget();
           const departments = target
             ? customerDepartmentsForCompany(target.name)
             : [];
-          const desiredDepartment =
-            ["company", "exact"].includes(source)
-              ? ""
-              : $("#tfDepartment").value ||
-                String(
-                  departments.find(
-                    (item) => same && item.name === person.department,
-                  )?.id || "",
-                );
           $("#tfDepartment").innerHTML =
             '<option value="">请选择客户部门</option>' +
             departments
               .map(
                 (item) =>
-                  `<option value="${item.id}" ${String(item.id) === desiredDepartment ? "selected" : ""}>${customerDepartmentPath(item)}</option>`,
+                  `<option value="${item.id}" ${String(item.id) === departmentValue ? "selected" : ""}>${customerDepartmentPath(item)}</option>`,
               )
               .join("");
+          $("#tfDepartment").disabled = !target;
           const positions = contactPositionsForDepartment(
             $("#tfDepartment").value,
           );
-          const desiredPosition =
-            source === "department"
-              ? ""
-              : $("#tfStandardPosition").value ||
-                (same ? person.positionId : "");
           $("#tfStandardPosition").innerHTML =
             '<option value="">请选择关键人岗位</option>' +
             positions
               .map(
                 (item) =>
-                  `<option value="${item.id}" ${item.id === desiredPosition ? "selected" : ""}>${item.name} · ${item.code}</option>`,
+                  `<option value="${item.id}" ${item.id === positionValue ? "selected" : ""}>${item.name} · ${item.code}</option>`,
               )
               .join("");
+          $("#tfStandardPosition").disabled = !$("#tfDepartment").value;
           const targetDepartment = customerDepartments.find(
             (item) => String(item.id) === $("#tfDepartment").value,
           );
@@ -24488,29 +24555,20 @@
           $("#transferImpact").innerHTML = `<div class="impact-grid"><div><label>责任变化</label><strong>${customerOwnerName(sourceCompany)} → ${target ? customerOwnerName(target) : "待匹配"}</strong></div><div><label>任职变化</label><strong>${person.department} / ${person.positionName} → ${targetDepartment?.name || "待选择"} / ${targetPosition?.name || "待选择"}</strong></div><div><label>未结束任务</label><strong>${unfinished.length} 条</strong></div><div><label>覆盖影响</label><strong>部门 / 岗位覆盖重新计算</strong></div></div>`;
           if (!target)
             $("#transferFlowNote").textContent =
-              locateMode === "exact"
-                ? "请完成目标公司精确匹配后再提交。"
-                : "请选择目标客户公司。";
+              "请依次选择目标行业、集团、客户公司、客户部门和关键人岗位。";
           else
             $("#transferFlowNote").textContent =
               $("#tfEffectiveDate").value > DEMO_TODAY
                 ? "完成影响确认后进入待生效；计划日到期重新校验，生效前当前任职继续有效。"
                 : "完成影响确认和校验后当日直接生效，不经过接收或审批。";
         };
-        ["#tfChangeMode", "#tfLocateMode", "#tfCompany", "#tfExactGroup"].forEach(
-          (selector) => {
-            if ($(selector))
-              $(selector).onchange = () => refreshTransfer("company");
-          },
-        );
+        $("#tfChangeMode").onchange = () => refreshTransfer("mode");
+        $("#tfIndustry").onchange = () => refreshTransfer("industry");
+        $("#tfGroup").onchange = () => refreshTransfer("group");
+        $("#tfCompany").onchange = () => refreshTransfer("company");
         $("#tfDepartment").onchange = () => refreshTransfer("department");
         $("#tfStandardPosition").onchange = () => refreshTransfer();
         $("#tfEffectiveDate").onchange = () => refreshTransfer();
-        ["#tfExactName", "#tfCreditCode", "#tfExactArea"].forEach((selector) => {
-          if ($(selector))
-            $(selector).oninput = () => refreshTransfer("exact");
-        });
-        if (currentUser.role === "pm") $("#tfLocateMode").value = "exact";
         refreshTransfer();
 
         $("#transferForm").onsubmit = (event) => {
@@ -24518,7 +24576,7 @@
           const same = $("#tfChangeMode").value === "same";
           const target = resolveTarget();
           if (!target)
-            return toast("未精确匹配到有效目标公司，请核对名称、信用代码或集团与区划");
+            return toast("请按行业、集团和客户公司完成有效目标选择");
           if (!same && target.name === person.company)
             return toast("跨单位调岗的目标公司不能等于当前公司");
           const department = customerDepartments.find(

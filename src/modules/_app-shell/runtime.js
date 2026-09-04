@@ -101,7 +101,7 @@
 
         [
           ["approvalType", "业务类型"], ["approvalApplicant", "申请人"], ["approvalHandler", "当前处理人"], ["approvalStatus", "审批实例状态"], ["approvalStartDate", "发起开始日期"], ["approvalEndDate", "发起结束日期"], ["approvalCompletedStart", "完成开始日期"], ["approvalCompletedEnd", "完成结束日期"],
-          ["archiveType", "对象类型"], ["archiveStatus", "业务状态"], ["archiveApprovalStatus", "审批状态"], ["archiveApplicant", "申请人"], ["archiveRegion", "所属区域"], ["archiveApplyStart", "申请开始日期"], ["archiveApplyEnd", "申请结束日期"], ["archiveEffectiveStart", "生效开始日期"], ["archiveEffectiveEnd", "生效结束日期"],
+          ["archiveType", "对象类型"], ["archiveStatus", "业务状态"], ["archiveOperator", "实际操作人"], ["archiveRegion", "所属区域"], ["archiveEffectiveStart", "生效开始日期"], ["archiveEffectiveEnd", "生效结束日期"],
           ["employeeRole", "系统角色"], ["employeeStatus", "员工状态"], ["employeeAccountStatus", "账号状态"],
           ["regionProvinceFilter", "省份"], ["regionCityProvince", "省份"], ["regionCityStatus", "分配状态"],
           ["ruleConfigKeyword", "规则名称"], ["ruleConfigType", "规则类型"], ["ruleConfigStatus", "状态"], ["industryConfigStatus", "状态"],
@@ -190,6 +190,7 @@
       };
       const roleCanSeeBusiness = () => hasDataObject("客户单位");
       const canAccessPage = (page) => {
+        if (["approvals", "archive"].includes(page)) return false;
         if (page === "operations") return roleCanSeeBusiness();
         if (page === "city-management")
           return isPmCityManagementUser() && hasPermission(page);
@@ -701,32 +702,6 @@
             delete task.closedAt;
           }
         });
-        approvals.forEach((approval) => {
-          if (
-            approval.type !== "关键人调岗" ||
-            approval.status !== "pending" ||
-            !approval.targetCompany
-          )
-            return;
-          const target = customers.find(
-            (company) => company.name === approval.targetCompany,
-          );
-          if (target?.level !== "省公司") return;
-          const sourcePerson = contacts.find(
-            (person) => person.id === approval.transferContactId,
-          );
-          const sameCompany = sourcePerson?.company === target.name;
-          approval.region = customerRegionScope(target);
-          approval.current = sameCompany
-            ? "市场副总审批"
-            : "目标区域总监审批";
-          approval.targetOwner = customerOwnerName(target);
-          approval.targetPm = "";
-          approval.currentAssignees = sameCompany
-            ? ["王静"]
-            : [regionDirectorForCustomer(target)];
-          approval.expectedApprover = approval.currentAssignees.join("、");
-        });
       }
       function normalizeTaskStates() {
         normalizeCustomerResponsibilities();
@@ -836,7 +811,7 @@
           }
           if (
             t.type === "常规维系" &&
-            !["done", "cancelled", "late_entry_pending", "paused"].includes(t.status) &&
+            !["done", "cancelled", "paused"].includes(t.status) &&
             t.due < DEMO_TODAY
           ) {
             t.status = "overdue";
@@ -845,7 +820,7 @@
           }
           if (
             ["生日关怀", "节假日关怀"].includes(t.type) &&
-            !["done", "cancelled", "late_entry_pending", "paused"].includes(t.status)
+            !["done", "cancelled", "paused"].includes(t.status)
           ) {
             const policy = taskLateCompletionPolicy(t);
             t.allowLateCompletion = policy.allowed;

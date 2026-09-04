@@ -17,7 +17,6 @@
   "dataReferences": [
     "data/regions.js",
     "data/organization.js",
-    "data/approvals.js",
     "data/notifications.js"
   ],
   "sourceFiles": [

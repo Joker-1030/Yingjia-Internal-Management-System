@@ -24,98 +24,68 @@
           toast("已拒绝接收并通知原PM");
         };
       }
+
       function openArchiveAudit(id) {
-        const x = archivedItems.find((x) => x.id === id);
-        if (!x || !archiveVisibleToCurrentUser(x))
+        const item = archivedItems.find((candidate) => candidate.id === id);
+        if (!item || !archiveVisibleToCurrentUser(item))
           return toast("停用记录不存在或无权查看");
-        const stopApproval = approvals.find(
-          (approval) => approval.code === x.flowCode,
-        );
-        const recoveryApproval = approvals.find(
-          (approval) => approval.code === x.recoveryFlowCode,
-        );
-        const stopTimeline =
-          ["pending", "paused_invalid_handler"].includes(stopApproval?.status)
-            ? `<div class="timeline-item is-current"><div class="timeline-title">${stopApproval?.current || "审批处理中"}</div><div class="timeline-content">当前处理人：${approvalCurrentAssignees(stopApproval || {}).join("、") || "待系统计算"}；审批通过前对象仍按正常状态参与业务。</div></div>`
-            : stopApproval?.status === "processing_failed"
-              ? `<div class="timeline-item is-current"><div class="timeline-title">已通过-业务处理失败</div><div class="timeline-content">对象保持正常；${stopApproval.businessError || "等待系统管理员受控重试"}</div></div>`
-            : `<div class="timeline-item is-done"><div class="timeline-title">${x.effectiveAt || "—"} · 审批通过并生效</div><div class="timeline-content">对象从正常列表、候选和实时经营统计中剔除；历史编号、任职、任务和记录保留。</div></div>`;
-        const recoveryTimeline =
-          ["pending", "paused_invalid_handler"].includes(recoveryApproval?.status)
-            ? `<div class="timeline-item is-current"><div class="timeline-title">恢复审批中</div><div class="timeline-content">${x.recoveryStatus}；当前处理人 ${approvalCurrentAssignees(recoveryApproval || {}).join("、") || "待系统计算"}；对象业务状态保持已停用。</div></div>`
-            : recoveryApproval?.status === "processing_failed"
-              ? `<div class="timeline-item is-current"><div class="timeline-title">恢复已通过-业务处理失败</div><div class="timeline-content">对象保持已停用；${recoveryApproval.businessError || "等待系统管理员受控重试"}</div></div>`
-            : x.recoveredAt
-              ? `<div class="timeline-item is-done"><div class="timeline-title">${x.recoveredAt} · 恢复已生效</div><div class="timeline-content">集团编号 ${x.businessNumber || x.groupSnapshot?.groupNumber || "—"} 保持不变，停用与恢复历史继续保留。</div></div>`
-              : "";
+        const operator = item.operator || item.applicant || "—";
+        const recoveryResult =
+          item.recoveryResult || (item.recoveredAt ? "已恢复" : "未恢复");
+        const recoveryTimeline = item.recoveredAt
+          ? `<div class="timeline-item is-done"><div class="timeline-title">${item.recoveredAt} · 恢复已直接生效</div><div class="timeline-content">操作人：${item.recoveryOperator || operator}；原因：${item.recoveryReason || "—"}。停用与恢复历史继续保留。</div></div>`
+          : "";
         openDrawer(
-          `<div class="drawer-head"><div><div class="modal-title">停用记录详情</div><div class="panel-sub">${x.flowCode} · ${x.type}</div></div><button class="icon-btn close" data-close>×</button></div><div class="drawer-body"><div class="detail-hero"><div class="avatar">停</div><div><div class="detail-name">${x.name}</div><div class="detail-sub">${x.parent} · ${x.region}</div></div><div class="spacer"></div><span class="tag ${x.status === "已停用" ? "red" : "green"}">${x.status}</span></div><div class="detail-grid"><div class="detail-item"><label>对象快照</label><div>${x.type} · ${x.name}</div></div>${x.type === "集团公司" ? `<div class="detail-item"><label>集团编号</label><div>${x.businessNumber || x.groupSnapshot?.groupNumber || "—"}</div></div>` : ""}<div class="detail-item"><label>停用前状态</label><div>正常</div></div><div class="detail-item"><label>停用原因</label><div>${x.reason}</div></div><div class="detail-item"><label>任务处理方式</label><div>${x.taskHandle}</div></div><div class="detail-item"><label>影响摘要</label><div>${x.impact}</div></div><div class="detail-item"><label>停用生效时间</label><div>${x.effectiveAt || "—（审批通过后生成）"}</div></div><div class="detail-item"><label>停用审批状态</label><div>${stopApproval ? approvalStatusName(stopApproval.status) : x.approvalStatus || "已通过"}</div></div><div class="detail-item"><label>恢复审批</label><div>${recoveryApproval ? `${approvalStatusName(recoveryApproval.status)} · ${recoveryApproval.code}` : x.recoveryStatus || "未申请"}</div></div></div>${x.upperDisabled ? `<div class="role-note danger-note">恢复阻断：${x.upperDisabledReason}</div>` : ""}<div class="section-title">审批与生效记录</div><div class="timeline"><div class="timeline-item is-done"><div class="timeline-title">${x.date} · ${x.applicant} 发起停用申请</div><div class="timeline-content">流程 ${x.flowCode}；原因：${x.reason}</div></div>${stopTimeline}${recoveryTimeline}</div></div><div class="drawer-foot"><button class="btn" data-close>关闭</button>${stopApproval ? `<button class="btn" data-action="approval-detail" data-id="${stopApproval.id}">查看停用审批</button>` : ""}${recoveryApproval ? `<button class="btn" data-action="approval-detail" data-id="${recoveryApproval.id}">查看恢复审批</button>` : ""}${x.status === "已停用" && hasOperationPermission("archive.restore") && !archiveRecoveryLock(x) ? `<button class="btn btn-primary" data-action="restore-object" data-id="${x.id}">申请恢复</button>` : ""}</div>`,
+          `<div class="drawer-head"><div><div class="modal-title">停用记录详情</div><div class="panel-sub">${item.type}</div></div><button class="icon-btn close" data-close>×</button></div><div class="drawer-body"><div class="detail-hero"><div class="avatar">停</div><div><div class="detail-name">${item.name}</div><div class="detail-sub">${item.parent} · ${item.region}</div></div><div class="spacer"></div><span class="tag ${item.status === "已停用" ? "red" : "green"}">${item.status}</span></div><div class="detail-grid"><div class="detail-item"><label>对象快照</label><div>${item.type} · ${item.name}</div></div>${item.type === "集团公司" ? `<div class="detail-item"><label>集团编号</label><div>${item.businessNumber || item.groupSnapshot?.groupNumber || "—"}</div></div>` : ""}<div class="detail-item"><label>停用前状态</label><div>正常</div></div><div class="detail-item"><label>停用原因</label><div>${item.reason}</div></div><div class="detail-item"><label>实际操作人</label><div>${operator}</div></div><div class="detail-item"><label>确认结果</label><div>${item.confirmationResult || "已确认"}</div></div><div class="detail-item"><label>任务处理方式</label><div>${item.taskHandle}</div></div><div class="detail-item"><label>影响摘要</label><div>${item.impact}</div></div><div class="detail-item"><label>停用生效时间</label><div>${item.effectiveAt || "—"}</div></div><div class="detail-item"><label>恢复结果</label><div>${recoveryResult}</div></div></div>${item.upperDisabled ? `<div class="role-note danger-note">恢复阻断：${item.upperDisabledReason}</div>` : ""}<div class="section-title">生效记录</div><div class="timeline"><div class="timeline-item is-done"><div class="timeline-title">${item.effectiveAt || item.date} · 停用已直接生效</div><div class="timeline-content">操作人：${operator}；原因：${item.reason}。对象从正常列表、候选和实时经营统计中剔除，历史编号、任职、任务和记录保留。</div></div>${recoveryTimeline}</div></div><div class="drawer-foot"><button class="btn" data-close>关闭</button>${item.status === "已停用" && currentUser.fullAccess && hasOperationPermission("archive.restore") ? `<button class="btn btn-primary" data-action="restore-object" data-id="${item.id}">恢复</button>` : ""}</div>`,
         );
       }
+
       function openRestore(id) {
-        if (!hasOperationPermission("archive.restore"))
-          return toast("当前账号无申请恢复权限");
-        const x = archivedItems.find((x) => x.id === id);
-        if (!x || !archiveVisibleToCurrentUser(x))
+        if (!currentUser?.fullAccess || !hasOperationPermission("archive.restore"))
+          return toast("当前账号无恢复权限");
+        const item = archivedItems.find((candidate) => candidate.id === id);
+        if (!item || !archiveVisibleToCurrentUser(item))
           return toast("停用记录不存在或无权查看");
-        if (x.status !== "已停用" || archiveRecoveryLock(x))
-          return toast("该对象已有恢复审批，不能重复提交");
-        const targetObject =
-          archivedBusinessObject(x) || {
-            id: x.targetId,
-            name: x.name,
-            group: x.parent,
-            region: x.region,
-          };
-        const route = objectApprovalRoute(x.targetKind, targetObject);
+        if (item.status !== "已停用") return toast("该对象当前不是已停用状态");
+        if (item.upperDisabled) return toast(item.upperDisabledReason);
+        const targetObject = archivedBusinessObject(item);
+        if (item.targetKind !== "group" && !targetObject)
+          return toast("恢复对象已不存在，业务状态未改变");
         openModal(
-          `<div class="modal-head"><div class="modal-title">申请恢复${x.type}</div><button class="icon-btn close" data-close>×</button></div><form id="restoreForm"><div class="modal-body"><div class="detail-grid"><div class="detail-item"><label>恢复对象</label><div>${x.name}</div></div>${x.type === "集团公司" ? `<div class="detail-item"><label>集团编号</label><div>${x.businessNumber || x.groupSnapshot?.groupNumber || "—"}</div></div>` : ""}<div class="detail-item"><label>停用流程</label><div>${x.flowCode}</div></div><div class="detail-item"><label>恢复顺序校验</label><div>${x.upperDisabled ? "不通过" : "通过"}</div></div><div class="detail-item"><label>任务生成影响</label><div>不补造停用期间历史任务</div></div></div>${x.upperDisabled ? `<div class="role-note danger-note">${x.upperDisabledReason}</div>` : `<div class="role-note">审批路由：${route.direct ? "总裁直接确认并形成已通过审计实例" : `${route.current}（${route.assignees.join("、")}）`}。通过后对象重新进入正常列表和候选；关键人从恢复时间重建常规任务，覆盖 KPI 按当前责任重新计算。</div>`}<div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>恢复原因</label><textarea class="input" id="restoreReason" minlength="5" maxlength="500" required placeholder="请填写 5-500 字恢复原因"></textarea></div></div><div class="modal-foot"><button class="btn" type="button" data-close>取消</button><button class="btn btn-primary" type="submit" ${x.upperDisabled ? "disabled" : ""}>${route.direct ? "确认恢复并记录审计" : "提交恢复审批"}</button></div></form>`,
+          `<div class="modal-head"><div class="modal-title">恢复${item.type}</div><button class="icon-btn close" data-close>×</button></div><form id="restoreForm"><div class="modal-body"><div class="detail-grid"><div class="detail-item"><label>恢复对象</label><div>${item.name}</div></div>${item.type === "集团公司" ? `<div class="detail-item"><label>集团编号</label><div>${item.businessNumber || item.groupSnapshot?.groupNumber || "—"}</div></div>` : ""}<div class="detail-item"><label>当前状态</label><div>已停用</div></div><div class="detail-item"><label>恢复顺序校验</label><div>通过</div></div><div class="detail-item"><label>任务生成影响</label><div>不补造停用期间历史任务</div></div></div><div class="role-note">确认后恢复操作立即生效且不生成审批流程。对象重新进入正常列表和候选；关键人仅从恢复时间起生成仍适用的未来任务。</div><div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>恢复原因</label><textarea class="input" id="restoreReason" minlength="5" maxlength="500" required placeholder="请填写 5-500 字恢复原因"></textarea></div></div><div class="modal-foot"><button class="btn" type="button" data-close>取消</button><button class="btn btn-primary" type="submit">确认恢复</button></div></form>`,
         );
         $("#restoreForm").onsubmit = (e) => {
           e.preventDefault();
-          if (x.upperDisabled) return toast(x.upperDisabledReason);
-          const flowCode = nextBusinessCode("WF");
-          x.recoveryStatus = `审批中 · ${flowCode}`;
-          x.recoveryFlowCode = flowCode;
-          const approval = {
-            id: Date.now(),
-            code: flowCode,
-            source: "manual",
-            type: "恢复审批",
-            title: `恢复${x.name}`,
-            applicant: currentUser.name,
-            region: x.region,
-            current: route.current,
-            currentAssignees: [...route.assignees],
-            ccUsers: [...route.ccUsers],
-            status: "pending",
-            date: recordCreatedAt(),
-            reason: $("#restoreReason").value.trim(),
-            targetArchiveId: x.id,
-            archiveSnapshot: {
-              type: x.type,
-              name: x.name,
-              flowCode: x.flowCode,
-              impact: x.impact,
-              businessNumber:
-                x.businessNumber || x.groupSnapshot?.groupNumber || "",
-            },
-            businessNumber:
-              x.type === "集团公司"
-                ? x.businessNumber || x.groupSnapshot?.groupNumber || ""
-                : "",
-          };
-          approvals.unshift(approval);
-          if (route.direct) {
-            approval.decisionComment = "总裁确认恢复并按当前业务责任重新启用。";
-            handleApproval(approval.id, true);
+          const actionAt = recordCreatedAt();
+          if (item.targetKind === "group") {
+            if (!customerGroupNames.includes(item.name))
+              customerGroupNames.push(item.name);
+            customerGroupIndustries[item.name] =
+              item.groupSnapshot?.industry || customerGroupIndustries[item.name] || "";
+            customerGroupCreditCodes[item.name] =
+              item.groupSnapshot?.creditCode ||
+              customerGroupCreditCodes[item.name] ||
+              "";
+            customerGroupNumbers[item.name] =
+              item.groupSnapshot?.groupNumber ||
+              item.businessNumber ||
+              customerGroupNumbers[item.name];
+            pendingGroupStops.delete(item.name);
+          } else {
+            targetObject.archived = false;
+            targetObject.pendingStop = false;
           }
+          if (item.targetKind === "contact")
+            ensureRegularTask(targetObject, DEMO_TODAY);
+          Object.assign(item, {
+            status: "正常",
+            recoveryResult: "已恢复",
+            recoveryReason: $("#restoreReason").value.trim(),
+            recoveryOperator: currentUser.name,
+            recoveredAt: actionAt,
+          });
           closeOverlay();
           renderPage();
-          toast(
-            route.direct
-              ? "恢复已直接生效并生成完整审计记录"
-              : `恢复申请已提交${route.current}`,
-          );
+          toast("恢复已直接生效并记录操作历史");
         };
       }

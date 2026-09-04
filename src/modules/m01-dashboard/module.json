@@ -16,7 +16,6 @@
     "data/customers.js",
     "data/contacts.js",
     "data/tasks.js",
-    "data/approvals.js",
     "data/campaigns.js",
     "data/notifications.js"
   ],

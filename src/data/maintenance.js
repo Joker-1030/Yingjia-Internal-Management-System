@@ -310,8 +310,6 @@
           region: "福建华南区域",
           attachments: ["端午关怀截图.png"],
         },
-      ];
-      const pendingMaintenanceRecords = [
         {
           id: 9001,
           taskId: 225,
@@ -326,7 +324,8 @@
           pm: "徐经理",
           region: "江苏区域",
           attachments: ["合肥联通沟通截图.png"],
-          reviewStatus: "pending",
           entryDelayDays: 12,
+          lateEntryReason: "7月30日已完成电话维系，出差后忘记及时登记。",
         },
       ];
+      const pendingMaintenanceRecords = [];

@@ -30,7 +30,6 @@
           return 3;
         if (task.status === "pending") return 4;
         if (task.status === "paused") return 5;
-        if (task.status === "late_entry_pending") return 6;
         return 7;
       }
       function personTaskEndTime(task) {
@@ -75,18 +74,12 @@
               record.person === person.name && record.company === person.company,
           )
           .sort((left, right) => right.date.localeCompare(left.date));
-        const relatedApprovals = visibleApprovalsForCurrentUser().filter(
-          (approval) =>
-            approval.transferContactId === person.id ||
-            approval.title.includes(person.name),
-        );
         const taskCounts = {
           overdue: activeTasks.filter((task) => task.status === "overdue").length,
           today: activeTasks.filter((task) => task.status === "pending" && task.due === DEMO_TODAY).length,
           next7: activeTasks.filter((task) => task.status === "pending" && task.due > DEMO_TODAY && task.due <= addDays(DEMO_TODAY, 7)).length,
           pending: activeTasks.filter((task) => task.status === "pending" && task.due > addDays(DEMO_TODAY, 7)).length,
           paused: activeTasks.filter((task) => task.status === "paused").length,
-          review: activeTasks.filter((task) => task.status === "late_entry_pending").length,
         };
         const taskRows = (rows) =>
           rows.map((task) => `<tr><td><strong>${task.executionCode}</strong></td><td>${task.company}</td><td>${taskDisplayType(task)}</td><td>${task.title}</td><td><span class="tag ${taskStatusTone(task)}">${taskStatusName(task.status, task)}</span></td><td>${task.due} 23:59:59</td><td>${task.status === "overdue" ? Math.max(dayDiff(task.due, DEMO_TODAY), 1) + " 天" : "—"}</td><td>${task.pm}</td><td>${task.status === "done" ? completionTypeName(task.completionType) : "待完成"}</td><td><button class="link" data-action="task-detail" data-id="${task.id}">详情</button></td></tr>`).join("");
@@ -96,15 +89,14 @@
           ["history", "任职历史"],
           ["tasks", `维系任务 ${activeTasks.length}`],
           ["records", `维系记录 ${records.length}`],
-          ["approvals", `相关审批 ${relatedApprovals.length}`],
           ["logs", "操作日志"],
         ];
         let content = "";
         if (selectedPersonDetailTab === "base") {
-          content = `<div class="detail-grid"><div class="detail-item"><label>关键人编号</label><div>${person.code}</div></div><div class="detail-item"><label>状态</label><div><span class="tag green">正常</span></div></div><div class="detail-item"><label>手机号</label><div>${person.phone}</div></div><div class="detail-item"><label>微信号</label><div>${person.wechat || "未填写"}</div></div><div class="detail-item"><label>邮箱</label><div>${person.email || "未填写"}</div></div><div class="detail-item"><label>性别</label><div>${person.gender || "未说明"}</div></div><div class="detail-item"><label>生日</label><div>${person.birthday || "未填写"}</div></div><div class="detail-item"><label>关键决策人</label><div>${person.decision ? "是" : "否"}</div></div><div class="detail-item"><label>最近维系</label><div>${person.last || "从未"}</div></div><div class="detail-item"><label>写入来源</label><div>${person.source === "import" ? "批量导入" : person.source === "system" ? "系统生成" : "手工录入"}</div></div><div class="detail-item"><label>创建时间</label><div>${person.createdAt || "待补录"}</div></div><div class="detail-item"><label>更新时间</label><div>${person.updatedAt}</div></div></div><div class="section-title">当前任务摘要</div><div class="metrics compact-metrics">${metric("当前逾期", taskCounts.overdue, "持续标红直至闭环", "red")}${metric("今日到期", taskCounts.today, "当前业务日", "orange")}${metric("未来 7 天", taskCounts.next7, "待执行", "yellow")}${metric("暂停 / 审核", taskCounts.paused + taskCounts.review, `暂停 ${taskCounts.paused} · 补录审核 ${taskCounts.review}`, "blue")}</div><button class="btn" type="button" data-person-detail-tab="tasks">查看全部任务</button>`;
+          content = `<div class="detail-grid"><div class="detail-item"><label>关键人编号</label><div>${person.code}</div></div><div class="detail-item"><label>状态</label><div><span class="tag green">正常</span></div></div><div class="detail-item"><label>手机号</label><div>${person.phone}</div></div><div class="detail-item"><label>微信号</label><div>${person.wechat || "未填写"}</div></div><div class="detail-item"><label>邮箱</label><div>${person.email || "未填写"}</div></div><div class="detail-item"><label>性别</label><div>${person.gender || "未说明"}</div></div><div class="detail-item"><label>生日</label><div>${person.birthday || "未填写"}</div></div><div class="detail-item"><label>关键决策人</label><div>${person.decision ? "是" : "否"}</div></div><div class="detail-item"><label>最近维系</label><div>${person.last || "从未"}</div></div><div class="detail-item"><label>写入来源</label><div>${person.source === "import" ? "批量导入" : person.source === "system" ? "系统生成" : "手工录入"}</div></div><div class="detail-item"><label>创建时间</label><div>${person.createdAt || "待补录"}</div></div><div class="detail-item"><label>更新时间</label><div>${person.updatedAt}</div></div></div><div class="section-title">当前任务摘要</div><div class="metrics compact-metrics">${metric("当前逾期", taskCounts.overdue, "持续标红直至闭环", "red")}${metric("今日到期", taskCounts.today, "当前业务日", "orange")}${metric("未来 7 天", taskCounts.next7, "待执行", "yellow")}${metric("暂停中", taskCounts.paused, "不计逾期与健康风险", "blue")}</div><button class="btn" type="button" data-person-detail-tab="tasks">查看全部任务</button>`;
         }
         if (selectedPersonDetailTab === "employment")
-          content = `<div class="detail-grid"><div class="detail-item full"><label>客户公司</label><div>${person.company}</div></div><div class="detail-item"><label>客户部门</label><div>${person.department}</div></div><div class="detail-item"><label>关键人岗位</label><div>${person.positionName}${person.positionId ? ` · ${person.positionId}` : ""}</div></div><div class="detail-item"><label>职级</label><div>${person.level}</div></div><div class="detail-item"><label>任职生效日</label><div>${person.effectiveDate}</div></div><div class="detail-item"><label>当前负责人</label><div>${contactOwnerName(person)}</div></div></div><div class="role-note">客户公司、部门和关键人岗位不能普通编辑。任一变化必须发起关键人调岗审批，审批生效后才进入覆盖率与覆盖 KPI。</div>`;
+          content = `<div class="detail-grid"><div class="detail-item full"><label>客户公司</label><div>${person.company}</div></div><div class="detail-item"><label>客户部门</label><div>${person.department}</div></div><div class="detail-item"><label>关键人岗位</label><div>${person.positionName}${person.positionId ? ` · ${person.positionId}` : ""}</div></div><div class="detail-item"><label>职级</label><div>${person.level}</div></div><div class="detail-item"><label>任职生效日</label><div>${person.effectiveDate}</div></div><div class="detail-item"><label>当前负责人</label><div>${contactOwnerName(person)}</div></div></div>${person.pendingTransfer ? `<div class="role-note"><strong>待生效调岗</strong>：${person.pendingTransfer.targetCompany} / ${person.pendingTransfer.targetDepartment} / ${person.pendingTransfer.targetPositionName}，计划 ${person.pendingTransfer.effectiveDate} 生效；生效前当前任职继续有效。</div>` : '<div class="role-note">客户公司、部门和关键人岗位不能普通编辑。任一变化必须通过调岗操作完成影响确认；当日直接生效，未来日期进入待生效。</div>'}`;
         if (selectedPersonDetailTab === "history")
           content = `<div class="timeline">${(person.employmentHistory || []).map((history) => `<div class="timeline-item is-done"><div class="timeline-title">${history.startDate || "历史"} 至 ${history.endDate}</div><div class="timeline-content">${history.company} / ${history.department} / ${history.positionName || history.title} / ${history.level || "职级快照"}<br>原负责人 ${history.pm}</div></div>`).join("")}<div class="timeline-item is-current"><div class="timeline-title">${person.effectiveDate} 至今 · 当前任职</div><div class="timeline-content">${person.company} / ${person.department} / ${person.positionName} / ${person.level}</div></div></div>`;
         if (selectedPersonDetailTab === "tasks") {
@@ -115,15 +107,13 @@
               : selectedPersonTaskScope === "done"
                 ? finishedTasks
                 : activeTasks;
-          content = `<div class="metrics compact-metrics">${metric("当前逾期", taskCounts.overdue, "按截止时间升序", "red")}${metric("今日到期", taskCounts.today, "待执行", "orange")}${metric("未来 7 天", taskCounts.next7, "待执行", "yellow")}${metric("其他待执行", taskCounts.pending, "七天以后")}${metric("暂停中", taskCounts.paused, "不计逾期与健康风险", "blue")}${metric("补录审核中", taskCounts.review, "不计当前逾期", "blue")}</div><div class="tabs execution-tabs"><button class="tab ${selectedPersonTaskScope === "unfinished" ? "active" : ""}" type="button" data-person-task-scope="unfinished">未结束 <span class="tab-count">${activeTasks.length}</span></button><button class="tab ${selectedPersonTaskScope === "all" ? "active" : ""}" type="button" data-person-task-scope="all">全部 <span class="tab-count">${personTasks.length}</span></button><button class="tab ${selectedPersonTaskScope === "done" ? "active" : ""}" type="button" data-person-task-scope="done">已完成 <span class="tab-count">${finishedTasks.length}</span></button></div><div class="table-wrap"><table style="min-width:1200px"><thead><tr><th>任务执行记录编号</th><th>客户公司</th><th>任务类型</th><th>任务标题</th><th>状态</th><th>截止时间</th><th>逾期天数</th><th>执行人</th><th>完成认定</th><th>操作</th></tr></thead><tbody>${taskRows(scopedTaskRows) || '<tr><td colspan="10">当前范围暂无任务</td></tr>'}</tbody></table></div>`;
+          content = `<div class="metrics compact-metrics">${metric("当前逾期", taskCounts.overdue, "按截止时间升序", "red")}${metric("今日到期", taskCounts.today, "待执行", "orange")}${metric("未来 7 天", taskCounts.next7, "待执行", "yellow")}${metric("其他待执行", taskCounts.pending, "七天以后")}${metric("暂停中", taskCounts.paused, "不计逾期与健康风险", "blue")}</div><div class="tabs execution-tabs"><button class="tab ${selectedPersonTaskScope === "unfinished" ? "active" : ""}" type="button" data-person-task-scope="unfinished">未结束 <span class="tab-count">${activeTasks.length}</span></button><button class="tab ${selectedPersonTaskScope === "all" ? "active" : ""}" type="button" data-person-task-scope="all">全部 <span class="tab-count">${personTasks.length}</span></button><button class="tab ${selectedPersonTaskScope === "done" ? "active" : ""}" type="button" data-person-task-scope="done">已完成 <span class="tab-count">${finishedTasks.length}</span></button></div><div class="table-wrap"><table style="min-width:1200px"><thead><tr><th>任务执行记录编号</th><th>客户公司</th><th>任务类型</th><th>任务标题</th><th>状态</th><th>截止时间</th><th>逾期天数</th><th>执行人</th><th>完成认定</th><th>操作</th></tr></thead><tbody>${taskRows(scopedTaskRows) || '<tr><td colspan="10">当前范围暂无任务</td></tr>'}</tbody></table></div>`;
         }
         if (selectedPersonDetailTab === "records")
           content = `<div class="table-wrap"><table><thead><tr><th>记录编号</th><th>维系时间</th><th>方式</th><th>沟通摘要</th><th>维系人</th><th>关联任务</th><th>创建 / 更新时间</th><th>操作</th></tr></thead><tbody>${records.map((record) => { const linkedTask = tasks.find((task) => task.id === record.taskId); return `<tr><td>${maintenanceRecordCode(record)}</td><td>${record.maintenanceAt || record.date}</td><td>${record.method}${record.method === "其他" ? ` · ${record.otherMethod || "未说明"}` : ""}</td><td>${record.summary}</td><td>${record.pm}</td><td>${linkedTask?.executionCode || "未关联"}</td><td>${record.createdAt || record.date}<div class="list-sub">更新 ${record.updatedAt || record.createdAt || record.date}</div></td><td><button class="link" data-action="record-detail" data-id="${record.id}">详情</button></td></tr>`; }).join("") || '<tr><td colspan="8">暂无维系记录</td></tr>'}</tbody></table></div>`;
-        if (selectedPersonDetailTab === "approvals")
-          content = `<div class="table-wrap"><table><thead><tr><th>流程编号</th><th>类型</th><th>申请事项</th><th>当前环节</th><th>状态</th><th>发起时间</th><th>操作</th></tr></thead><tbody>${relatedApprovals.map((approval) => `<tr><td>${approval.code}</td><td>${approval.type}</td><td>${approval.title}</td><td>${approval.status === "pending" ? approval.current : approvalFinalNodeTitle(approval)}</td><td><span class="tag ${approval.status === "approved" ? "green" : approval.status === "rejected" ? "red" : "yellow"}">${approvalStatusName(approval.status)}</span></td><td>${approval.date}</td><td><button class="link" data-action="approval-detail" data-id="${approval.id}">详情</button></td></tr>`).join("") || '<tr><td colspan="7">暂无相关审批</td></tr>'}</tbody></table></div>`;
         if (selectedPersonDetailTab === "logs")
           content = `<div class="timeline"><div class="timeline-item is-done"><div class="timeline-title">${person.updatedAt} · 信息更新</div><div class="timeline-content">更新手机号、关键决策人或展示字段；任职字段未变更。</div></div><div class="timeline-item is-done"><div class="timeline-title">${person.createdAt || person.effectiveDate} · 关键人创建</div><div class="timeline-content">${person.source === "import" ? "批量导入" : "手工录入"}，生成编号 ${person.code}。</div></div></div>`;
-        const html = `<div class="drawer-head"><div class="modal-title">关键人详情</div><button class="icon-btn close" data-close>×</button></div><div class="drawer-body"><div class="detail-hero"><div class="avatar">${person.name[0]}</div><div><div class="detail-name">${person.name} ${contactHasOverdue(person) ? '<span class="tag red">当前逾期</span>' : '<span class="tag green">健康</span>'}</div></div></div><div class="tabs detail-tabs">${tabs.map(([key, label]) => `<button class="tab ${selectedPersonDetailTab === key ? "active" : ""}" type="button" data-person-detail-tab="${key}">${label}</button>`).join("")}</div><div class="person-detail-content">${content}</div></div><div class="drawer-foot"><button class="btn" data-close>关闭</button>${stopObjectActionHtml("contact", person.id)}${personDetailCanMaintain(person) && !pendingStopApproval("contact", person.id) ? `<button class="btn" data-action="edit-contact" data-id="${person.id}">编辑身份</button>` : ""}${canTransferContact(person) && !pendingStopApproval("contact", person.id) ? `<button class="btn" data-action="transfer" data-id="${person.id}">发起调岗</button>` : ""}${canCreateMaintenanceForPerson(person) && !pendingStopApproval("contact", person.id) ? `<button class="btn btn-primary" data-action="new-record" data-id="${person.id}">新增记录</button>` : ""}</div>`;
+        const html = `<div class="drawer-head"><div class="modal-title">关键人详情</div><button class="icon-btn close" data-close>×</button></div><div class="drawer-body"><div class="detail-hero"><div class="avatar">${person.name[0]}</div><div><div class="detail-name">${person.name} ${contactHasOverdue(person) ? '<span class="tag red">当前逾期</span>' : '<span class="tag green">健康</span>'}</div></div></div><div class="tabs detail-tabs">${tabs.map(([key, label]) => `<button class="tab ${selectedPersonDetailTab === key ? "active" : ""}" type="button" data-person-detail-tab="${key}">${label}</button>`).join("")}</div><div class="person-detail-content">${content}</div></div><div class="drawer-foot"><button class="btn" data-close>关闭</button>${stopObjectActionHtml("contact", person.id)}${personDetailCanMaintain(person) ? `<button class="btn" data-action="edit-contact" data-id="${person.id}">编辑身份</button>` : ""}${canTransferContact(person) ? `<button class="btn" data-action="transfer" data-id="${person.id}">调岗</button>` : ""}${canCreateMaintenanceForPerson(person) ? `<button class="btn btn-primary" data-action="new-record" data-id="${person.id}">新增记录</button>` : ""}</div>`;
         if (initial)
           openDrawer(html, () => bindPersonDetailInteractions(person));
         else renderDrawerLayer(html);
@@ -199,12 +189,7 @@
           "record-detail": () => openRecordDetail(Number(id)),
           "all-person-records": () => openPersonRecords(Number(id)),
           "edit-record": () => openRecord(null, Number(id)),
-          "approval-detail": () => openApprovalDetail(Number(id)),
-          "retry-approval-business": () => retryApprovalBusiness(Number(id)),
-          "replace-invalid-handler": () =>
-            openReplaceInvalidHandler(Number(id)),
-          "accept-transfer": () => acceptTransfer(Number(id)),
-          "reject-transfer": () => openRejectTransfer(Number(id)),
+          "city-handover-detail": () => openCityHandoverDetail(Number(id)),
           "archive-audit": () => openArchiveAudit(Number(id)),
           "restore-object": () => openRestore(Number(id)),
           "add-org-department": () => openOrganizationDepartmentForm(),
@@ -968,45 +953,16 @@
           );
         };
       }
-      function pendingStopApproval(kind, id) {
-        return approvals.find(
-          (approval) =>
-            ["pending", "paused_invalid_handler"].includes(approval.status) &&
-            approval.targetKind === kind &&
-            String(approval.targetId) === String(id),
-        );
-      }
-
-      function stopRequestLockApproval(kind, id) {
-        return approvals.find(
-          (approval) =>
-            ["pending", "paused_invalid_handler", "processing_failed"].includes(
-              approval.status,
-            ) &&
-            approval.targetKind === kind &&
-            String(approval.targetId) === String(id),
-        );
-      }
-
       function canRequestObjectStop(kind, obj) {
-        if (!currentUser || !obj) return false;
-        if (!hasOperationPermission("archive.request_stop")) return false;
-        if (currentUser.fullAccess) return true;
-        if (["group", "department"].includes(kind))
-          return ["president", "vp"].includes(currentUser.role);
-        if (["president", "vp"].includes(currentUser.role)) return true;
-        if (kind === "customer") return companyIsVisible(obj);
-        if (kind === "contact") {
-          const company = customers.find((item) => item.name === obj.company);
-          return Boolean(company && companyIsVisible(company));
-        }
-        return false;
+        return Boolean(
+          currentUser?.fullAccess &&
+            obj &&
+            !obj.archived &&
+            hasOperationPermission("archive.request_stop"),
+        );
       }
 
       function stopObjectActionHtml(kind, id) {
-        const approval = stopRequestLockApproval(kind, id);
-        if (approval)
-          return `<button class="btn" data-action="approval-detail" data-id="${approval.id}">查看停用审批 ${approval.code}</button>`;
         const obj =
           kind === "group"
             ? { name: String(id) }
@@ -1016,68 +972,8 @@
                 ? customerDepartments.find((item) => item.id === Number(id))
                 : customers.find((item) => item.id === Number(id));
         return canRequestObjectStop(kind, obj)
-          ? `<button class="btn btn-danger" data-action="stop-object" data-kind="${kind}" data-id="${id}">申请停用</button>`
+          ? `<button class="btn btn-danger" data-action="stop-object" data-kind="${kind}" data-id="${id}">停用</button>`
           : "";
-      }
-
-      function objectApprovalRoute(kind, obj) {
-        if (currentUser.role === "president")
-          return {
-            current: "总裁直接确认",
-            assignees: [currentUser.name],
-            ccUsers: [],
-            direct: true,
-          };
-        if (["group", "department"].includes(kind)) {
-          if (currentUser.role === "vp")
-            return {
-              current: "总裁审批",
-              assignees: ["刘总"],
-              ccUsers: [],
-              direct: false,
-            };
-          return {
-            current: "市场副总审批",
-            assignees: ["王静"],
-            ccUsers: ["刘总"],
-            direct: false,
-          };
-        }
-        const company =
-          kind === "customer"
-            ? obj
-            : customers.find((item) => item.name === obj.company);
-        const isProvinceCompany = company?.level === "省公司";
-        if (isProvinceCompany) {
-          if (currentUser.role === "director")
-            return {
-              current: "市场副总审批",
-              assignees: ["王静"],
-              ccUsers: ["刘总"],
-              direct: false,
-            };
-          if (currentUser.role === "vp")
-            return {
-              current: "总裁审批",
-              assignees: ["刘总"],
-              ccUsers: [],
-              direct: false,
-            };
-        }
-        const director = regionDirectorName(company?.region || obj.region);
-        if (currentUser.role === "director")
-          return {
-            current: "市场副总审批",
-            assignees: ["王静"],
-            ccUsers: ["刘总"],
-            direct: false,
-          };
-        return {
-          current: "区域总监审批",
-          assignees: [director],
-          ccUsers: ["王静"],
-          direct: false,
-        };
       }
 
       function openStopObject(kind, id) {
@@ -1094,7 +990,7 @@
                 : customers.find((x) => x.id === normalizedId);
         if (!obj) return;
         if (!canRequestObjectStop(kind, obj))
-          return toast("当前账号无权发起该对象的停用申请");
+          return toast("当前账号无权停用该对象");
         const kindName =
           kind === "group"
             ? "集团公司"
@@ -1103,8 +999,15 @@
             : kind === "department"
             ? "客户部门"
               : "客户单位";
-        if (stopRequestLockApproval(kind, normalizedId) || obj.pendingStop)
-          return toast("该对象已有停用审批，不能重复提交");
+        if (
+          archivedItems.some(
+            (item) =>
+              item.status === "已停用" &&
+              item.targetKind === kind &&
+              String(item.targetId) === String(normalizedId),
+          )
+        )
+          return toast("该对象已停用，不能重复操作");
         const affectedCustomers =
           kind === "group"
             ? customers.filter(
@@ -1143,14 +1046,6 @@
             affectedNames.has(task.person) &&
             !["done", "cancelled"].includes(task.status),
         );
-        const pendingApprovals = approvals.filter(
-          (approval) =>
-            approval.status === "pending" &&
-            (affectedPeople.some((person) => approval.title.includes(person.name)) ||
-              affectedCustomers.some((company) =>
-                approval.title.includes(company.name),
-              )),
-        );
         const replacementDepartments =
           kind === "department"
             ? customerDepartments.filter(
@@ -1160,14 +1055,11 @@
                   department.id !== obj.id,
                 )
             : [];
-        const route = objectApprovalRoute(kind, obj);
         openModal(
-          `<div class="modal-head"><div class="modal-title">申请停用${kindName}</div><button class="icon-btn close" data-close>×</button></div><form id="stopForm"><div class="modal-body"><div class="detail-grid"><div class="detail-item"><label>对象</label><div>${obj.name}</div></div>${kind === "group" ? `<div class="detail-item"><label>集团编号</label><div>${customerGroupNumbers[obj.name]}</div></div>` : ""}<div class="detail-item"><label>当前状态</label><div>正常</div></div>${kind === "group" ? `<div class="detail-item"><label>正常客户单位</label><div>${affectedCustomers.length}</div></div><div class="detail-item"><label>正常客户部门</label><div>${customerDepartments.filter((item) => !item.archived && item.group === obj.name).length}</div></div>` : ""}<div class="detail-item"><label>有效关键人 / 任职</label><div>${affectedPeople.length}</div></div><div class="detail-item"><label>未完成任务</label><div>${unfinishedTasks.length}</div></div><div class="detail-item"><label>进行中审批</label><div>${pendingApprovals.length}</div></div><div class="detail-item"><label>覆盖 KPI 影响</label><div>${affectedPeople.length ? "将实时重算" : "无"}</div></div></div>${pendingApprovals.length ? `<div class="role-note danger-note">存在进行中流程 ${pendingApprovals.map((approval) => approval.code).join("、")}，必须先处理后才能提交停用。</div>` : ""}${kind === "group" && affectedCustomers.length ? `<label class="choice-item" style="margin-top:var(--space-4)"><input id="stopCascadeGroup" type="checkbox"><span>完整级联停用全部 ${affectedCustomers.length} 家客户单位及 ${affectedPeople.length} 名有效关键人</span></label>` : ""}${kind === "customer" && affectedPeople.length ? `<label class="choice-item" style="margin-top:var(--space-4)"><input id="stopCascade" type="checkbox"><span>完整级联停用该单位全部 ${affectedPeople.length} 名有效关键人</span></label>` : ""}${kind === "department" && affectedPeople.length ? `<div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>替代客户部门</label><select class="input" id="stopReplacementDepartment"><option value="">请选择同一客户公司内的正常部门</option>${replacementDepartments.map((department) => `<option value="${department.id}">${department.name}</option>`).join("")}</select><div class="list-sub">仅迁移当前任职，历史任职保留原部门名称</div></div>` : ""}<div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>影响处理</label><select class="input" id="stopTaskHandle"><option>关闭未完成任务并记录原因</option><option>先处理任务后再停用</option></select></div><div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>停用原因</label><textarea class="input" id="stopReason" minlength="5" maxlength="500" required placeholder="请填写 5-500 字停用原因"></textarea></div><div class="role-note">审批路由：${route.direct ? "总裁直接确认并形成已通过审计实例" : `${route.current}（${route.assignees.join("、")}）`}。审批通过前对象仍按正常状态参与业务，审批进度在原流程中查看；生效后从正常列表、候选和实时统计中剔除。</div></div><div class="modal-foot"><button class="btn" type="button" data-close>取消</button><button class="btn btn-primary" type="submit">${route.direct ? "确认停用并记录审计" : "提交停用审批"}</button></div></form>`,
+          `<div class="modal-head"><div class="modal-title">停用${kindName}</div><button class="icon-btn close" data-close>×</button></div><form id="stopForm"><div class="modal-body"><div class="detail-grid"><div class="detail-item"><label>对象</label><div>${obj.name}</div></div>${kind === "group" ? `<div class="detail-item"><label>集团编号</label><div>${customerGroupNumbers[obj.name]}</div></div>` : ""}<div class="detail-item"><label>当前状态</label><div>正常</div></div>${kind === "group" ? `<div class="detail-item"><label>正常客户单位</label><div>${affectedCustomers.length}</div></div><div class="detail-item"><label>正常客户部门</label><div>${customerDepartments.filter((item) => !item.archived && item.group === obj.name).length}</div></div>` : ""}<div class="detail-item"><label>有效关键人 / 任职</label><div>${affectedPeople.length}</div></div><div class="detail-item"><label>未完成任务</label><div>${unfinishedTasks.length}</div></div><div class="detail-item"><label>覆盖 KPI 影响</label><div>${affectedPeople.length ? "将实时重算" : "无"}</div></div><div class="detail-item"><label>未完成任务处理</label><div>统一关闭并记录原因</div></div></div>${kind === "group" && affectedCustomers.length ? `<label class="choice-item" style="margin-top:var(--space-4)"><input id="stopCascadeGroup" type="checkbox"><span>完整级联停用全部 ${affectedCustomers.length} 家客户单位及 ${affectedPeople.length} 名有效关键人</span></label>` : ""}${kind === "customer" && affectedPeople.length ? `<label class="choice-item" style="margin-top:var(--space-4)"><input id="stopCascade" type="checkbox"><span>完整级联停用该单位全部 ${affectedPeople.length} 名有效关键人</span></label>` : ""}${kind === "department" && affectedPeople.length ? `<div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>替代客户部门</label><select class="input" id="stopReplacementDepartment"><option value="">请选择同一客户公司内的正常部门</option>${replacementDepartments.map((department) => `<option value="${department.id}">${department.name}</option>`).join("")}</select><div class="list-sub">仅迁移当前任职，历史任职保留原部门名称</div></div>` : ""}<div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>停用原因</label><textarea class="input" id="stopReason" minlength="5" maxlength="500" required placeholder="请填写 5-500 字停用原因"></textarea></div><div class="role-note danger-note">确认后立即停用且不可撤销；不生成审批流程。对象将从正常列表、候选和实时统计中剔除，适用未完成任务统一关闭并保留历史。</div></div><div class="modal-foot"><button class="btn" type="button" data-close>取消</button><button class="btn btn-danger" type="submit">确认停用</button></div></form>`,
         );
         $("#stopForm").onsubmit = (e) => {
           e.preventDefault();
-          if (pendingApprovals.length)
-            return toast("请先处理对象关联的进行中审批");
           if (kind === "customer" && affectedPeople.length && !$("#stopCascade").checked)
             return toast("客户单位存在有效关键人，必须完整级联停用或先完成调岗");
           if (
@@ -1182,71 +1074,72 @@
             !$("#stopReplacementDepartment").value
           )
             return toast("客户部门仍有当前任职引用，请选择同一客户公司内的替代部门");
-          if (
-            $("#stopTaskHandle").value === "先处理任务后再停用" &&
-            unfinishedTasks.length
-          )
-            return toast(`仍有 ${unfinishedTasks.length} 条未完成任务，请先处理后再提交`);
-          const flowCode = nextBusinessCode("WF");
-          const approval = {
-            id: Date.now(),
-            code: flowCode,
-            source: "manual",
-            type: kindName + "停用",
-            title: `停用${obj.name}`,
-            applicant: currentUser.name,
-            region: obj.region || (kind === "group" ? "公司全局" : "山东区域"),
-            current: route.current,
-            currentAssignees: [...route.assignees],
-            ccUsers: [...route.ccUsers],
-            status: "pending",
-            date: recordCreatedAt(),
-            reason: $("#stopReason").value.trim(),
-            taskHandle: $("#stopTaskHandle").value,
-            cascadeContactIds:
-              ["customer", "group"].includes(kind)
-                ? affectedPeople.map((person) => person.id)
-                : [],
-            cascadeCustomerIds:
-              kind === "group"
-                ? affectedCustomers.map((company) => company.id)
-                : [],
-            replacementDepartmentId:
-              kind === "department"
-                ? Number($("#stopReplacementDepartment")?.value || 0)
-                : 0,
-            impactSnapshot: {
-              people: affectedPeople.length,
-              tasks: unfinishedTasks.length,
-              approvals: pendingApprovals.length,
-              customers: affectedCustomers.length,
-            },
-            targetKind: kind,
-            targetId: normalizedId,
-            businessNumber:
-              kind === "group" ? customerGroupNumbers[obj.name] : "",
-          };
-          approvals.unshift(approval);
+          const actionAt = recordCreatedAt();
+          const reason = $("#stopReason").value.trim();
+          const replacement =
+            kind === "department" && affectedPeople.length
+              ? replacementDepartments.find(
+                  (department) =>
+                    department.id === Number($("#stopReplacementDepartment").value),
+                )
+              : null;
+          if (kind === "group") {
+            affectedCustomers.forEach((company) => {
+              company.archived = true;
+              company.pendingStop = false;
+            });
+            affectedPeople.forEach((person) => {
+              person.archived = true;
+              person.pendingStop = false;
+            });
+            const groupIndex = customerGroupNames.indexOf(obj.name);
+            if (groupIndex >= 0) customerGroupNames.splice(groupIndex, 1);
+            pendingGroupStops.delete(obj.name);
+          } else {
+            obj.archived = true;
+            obj.pendingStop = false;
+          }
+          if (kind === "customer")
+            affectedPeople.forEach((person) => {
+              person.archived = true;
+              person.pendingStop = false;
+            });
+          affectedPeople.forEach((person) =>
+            tasks
+              .filter(
+                (task) =>
+                  task.person === person.name &&
+                  !["done", "cancelled"].includes(task.status),
+              )
+              .forEach((task) => {
+                task.status = "cancelled";
+                task.closeReason = `${obj.name}已停用：${reason}`;
+              }),
+          );
+          if (kind === "department" && replacement)
+            affectedPeople.forEach((person) => {
+              person.department = replacement.name;
+              person.updatedAt = actionAt;
+            });
           archivedItems.unshift({
-            id: Date.now() + 1,
+            id: Date.now(),
             name: obj.name,
             type: kindName,
             parent:
               kind === "group"
                 ? "客户组织"
                 : obj.company || obj.group || "客户组织",
-            reason: approval.reason,
-            date: approval.date.slice(0, 10),
-            applicant: currentUser.name,
-            status: "正常",
-            approvalStatus: "审批中",
+            reason,
+            date: actionAt.slice(0, 10),
+            operator: currentUser.name,
+            status: "已停用",
             targetKind: kind,
             targetId: normalizedId,
-            region: approval.region,
-            flowCode,
-            effectiveAt: "",
-            recoveryStatus: "未申请",
-            taskHandle: approval.taskHandle,
+            region: obj.region || (kind === "group" ? "公司全局" : "山东区域"),
+            effectiveAt: actionAt,
+            recoveryResult: "未恢复",
+            confirmationResult: "已确认",
+            taskHandle: "关闭未完成任务并记录原因",
             impact: `${affectedCustomers.length ? `客户单位 ${affectedCustomers.length} 家，` : ""}关键人/任职 ${affectedPeople.length}，未完成任务 ${unfinishedTasks.length}`,
             businessNumber:
               kind === "group" ? customerGroupNumbers[obj.name] : "",
@@ -1259,18 +1152,8 @@
                   }
                 : null,
           });
-          if (kind === "group") pendingGroupStops.add(obj.name);
-          else obj.pendingStop = true;
-          if (route.direct) {
-            approval.decisionComment = "总裁确认停用并按影响摘要执行。";
-            handleApproval(approval.id, true);
-          }
           closeOverlay();
           renderPage();
-          toast(
-            route.direct
-              ? "停用已直接生效并生成完整审计记录"
-              : `停用申请已提交${route.current}`,
-          );
+          toast("停用已直接生效并记录操作历史");
         };
       }

@@ -27,13 +27,6 @@
           ],
         },
         {
-          title: "协同与审批",
-          items: [
-            { id: "approvals", icon: "◇", label: "审批中心" },
-            { id: "archive", icon: "□", label: "停用记录" },
-          ],
-        },
-        {
           title: "系统管理",
           items: [
             { id: "employees", icon: "♧", label: "组织与员工" },

@@ -431,12 +431,6 @@
             if (pmTotal !== region.target)
               return toast(`PM 目标合计 ${pmTotal}，与${regionName}目标 ${region.target} 不一致`);
           }
-          const direct = currentUser?.fullAccess || salesIsRole("总裁");
-          if (!direct) {
-            closeOverlay();
-            toast("调整已提交审批，当前生效版本保持不变");
-            return;
-          }
           const changedItems = [];
           if (values.company != null && values.company !== target.companyTarget)
             changedItems.push({ level: "公司", object: "英嘉科技", before: target.companyTarget, after: values.company });
@@ -474,7 +468,7 @@
                 after: change.after,
                 reason,
                 operator: currentUser.name,
-                approval: "直接生效",
+                effectiveMode: "直接生效",
                 effectiveAt: salesNow(),
               }),
             );

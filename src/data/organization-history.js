@@ -90,51 +90,6 @@
       }
       approvals.push(
         {
-          id: 319,
-          type: "集团公司停用",
-          title: "停用华东能源历史集团档案",
-          applicant: "王静",
-          region: "全国市场",
-          current: "预设会签",
-          status: "pending",
-          date: "2026-08-16 14:10",
-          reason: "集团已完成重组，历史档案拟在责任清理后停用。",
-          currentAssignees: ["孙倩", "钱峰"],
-          ccUsers: ["刘总"],
-          handledBy: ["赵磊"],
-          collaborationNodes: [
-            {
-              id: "NODE-319-JOINT",
-              type: "countersign",
-              title: "区域影响会签（3 人）",
-              state: "current",
-              reason: "涉及三个区域的历史客户责任，需全部确认。",
-              nextNode: "总裁审批",
-              nextAssignees: ["刘总"],
-              members: [
-                {
-                  name: "赵磊",
-                  state: "done",
-                  time: "2026-08-16 15:02",
-                  opinion: "山东区域无未交接责任，同意。",
-                },
-                {
-                  name: "孙倩",
-                  state: "current",
-                  time: "待处理",
-                  opinion: "待审批人填写",
-                },
-                {
-                  name: "钱峰",
-                  state: "current",
-                  time: "待处理",
-                  opinion: "待审批人填写",
-                },
-              ],
-            },
-          ],
-        },
-        {
           id: 320,
           type: "关键人调岗",
           title: "关键人任职调整回写失败",

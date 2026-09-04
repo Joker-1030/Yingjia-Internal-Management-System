@@ -86,17 +86,36 @@
         document.querySelectorAll("[data-satisfaction-save]").forEach((button) => {
           button.onclick = () => handleSatisfactionSave();
         });
-        const applyProjectFilters = () => {
-          const idKeyword = $("#projectId")?.value.trim().toLowerCase() || "";
-          const nameKeyword = $("#projectName")?.value.trim().toLowerCase() || "";
-          const type = $("#projectType")?.value || "";
-          const stage = $("#projectStage")?.value || "";
-          const todo = $("#projectTodo")?.value || "";
-          const customer = $("#projectCustomer")?.value || "";
-          const area = $("#projectArea")?.value || "";
-          const owner = $("#projectOwner")?.value || "";
-          const startFrom = $("#projectStartFrom")?.value || "";
-          const endTo = $("#projectEndTo")?.value || "";
+        const readProjectFilters = () => ({
+          id: $("#projectId")?.value.trim() || "",
+          name: $("#projectName")?.value.trim() || "",
+          type: $("#projectType")?.value || "",
+          stage: $("#projectStage")?.value || "",
+          todo: $("#projectTodo")?.value || "",
+          customer: $("#projectCustomer")?.value || "",
+          area: $("#projectArea")?.value || "",
+          owner: $("#projectOwner")?.value || "",
+          startFrom: $("#projectStartFrom")?.value || "",
+          endTo: $("#projectEndTo")?.value || "",
+        });
+        const applyProjectFilters = (
+          filters = readProjectFilters(),
+          resetPage = true,
+        ) => {
+          const {
+            id,
+            name,
+            type,
+            stage,
+            todo,
+            customer,
+            area,
+            owner,
+            startFrom,
+            endTo,
+          } = filters;
+          const idKeyword = id.toLowerCase();
+          const nameKeyword = name.toLowerCase();
           document
             .querySelectorAll("#projectBody tr[data-project-row]")
             .forEach((row) => {
@@ -117,19 +136,53 @@
                 (!endTo || row.dataset.end <= endTo);
               row.classList.toggle("hidden", !visible);
             });
-          refreshUnifiedTablePagination("m11-projects", true);
+          refreshUnifiedTablePagination("m11-projects", resetPage);
         };
+        const storeActiveDirectorProjectFilters = (apply) => {
+          if (currentUser?.role !== "director") return;
+          const filters = readProjectFilters();
+          const state = activeDirectorProjectListFilters();
+          state.draft = { ...filters };
+          if (apply) state.applied = { ...filters };
+        };
+        document.querySelectorAll("[data-project-list-tab]").forEach((button) => {
+          button.onclick = () => {
+            const targetTab = button.dataset.projectListTab;
+            if (
+              currentUser?.role !== "director" ||
+              !["mine", "all"].includes(targetTab) ||
+              targetTab === projectListTab
+            )
+              return;
+            storeActiveDirectorProjectFilters(false);
+            projectListTab = targetTab;
+            const paginationState = unifiedTablePaginationStates["m11-projects"];
+            if (paginationState) paginationState.page = 1;
+            renderPage();
+          };
+        });
         if ($("#queryProjectFilters"))
-          $("#queryProjectFilters").onclick = applyProjectFilters;
+          $("#queryProjectFilters").onclick = () => {
+            storeActiveDirectorProjectFilters(true);
+            applyProjectFilters();
+          };
         ["#projectId", "#projectName"].forEach((selector) => {
           const el = $(selector);
           if (el)
             el.onkeydown = (event) => {
-              if (event.key === "Enter") applyProjectFilters();
+              if (event.key === "Enter") {
+                storeActiveDirectorProjectFilters(true);
+                applyProjectFilters();
+              }
             };
         });
         if ($("#resetProjectFilters"))
           $("#resetProjectFilters").onclick = () => {
+            if (currentUser?.role === "director") {
+              const state = activeDirectorProjectListFilters();
+              state.draft = createProjectListFilters();
+              state.applied = createProjectListFilters();
+            }
             [
               "#projectId",
               "#projectName",
@@ -147,6 +200,8 @@
             });
             applyProjectFilters();
           };
+        if (currentUser?.role === "director")
+          applyProjectFilters(activeDirectorProjectListFilters().applied, false);
       }
       function nextProjectPackageId() {
         const year = DEMO_TODAY.slice(0, 4);

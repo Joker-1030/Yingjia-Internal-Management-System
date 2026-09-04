@@ -208,11 +208,6 @@
               renderPage();
             }),
         );
-        document.querySelectorAll("[data-change-approval]").forEach(
-          (button) =>
-            (button.onclick = () =>
-              openApprovalDetail(Number(button.dataset.changeApproval))),
-        );
         document.querySelectorAll("[data-change-audit]").forEach(
           (button) =>
             (button.onclick = () =>
@@ -1500,11 +1495,8 @@
           const group = $("#archiveGroup")?.value.trim() || "";
           const type = $("#archiveType")?.value || "";
           const status = $("#archiveStatus")?.value || "";
-          const approvalStatus = $("#archiveApprovalStatus")?.value || "";
-          const applicant = $("#archiveApplicant")?.value || "";
+          const operator = $("#archiveOperator")?.value || "";
           const region = $("#archiveRegion")?.value || "";
-          const applyStart = $("#archiveApplyStart")?.value || "";
-          const applyEnd = $("#archiveApplyEnd")?.value || "";
           const effectiveStart = $("#archiveEffectiveStart")?.value || "";
           const effectiveEnd = $("#archiveEffectiveEnd")?.value || "";
           document
@@ -1529,12 +1521,8 @@
                   (status === "current"
                     ? row.dataset.status === "已停用"
                     : row.dataset.status === status)) &&
-                (!approvalStatus ||
-                  row.dataset.approvalStatus === approvalStatus) &&
-                (!applicant || row.dataset.applicant === applicant) &&
+                (!operator || row.dataset.operator === operator) &&
                 (!region || row.dataset.region === region) &&
-                (!applyStart || row.dataset.applyDate >= applyStart) &&
-                (!applyEnd || row.dataset.applyDate <= applyEnd) &&
                 (!effectiveStart ||
                   row.dataset.effectiveDate >= effectiveStart) &&
                 (!effectiveEnd || row.dataset.effectiveDate <= effectiveEnd);
@@ -1551,11 +1539,8 @@
               "#archiveGroup",
               "#archiveType",
               "#archiveStatus",
-              "#archiveApprovalStatus",
-              "#archiveApplicant",
+              "#archiveOperator",
               "#archiveRegion",
-              "#archiveApplyStart",
-              "#archiveApplyEnd",
               "#archiveEffectiveStart",
               "#archiveEffectiveEnd",
             ].forEach((selector) => {

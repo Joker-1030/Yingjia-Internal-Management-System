@@ -1,7 +1,7 @@
 # 英嘉科技内部管理系统项目总览
 
-- 更新日期：2026-09-01
-- 当前产品阶段：Current PRD 持续演进；M02-M09 与 P00 已完成产品评审并进入研发，M01、M10-M12 与 P01 尚未评审且尚未开始研发；尚未正式生产发布
+- 更新日期：2026-09-03
+- 当前产品阶段：Current PRD 持续演进；M02-M03、M06-M09 与 P00 已完成产品评审并进入研发，M01、M04-M05、M10-M12 与 P01 尚未评审且尚未开始研发；尚未正式生产发布
 - 当前产品事实入口：[`prd-workspace/current/PRD.md`](../prd-workspace/current/PRD.md)
 - 当前仓库用途：研发需求阅读、Prototype 演示与前端维护
 
@@ -26,7 +26,9 @@
 - 建立可维护的模块化 Prototype Source、确定性构建、Artifact provenance 和 source/artifact drift check。
 - 建立可点击的 M01-M12 Prototype，并保持维护源与生成产物可校验；M12 已合入销售仪表盘、销售指标、商机列表/新建/详情、跟进和方案支撑的 Current 核心演示。
 
-“已完成上述治理与工程基础”不等于全项目已评审或系统已上线。当前模块状态为：M02-M09 与 P00 已完成产品评审并进入研发；M01、M10、M11、M12 与 P01 尚未完成产品评审且研发未开始。模块已评审不冻结 Current PRD，后续产品变化仍需判断对在研 Task 的影响。
+“已完成上述治理与工程基础”不等于全项目已评审或系统已上线。当前模块状态为：M02-M03、M06-M09 与 P00 已完成产品评审并进入研发；M01、M04、M05、M10、M11、M12 与 P01 尚未完成产品评审且研发未开始。模块已评审不冻结 Current PRD，后续产品变化仍需判断对在研 Task 的影响。
+
+各模块的准确 Product Review Status、Engineering Status 与 Approved Baseline 证据统一登记在 Local Workspace 的 `docs/AI_IMPLEMENTATION_RESULTS/PRD-REVIEW-BASELINE-REGISTRY-001.md`；本页和仓库 README 仅提供阅读摘要，该内部证据文件不进入 GitHub Engineering Mirror。
 
 ## 3. 产品需求体系
 

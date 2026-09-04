@@ -26,9 +26,6 @@
           ["pending", "paused"].includes(task.status),
         ).length;
         const overdue = active.filter((task) => task.status === "overdue").length;
-        const lateEntryPending = active.filter(
-          (task) => task.status === "late_entry_pending",
-        ).length;
         const expired = active.filter((task) => task.status === "expired").length;
         const onTimeDone = active.filter(
           (task) =>
@@ -53,7 +50,6 @@
           onTimeDone,
           lateEntryDone,
           lateCompletionDone,
-          lateEntryPending,
           expired,
           total: active.length,
           rate: active.length
@@ -125,7 +121,6 @@
       function executionStatusGroup(status) {
         if (status === "done") return "done";
         if (status === "overdue") return "overdue";
-        if (status === "late_entry_pending") return "late-entry";
         if (status === "expired") return "expired";
         return "pending";
       }
@@ -134,7 +129,6 @@
         { key: "done", label: "已完成" },
         { key: "pending", label: "待执行/暂停" },
         { key: "overdue", label: "当前逾期" },
-        { key: "late-entry", label: "补录审核中" },
         { key: "expired", label: "已过期未完成" },
       ];
 
@@ -178,7 +172,7 @@
         if (task.status === "done")
           return task.completionType === "late_completion" ? "orange" : "green";
         if (["overdue", "expired"].includes(task.status)) return "red";
-        if (["paused", "late_entry_pending"].includes(task.status)) return "blue";
+        if (task.status === "paused") return "blue";
         return "yellow";
       }
 
@@ -440,7 +434,7 @@
         });
         const rows = [...campaignRows, ...regularRows, ...birthdayRows, ...holidayRows]
           .map((row) => ({ ...row, themeStatus: taskThemeStatus(row) }));
-        return `<div class="toolbar filter-toolbar" id="taskSummaryFilters">${filterField("任务编号", '<input class="input" id="summaryCode">')}${filterField("任务标题", '<input class="input" id="summaryName">')}${filterField("任务类型", `<select class="input" id="summaryType"><option value="">全部任务类型</option><option>常规维系</option><option>专项维系</option><option>关键人覆盖 KPI</option><option>生日关怀</option><option>节假日关怀</option><option value="care">生日/节日关怀</option></select>`)}${filterField("任务状态", '<select class="input" id="summaryStatus"><option value="">全部任务状态</option><option>待开始</option><option>进行中</option><option>已结束</option></select>')}${filterField("最低任务完成进度", '<input class="input" id="summaryProgressMin" type="number" min="0" max="100" step="0.1" inputmode="decimal">')}${filterField("最高任务完成进度", '<input class="input" id="summaryProgressMax" type="number" min="0" max="100" step="0.1" inputmode="decimal">')}${filterActions('<button class="btn btn-primary" id="applySummaryFilters" type="button">筛选</button><button class="btn" id="resetSummaryFilters" type="button">重置</button>')}</div>${taskUpdateFooter("refresh-execution-list", "summary")}<div class="table-wrap"><table data-paged-table="m03-task-summary" style="min-width:1540px"><thead><tr><th>任务标题</th><th>任务编号</th><th>任务类型</th><th>任务状态</th><th>开始时间</th><th>结束时间</th><th>覆盖客户</th><th>覆盖关键人</th><th>已完成</th><th>待执行/暂停</th><th>当前逾期</th><th>补录审核中</th><th>已过期未完成</th><th>任务完成进度</th><th>操作</th></tr></thead><tbody id="taskSummaryBody">${rows.map((row) => `<tr data-page-row data-summary-code="${row.taskCode || ""}" data-summary-name="${row.name}" data-summary-type="${row.type}" data-summary-status="${row.themeStatus}" data-summary-progress="${row.rate === null ? "" : row.rate}"><td><strong>${row.name}</strong></td><td>${row.taskCode || "待生成"}</td><td><span class="tag ${taskTypeMeta(row.type).tone}">${row.type}</span></td><td>${taskThemeStatusTag(row.themeStatus)}</td><td>${row.startDate || "-"}</td><td>${row.endDate || "-"}</td><td>${row.customers}</td><td><strong>${row.contacts}</strong></td><td><span class="tag green">${row.done}</span></td><td>${row.pending}</td><td><span class="tag ${row.overdue ? "red" : "green"}">${row.overdue}</span></td><td>${row.lateEntryPending}</td><td>${row.expired}</td><td><strong>${taskProgressDisplay(row)}</strong></td><td><span class="link" data-action="${row.campaignId ? "campaign-detail" : "task-theme-detail"}" data-id="${row.campaignId || row.key}">详情</span></td></tr>`).join("") || '<tr data-empty-row><td colspan="15"><div class="empty">暂无任务</div></td></tr>'}<tr data-filter-empty style="display:none"><td colspan="15"><div class="empty">未找到符合条件的任务，请调整条件或重置筛选</div></td></tr></tbody></table></div>${tablePagination("m03-task-summary")}`;
+        return `<div class="toolbar filter-toolbar" id="taskSummaryFilters">${filterField("任务编号", '<input class="input" id="summaryCode">')}${filterField("任务标题", '<input class="input" id="summaryName">')}${filterField("任务类型", `<select class="input" id="summaryType"><option value="">全部任务类型</option><option>常规维系</option><option>专项维系</option><option>关键人覆盖 KPI</option><option>生日关怀</option><option>节假日关怀</option><option value="care">生日/节日关怀</option></select>`)}${filterField("任务状态", '<select class="input" id="summaryStatus"><option value="">全部任务状态</option><option>待开始</option><option>进行中</option><option>已结束</option></select>')}${filterField("最低任务完成进度", '<input class="input" id="summaryProgressMin" type="number" min="0" max="100" step="0.1" inputmode="decimal">')}${filterField("最高任务完成进度", '<input class="input" id="summaryProgressMax" type="number" min="0" max="100" step="0.1" inputmode="decimal">')}${filterActions('<button class="btn btn-primary" id="applySummaryFilters" type="button">筛选</button><button class="btn" id="resetSummaryFilters" type="button">重置</button>')}</div>${taskUpdateFooter("refresh-execution-list", "summary")}<div class="table-wrap"><table data-paged-table="m03-task-summary" style="min-width:1480px"><thead><tr><th>任务标题</th><th>任务编号</th><th>任务类型</th><th>任务状态</th><th>开始时间</th><th>结束时间</th><th>覆盖客户</th><th>覆盖关键人</th><th>已完成</th><th>待执行/暂停</th><th>当前逾期</th><th>已过期未完成</th><th>任务完成进度</th><th>操作</th></tr></thead><tbody id="taskSummaryBody">${rows.map((row) => `<tr data-page-row data-summary-code="${row.taskCode || ""}" data-summary-name="${row.name}" data-summary-type="${row.type}" data-summary-status="${row.themeStatus}" data-summary-progress="${row.rate === null ? "" : row.rate}"><td><strong>${row.name}</strong></td><td>${row.taskCode || "待生成"}</td><td><span class="tag ${taskTypeMeta(row.type).tone}">${row.type}</span></td><td>${taskThemeStatusTag(row.themeStatus)}</td><td>${row.startDate || "-"}</td><td>${row.endDate || "-"}</td><td>${row.customers}</td><td><strong>${row.contacts}</strong></td><td><span class="tag green">${row.done}</span></td><td>${row.pending}</td><td><span class="tag ${row.overdue ? "red" : "green"}">${row.overdue}</span></td><td>${row.expired}</td><td><strong>${taskProgressDisplay(row)}</strong></td><td><span class="link" data-action="${row.campaignId ? "campaign-detail" : "task-theme-detail"}" data-id="${row.campaignId || row.key}">详情</span></td></tr>`).join("") || '<tr data-empty-row><td colspan="14"><div class="empty">暂无任务</div></td></tr>'}<tr data-filter-empty style="display:none"><td colspan="14"><div class="empty">未找到符合条件的任务，请调整条件或重置筛选</div></td></tr></tbody></table></div>${tablePagination("m03-task-summary")}`;
       }
 
       function renderTaskExecutions(ts) {
@@ -584,7 +578,7 @@
         const progressMetric = type === "常规维系"
           ? ""
           : metric("任务完成进度", taskProgressDisplay(numbers), `${numbers.done}/${numbers.total}`);
-        const dashboardContent = `<div class="metrics compact-metrics" style="grid-template-columns:repeat(4,1fr)">${metric("覆盖客户", numbers.customers, "去重统计")}${metric("覆盖关键人", numbers.contacts, "去重统计", "blue")}${progressMetric}${metric("已完成", numbers.done, "执行明细")}${metric("待执行/暂停", numbers.pending, "当前待处理", "yellow")}${metric("当前逾期", numbers.overdue, "需优先处理", "red")}${metric("补录审核中", numbers.lateEntryPending, "等待审核", "blue")}${metric("已过期未完成", numbers.expired, "不再执行", "red")}</div>`;
+        const dashboardContent = `<div class="metrics compact-metrics" style="grid-template-columns:repeat(4,1fr)">${metric("覆盖客户", numbers.customers, "去重统计")}${metric("覆盖关键人", numbers.contacts, "去重统计", "blue")}${progressMetric}${metric("已完成", numbers.done, "执行明细")}${metric("待执行/暂停", numbers.pending, "当前待处理", "yellow")}${metric("当前逾期", numbers.overdue, "需优先处理", "red")}${metric("已过期未完成", numbers.expired, "不再执行", "red")}</div>`;
         const executionContent = `${taskExecutionHeader("refresh-task-theme", themeKey)}${pmExecutionTable(rows, `theme-${themeKey}`)}`;
         openDrawer(
           `<div class="drawer-head"><div class="modal-title">任务详情</div><button class="icon-btn close" data-close>×</button></div><div class="drawer-body"><div class="detail-hero"><div class="avatar">任</div><div class="detail-name">${title}</div><div class="spacer"></div>${taskThemeStatusTag(taskThemeStatus({ ...numbers, endDate: type === "节假日关怀" && themeValue ? holidayPeriod(themeValue).endDate : undefined }))}</div><div class="tabs"><button class="tab active" type="button" data-task-theme-detail-tab="detail">任务详情</button><button class="tab" type="button" data-task-theme-detail-tab="dashboard">数据看板</button><button class="tab" type="button" data-task-theme-detail-tab="executions">执行明细</button></div><div data-task-theme-detail-panel="detail">${detailContent}</div><div class="hidden" data-task-theme-detail-panel="dashboard">${dashboardContent}</div><div class="hidden" data-task-theme-detail-panel="executions">${executionContent}</div></div><div class="drawer-foot"><button class="btn" data-close>关闭</button></div>`,
@@ -616,7 +610,9 @@
           return "已完成 · 逾期补完成";
         if (
           status === "cancelled" &&
-          task?.closureSource === "paused_event_deadline"
+          ["paused_event_deadline", "employee_deactivation_handoff"].includes(
+            task?.closureSource,
+          )
         )
           return "已关闭";
         return (
@@ -624,7 +620,6 @@
             pending: "待执行",
             overdue: "当前逾期",
             paused: "已暂停",
-            late_entry_pending: "补录审核中",
             expired: "已过期未完成",
             done: "已完成",
             cancelled: "已取消",
@@ -651,7 +646,7 @@
             (currentUser.fullAccess ||
               (["pm", "director"].includes(currentUser.role) &&
                 task.pm === currentUser.name)) &&
-            !["done", "cancelled", "paused", "late_entry_pending", "expired"].includes(
+            !["done", "cancelled", "paused", "expired"].includes(
               task.status,
             ),
         );
@@ -660,7 +655,7 @@
       function taskCanTakeAction(task) {
         return Boolean(
           taskCanBeManuallyCompleted(task) &&
-            !["done", "cancelled", "paused", "late_entry_pending", "expired"].includes(
+            !["done", "cancelled", "paused", "expired"].includes(
               task.status,
             ),
         );

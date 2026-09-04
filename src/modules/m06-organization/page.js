@@ -190,28 +190,8 @@
             return company && regionForCompany(company)?.id === region.id;
           })
           .forEach((record) => (record.region = regionScopeName(region)));
-        approvals
-          .filter(
-            (approval) =>
-              approval.region === oldScope ||
-              approval.region === oldRegionName ||
-              regionsMatch(approval.region, region.name),
-          )
-          .forEach((approval) => {
-            approval.region = regionScopeName(region);
-            if (
-              approval.status === "pending" &&
-              (approval.current === "区域总监审批" ||
-                approvalCurrentAssignees(approval).includes(oldDirectorName))
-            )
-              approval.currentAssignees = [region.director];
-            approval.ccUsers = approvalCcUsers(approval).map((name) =>
-              name === oldDirectorName ? region.director : name,
-            );
-          });
         normalizeCustomerResponsibilities();
         syncPmEmployeeScopes();
-        normalizeApprovalRouting();
         initAccounts();
       }
       function organizationTreeRows(parentId = null, level = 2) {
@@ -238,9 +218,7 @@
       function openOrganizationChangeAudit(id) {
         if (!canEmployeeAction("employees.view_changes"))
           return toast("当前角色无权查看人员或组织变动记录");
-        const personnelItem = personnelChanges.find(
-          (change) => change.id === id && !change.approvalId,
-        );
+        const personnelItem = personnelChanges.find((change) => change.id === id);
         const item =
           organizationChanges.find((change) => change.id === id) ||
           (personnelItem
@@ -254,7 +232,7 @@
             : null);
         if (!item) return toast("直接生效审计记录不存在");
         openDrawer(
-          `<div class="drawer-head"><div><div class="modal-title">直接生效审计</div><div class="panel-sub">${item.id} · 无审批流程</div></div><button class="icon-btn close" data-close>×</button></div><div class="drawer-body"><div class="detail-hero"><div class="avatar">审</div><div><div class="detail-name">${item.object}</div><div class="detail-sub">${item.type} · ${item.status}</div></div><div class="spacer"></div><span class="tag green">已生效</span></div><div class="detail-grid"><div class="detail-item"><label>流程编号</label><div>—</div></div><div class="detail-item"><label>生效方式</label><div>HR/admin 直接生效，无需审批</div></div><div class="detail-item"><label>操作人</label><div>${item.operator}</div></div><div class="detail-item"><label>操作时间</label><div>${item.date}</div></div><div class="detail-item"><label>计划生效日期</label><div>—</div></div><div class="detail-item"><label>实际生效时间</label><div>${item.actualEffectiveAt || item.date}</div></div><div class="detail-item full"><label>变更及影响</label><div>${item.detail}</div></div></div><div class="section-title">审计说明</div><div class="role-note">系统保留操作人、操作时间及变更前后值；普通编辑与停用/恢复不创建审批、待办、抄送或责任交接。</div></div><div class="drawer-foot"><button class="btn" data-close>关闭</button></div>`,
+          `<div class="drawer-head"><div><div class="modal-title">直接生效审计</div><div class="panel-sub">${item.id}</div></div><button class="icon-btn close" data-close>×</button></div><div class="drawer-body"><div class="detail-hero"><div class="avatar">审</div><div><div class="detail-name">${item.object}</div><div class="detail-sub">${item.type} · ${item.status}</div></div><div class="spacer"></div><span class="tag green">已生效</span></div><div class="detail-grid"><div class="detail-item"><label>生效方式</label><div>HR/admin 直接生效</div></div><div class="detail-item"><label>操作人</label><div>${item.operator}</div></div><div class="detail-item"><label>操作时间</label><div>${item.date}</div></div><div class="detail-item"><label>实际生效时间</label><div>${item.actualEffectiveAt || item.date}</div></div><div class="detail-item full"><label>变更及影响</label><div>${item.detail}</div></div></div><div class="section-title">审计说明</div><div class="role-note">系统保留操作人、操作时间及变更前后值；普通编辑与停用/恢复不创建审批、待办或抄送。</div></div><div class="drawer-foot"><button class="btn" data-close>关闭</button></div>`,
         );
       }
       function renderEmployees() {
@@ -293,9 +271,6 @@
           .join("") || `<tr data-empty-row><td colspan="${currentUser.fullAccess ? 10 : 8}"><div class="empty">暂无员工记录</div></td></tr>`}<tr data-filter-empty style="display:none"><td colspan="${currentUser.fullAccess ? 10 : 8}"><div class="empty">未找到符合条件的员工，请调整条件或重置筛选</div></td></tr></tbody></table></div>${tablePagination("m06-employees")}</div></div></section>`;
         const changes = [
           ...personnelChanges.map((item) => {
-            const approval = approvals.find(
-              (candidate) => candidate.id === item.approvalId,
-            );
             return {
               date: item.applyDate || item.effectiveDate,
               object: `${item.employeeName} · ${item.employeeCode}`,
@@ -303,13 +278,7 @@
               detail: `${item.fromDept}${item.fromJob ? ` / ${item.fromJob}` : ""} → ${item.toDept || "—"}${item.toJob ? ` / ${item.toJob}` : ""}`,
               operator: item.operator,
               status: item.status,
-              approvalId: item.approvalId,
-              canViewApproval: Boolean(
-                approval && approvalVisibleToCurrentUser(approval),
-              ),
               approver: item.approver || "—",
-              flowCode: approval?.code || "—",
-              plannedEffectiveDate: item.effectiveDate || "—",
               actualEffectiveAt:
                 item.status === "已生效"
                   ? item.appliedAt || `${item.effectiveDate} 00:00`
@@ -319,13 +288,11 @@
           ...organizationChanges.map((item) => ({
             ...item,
             approver: "无需审批",
-            flowCode: "—",
-            plannedEffectiveDate: "—",
             actualEffectiveAt: item.actualEffectiveAt || item.date,
           })),
         ]
           .sort((a, b) => b.date.localeCompare(a.date));
-        const changePanel = `<section class="panel" style="margin-top:var(--space-4)"><div class="panel-head"><div><div class="panel-title">人员/组织变动记录</div><div class="panel-sub">员工部门/系统角色编辑及停用/恢复均由 HR/admin 直接生效，不创建审批或交接</div></div></div><div class="table-wrap"><table data-paged-table="m06-changes" style="min-width:1780px"><thead><tr><th>操作时间</th><th>对象</th><th>变动类型</th><th>变更与影响</th><th>操作人</th><th>生效方式</th><th>流程编号</th><th>状态</th><th>计划生效日期</th><th>实际生效时间</th><th>操作</th></tr></thead><tbody>${changes.map((item) => `<tr data-page-row><td>${item.date}</td><td><strong>${item.object}</strong></td><td><span class="tag blue">${item.type}</span></td><td>${item.detail}</td><td>${item.operator}</td><td>${item.approver}</td><td><strong>${item.flowCode}</strong></td><td><span class="tag ${personnelChangeStatusTone(item.status)}">${item.status}</span></td><td>${item.plannedEffectiveDate}</td><td>${item.actualEffectiveAt}</td><td>${item.approvalId ? item.canViewApproval ? `<button type="button" class="link" data-change-approval="${item.approvalId}">查看审批</button>` : '<span class="list-sub">无权查看审批</span>' : `<button type="button" class="link" data-change-audit="${item.id}">查看审计</button>`}</td></tr>`).join("") || '<tr data-empty-row><td colspan="11"><div class="empty">暂无变动记录</div></td></tr>'}</tbody></table></div>${tablePagination("m06-changes")}</section>`;
+        const changePanel = `<section class="panel" style="margin-top:var(--space-4)"><div class="panel-head"><div><div class="panel-title">人员/组织变动记录</div><div class="panel-sub">员工部门/系统角色编辑及停用/恢复均由 HR/admin 直接生效</div></div></div><div class="table-wrap"><table data-paged-table="m06-changes" style="min-width:1320px"><thead><tr><th>操作时间</th><th>对象</th><th>变动类型</th><th>变更与影响</th><th>操作人</th><th>生效方式</th><th>状态</th><th>实际生效时间</th><th>操作</th></tr></thead><tbody>${changes.map((item) => `<tr data-page-row><td>${item.date}</td><td><strong>${item.object}</strong></td><td><span class="tag blue">${item.type}</span></td><td>${item.detail}</td><td>${item.operator}</td><td>${item.approver}</td><td><span class="tag ${personnelChangeStatusTone(item.status)}">${item.status}</span></td><td>${item.actualEffectiveAt}</td><td><button type="button" class="link" data-change-audit="${item.id}">查看审计</button></td></tr>`).join("") || '<tr data-empty-row><td colspan="9"><div class="empty">暂无变动记录</div></td></tr>'}</tbody></table></div>${tablePagination("m06-changes")}</section>`;
         return (
           pageHead(
             "组织与员工",

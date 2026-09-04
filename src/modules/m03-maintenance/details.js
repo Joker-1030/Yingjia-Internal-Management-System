@@ -4,26 +4,24 @@
           return toast("无权查看该任务");
         const canExecute = taskCanTakeAction(t);
         const canChange = taskCanRequestChange(t);
-        const hasPendingChange = approvals.some(
-          (approval) =>
-            approval.status === "pending" && approval.targetTaskId === t.id,
-        );
         const record = taskRecord(t);
-        const pendingRecord = pendingMaintenanceRecords.find(
-          (item) => item.taskId === t.id && item.reviewStatus === "pending",
-        );
         const completionPolicy = taskLateCompletionPolicy(t);
         const campaign = campaigns.find((item) => item.id === t.campaignId);
         const completionAudit =
-          t.status === "done" || t.status === "late_entry_pending"
-            ? `<div class="section-title">完成认定</div><div class="detail-grid"><div class="detail-item"><label>认定结果</label><div>${t.status === "late_entry_pending" ? "补录审核中" : completionTypeName(t.completionType)}</div></div><div class="detail-item"><label>曾经逾期</label><div>${t.everOverdue ? "是（审计事实保留）" : "否"}</div></div><div class="detail-item"><label>实际维系日期</label><div>${record?.date || pendingRecord?.date || t.completedAt || "待审核"}</div></div><div class="detail-item"><label>创建时间</label><div>${record?.createdAt || pendingRecord?.createdAt || "待审核"}</div></div><div class="detail-item"><label>执行逾期天数</label><div>${t.lateDays || 0} 天</div></div><div class="detail-item"><label>登记延迟天数</label><div>${t.entryDelayDays || pendingRecord?.entryDelayDays || 0} 天</div></div>${record?.proxyOperator ? `<div class="detail-item"><label>管理员代办</label><div>${record.proxyOperator}</div></div><div class="detail-item"><label>代办原因</label><div>${record.proxyReason}</div></div>` : ""}</div>`
+          t.status === "done"
+            ? `<div class="section-title">完成认定</div><div class="detail-grid"><div class="detail-item"><label>认定结果</label><div>${completionTypeName(t.completionType)}</div></div><div class="detail-item"><label>曾经逾期</label><div>${t.everOverdue ? "是（审计事实保留）" : "否"}</div></div><div class="detail-item"><label>实际维系日期</label><div>${record?.date || t.completedAt || "—"}</div></div><div class="detail-item"><label>创建时间</label><div>${record?.createdAt || "—"}</div></div><div class="detail-item"><label>执行逾期天数</label><div>${t.lateDays || 0} 天</div></div><div class="detail-item"><label>登记延迟天数</label><div>${t.entryDelayDays || 0} 天</div></div>${record?.proxyOperator ? `<div class="detail-item"><label>管理员代办</label><div>${record.proxyOperator}</div></div><div class="detail-item"><label>代办原因</label><div>${record.proxyReason}</div></div>` : ""}</div>`
             : "";
-        const employeeStopCancellation =
+        const employeeStopClosure =
           t.status === "cancelled" &&
-          t.cancellationSource === "employee_deactivation"
-            ? `<div class="detail-item"><label>取消前状态</label><div>${escapeHtml(taskStatusName(t.statusBeforeCancellation, t))}</div></div><div class="detail-item"><label>实际操作人</label><div>${escapeHtml(t.cancelledBy || "—")}</div></div><div class="detail-item full"><label>关联员工停用</label><div>${escapeHtml(t.employeeStopEmployeeName || t.pm)} · ${escapeHtml(t.employeeStopRecordId || "—")}</div></div>`
+          ["employee_deactivation", "employee_deactivation_handoff"].includes(
+            t.cancellationSource || t.closureSource,
+          )
+            ? `<div class="detail-item"><label>${t.closureSource === "employee_deactivation_handoff" ? "关闭前状态" : "取消前状态"}</label><div>${escapeHtml(taskStatusName(t.statusBeforeClosure || t.statusBeforeCancellation, t))}</div></div><div class="detail-item"><label>实际操作人</label><div>${escapeHtml(t.closedBy || t.cancelledBy || "—")}</div></div><div class="detail-item full"><label>关联员工停用</label><div>${escapeHtml(t.employeeStopEmployeeName || t.pm)} · ${escapeHtml(t.employeeStopRecordId || "—")}</div></div>`
             : "";
-        const autoClosed = t.closureSource === "paused_event_deadline";
+        const autoClosed = [
+          "paused_event_deadline",
+          "employee_deactivation_handoff",
+        ].includes(t.closureSource);
         const resumeTimeline = (t.resumeHistory || [])
           .map(
             (item) =>
@@ -34,7 +32,7 @@
           ? "延期/取消/暂停"
           : "延期/取消";
         openDrawer(
-          `<div class="drawer-head"><div class="modal-title">任务详情</div><button class="icon-btn close" data-close>×</button></div><div class="drawer-body"><div class="detail-hero"><div class="avatar">任</div><div><div class="detail-name">${t.title}</div><div class="detail-sub">${taskStatusName(t.status, t)}</div></div></div><div class="detail-grid"><div class="detail-item"><label>任务编号</label><div>${t.parentTaskCode}</div></div><div class="detail-item"><label>任务执行记录编号</label><div>${t.executionCode}</div></div><div class="detail-item"><label>关键人 / 覆盖目标</label><div>${t.person}</div></div><div class="detail-item"><label>执行人</label><div>${t.pm} · ${t.executorRole || (t.company?.includes("有限公司") ? "区域总监" : "PM")}</div></div><div class="detail-item"><label>客户单位 / 集合</label><div>${t.company}</div></div><div class="detail-item"><label>任务类型</label><div>${t.type}</div></div><div class="detail-item"><label>生成时间</label><div>${t.createdAt || "2026-08-01 09:00"}</div></div><div class="detail-item"><label>更新时间</label><div>${t.updatedAt || t.createdAt || "-"}</div></div><div class="detail-item"><label>原截止时间</label><div>${t.originalDue || t.due} 23:59:59</div></div><div class="detail-item"><label>当前截止时间</label><div>${t.due} 23:59:59</div></div><div class="detail-item full"><label>执行要求</label><div>${taskRequirementText(t)}</div></div><div class="detail-item full"><label>补完成策略</label><div>${completionPolicy.allowed ? completionPolicy.cutoff ? `允许补完成至 ${completionPolicy.cutoff} 23:59:59` : "允许逾期补完成且无截止日期" : "不允许逾期补完成"}</div></div>${t.type === "常规维系" ? '<div class="detail-item full"><label>逾期规则</label><div>超过当前截止后持续保持“当前逾期”，无补完成截止；直至逾期补完成或受控关闭</div></div>' : ""}${t.resumeDate ? `<div class="detail-item"><label>暂停至</label><div>${t.resumeDate}</div></div>` : ""}${t.status === "paused" ? '<div class="detail-item"><label>健康影响</label><div><span class="tag blue">暂停期间不计逾期与健康风险</span></div></div>' : ""}${hasPendingChange ? '<div class="detail-item full"><label>任务变更</label><div><span class="tag yellow">存在审批中的延期、暂停或取消申请，不能重复发起</span></div></div>' : ""}${t.closeReason ? `<div class="detail-item"><label>${autoClosed ? "关闭原因" : "取消原因"}</label><div>${escapeHtml(t.closeReason)}</div></div>` : ""}${employeeStopCancellation}</div>${completionAudit}<div class="section-title">流程记录</div><div class="timeline"><div class="timeline-item"><div class="timeline-title">${t.createdAt || "2026-08-01 09:00"} · 任务已生成</div><div class="timeline-content">系统根据${taskDisplayType(t)}规则生成并分配给${t.pm}</div></div>${t.everOverdue ? `<div class="timeline-item"><div class="timeline-title">${t.firstOverdueAt || addDays(t.due, 1)} · 首次转为当前逾期</div><div class="timeline-content">原截止日期 ${t.originalDue || t.due} 保留，后续完成不清除曾经逾期事实</div></div>` : ""}${t.status === "late_entry_pending" ? `<div class="timeline-item"><div class="timeline-title">${pendingRecord?.createdAt || recordCreatedAt()} · 已提交逾期补录审批</div><div class="timeline-content">实际维系日期 ${pendingRecord?.date || "待核对"}，按当前截止时间核验，等待${taskApprovalRoute(t).current}</div></div>` : ""}${t.status === "paused" ? `<div class="timeline-item"><div class="timeline-title">${t.pausedAt || "2026-08-10 10:00"} · 暂停审批已通过</div><div class="timeline-content">计划 ${t.resumeDate} 恢复；暂停期间不形成当前逾期、曾经逾期或健康风险</div></div>` : ""}${resumeTimeline}${t.status === "done" ? `<div class="timeline-item"><div class="timeline-title">${record?.createdAt || t.completedAt || DEMO_TODAY} · 任务已完成</div><div class="timeline-content">${completionTypeName(t.completionType)}；已生成维系记录${t.type === "常规维系" ? "并按实际维系日续期" : ""}</div></div>` : ""}${t.status === "cancelled" ? `<div class="timeline-item"><div class="timeline-title">${escapeHtml(t.closedAt || DEMO_TODAY)} · ${autoClosed ? "任务已关闭" : "任务已取消"}</div><div class="timeline-content">${escapeHtml(t.closeReason || (autoClosed ? "系统自动关闭" : "系统取消"))}${t.employeeStopRecordId ? `；关联员工停用 ${escapeHtml(t.employeeStopRecordId)}` : ""}</div></div>` : ""}</div></div><div class="drawer-foot"><button class="btn" data-close>关闭详情链</button>${canChange && !hasPendingChange ? `<button class="btn" data-action="change-task" data-id="${t.id}">${changeActionLabel}</button>` : ""}${canExecute ? `<button class="btn btn-primary" data-complete="${t.id}">${currentUser.fullAccess ? "管理员代办完成" : "提交维系结果"}</button>` : ""}</div>`,
+          `<div class="drawer-head"><div class="modal-title">任务详情</div><button class="icon-btn close" data-close>×</button></div><div class="drawer-body"><div class="detail-hero"><div class="avatar">任</div><div><div class="detail-name">${t.title}</div><div class="detail-sub">${taskStatusName(t.status, t)}</div></div></div><div class="detail-grid"><div class="detail-item"><label>任务编号</label><div>${t.parentTaskCode}</div></div><div class="detail-item"><label>任务执行记录编号</label><div>${t.executionCode}</div></div><div class="detail-item"><label>关键人 / 覆盖目标</label><div>${t.person}</div></div><div class="detail-item"><label>执行人</label><div>${t.pm} · ${t.executorRole || (t.company?.includes("有限公司") ? "区域总监" : "PM")}</div></div><div class="detail-item"><label>客户单位 / 集合</label><div>${t.company}</div></div><div class="detail-item"><label>任务类型</label><div>${t.type}</div></div><div class="detail-item"><label>生成时间</label><div>${t.createdAt || "2026-08-01 09:00"}</div></div><div class="detail-item"><label>更新时间</label><div>${t.updatedAt || t.createdAt || "-"}</div></div><div class="detail-item"><label>原截止时间</label><div>${t.originalDue || t.due} 23:59:59</div></div><div class="detail-item"><label>当前截止时间</label><div>${t.due} 23:59:59</div></div><div class="detail-item full"><label>执行要求</label><div>${taskRequirementText(t)}</div></div><div class="detail-item full"><label>补完成策略</label><div>${completionPolicy.allowed ? completionPolicy.cutoff ? `允许补完成至 ${completionPolicy.cutoff} 23:59:59` : "允许逾期补完成且无截止日期" : "不允许逾期补完成"}</div></div>${t.type === "常规维系" ? '<div class="detail-item full"><label>逾期规则</label><div>超过当前截止后持续保持“当前逾期”，无补完成截止；直至逾期补完成或受控关闭</div></div>' : ""}${t.resumeDate ? `<div class="detail-item"><label>暂停至</label><div>${t.resumeDate}</div></div>` : ""}${t.status === "paused" ? '<div class="detail-item"><label>健康影响</label><div><span class="tag blue">暂停期间不计逾期与健康风险</span></div></div>' : ""}${t.closeReason ? `<div class="detail-item"><label>${autoClosed ? "关闭原因" : "取消原因"}</label><div>${escapeHtml(t.closeReason)}</div></div>` : ""}${employeeStopClosure}</div>${completionAudit}<div class="section-title">流程记录</div><div class="timeline"><div class="timeline-item"><div class="timeline-title">${t.createdAt || "2026-08-01 09:00"} · 任务已生成</div><div class="timeline-content">系统根据${taskDisplayType(t)}规则生成并分配给${t.pm}</div></div>${t.everOverdue ? `<div class="timeline-item"><div class="timeline-title">${t.firstOverdueAt || addDays(t.due, 1)} · 首次转为当前逾期</div><div class="timeline-content">原截止日期 ${t.originalDue || t.due} 保留，后续完成不清除曾经逾期事实</div></div>` : ""}${t.status === "paused" ? `<div class="timeline-item"><div class="timeline-title">${t.pausedAt || "2026-08-10 10:00"} · 暂停已确认</div><div class="timeline-content">计划 ${t.resumeDate} 恢复；暂停期间不形成当前逾期、曾经逾期或健康风险</div></div>` : ""}${resumeTimeline}${t.status === "done" ? `<div class="timeline-item"><div class="timeline-title">${record?.createdAt || t.completedAt || DEMO_TODAY} · 任务已完成</div><div class="timeline-content">${completionTypeName(t.completionType)}；已生成维系记录${t.type === "常规维系" ? "并按实际维系日续期" : ""}</div></div>` : ""}${t.status === "cancelled" ? `<div class="timeline-item"><div class="timeline-title">${escapeHtml(t.closedAt || DEMO_TODAY)} · ${autoClosed ? "任务已关闭" : "任务已取消"}</div><div class="timeline-content">${escapeHtml(t.closeReason || (autoClosed ? "系统自动关闭" : "系统取消"))}${t.employeeStopRecordId ? `；关联员工停用 ${escapeHtml(t.employeeStopRecordId)}` : ""}</div></div>` : ""}</div></div><div class="drawer-foot"><button class="btn" data-close>关闭详情链</button>${canChange ? `<button class="btn" data-action="change-task" data-id="${t.id}">${changeActionLabel}</button>` : ""}${canExecute ? `<button class="btn btn-primary" data-complete="${t.id}">${currentUser.fullAccess ? "管理员代办完成" : "提交维系结果"}</button>` : ""}</div>`,
         );
       }
 
@@ -42,19 +40,11 @@
         const t = tasks.find((x) => x.id === id);
         if (!t || !taskCanRequestChange(t))
           return toast("当前账号或任务状态不允许发起变更");
-        if (
-          approvals.some(
-            (approval) =>
-              approval.status === "pending" && approval.targetTaskId === t.id,
-          )
-        )
-          return toast("该任务已有审批中的变更申请，请勿重复提交");
-        const route = taskApprovalRoute(t);
         const changeOptions = `<option>延期</option><option>取消</option>${
           taskCanPause(t) ? "<option>暂停维系至某日</option>" : ""
         }`;
         openModal(
-          `<div class="modal-head"><div class="modal-title">申请任务变更</div><button class="icon-btn close" data-close>×</button></div><form id="taskChangeForm"><div class="modal-body"><div class="role-note">${t.title}<br>${t.type === "专项维系" ? "专项执行项统一以专项结束日为截止日，不支持单独延期；" : ""}审批节点：${route.current}（${route.assignees.join("、") || "总裁兜底"}）；抄送：${route.ccUsers.join("、") || "无"}。</div><div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>变更类型</label><select class="input" id="changeType">${changeOptions}</select></div><div class="form-group" id="changeDateGroup"><label class="form-label" id="changeDateLabel"><span class="required-marker" aria-hidden="true">*</span>新截止日期</label><input class="input" id="changeDate" type="date" value="${addDays(DEMO_TODAY, 1)}" min="${addDays(DEMO_TODAY, 1)}" required><div class="list-sub" id="changeDateHint"></div></div><div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>申请原因</label><textarea class="input" id="changeReason" minlength="5" maxlength="500" required placeholder="请填写 5-500 字"></textarea></div></div><div class="modal-foot"><button class="btn" type="button" data-close>取消</button><button class="btn btn-primary" type="submit">提交审批</button></div></form>`,
+          `<div class="modal-head"><div class="modal-title">任务变更</div><button class="icon-btn close" data-close>×</button></div><form id="taskChangeForm"><div class="modal-body"><div class="role-note">${t.title}<br>${t.type === "专项维系" ? "专项执行项统一以专项结束日为截止日，不支持单独延期；" : ""}确认前将再次校验当前任务状态，校验通过后直接生效。</div><div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>变更类型</label><select class="input" id="changeType">${changeOptions}</select></div><div class="form-group" id="changeDateGroup"><label class="form-label" id="changeDateLabel"><span class="required-marker" aria-hidden="true">*</span>新截止日期</label><input class="input" id="changeDate" type="date" value="${addDays(DEMO_TODAY, 1)}" min="${addDays(DEMO_TODAY, 1)}" required><div class="list-sub" id="changeDateHint"></div></div><div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>变更原因</label><textarea class="input" id="changeReason" minlength="5" maxlength="500" required placeholder="请填写 5-500 字"></textarea></div></div><div class="modal-foot"><button class="btn" type="button" data-close>取消</button><button class="btn btn-primary" type="submit">确认并生效</button></div></form>`,
         );
         const refreshChangeFields = () => {
           const changeType = $("#changeType").value;
@@ -95,29 +85,32 @@
             return toast($("#changeDateHint").textContent);
           const typeLabel =
             changeType === "暂停维系至某日" ? "暂停" : changeType;
-          approvals.unshift({
-            id: Date.now(),
-            code: nextBusinessCode("WF"),
-            source: "manual",
-            type: "任务" + typeLabel,
-            title: `${t.person}${typeLabel}申请`,
-            applicant: currentUser.name,
-            region: t.region,
-            current: route.current,
-            status: "pending",
-            date: recordCreatedAt(),
-            reason: $("#changeReason").value,
-            targetTaskId: t.id,
-            changeType,
-            changeDate:
-              changeType === "取消" ? "" : changeDate,
-            currentAssignees: route.assignees,
-            expectedApprover: route.assignees[0] || "刘总",
-            ccUsers: route.ccUsers,
-            handledBy: [],
-          });
+          const reason = $("#changeReason").value.trim();
+          if (reason.length < 5 || reason.length > 500)
+            return toast("变更原因须为 5-500 字");
+          if (changeType === "取消") {
+            t.status = "cancelled";
+            t.closeReason = reason;
+            t.closedAt = DEMO_TODAY;
+          } else if (changeType === "延期") {
+            t.originalDue = t.originalDue || t.due;
+            t.due = changeDate;
+            t.status = changeDate < DEMO_TODAY ? "overdue" : "pending";
+          } else {
+            if (!taskCanPause(t))
+              return toast("任务状态已变化，不再满足暂停条件");
+            t.originalDue = t.originalDue || t.due;
+            t.status = "paused";
+            t.resumeDate = changeDate;
+            t.pausedAt = recordCreatedAt();
+            t.everOverdue = false;
+            delete t.firstOverdueAt;
+            delete t.lateDays;
+          }
+          t.updatedAt = recordCreatedAt();
           closeOverlay();
-          toast("任务变更申请已提交");
+          renderPage();
+          toast(`任务${typeLabel}已生效`);
         };
       }
 
@@ -167,7 +160,7 @@
         const detailContent = `<div class="detail-grid"><div class="detail-item"><label>任务编号</label><div>${c.code || theme?.code || "待生成"}</div></div><div class="detail-item"><label>任务类型</label><div>${c.category}</div></div><div class="detail-item"><label>开始时间</label><div>${c.startDate}</div></div><div class="detail-item"><label>结束时间</label><div>${c.endDate}</div></div><div class="detail-item"><label>更新时间</label><div>${c.updatedAt || "-"}</div></div><div class="detail-item"><label>发布人</label><div>${c.owner}</div></div>${rangeDetails}${isCoverage ? "" : `<div class="detail-item full"><label>任务标题模板</label><div>${c.taskTitleTemplate || "{{专项标题}} - {{关键人姓名}}"}</div></div><div class="detail-item"><label>逾期补完成</label><div>${c.allowLateCompletion ? `允许，最晚至 ${c.lateCompletionEndDate}` : "不允许"}</div></div>`}<div class="detail-item full"><label>执行说明</label><div>${c.description || "按发布条件完成专项要求"}</div></div></div>`;
         const dashboardContent = isCoverage
           ? `<div class="role-note"><strong>${c.coverageDimension} · ${targetLabel}</strong><br>目标岗位按标准岗位稳定 ID 精确匹配（不支持自定义口径）；省公司执行人是所属区域中心主管。</div><div class="metrics compact-metrics" style="grid-template-columns:repeat(4,1fr)">${metric("应覆盖单位", denominator, "当前有效分母")}${metric("已覆盖单位", numerator, `未覆盖 ${Math.max(denominator - numerator, 0)}`, "blue")}${metric("当前覆盖率", `${coverageRate}%`, `目标 ${c.targetCoverageRate}%`, coverageRate >= c.targetCoverageRate ? "green" : "red")}${metric("达标责任人", `${reached}/${coverageRows.length}`, `未达标 ${coverageRows.length - reached}`, "yellow")}</div><div class="table-wrap"><table><thead><tr><th>区域 / 责任人</th><th>应覆盖</th><th>已覆盖</th><th>未覆盖</th><th>当前覆盖率</th><th>目标覆盖率</th><th>差额</th><th>操作</th></tr></thead><tbody>${coverageRows.map((row) => `<tr><td>${row.region}<div class="list-sub">${row.owner}</div></td><td>${row.denominator}</td><td>${row.numerator}</td><td>${Math.max(row.denominator - row.numerator, 0)}</td><td><strong>${row.currentRate}%</strong></td><td>${row.targetRate}%</td><td>${Math.max(row.required - row.numerator, 0)} 家</td><td><button class="link" type="button" data-coverage-row="${row.owner}">查看客户单位</button></td></tr>`).join("") || '<tr><td colspan="8">当前范围没有可考核单位</td></tr>'}</tbody></table></div>`
-          : `<div class="metrics compact-metrics" style="grid-template-columns:repeat(4,1fr)">${metric("有效总数", local.total, "当前有效执行项")}${metric("总完成率", local.total ? Math.round((local.done / local.total) * 100) + "%" : "--", `${local.done}/${local.total}`)}${metric("按期完成率", local.total ? Math.round((local.onTimeDone / local.total) * 100) + "%" : "--", `${local.onTimeDone}/${local.total}`, "blue")}${metric("逾期补录", local.lateEntryDone, `审核中 ${local.lateEntryPending}`, "yellow")}${metric("逾期补完成", local.lateCompletionDone, "不计入按期", "red")}${metric("补录审核中", local.lateEntryPending, "等待审批", "yellow")}${metric("已过期未完成", local.expired, "终态风险", "red")}</div>`;
+          : `<div class="metrics compact-metrics" style="grid-template-columns:repeat(4,1fr)">${metric("有效总数", local.total, "当前有效执行项")}${metric("总完成率", local.total ? Math.round((local.done / local.total) * 100) + "%" : "--", `${local.done}/${local.total}`)}${metric("按期完成率", local.total ? Math.round((local.onTimeDone / local.total) * 100) + "%" : "--", `${local.onTimeDone}/${local.total}`, "blue")}${metric("逾期补录", local.lateEntryDone, "校验后直接认定按期", "yellow")}${metric("逾期补完成", local.lateCompletionDone, "不计入按期", "red")}${metric("已过期未完成", local.expired, "终态风险", "red")}</div>`;
         const executionContent = isCoverage
           ? `${taskExecutionHeader("refresh-campaign-data", c.id)}<div class="table-wrap"><table><thead><tr><th>执行人</th><th>分子 / 分母</th><th>目标需覆盖数</th><th>当前 / 目标覆盖率</th><th>首次达标时间</th><th>状态</th></tr></thead><tbody>${coverageRows.map((row) => `<tr><td><strong>${row.owner}</strong><div class="list-sub">${row.region}</div></td><td>${row.numerator} / ${row.denominator}</td><td>${row.required}</td><td>${row.currentRate}% / ${row.targetRate}%</td><td>${row.firstReachedAt}</td><td><span class="tag ${row.status === "已达标" ? "green" : "yellow"}">${row.status}</span></td></tr>`).join("")}</tbody></table></div><div class="role-note">覆盖 KPI 由系统检测达标后自动完成，不提供人工“完成”按钮；有效期内覆盖下降会重新打开待办。</div>`
           : `${taskExecutionHeader("refresh-campaign-data", c.id)}${pmExecutionTable(children, `campaign-${c.id}`)}`;
@@ -638,7 +631,6 @@
               onTimeDone: 0,
               lateEntryDone: 0,
               lateCompletionDone: 0,
-              lateEntryPending: 0,
               expired: 0,
               status: startDate > DEMO_TODAY ? "待开始" : "执行中",
               coverageExecutions: isCoverage

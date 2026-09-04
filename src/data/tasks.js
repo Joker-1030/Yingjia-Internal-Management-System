@@ -314,7 +314,9 @@
           pm: "徐经理",
           region: "江苏区域",
           due: "2026-07-31",
-          status: "late_entry_pending",
+          status: "done",
+          completionType: "late_entry_approved",
+          completedAt: "2026-08-11 10:05",
           everOverdue: true,
           firstOverdueAt: "2026-08-01",
           level: "二级",
@@ -504,4 +506,3 @@
           level: "二级",
         },
       );
-

@@ -4,17 +4,8 @@
           roles: ["president", "vp", "director"],
           category: "关键人变动",
           title: "张海调任江苏移动省公司副总经理",
-          content: "调岗审批已通过，关联专项维系正在按目标规则自动重算。",
+          content: "调岗已生效，关联专项维系正在按目标规则自动重算。",
           date: "2026-08-11 10:32",
-          read: false,
-        },
-        {
-          id: 1002,
-          roles: ["president", "vp", "director"],
-          category: "审批待办",
-          title: "王建国任务延期申请待审批",
-          content: "申请延期至 2026-08-18，原因：客户临时出差。",
-          date: "2026-08-11 09:24",
           read: false,
         },
         {

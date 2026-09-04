@@ -6,6 +6,51 @@
         "待评价",
       ];
       const PROJECT_TYPES = ["培训项目", "AI软件项目"];
+      const PROJECT_LIST_FILTER_DEFAULTS = {
+        id: "",
+        name: "",
+        type: "",
+        stage: "",
+        todo: "",
+        customer: "",
+        area: "",
+        owner: "",
+        startFrom: "",
+        endTo: "",
+      };
+      function createProjectListFilters() {
+        return { ...PROJECT_LIST_FILTER_DEFAULTS };
+      }
+      function createDirectorProjectListFilterStates() {
+        return {
+          mine: {
+            draft: createProjectListFilters(),
+            applied: createProjectListFilters(),
+          },
+          all: {
+            draft: createProjectListFilters(),
+            applied: createProjectListFilters(),
+          },
+        };
+      }
+      let projectListTab = "mine";
+      let directorProjectListUser = "";
+      let directorProjectListFilterStates =
+        createDirectorProjectListFilterStates();
+      function ensureDirectorProjectListState() {
+        if (currentUser?.role !== "director") return;
+        const userKey = `${currentUser.username || ""}:${currentUser.name}`;
+        if (directorProjectListUser === userKey) return;
+        directorProjectListUser = userKey;
+        projectListTab = "mine";
+        directorProjectListFilterStates =
+          createDirectorProjectListFilterStates();
+        const paginationState = unifiedTablePaginationStates["m11-projects"];
+        if (paginationState) paginationState.page = 1;
+      }
+      function activeDirectorProjectListFilters() {
+        return directorProjectListFilterStates[projectListTab];
+      }
       const DEMO_NOW = `${DEMO_TODAY} 12:00`;
       const PROJECT_MATERIAL_CATEGORIES = {
         "培训项目": [
@@ -855,7 +900,9 @@
       function renderProjects() {
         if (!currentUser) return "";
         normalizeAllProjectLifecycles();
-        const visible = scopedProjects()
+        const isDirector = currentUser.role === "director";
+        if (isDirector) ensureDirectorProjectListState();
+        const scoped = scopedProjects()
           .slice()
           .sort(
             (left, right) =>
@@ -863,6 +910,15 @@
                 String(left.createdAt || ""),
               ) || right.id.localeCompare(left.id),
           );
+        const visible =
+          isDirector && projectListTab === "mine"
+            ? scoped.filter(
+                (project) => projectCurrentOwner(project) === currentUser.name,
+              )
+            : scoped;
+        const draftFilters = isDirector
+          ? activeDirectorProjectListFilters().draft
+          : createProjectListFilters();
         const customerOptions = [
           ...new Set(
             visible.map((project) => projectCustomerFacts(project)?.name).filter(Boolean),
@@ -874,52 +930,60 @@
         const ownerOptions = [
           ...new Set(visible.map(projectCurrentOwner)),
         ].sort((left, right) => left.localeCompare(right, "zh-CN"));
-        const selectOptions = (options, emptyLabel) =>
-          `<option value="">${emptyLabel}</option>${options
-            .map((option) => `<option value="${option}">${option}</option>`)
+        const selectOptions = (options, emptyLabel, selectedValue = "") =>
+          `<option value=""${selectedValue ? "" : " selected"}>${emptyLabel}</option>${options
+            .map(
+              (option) =>
+                `<option value="${escapeHtml(option)}"${option === selectedValue ? " selected" : ""}>${escapeHtml(option)}</option>`,
+            )
             .join("")}`;
         const projectFilterField = (label, controlHtml) =>
           `<label class="project-filter-field"><span class="project-filter-label">${label}</span>${controlHtml}</label>`;
+        const filterValue = (key) => escapeHtml(draftFilters[key] || "");
         const filterFields = [
           projectFilterField(
             "项目编号",
-            '<input class="input" id="projectId" maxlength="100" placeholder="项目编号">',
+            `<input class="input" id="projectId" maxlength="100" placeholder="项目编号" value="${filterValue("id")}">`,
           ),
           projectFilterField(
             "项目名称",
-            '<input class="input" id="projectName" maxlength="100" placeholder="项目名称">',
+            `<input class="input" id="projectName" maxlength="100" placeholder="项目名称" value="${filterValue("name")}">`,
           ),
           projectFilterField(
             "项目类型",
-            `<select class="input" id="projectType">${selectOptions(PROJECT_TYPES, "全部")}</select>`,
+            `<select class="input" id="projectType">${selectOptions(PROJECT_TYPES, "全部", draftFilters.type)}</select>`,
           ),
           projectFilterField(
             "主阶段",
-            `<select class="input" id="projectStage">${selectOptions(PROJECT_STAGES, "全部")}</select>`,
+            `<select class="input" id="projectStage">${selectOptions(PROJECT_STAGES, "全部", draftFilters.stage)}</select>`,
           ),
           projectFilterField(
             "待办标识",
-            `<select class="input" id="projectTodo">${selectOptions(PROJECT_TODO_LABELS, "全部")}</select>`,
+            `<select class="input" id="projectTodo">${selectOptions(PROJECT_TODO_LABELS, "全部", draftFilters.todo)}</select>`,
           ),
           projectFilterField(
             "客户",
-            `<select class="input" id="projectCustomer">${selectOptions(customerOptions, "全部")}</select>`,
+            `<select class="input" id="projectCustomer">${selectOptions(customerOptions, "全部", draftFilters.customer)}</select>`,
           ),
           projectFilterField(
             "地区",
-            `<select class="input" id="projectArea">${selectOptions(areaOptions, "全部")}</select>`,
+            `<select class="input" id="projectArea">${selectOptions(areaOptions, "全部", draftFilters.area)}</select>`,
           ),
-          projectFilterField(
-            "当前负责人",
-            `<select class="input" id="projectOwner">${selectOptions(ownerOptions, "全部")}</select>`,
-          ),
+          ...(!isDirector || projectListTab === "all"
+            ? [
+                projectFilterField(
+                  "当前负责人",
+                  `<select class="input" id="projectOwner">${selectOptions(ownerOptions, "全部", draftFilters.owner)}</select>`,
+                ),
+              ]
+            : []),
           projectFilterField(
             "项目开始时间",
-            '<input class="input" id="projectStartFrom" type="date">',
+            `<input class="input" id="projectStartFrom" type="date" value="${filterValue("startFrom")}">`,
           ),
           projectFilterField(
             "项目结束时间",
-            '<input class="input" id="projectEndTo" type="date">',
+            `<input class="input" id="projectEndTo" type="date" value="${filterValue("endTo")}">`,
           ),
         ].join("");
         const toolbar =
@@ -959,6 +1023,12 @@
         const createActions = hasOperationPermission("projects.create")
           ? '<button class="btn btn-primary" data-project-create>创建项目</button>'
           : "";
+        const projectListTabs = isDirector
+          ? '<div class="tabs" role="tablist" aria-label="项目范围">' +
+            `<button class="tab ${projectListTab === "mine" ? "active" : ""}" type="button" role="tab" aria-selected="${projectListTab === "mine"}" data-project-list-tab="mine">我的项目</button>` +
+            `<button class="tab ${projectListTab === "all" ? "active" : ""}" type="button" role="tab" aria-selected="${projectListTab === "all"}" data-project-list-tab="all">全部项目</button>` +
+            "</div>"
+          : "";
         return (
           '<div class="project-page project-list-page">' +
           pageHead(
@@ -966,7 +1036,7 @@
             "按当前账号数据范围查看项目列表与筛选，结果不返回数据范围之外的项目。",
             createActions,
           ) +
-          `<section class="panel project-list-panel">${toolbar}${table}</section>` +
+          `<section class="panel project-list-panel">${projectListTabs}${toolbar}${table}</section>` +
           "</div>"
         );
       }

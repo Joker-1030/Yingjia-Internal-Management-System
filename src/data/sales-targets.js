@@ -44,7 +44,7 @@
           after: 7,
           reason: "结合当前月新增商机计划调整",
           operator: "刘总",
-          approval: "直接生效",
+          effectiveMode: "直接生效",
           effectiveAt: "2026-09-01 09:30",
         },
         {
@@ -56,7 +56,7 @@
           after: 12,
           reason: "发布九月商机数量目标",
           operator: "刘总",
-          approval: "首次发布",
+          effectiveMode: "首次发布",
           effectiveAt: "2026-08-28 16:00",
         },
       ];

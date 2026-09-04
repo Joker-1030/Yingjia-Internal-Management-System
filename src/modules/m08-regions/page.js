@@ -156,7 +156,7 @@
           const rows = ownCities.map((city) => {
             const pending = pendingCityHandover(city.id);
             const actions = pending
-              ? `<button class="link" type="button" data-action="approval-detail" data-id="${pending.id}">查看交接</button>`
+              ? `<button class="link" type="button" data-action="city-handover-detail" data-id="${pending.id}">查看交接</button>`
               : hasOperationPermission("regions.handover")
                 ? `<button class="link" type="button" data-action="handover-city" data-id="${city.id}">发起交接</button>`
                 : "—";
@@ -237,7 +237,7 @@
             : pmName && !pending
               ? `${canSelfHandover ? `<button class="link" type="button" data-action="handover-city" data-id="${city.id}">发起交接</button> · ` : ""}${canAssignCities ? `<button class="link" type="button" data-action="direct-adjust-city" data-id="${city.id}">直接调整</button> · ` : ""}`
               : pending
-                ? `<button class="link" type="button" data-action="approval-detail" data-id="${pending.id}">查看交接</button> · `
+                ? `<button class="link" type="button" data-action="city-handover-detail" data-id="${pending.id}">查看交接</button> · `
                 : "";
           const scopeAction = invalidPriorResponsibility
             ? canAssignCities
@@ -250,15 +250,15 @@
                 : "—";
           return `<tr data-page-row data-region-city-row data-province="${city.province}" data-keyword="${city.city}${pmName || ""}${pmEmployee?.code || ""}" data-status="${status}"${pendingWarning ? ' data-pending-warning="true"' : ""}><td>${city.province}</td><td><strong>${city.city}</strong></td><td>${city.customers}</td><td>${city.contacts}</td><td>${pmName || "—"}</td><td>${pmEmployee?.code || "—"}</td><td>${pmEmployee?.dept || "—"}</td><td>${city.effective || "—"}</td><td><span class="tag ${statusTone}">${statusName}</span></td><td>${handoverAction}${scopeAction}</td></tr>`;
         }).join("") || '<tr data-empty-row><td colspan="10"><div class="empty">当前账号没有可查看的地市责任</div></td></tr>'}<tr data-filter-empty style="display:none"><td colspan="10"><div class="empty">未找到符合条件的地市责任，请调整条件或重置筛选</div></td></tr></tbody></table></div>${tablePagination("m08-cities")}`;
-        const pmView = `<div class="panel-head" style="padding:var(--space-3) 0"><div><div class="panel-title">按 PM 查看</div><div class="panel-sub">${region.name}组织下 ${pms.length} 名在职 PM</div></div><div class="spacer"></div>${viewSwitch}${canAssignCities ? '<button class="btn btn-primary" type="button" id="openInitialCityAssignment">分配</button>' : ""}</div><div class="toolbar" style="padding-left:0;padding-right:0"><input class="input" id="regionPmKeyword" maxlength="100" placeholder="PM 姓名 / 工号">${filterActions('<button class="btn btn-primary" type="button" id="queryRegionPms">筛选</button><button class="btn" type="button" id="resetRegionPms">重置</button>')}</div><div class="table-wrap"><table data-paged-table="m08-pms" style="min-width:980px"><thead><tr><th>PM 姓名</th><th>工号</th><th>所属区域中心</th><th>负责城市数</th><th>城市标签</th><th>待审批交接数</th><th>操作</th></tr></thead><tbody id="regionPmBody">${pms.map((employee) => {
+        const pmView = `<div class="panel-head" style="padding:var(--space-3) 0"><div><div class="panel-title">按 PM 查看</div><div class="panel-sub">${region.name}组织下 ${pms.length} 名在职 PM</div></div><div class="spacer"></div>${viewSwitch}${canAssignCities ? '<button class="btn btn-primary" type="button" id="openInitialCityAssignment">分配</button>' : ""}</div><div class="toolbar" style="padding-left:0;padding-right:0"><input class="input" id="regionPmKeyword" maxlength="100" placeholder="PM 姓名 / 工号">${filterActions('<button class="btn btn-primary" type="button" id="queryRegionPms">筛选</button><button class="btn" type="button" id="resetRegionPms">重置</button>')}</div><div class="table-wrap"><table data-paged-table="m08-pms" style="min-width:980px"><thead><tr><th>PM 姓名</th><th>工号</th><th>所属区域中心</th><th>负责城市数</th><th>城市标签</th><th>待生效交接数</th><th>操作</th></tr></thead><tbody id="regionPmBody">${pms.map((employee) => {
           const owned = regionCities.filter((city) => city.pm === employee.name);
-          const pendingCount = approvals.filter(
-            (approval) =>
-              approval.type === "地市交接" &&
-              approval.originalPm === employee.name &&
-              ["pending", "approved_pending_effective", "processing_failed"].includes(approval.status),
+          const pendingCount = cityResponsibilityChanges.filter(
+            (handover) =>
+              handover.type === "地市交接" &&
+              handover.originalPm === employee.name &&
+              handover.status === "pending_effective",
           ).length;
-          return `<tr data-page-row data-region-pm-row data-keyword="${employee.name}${employee.code}"><td><div class="person"><div class="avatar">${employee.name[0]}</div><strong>${employee.name}</strong></div></td><td>${employee.code}</td><td>${region.name}</td><td>${owned.length}</td><td>${owned.map((city) => `<span class="tag ${pendingCityHandover(city.id) ? "yellow" : "blue"}" title="${city.province}">${city.city}${pendingCityHandover(city.id) ? " · 交接中" : ""}</span>`).join(" ") || '<span class="tag">尚未分配</span>'}</td><td>${pendingCount ? `<span class="tag yellow">${pendingCount}</span>` : "0"}</td><td>${canAssignCities ? `<button class="link" type="button" data-pm-city-assign="${employee.name}" ${unassignedCount ? "" : "disabled"}>分配</button>` : "—"}</td></tr>`;
+          return `<tr data-page-row data-region-pm-row data-keyword="${employee.name}${employee.code}"><td><div class="person"><div class="avatar">${employee.name[0]}</div><strong>${employee.name}</strong></div></td><td>${employee.code}</td><td>${region.name}</td><td>${owned.length}</td><td>${owned.map((city) => `<span class="tag ${pendingCityHandover(city.id) ? "yellow" : "blue"}" title="${city.province}">${city.city}${pendingCityHandover(city.id) ? " · 待生效" : ""}</span>`).join(" ") || '<span class="tag">尚未分配</span>'}</td><td>${pendingCount ? `<span class="tag yellow">${pendingCount}</span>` : "0"}</td><td>${canAssignCities ? `<button class="link" type="button" data-pm-city-assign="${employee.name}" ${unassignedCount ? "" : "disabled"}>分配</button>` : "—"}</td></tr>`;
         }).join("") || '<tr data-empty-row><td colspan="7"><div class="empty">该区域组织下暂无在职 PM</div></td></tr>'}<tr data-filter-empty style="display:none"><td colspan="7"><div class="empty">未找到符合条件的 PM，请调整条件或重置筛选</div></td></tr></tbody></table></div>${tablePagination("m08-pms")}`;
         return (
           pageHead(

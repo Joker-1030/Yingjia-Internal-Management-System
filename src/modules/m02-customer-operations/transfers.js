@@ -11,7 +11,7 @@
           (company) => !company.archived && company.name !== person.company,
         );
         openModal(
-          `<div class="modal-head"><div class="modal-title">发起关键人调岗</div><button class="icon-btn close" data-close>×</button></div><form id="transferForm"><div class="modal-body"><div class="role-note"><strong>${person.name}</strong> 当前任职：${person.company} / ${person.department} / ${person.positionName} / ${person.level}</div><div class="form-grid"><div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>变更类型</label><select class="input" id="tfChangeMode"><option value="same">同单位任职变更</option><option value="cross" selected>跨单位调岗</option></select></div><div class="form-group" id="tfLocateModeGroup"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>目标单位定位方式</label><select class="input" id="tfLocateMode"><option value="select">权限内选择</option><option value="exact" ${currentUser.role === "pm" ? "selected" : ""}>精确信息查找</option></select></div><div class="form-group full" id="tfSelectCompanyGroup"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>目标客户公司</label><select class="input" id="tfCompany"><option value="">请选择目标客户公司</option>${selectable.map((company) => `<option value="${company.name}">${company.name} · ${company.level} · ${adminArea(company)}</option>`).join("")}</select></div><div class="form-group full" id="tfExactCompanyGroup"><div class="form-grid"><div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>目标公司完整名称</label><input class="input" id="tfExactName" minlength="2" maxlength="100"></div><div class="form-group"><label class="form-label">统一社会信用代码</label><input class="input" id="tfCreditCode" maxlength="18"></div><div class="form-group"><label class="form-label">所属集团</label><select class="input" id="tfExactGroup"><option value="">未填信用代码时请选择</option>${customerGroupNames.map((group) => `<option>${group}</option>`).join("")}</select></div><div class="form-group"><label class="form-label">完整区划</label><input class="input" id="tfExactArea" maxlength="100" placeholder="例如：江苏省 / 南京市"></div></div><div class="list-sub">Demo 使用预置客户档案精确匹配，不返回无权客户候选。</div></div><div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>新客户部门</label><select class="input" id="tfDepartment"><option value="">请先选择目标公司</option></select></div><div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>新关键人岗位</label><select class="input" id="tfStandardPosition"><option value="">请先选择目标部门</option></select></div><div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>新职级</label><select class="input" id="tfLevel">${contactLevelOptions(person.level)}</select></div><div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>新任职生效日</label><input class="input" id="tfEffectiveDate" type="date" min="${DEMO_TODAY}" value="${DEMO_TODAY}" required></div><div class="form-group full"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>调岗原因</label><textarea class="input" id="tfReason" minlength="5" maxlength="500" required>客户本人确认任职发生变化，申请按最新信息调整。</textarea></div><div class="form-group full"><label class="form-label">影响摘要</label><div id="transferImpact" class="impact-summary"></div></div></div><div class="role-note" id="transferFlowNote"></div></div><div class="modal-foot"><button class="btn" type="button" data-close>取消</button><button class="btn btn-primary" type="submit">提交调岗审批</button></div></form>`,
+          `<div class="modal-head"><div class="modal-title">关键人调岗</div><button class="icon-btn close" data-close>×</button></div><form id="transferForm"><div class="modal-body"><div class="role-note"><strong>${person.name}</strong> 当前任职：${person.company} / ${person.department} / ${person.positionName} / ${person.level}</div><div class="form-grid"><div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>变更类型</label><select class="input" id="tfChangeMode"><option value="same">同单位任职变更</option><option value="cross" selected>跨单位调岗</option></select></div><div class="form-group" id="tfLocateModeGroup"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>目标单位定位方式</label><select class="input" id="tfLocateMode"><option value="select">权限内选择</option><option value="exact" ${currentUser.role === "pm" ? "selected" : ""}>精确信息查找</option></select></div><div class="form-group full" id="tfSelectCompanyGroup"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>目标客户公司</label><select class="input" id="tfCompany"><option value="">请选择目标客户公司</option>${selectable.map((company) => `<option value="${company.name}">${company.name} · ${company.level} · ${adminArea(company)}</option>`).join("")}</select></div><div class="form-group full" id="tfExactCompanyGroup"><div class="form-grid"><div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>目标公司完整名称</label><input class="input" id="tfExactName" minlength="2" maxlength="100"></div><div class="form-group"><label class="form-label">统一社会信用代码</label><input class="input" id="tfCreditCode" maxlength="18"></div><div class="form-group"><label class="form-label">所属集团</label><select class="input" id="tfExactGroup"><option value="">未填信用代码时请选择</option>${customerGroupNames.map((group) => `<option>${group}</option>`).join("")}</select></div><div class="form-group"><label class="form-label">完整区划</label><input class="input" id="tfExactArea" maxlength="100" placeholder="例如：江苏省 / 南京市"></div></div><div class="list-sub">Demo 使用预置客户档案精确匹配，不返回无权客户候选。</div></div><div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>新客户部门</label><select class="input" id="tfDepartment"><option value="">请先选择目标公司</option></select></div><div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>新关键人岗位</label><select class="input" id="tfStandardPosition"><option value="">请先选择目标部门</option></select></div><div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>新职级</label><select class="input" id="tfLevel">${contactLevelOptions(person.level)}</select></div><div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>新任职生效日</label><input class="input" id="tfEffectiveDate" type="date" min="${DEMO_TODAY}" value="${DEMO_TODAY}" required></div><div class="form-group full"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>调岗原因</label><textarea class="input" id="tfReason" minlength="5" maxlength="500" required>客户本人确认任职发生变化，申请按最新信息调整。</textarea></div><div class="form-group full"><label class="form-label">影响摘要</label><div id="transferImpact" class="impact-summary"></div></div></div><div class="role-note" id="transferFlowNote"></div></div><div class="modal-foot"><button class="btn" type="button" data-close>取消</button><button class="btn btn-primary" type="submit">确认调岗</button></div></form>`,
         );
         const resolveTarget = () => {
           if ($("#tfChangeMode").value === "same") return sourceCompany;
@@ -101,17 +101,11 @@
               locateMode === "exact"
                 ? "请完成目标公司精确匹配后再提交。"
                 : "请选择目标客户公司。";
-          else if (same)
-            $("#transferFlowNote").textContent =
-              target.level === "省公司"
-                ? "同一省公司任职变更由市场副总审批。"
-                : "同一市/区县公司任职变更由所属区域总监审批。";
-          else if (target.level === "省公司")
-            $("#transferFlowNote").textContent =
-              `调至省公司，由目标区域总监 ${customerOwnerName(target)} 审批。`;
           else
             $("#transferFlowNote").textContent =
-              `先由目标 PM ${customerOwnerName(target)} 接收，再由目标区域总监审批。`;
+              $("#tfEffectiveDate").value > DEMO_TODAY
+                ? "完成影响确认后进入待生效；计划日到期重新校验，生效前当前任职继续有效。"
+                : "完成影响确认和校验后当日直接生效，不经过接收或审批。";
         };
         ["#tfChangeMode", "#tfLocateMode", "#tfCompany", "#tfExactGroup"].forEach(
           (selector) => {
@@ -121,6 +115,7 @@
         );
         $("#tfDepartment").onchange = () => refreshTransfer("department");
         $("#tfStandardPosition").onchange = () => refreshTransfer();
+        $("#tfEffectiveDate").onchange = () => refreshTransfer();
         ["#tfExactName", "#tfCreditCode", "#tfExactArea"].forEach((selector) => {
           if ($(selector))
             $(selector).oninput = () => refreshTransfer("exact");
@@ -156,37 +151,12 @@
             position.id === person.positionId
           )
             return toast("新客户部门或新关键人岗位至少一项不同");
-          const sameCompany = target.name === person.company;
-          const currentAssignees = sameCompany
-            ? [
-                target.level === "省公司"
-                  ? "王静"
-                  : regionDirectorForCustomer(target),
-              ]
-            : target.level === "省公司"
-              ? [regionDirectorForCustomer(target)]
-              : [customerOwnerName(target)];
-          approvals.unshift({
-            id: Date.now(),
-            code: nextBusinessCode("WF"),
+          if (person.pendingTransfer)
+            return toast("该关键人已有待生效调岗，请勿重复提交");
+          const effectiveDate = $("#tfEffectiveDate").value;
+          const change = {
             source: "manual",
-            type: "关键人调岗",
-            title: sameCompany
-              ? `${person.name}同单位任职变更`
-              : `${person.name}调任${target.name}`,
-            applicant: currentUser.name,
-            region: customerRegionScope(target),
-            current: sameCompany
-              ? target.level === "省公司"
-                ? "市场副总审批"
-                : "区域总监审批"
-              : target.level === "省公司"
-                ? "目标区域总监审批"
-                : "目标PM接收",
-            status: "pending",
-            date: recordCreatedAt(),
             reason: $("#tfReason").value.trim(),
-            transferContactId: person.id,
             changeMode: same ? "同单位任职变更" : "跨单位调岗",
             targetCompany: target.name,
             targetDepartment: department.name,
@@ -195,35 +165,52 @@
             targetPositionSource: "standard",
             targetPositionId: position.id,
             targetPositionName: position.name,
-            effectiveDate: $("#tfEffectiveDate").value,
+            effectiveDate,
             targetPm:
-              target.level === "省公司" || sameCompany
+              target.level === "省公司" || target.name === person.company
                 ? ""
                 : customerOwnerName(target),
             targetOwner: customerOwnerName(target),
-            currentAssignees,
-            expectedApprover: currentAssignees.join("、"),
-            ccUsers: [
-              regionDirectorForCustomer(sourceCompany),
-              "王静",
-              "刘总",
-            ].filter(
-              (name, index, list) =>
-                name &&
-                list.indexOf(name) === index &&
-                !currentAssignees.includes(name),
-            ),
-            handledBy: [],
             impactSnapshot: $("#transferImpact").textContent.trim(),
-          });
+          };
+          if (effectiveDate > DEMO_TODAY) {
+            person.pendingTransfer = change;
+          } else {
+            person.employmentHistory ||= [];
+            person.employmentHistory.unshift({
+              company: person.company,
+              department: person.department,
+              title: person.title,
+              positionSource: person.positionSource,
+              positionId: person.positionId,
+              positionName: person.positionName,
+              level: person.level,
+              pm: person.pm,
+              startDate: person.effectiveDate,
+              endDate: effectiveDate,
+            });
+            Object.assign(person, {
+              company: change.targetCompany,
+              department: change.targetDepartment,
+              title: change.targetTitle,
+              positionSource: change.targetPositionSource,
+              positionId: change.targetPositionId,
+              positionName: change.targetPositionName,
+              level: change.targetLevel,
+              pm: target.level === "省公司" ? "" : change.targetPm,
+              region: target.region || person.region,
+              city: target.city || person.city,
+              effectiveDate,
+              updatedAt: recordCreatedAt(),
+            });
+            rebuildContactEventTasksAfterTransfer(person, target, {
+              ...change,
+              code: "当前调岗",
+            });
+            reconcileCampaignTasksAfterTransfer(person, target);
+          }
           closeOverlay();
           renderPage();
-          toast(
-            sameCompany
-              ? "同单位任职变更已提交上级审批"
-              : target.level === "省公司"
-                ? `调岗流程已发起，目标区域总监 ${customerOwnerName(target)} 收到审批待办`
-                : `调岗流程已发起，目标 PM ${customerOwnerName(target)} 收到接收待办`,
-          );
+          toast(effectiveDate > DEMO_TODAY ? `调岗已确认，将于 ${effectiveDate} 重新校验并生效` : "关键人调岗已生效");
         };
       }

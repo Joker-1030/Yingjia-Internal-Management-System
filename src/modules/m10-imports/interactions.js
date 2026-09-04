@@ -22,7 +22,7 @@
         if (templateType === FULL_IMPORT_TEMPLATE)
           return `${common}\n工作表,用途,下拉字段\n集团公司,维护集团主数据,行业\n地市负责人,仅分配,省份/城市/PM工号\n客户单位,维护客户公司,行业/集团/组织上级类型/上级客户公司编码/业务责任层级/业务责任省市区\n客户部门,维护公司下的部门树,行业/集团/客户公司/上级客户部门\n关键人,新增身份与首条任职,行业/集团/客户公司/客户部门/职级/标准岗位`;
         if (templateType === CONTACT_IMPORT_TEMPLATE)
-          return `${common}\n工作表,关键人\n下拉字段,客户单位/部门/职级/标准岗位\n说明,仅新增关键人及首条任职；疑似重复默认跳过，任职变更须走关键人调岗审批`;
+          return `${common}\n工作表,关键人\n下拉字段,客户单位/部门/职级/标准岗位\n说明,仅新增关键人及首条任职；疑似重复默认跳过，任职变更须使用关键人调岗`;
         return `${common}\n工作表,项目基本信息\n模板字段,项目名称/项目类型/客户编号/原创建时间/开始时间/结束时间/项目确认天数/资源类型/采购包及课程方向/合作形式/平台公司/AI 软件项目金额/导入阶段\n系统生成,项目编号/地区/当前项目负责人/系统计算天数/项目单价/培训项目金额/结账金额\n说明,仅新增项目；不覆盖存量，不接收已取消项目，不包含项目人员、资料和满意度`;
       }
       function downloadTemplate(requestedType) {
@@ -402,7 +402,7 @@
           );
         if (batch.duplicates)
           rows.push(
-            `<tr><td>关键人 / 21</td><td>手机号</td><td><span class="tag yellow">疑似重复</span></td><td>IMP-DUP-001 · 命中存量关键人唯一手机号</td><td>默认跳过；任职变化请走调岗审批</td></tr>`,
+            `<tr><td>关键人 / 21</td><td>手机号</td><td><span class="tag yellow">疑似重复</span></td><td>IMP-DUP-001 · 命中存量关键人唯一手机号</td><td>默认跳过；任职变化请使用关键人调岗</td></tr>`,
           );
         if (batch.errors && batch.templateType === FULL_IMPORT_TEMPLATE)
           rows.push(

@@ -243,7 +243,7 @@
           .filter((item) => item.month === target.month)
           .map(
             (item) =>
-              `<tr><td>${item.version}</td><td>${item.level}</td><td>${item.object}</td><td>${item.before}</td><td>${item.after}</td><td>${item.reason}</td><td>${item.operator}</td><td>${item.approval}</td><td>${item.effectiveAt}</td></tr>`,
+              `<tr><td>${item.version}</td><td>${item.level}</td><td>${item.object}</td><td>${item.before}</td><td>${item.after}</td><td>${item.reason}</td><td>${item.operator}</td><td>${item.effectiveMode}</td><td>${item.effectiveAt}</td></tr>`,
           )
           .join("");
         return (

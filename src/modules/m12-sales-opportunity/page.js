@@ -327,7 +327,7 @@
           .sort((left, right) => right.stageChangedAt.localeCompare(left.stageChangedAt))
           .map(
             (item) =>
-              `<tr data-page-row><td><button class="link" type="button" data-opportunity-open="${item.id}">${item.id}</button></td><td>${item.name}</td><td>${item.type}</td><td>${salesStageTag(item.stage)}</td><td>${item.customer}</td><td>${salesMoney(salesAmountValue(item))}</td><td>${salesPriorityTag(item.priority)}</td><td>${salesStageDays(item)} 天</td><td>${item.owner}</td><td>${item.createdDate}</td><td>${item.createdBy}</td></tr>`,
+              `<tr data-page-row><td>${item.id}</td><td>${item.name}</td><td>${item.type}</td><td>${salesStageTag(item.stage)}</td><td>${item.customer}</td><td>${salesMoney(salesAmountValue(item))}</td><td>${salesPriorityTag(item.priority)}</td><td>${salesStageDays(item)} 天</td><td>${item.owner}</td><td>${item.createdDate}</td><td>${item.createdBy}</td><td><button class="link" type="button" data-opportunity-open="${item.id}">详情</button></td></tr>`,
           )
           .join("");
         const drillText = salesOpportunityDrill === "period"
@@ -338,13 +338,13 @@
         const drillHtml = salesOpportunityDrill
           ? `<div class="sales-drill-strip"><span>当前下钻条件：${drillText}</span><button class="btn" type="button" id="clearSalesDrill">清除</button></div>`
           : "";
-        const emptyRow = '<tr data-empty-row><td colspan="11"><div class="empty">暂无数据</div></td></tr>';
+        const emptyRow = '<tr data-empty-row><td colspan="12"><div class="empty">暂无数据</div></td></tr>';
         const tableHtml = [
           '<section class="panel">',
           opportunityFiltersHtml(),
-          '<div class="table-wrap"><table style="min-width:1420px" data-paged-table="m12-opportunities">',
-          '<thead><tr><th>商机编号</th><th>商机名称</th><th>商机类型</th><th>阶段</th><th>客户单位</th><th>当前有效金额</th><th>优先级</th><th>当前阶段停留时间</th><th>负责人</th><th>创建时间</th><th>创建人</th></tr></thead>',
-          `<tbody>${body || emptyRow}<tr data-filter-empty style="display:none"><td colspan="11"><div class="empty">暂无数据</div></td></tr></tbody>`,
+          '<div class="table-wrap"><table style="min-width:1500px" data-paged-table="m12-opportunities">',
+          '<thead><tr><th>商机编号</th><th>商机名称</th><th>商机类型</th><th>阶段</th><th>客户单位</th><th>当前有效金额</th><th>优先级</th><th>当前阶段停留时间</th><th>负责人</th><th>创建时间</th><th>创建人</th><th>操作</th></tr></thead>',
+          `<tbody>${body || emptyRow}<tr data-filter-empty style="display:none"><td colspan="12"><div class="empty">暂无数据</div></td></tr></tbody>`,
           `</table></div>${tablePagination("m12-opportunities")}</section>`,
         ].join("");
         return (

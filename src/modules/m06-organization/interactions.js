@@ -195,7 +195,7 @@
             employee.status === "在职" && employee.role !== "系统管理员",
         );
         openModal(
-          `<div class="modal-head"><div class="modal-title">${department ? "管理" : "新增"}部门</div><button class="icon-btn close" data-close>×</button></div><form id="organizationDepartmentForm"><div class="modal-body"><div class="form-grid"><div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>部门名称</label><input class="input" id="odName" value="${department?.name || ""}" minlength="2" maxlength="100" required></div>${department ? `<div class="form-group"><label class="form-label">部门编码</label><input class="input" value="${department.code}" disabled></div>` : `<div class="form-group"><label class="form-label">部门编码</label><input class="input" value="保存后自动生成" disabled></div>`}<div class="form-group"><label class="form-label">上级部门</label><select class="input" id="odParent"><option value="">英嘉科技（一级部门）</option>${parents.map((item) => `<option value="${item.id}" ${department?.parentId === item.id ? "selected" : ""}>${departmentPath(item)}</option>`).join("")}</select></div><div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>排序</label><input class="input" id="odSort" type="number" min="1" max="9999" value="${department?.sort || 100}" required></div><div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>是否区域中心</label><select class="input" id="odIsRegion"><option value="false" ${department?.type !== "region" ? "selected" : ""}>否</option><option value="true" ${department?.type === "region" ? "selected" : ""}>是</option></select></div><div class="form-group"><label class="form-label">部门主管</label><select class="input" id="odSupervisor"><option value="">暂不设置主管（待设置）</option>${supervisorCandidates.map((employee) => `<option value="${employee.code}" ${department?.supervisorCode === employee.code ? "selected" : ""}>${employee.name} · ${employee.code} · ${employeeDepartmentNames(employee).join("、") || "未归属部门"} · ${employeeRoleDisplay(employee)}</option>`).join("")}</select><div class="list-sub">每部门最多一名主管；可选部门外员工，保存后自动增加成员关系且解除主管不自动移除。</div></div>${department ? `<div class="form-group"><label class="form-label">组织状态</label><select class="input" id="odStatus"><option value="启用" ${department.status === "启用" ? "selected" : ""}>正常</option><option value="停用" ${department.status === "停用" ? "selected" : ""}>已停用</option></select></div>` : ""}</div></div><div class="modal-foot"><button class="btn" type="button" data-close>取消</button><button class="btn btn-primary" type="submit">保存部门</button></div></form>`,
+          `<div class="modal-head"><div class="modal-title">${department ? "管理" : "新增"}部门</div><button class="icon-btn close" data-close>×</button></div><form id="organizationDepartmentForm"><div class="modal-body"><div class="form-grid"><div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>部门名称</label><input class="input" id="odName" value="${department?.name || ""}" minlength="2" maxlength="100" required></div>${department ? `<div class="form-group"><label class="form-label">部门编码</label><input class="input" value="${department.code}" disabled></div>` : `<div class="form-group"><label class="form-label">部门编码</label><input class="input" value="保存后自动生成" disabled></div>`}<div class="form-group"><label class="form-label">上级部门</label><select class="input" id="odParent"><option value="">英嘉科技（一级部门）</option>${parents.map((item) => `<option value="${item.id}" ${department?.parentId === item.id ? "selected" : ""}>${departmentPath(item)}</option>`).join("")}</select></div><div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>排序</label><input class="input" id="odSort" type="number" min="1" max="9999" value="${department?.sort || 100}" required></div><div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>是否区域中心</label><select class="input" id="odIsRegion"><option value="false" ${department?.type !== "region" ? "selected" : ""}>否</option><option value="true" ${department?.type === "region" ? "selected" : ""}>是</option></select></div><div class="form-group"><label class="form-label">部门主管</label><select class="input" id="odSupervisor"><option value="">暂不设置主管（待设置）</option>${supervisorCandidates.map((employee) => `<option value="${employee.code}" ${department?.supervisorCode === employee.code ? "selected" : ""}>${employee.name} · ${employee.code} · ${employeeDepartmentNames(employee).join("、") || "未归属部门"} · ${employeeRoleDisplay(employee)}</option>`).join("")}</select><div class="list-sub">每部门最多一名主管；可选部门外员工，保存后自动增加成员关系且解除主管不自动移除。</div></div></div></div><div class="modal-foot"><button class="btn" type="button" data-close>取消</button><button class="btn btn-primary" type="submit">保存部门</button></div></form>`,
         );
         $("#organizationDepartmentForm").onsubmit = (event) => {
           event.preventDefault();
@@ -227,21 +227,12 @@
             (employee) => employee.code === supervisorCode,
           );
           if (department) {
-            const status = $("#odStatus").value;
-            if (
-              status === "停用" &&
-              (employees.some(
-                (employee) =>
-                  employee.status === "在职" && employeeDepartmentNames(employee).includes(department.name),
-              ) || organizationChildren(department.id).length)
-            )
-              return toast("请先移出在职员工并处理下级组织");
             const linkedRegion = regionsData.find(
               (region) => region.id === department.regionId,
             );
             if (
               department.type === "region" &&
-              (!isRegion || status === "停用") &&
+              !isRegion &&
               (regionProvinceList(linkedRegion).length ||
                 cityOwners.some((city) =>
                   regionProvinceList(linkedRegion).includes(city.province),
@@ -263,7 +254,7 @@
             const shouldTransferDirectorProjects =
               oldType === "region" &&
               isRegion &&
-              status === "启用" &&
+              department.status === "启用" &&
               oldSupervisorCode !== supervisorCode &&
               Boolean(linkedRegion);
             const projectTransferPlan = shouldTransferDirectorProjects
@@ -283,7 +274,6 @@
                 name,
                 code,
                 parentId,
-                status,
                 supervisorCode,
                 sort,
                 type: isRegion ? "region" : "department",
@@ -352,14 +342,12 @@
                 actualEffectiveAt: effectiveAt,
                 object: name,
                 type:
-                  status === "停用"
-                    ? "组织停用"
-                    : oldParent !== parentId
-                      ? "部门移动"
-                      : oldSupervisorCode !== supervisorCode
-                        ? "主管变更"
-                        : oldType !== department.type
-                          ? "区域中心标记变更"
+                  oldParent !== parentId
+                    ? "部门移动"
+                    : oldSupervisorCode !== supervisorCode
+                      ? "主管变更"
+                      : oldType !== department.type
+                        ? "区域中心标记变更"
                         : oldName !== name
                           ? "部门改名"
                           : "组织编辑",
@@ -443,27 +431,27 @@
             ["pending", "paused_invalid_handler"].includes(approval.status) &&
             approvalCurrentAssignees(approval).includes(employee.name),
         );
-        const unfinishedProjectsForEmployee = () =>
+        const blockingProjectsForEmployee = () =>
           projects.filter(
             (project) =>
-              !["已完成", "已取消"].includes(project.stage) &&
+              ["已立项", "进行中", "已交付"].includes(project.stage) &&
               projectCurrentOwner(project) === employee.name,
           );
         const projectMigrationRequired = () =>
           toast(
-            "该员工仍负责未完成项目，请先在“区域中心与地市配置”通过地区责任直接调整完成项目迁移，再重新停用。",
+            "该员工仍负责已立项、进行中或已交付项目，请先在“区域中心与地市配置”通过地区责任直接调整完成项目迁移，再重新停用。",
           );
-        if (mode === "停用" && unfinishedProjectsForEmployee().length)
+        if (mode === "停用" && blockingProjectsForEmployee().length)
           return projectMigrationRequired();
         openModal(
-          `<div class="modal-head"><div class="modal-title">确认员工${mode}</div><button class="icon-btn close" data-close>×</button></div><form id="employeeStatusForm"><div class="modal-body"><div class="role-note ${mode === "停用" ? "danger-note" : ""}"><strong>${employee.name} · ${employee.code}</strong><br>本操作由 HR/admin 直接生效，不创建审批、WF 编号、待办或抄送。</div>${mode === "停用" ? `<div class="impact-summary"><div class="impact-grid"><div><label>将清空主管部门</label><strong>${managedDepartments.length}</strong></div><div><label>将清空地市责任</label><strong>${ownedCities.length}</strong></div><div><label>将取消未完成任务</label><strong>${openTasks.length}</strong></div></div></div><div class="role-note">停用前已确认不存在未迁移未完成项目。部门成员、系统角色、当前审批实例及已迁移/历史项目保留；处理人失效节点按既有规则暂停，全部未完成任务直接取消，项目不取消。</div>` : `<div class="role-note">恢复后继续保留原部门成员和系统角色；已取消任务不恢复，此前清空的主管、区域/地市及客户当前责任不会自动恢复。</div>`}<div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>${mode}原因</label><textarea class="input" id="esReason" minlength="5" maxlength="500" required></textarea></div></div><div class="modal-foot"><button class="btn" type="button" data-close>取消</button><button class="btn ${mode === "停用" ? "btn-danger" : "btn-primary"}" type="submit">确认并立即${mode}</button></div></form>`,
+          `<div class="modal-head"><div class="modal-title">确认员工${mode}</div><button class="icon-btn close" data-close>×</button></div><form id="employeeStatusForm"><div class="modal-body"><div class="role-note ${mode === "停用" ? "danger-note" : ""}"><strong>${employee.name} · ${employee.code}</strong><br>本操作由 HR/admin 直接生效，不创建审批、WF 编号、待办或抄送。</div>${mode === "停用" ? `<div class="impact-summary"><div class="impact-grid"><div><label>将清空主管部门</label><strong>${managedDepartments.length}</strong></div><div><label>将清空地市责任</label><strong>${ownedCities.length}</strong></div><div><label>将取消未完成任务</label><strong>${openTasks.length}</strong></div></div></div><div class="role-note">停用前已确认不存在未迁移的已立项、进行中或已交付项目。部门成员、系统角色、当前审批实例及已迁移/历史项目保留；已取消和已中止项目不迁移且不阻断停用；处理人失效节点按既有规则暂停，全部未完成任务直接取消，项目不自动取消或中止。</div>` : `<div class="role-note">恢复后继续保留原部门成员和系统角色；已取消任务不恢复，此前清空的主管、区域/地市及客户当前责任不会自动恢复。</div>`}<div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>${mode}原因</label><textarea class="input" id="esReason" minlength="5" maxlength="500" required></textarea></div></div><div class="modal-foot"><button class="btn" type="button" data-close>取消</button><button class="btn ${mode === "停用" ? "btn-danger" : "btn-primary"}" type="submit">确认并立即${mode}</button></div></form>`,
         );
         $("#employeeStatusForm").onsubmit = (event) => {
           event.preventDefault();
           const reason = $("#esReason").value.trim();
           if (reason.length < 5 || reason.length > 500)
             return toast(`${mode}原因需填写 5-500 字`);
-          if (mode === "停用" && unfinishedProjectsForEmployee().length)
+          if (mode === "停用" && blockingProjectsForEmployee().length)
             return projectMigrationRequired();
           const changedAt = recordCreatedAt();
           const changeId = `PC-${Date.now()}`;
@@ -573,7 +561,7 @@
             handover: [],
             impactSummary:
               mode === "停用"
-                ? `未完成项目迁移校验通过；清空主管 ${managedDepartments.length} 个、地市责任 ${ownedCities.length} 个；取消未完成任务 ${tasksToCancel.length} 条；保留当前审批节点 ${activeApprovals.length} 个`
+                ? `已立项、进行中和已交付项目迁移校验通过；清空主管 ${managedDepartments.length} 个、地市责任 ${ownedCities.length} 个；取消未完成任务 ${tasksToCancel.length} 条；保留当前审批节点 ${activeApprovals.length} 个`
                 : "恢复账号；已取消任务和已清空责任不自动恢复",
           };
           personnelChanges.unshift(change);

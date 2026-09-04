@@ -31,10 +31,20 @@
         document.querySelectorAll("[data-project-cancel-open]").forEach((button) => {
           button.onclick = () => openProjectCancelModal();
         });
+        document.querySelectorAll("[data-project-terminate-open]").forEach((button) => {
+          button.onclick = () => openProjectTerminationModal();
+        });
         document.querySelectorAll("[data-project-supplement]").forEach((button) => {
           button.onclick = () => {
             projectDetailTab = "materials";
             renderPage();
+            const target = document.querySelector(
+              "[data-material-supplement-target]",
+            );
+            if (target) {
+              target.focus({ preventScroll: true });
+              target.scrollIntoView({ block: "center", behavior: "smooth" });
+            }
           };
         });
         document.querySelectorAll("[data-material-add]").forEach((button) => {
@@ -47,7 +57,8 @@
           };
         });
         document.querySelectorAll("[data-material-delete]").forEach((button) => {
-          button.onclick = () => handleMaterialDelete(button.dataset.materialDelete);
+          button.onclick = () =>
+            openProjectMaterialDeleteModal(button.dataset.materialDelete);
         });
         document.querySelectorAll("[data-material-replace]").forEach((button) => {
           button.onclick = () => {
@@ -151,8 +162,102 @@
         );
         return `PT${String((seqs.length ? Math.max(...seqs) : 0) + 1).padStart(6, "0")}`;
       }
+      function packageDirectionInputValue(value) {
+        if (value === null || value === undefined || value === "") return "";
+        return Number(value).toFixed(2);
+      }
       function packageDirectionRowHtml(direction = {}) {
-        return `<div class="package-direction-row"><label class="package-direction-field package-direction-name-field"><span class="form-label"><span class="required-marker" aria-hidden="true">*</span>课程方向一句话介绍</span><input class="input package-direction-name" data-pkg-dir-intro value="${direction.intro || ""}" placeholder="一句话课程介绍" required></label><label class="package-direction-field package-direction-untaxed-field"><span class="form-label"><span class="required-marker" aria-hidden="true">*</span>不含税报价</span><input class="input package-direction-price" type="number" step="0.01" data-pkg-dir-untaxed value="${direction.untaxedPrice ?? ""}" placeholder="不含税报价" required></label><label class="package-direction-field package-direction-taxed-field"><span class="form-label"><span class="required-marker" aria-hidden="true">*</span>含税报价</span><input class="input package-direction-price" type="number" step="0.01" data-pkg-dir-taxed value="${direction.taxedPrice ?? ""}" placeholder="含税报价" required></label><button class="icon-btn package-direction-remove" type="button" data-pkg-dir-remove title="移除该课程方向" aria-label="移除该课程方向">×</button></div>`;
+        const taxRate = projectDirectionTaxRate(direction);
+        return (
+          '<div class="package-direction-row" data-price-basis="untaxed">' +
+          '<label class="package-direction-field package-direction-name-field"><span class="form-label"><span class="required-marker" aria-hidden="true">*</span>课程方向一句话介绍</span>' +
+          `<input class="input package-direction-name" data-pkg-dir-intro value="${direction.intro || ""}" placeholder="一句话课程介绍" required></label>` +
+          '<label class="package-direction-field package-direction-untaxed-field"><span class="form-label"><span class="required-marker" aria-hidden="true">*</span>不含税报价（元/天）</span>' +
+          `<input class="input package-direction-price" type="number" min="0.01" step="0.01" data-pkg-dir-untaxed value="${packageDirectionInputValue(direction.untaxedPrice)}" placeholder="请输入不含税报价" required></label>` +
+          '<label class="package-direction-field package-direction-tax-rate-field"><span class="form-label"><span class="required-marker" aria-hidden="true">*</span>税率（%）</span>' +
+          `<input class="input package-direction-price" type="number" min="0" max="100" step="0.01" data-pkg-dir-tax-rate value="${packageDirectionInputValue(taxRate)}" placeholder="请输入税率" required></label>` +
+          '<label class="package-direction-field package-direction-taxed-field"><span class="form-label"><span class="required-marker" aria-hidden="true">*</span>含税报价（元/天）</span>' +
+          `<input class="input package-direction-price" type="number" min="0.01" step="0.01" data-pkg-dir-taxed value="${packageDirectionInputValue(direction.taxedPrice)}" placeholder="请输入含税报价" required></label>` +
+          '<button class="icon-btn package-direction-remove" type="button" data-pkg-dir-remove title="移除该课程方向" aria-label="移除该课程方向">×</button></div>'
+        );
+      }
+      function packageDirectionNumber(input) {
+        if (!input || input.value.trim() === "") return null;
+        const value = Number(input.value);
+        return Number.isFinite(value) ? value : null;
+      }
+      function recalculatePackageDirection(row, source) {
+        const untaxedInput = row.querySelector("[data-pkg-dir-untaxed]");
+        const taxRateInput = row.querySelector("[data-pkg-dir-tax-rate]");
+        const taxedInput = row.querySelector("[data-pkg-dir-taxed]");
+        if (source === "untaxed" || source === "taxed")
+          row.dataset.priceBasis = source;
+        const taxRate = packageDirectionNumber(taxRateInput);
+        if (taxRate === null || taxRate < 0 || taxRate > 100) return;
+        const basis = row.dataset.priceBasis || "untaxed";
+        if (basis === "taxed") {
+          const taxed = packageDirectionNumber(taxedInput);
+          if (taxed === null || taxed <= 0) return;
+          untaxedInput.value = round2(taxed / (1 + taxRate / 100)).toFixed(2);
+          return;
+        }
+        const untaxed = packageDirectionNumber(untaxedInput);
+        if (untaxed === null || untaxed <= 0) return;
+        taxedInput.value = round2(untaxed * (1 + taxRate / 100)).toFixed(2);
+      }
+      function normalizePackageDirectionInput(row, input, source) {
+        const value = packageDirectionNumber(input);
+        if (value !== null) input.value = round2(value).toFixed(2);
+        recalculatePackageDirection(row, source === "taxRate" ? source : null);
+      }
+      function bindPackageDirectionInputs(row) {
+        const fields = [
+          [row.querySelector("[data-pkg-dir-untaxed]"), "untaxed"],
+          [row.querySelector("[data-pkg-dir-tax-rate]"), "taxRate"],
+          [row.querySelector("[data-pkg-dir-taxed]"), "taxed"],
+        ];
+        fields.forEach(([input, source]) => {
+          input.oninput = () => recalculatePackageDirection(row, source);
+          input.onblur = () => normalizePackageDirectionInput(row, input, source);
+        });
+      }
+      function packageDirectionData(row) {
+        const untaxedInput = row.querySelector("[data-pkg-dir-untaxed]");
+        const taxRateInput = row.querySelector("[data-pkg-dir-tax-rate]");
+        const taxedInput = row.querySelector("[data-pkg-dir-taxed]");
+        const rawUntaxedPrice = packageDirectionNumber(untaxedInput);
+        const rawTaxRate = packageDirectionNumber(taxRateInput);
+        const rawTaxedPrice = packageDirectionNumber(taxedInput);
+        if (rawUntaxedPrice === null || rawUntaxedPrice <= 0) {
+          untaxedInput.reportValidity();
+          return null;
+        }
+        if (rawTaxRate === null || rawTaxRate < 0 || rawTaxRate > 100) {
+          taxRateInput.reportValidity();
+          return null;
+        }
+        if (rawTaxedPrice === null || rawTaxedPrice <= 0) {
+          taxedInput.reportValidity();
+          return null;
+        }
+        const untaxedPrice = round2(rawUntaxedPrice);
+        const taxRate = round2(rawTaxRate);
+        const taxedPrice = round2(rawTaxedPrice);
+        const basis = row.dataset.priceBasis || "untaxed";
+        const expected =
+          basis === "taxed"
+            ? round2(taxedPrice / (1 + taxRate / 100))
+            : round2(untaxedPrice * (1 + taxRate / 100));
+        const actual = basis === "taxed" ? untaxedPrice : taxedPrice;
+        if (actual !== expected) {
+          return null;
+        }
+        return {
+          intro: row.querySelector("[data-pkg-dir-intro]").value.trim(),
+          untaxedPrice,
+          taxRate,
+          taxedPrice,
+        };
       }
       function openPackageForm(packageId) {
         if (!hasOperationPermission("packages.manage")) return;
@@ -183,15 +288,19 @@
             '</div></form>',
         );
         const bindDirectionRemove = () => {
-          document.querySelectorAll("[data-pkg-dir-remove]").forEach((button) => {
-            button.onclick = () => {
-              const rows = document.querySelectorAll(
-                "#packageDirections .package-direction-row",
-              );
-              if (rows.length <= 1) return;
-              button.closest(".package-direction-row").remove();
-            };
-          });
+          document
+            .querySelectorAll("#packageDirections .package-direction-row")
+            .forEach((row) => {
+              bindPackageDirectionInputs(row);
+              const button = row.querySelector("[data-pkg-dir-remove]");
+              button.onclick = () => {
+                const rows = document.querySelectorAll(
+                  "#packageDirections .package-direction-row",
+                );
+                if (rows.length <= 1) return;
+                button.closest(".package-direction-row").remove();
+              };
+            });
         };
         bindDirectionRemove();
         $("#addPackageDirection").onclick = () => {
@@ -207,13 +316,8 @@
             ...document.querySelectorAll(
               "#packageDirections .package-direction-row",
             ),
-          ].map((row) => ({
-            intro: row.querySelector("[data-pkg-dir-intro]").value.trim(),
-            untaxedPrice: Number(
-              row.querySelector("[data-pkg-dir-untaxed]").value,
-            ),
-            taxedPrice: Number(row.querySelector("[data-pkg-dir-taxed]").value),
-          }));
+          ].map(packageDirectionData);
+          if (directions.some((direction) => direction === null)) return;
           const data = {
             name: $("#pkgName").value.trim(),
             validFrom: $("#pkgValidFrom").value,
@@ -311,6 +415,12 @@
           renderPage();
         };
       }
+      function openPackageDetail(packageId) {
+        if (!hasOperationPermission("packages.view")) return;
+        const pkg = scopedProjectPackages().find((item) => item.id === packageId);
+        if (!pkg) return;
+        openDrawer(projectPackageDetailHtml(pkg));
+      }
       function openConfigStatusConfirm(kind, id, action) {
         if (!hasOperationPermission(`${kind}.manage`)) return;
         const isPackage = kind === "packages";
@@ -341,6 +451,7 @@
       function dispatchConfigAction(action, id) {
         const handlers = {
           "add-package": () => openPackageForm(null),
+          "view-package": () => openPackageDetail(id),
           "edit-package": () => openPackageForm(id),
           "stop-package": () => openConfigStatusConfirm("packages", id, "stop"),
           "restore-package": () => openConfigStatusConfirm("packages", id, "restore"),
@@ -867,6 +978,103 @@
           projectInstructors.includes(name),
         );
       }
+      let projectInstructorOutsideClickBound = false;
+      function setInstructorSelectOpen(picker, open) {
+        const trigger = picker.querySelector("[data-instructor-trigger]");
+        const menu = picker.querySelector("[data-instructor-menu]");
+        const search = picker.querySelector("[data-instructor-search]");
+        if (!trigger || !menu) return;
+        trigger.setAttribute("aria-expanded", open ? "true" : "false");
+        menu.classList.toggle("hidden", !open);
+        if (open) {
+          search?.focus();
+          return;
+        }
+        if (search) search.value = "";
+        picker
+          .querySelectorAll("[data-instructor-option]")
+          .forEach((option) => (option.hidden = false));
+      }
+      function renderInstructorSelected(picker) {
+        const selectedContainer = picker.querySelector(
+          "[data-instructor-selected]",
+        );
+        if (!selectedContainer) return;
+        const names = [
+          ...picker.querySelectorAll("input[data-instructor]:checked"),
+        ].map((input) => input.value);
+        selectedContainer.innerHTML = names
+          .map(
+            (name) =>
+              `<span class="instructor-selected-item"><span>${escapeHtml(name)}</span><button class="instructor-selected-remove" type="button" data-instructor-remove="${escapeHtml(name)}" title="移除${escapeHtml(name)}" aria-label="移除${escapeHtml(name)}">×</button></span>`,
+          )
+          .join("");
+      }
+      function bindInstructorSelects(form) {
+        const pickers = [...form.querySelectorAll("[data-instructor-picker]")];
+        pickers.forEach((picker) => {
+          const trigger = picker.querySelector("[data-instructor-trigger]");
+          const search = picker.querySelector("[data-instructor-search]");
+          const selectedContainer = picker.querySelector(
+            "[data-instructor-selected]",
+          );
+          trigger.onclick = () => {
+            const open = trigger.getAttribute("aria-expanded") !== "true";
+            document
+              .querySelectorAll("[data-instructor-picker]")
+              .forEach((other) => setInstructorSelectOpen(other, false));
+            setInstructorSelectOpen(picker, open);
+          };
+          search.oninput = () => {
+            const keyword = search.value.trim().toLocaleLowerCase("zh-CN");
+            picker
+              .querySelectorAll("[data-instructor-option]")
+              .forEach((option) => {
+                option.hidden = !option.textContent
+                  .toLocaleLowerCase("zh-CN")
+                  .includes(keyword);
+              });
+          };
+          search.onkeydown = (event) => {
+            if (event.key === "Enter") event.preventDefault();
+            if (event.key === "Escape") {
+              event.preventDefault();
+              setInstructorSelectOpen(picker, false);
+              trigger.focus();
+            }
+          };
+          picker
+            .querySelectorAll("input[data-instructor]")
+            .forEach((input) => {
+              input.onchange = () => renderInstructorSelected(picker);
+            });
+          selectedContainer.onclick = (event) => {
+            const removeButton = event.target.closest(
+              "[data-instructor-remove]",
+            );
+            if (!removeButton) return;
+            const input = [
+              ...picker.querySelectorAll("input[data-instructor]"),
+            ].find(
+              (candidate) =>
+                candidate.value === removeButton.dataset.instructorRemove,
+            );
+            if (input) input.checked = false;
+            renderInstructorSelected(picker);
+          };
+        });
+        if (!projectInstructorOutsideClickBound) {
+          document.addEventListener("click", (event) => {
+            document
+              .querySelectorAll("[data-instructor-picker]")
+              .forEach((picker) => {
+                if (!picker.contains(event.target))
+                  setInstructorSelectOpen(picker, false);
+              });
+          });
+          projectInstructorOutsideClickBound = true;
+        }
+      }
       function clearProjectFormErrors() {
         document
           .querySelectorAll("#projectForm .field-error")
@@ -890,7 +1098,7 @@
         if (!names.size || !startTime || !endTime) return conflicts;
         projects.forEach((other) => {
           if (other.id === excludeId) return;
-          if (other.stage === "已取消") return;
+          if (["已取消", "已中止"].includes(other.stage)) return;
           const otherNames = [
             ...(other.lecturers || []),
             ...(other.assistantLecturers || []),
@@ -983,6 +1191,20 @@
           currentPage === "project-edit" ? projectById(selectedProjectId) : null;
         const resourceChanged = projectFormResourceChanged(editingProject);
         const company = platformCompanies.find((item) => item.id === companyId);
+        const feeRate =
+          cooperation === "走账合作"
+            ? editingProject &&
+              !resourceChanged &&
+              editingProject.snapshot?.managementFeeRate != null
+              ? editingProject.snapshot.managementFeeRate
+              : company?.managementFeeRate
+            : null;
+        const feeRateInput = $("#pfManagementFeeRate");
+        if (feeRateInput)
+          feeRateInput.value =
+            feeRate === null || feeRate === undefined
+              ? "—"
+              : Number(feeRate).toFixed(2);
         let unitPrice = null;
         if (editingProject && !resourceChanged && editingProject.snapshot) {
           unitPrice = editingProject.snapshot.unitPrice;
@@ -1007,17 +1229,42 @@
         const amount = Number($("#pfAmount").value);
         if (amount) {
           let settlement = amount;
-          const feeRate =
-            cooperation === "走账合作"
-              ? editingProject && !resourceChanged && editingProject.snapshot?.managementFeeRate != null
-                ? editingProject.snapshot.managementFeeRate
-                : company?.managementFeeRate
-              : null;
           if (cooperation === "走账合作" && feeRate != null) {
             settlement = round2(amount * (1 - feeRate / 100));
           }
           $("#pfSettlement").value = formatProjectMoney(settlement);
         }
+      }
+      function refreshProjectFormulaText(id, text) {
+        const formula = $(id);
+        if (!formula) return;
+        formula.textContent = text;
+        formula.style.display = text ? "" : "none";
+      }
+      function refreshStageProjectAmounts(project) {
+        const amountInput = $("#pfAmount");
+        const settlementInput = $("#pfSettlement");
+        if (!amountInput || !settlementInput) return;
+        const days = Number($("#pfDays")?.value);
+        let amount = Number(project.amount);
+        if (project.type === "培训项目") {
+          amount =
+            Number.isFinite(days) && days > 0 && project.snapshot?.unitPrice != null
+              ? round2(project.snapshot.unitPrice * days)
+              : null;
+        }
+        if (!Number.isFinite(amount)) {
+          amountInput.value = "—";
+          settlementInput.value = "—";
+          return;
+        }
+        const feeRate = project.snapshot?.managementFeeRate;
+        const settlement =
+          project.cooperation === "走账合作" && feeRate != null
+            ? round2(amount * (1 - feeRate / 100))
+            : amount;
+        amountInput.value = formatProjectMoney(amount);
+        settlementInput.value = formatProjectMoney(settlement);
       }
       function refreshProjectFormDynamics() {
         const type = $("#pfType").value;
@@ -1042,7 +1289,19 @@
         setProjectFieldVisible("pfPackage", showPackage);
         setProjectFieldVisible("pfDirection", showPackage);
         setProjectFieldVisible("pfCompany", showCompany);
+        setProjectFieldVisible(
+          "pfManagementFeeRate",
+          cooperation === "走账合作",
+        );
         setProjectFieldVisible("pfUnitPrice", showUnitPrice);
+        refreshProjectFormulaText(
+          "#pfAmountFormula",
+          projectAmountFormulaText(type),
+        );
+        refreshProjectFormulaText(
+          "#pfSettlementFormula",
+          projectSettlementFormulaText(cooperation),
+        );
         refreshProjectFormAmounts();
       }
       function writePreStartEditHistory(project, payload) {
@@ -1684,7 +1943,7 @@
         );
         if (!category) return false;
         const mode = projectMaterialMaintenanceMode(context.project);
-        return mode === "full" || (mode === "optional-add" && !category.required);
+        return mode === "full" || mode === "completed-add";
       }
       async function validateProjectMaterialFile(file, categoryName, project, excludeMaterialId) {
         const category = projectMaterialCategories(project).find(
@@ -1739,8 +1998,7 @@
           (item) => item.name === categoryName,
         );
         if (!category) return;
-        const canAdd =
-          mode === "full" || (mode === "optional-add" && !category.required);
+        const canAdd = mode === "full" || mode === "completed-add";
         if (!canAdd) return;
         const context = projectMaterialOperationContext(project);
         const validations = [];
@@ -1813,6 +2071,24 @@
         setProjectMaterialResults([]);
         normalizeProjectLifecycle(project);
         renderPage();
+      }
+      function openProjectMaterialDeleteModal(fileId) {
+        const project = projectById(selectedProjectId);
+        if (!project) return;
+        normalizeProjectLifecycle(project);
+        if (!canDeleteProjectMaterials()) return;
+        if (projectMaterialMaintenanceMode(project) !== "full") return;
+        if (!projectMaterials(project).some((material) => material.id === fileId))
+          return;
+        openModal(
+          '<div class="modal-head project-modal-head"><div class="modal-title">确认删除文件</div><button class="icon-btn close" data-close>×</button></div>' +
+            '<div class="modal-body project-modal-body"><div class="role-note danger-note">删除后不可恢复，确认删除？</div></div>' +
+            '<div class="modal-foot project-modal-foot"><button class="btn" type="button" data-close>取消</button><button class="btn btn-danger" type="button" id="confirmProjectMaterialDelete">确认删除</button></div>',
+        );
+        $("#confirmProjectMaterialDelete").onclick = () => {
+          closeOverlay();
+          handleMaterialDelete(fileId);
+        };
       }
       async function handleMaterialReplace(fileId, file) {
         const project = projectById(selectedProjectId);
@@ -2010,6 +2286,116 @@
           submitProjectCancel();
         };
       }
+      function submitProjectTermination() {
+        const project = projectById(selectedProjectId);
+        if (!project) {
+          closeOverlay();
+          return;
+        }
+        normalizeProjectLifecycle(project);
+        if (!canTerminateProject(project)) {
+          closeOverlay();
+          renderPage();
+          return;
+        }
+        const settlementChoice = document.querySelector(
+          'input[name="projectTerminationSettlement"]:checked',
+        )?.value;
+        const amountRaw = ($("#projectTerminationAmount")?.value || "").trim();
+        const reason = ($("#projectTerminationReason")?.value || "").trim();
+        const settlementError = $("#err-terminationSettlement");
+        const amountError = $("#err-terminationAmount");
+        const reasonError = $("#err-terminationReason");
+        if (settlementError) settlementError.textContent = "";
+        if (amountError) amountError.textContent = "";
+        if (reasonError) reasonError.textContent = "";
+        let invalid = false;
+        if (!settlementChoice) {
+          if (settlementError)
+            settlementError.textContent = "请选择是否涉及金额结算";
+          invalid = true;
+        }
+        const involvesSettlement = settlementChoice === "yes";
+        const amountFormatValid = /^(?:0|[1-9]\d*)(?:\.\d{1,2})?$/.test(
+          amountRaw,
+        );
+        const amount = Number(amountRaw);
+        if (
+          involvesSettlement &&
+          (!amountRaw || !amountFormatValid || !Number.isFinite(amount) || amount <= 0)
+        ) {
+          if (amountError)
+            amountError.textContent = "请填写大于 0 且最多两位小数的应结算金额";
+          invalid = true;
+        }
+        if (reason.length < 5 || reason.length > 500) {
+          if (reasonError) reasonError.textContent = "中止原因需填写 5-500 字";
+          invalid = true;
+        }
+        if (invalid) return;
+
+        const oldStage = project.stage;
+        const terminatedOwner = projectCurrentOwner(project);
+        project.terminationInvolvesSettlement = involvesSettlement;
+        if (involvesSettlement) project.terminationSettlementAmount = amount;
+        else delete project.terminationSettlementAmount;
+        project.terminationReason = reason;
+        project.terminatedOwner = terminatedOwner;
+        project.terminatedBy = currentUser.name;
+        project.terminatedAt = projectNow();
+        project.stage = "已中止";
+        project.todos = involvesSettlement ? ["待回款"] : [];
+        recordProjectChange(
+          project,
+          "是否涉及金额结算",
+          "—",
+          involvesSettlement ? "是" : "否",
+        );
+        if (involvesSettlement)
+          recordProjectChange(
+            project,
+            "应结算金额（含税，元）",
+            "—",
+            formatProjectMoney(amount),
+          );
+        recordProjectChange(project, "主阶段", oldStage, "已中止", reason);
+        closeOverlay();
+        renderPage();
+      }
+      function openProjectTerminationModal() {
+        const project = projectById(selectedProjectId);
+        if (!project) return;
+        normalizeProjectLifecycle(project);
+        if (!canTerminateProject(project)) return;
+        openModal(
+          '<div class="modal-head project-modal-head"><div class="modal-title">中止项目</div><button class="icon-btn close" data-close>×</button></div>' +
+            '<form id="projectTerminationForm" class="project-config-form" novalidate><div class="modal-body project-modal-body">' +
+            '<div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>是否涉及金额结算</label><div class="choice-grid"><label class="check-row"><input type="radio" name="projectTerminationSettlement" value="yes"><span>是</span></label><label class="check-row"><input type="radio" name="projectTerminationSettlement" value="no"><span>否</span></label></div><div class="field-error" id="err-terminationSettlement"></div></div>' +
+            '<div class="form-group" id="projectTerminationAmountGroup" style="display:none"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>应结算金额（含税，元）</label><input class="input" id="projectTerminationAmount" type="number" min="0.01" step="0.01" value=""><div class="field-error" id="err-terminationAmount"></div></div>' +
+            '<div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>中止原因</label><textarea class="input" id="projectTerminationReason" rows="3" maxlength="500"></textarea><div class="field-error" id="err-terminationReason"></div></div>' +
+            '</div><div class="modal-foot project-modal-foot"><button class="btn" type="button" data-close>取消</button><button class="btn btn-primary" type="submit">确认中止</button></div></form>',
+        );
+        const updateSettlementFields = () => {
+          const choice = document.querySelector(
+            'input[name="projectTerminationSettlement"]:checked',
+          )?.value;
+          const group = $("#projectTerminationAmountGroup");
+          const amountInput = $("#projectTerminationAmount");
+          if (group) group.style.display = choice === "yes" ? "" : "none";
+          if (choice !== "yes" && amountInput) amountInput.value = "";
+          const settlementError = $("#err-terminationSettlement");
+          const amountError = $("#err-terminationAmount");
+          if (settlementError) settlementError.textContent = "";
+          if (amountError) amountError.textContent = "";
+        };
+        document
+          .querySelectorAll('input[name="projectTerminationSettlement"]')
+          .forEach((input) => (input.onchange = updateSettlementFields));
+        $("#projectTerminationForm").onsubmit = (event) => {
+          event.preventDefault();
+          submitProjectTermination();
+        };
+      }
       function bindProjectFormEvents() {
         document.querySelectorAll("[data-project-create]").forEach((button) => {
           button.onclick = () => {
@@ -2039,6 +2425,7 @@
         });
         const form = $("#projectForm");
         if (!form) return;
+        bindInstructorSelects(form);
         const editing = currentPage === "project-edit";
         const editingProject = editing ? projectById(selectedProjectId) : null;
         if (editingProject) normalizeProjectLifecycle(editingProject);
@@ -2050,12 +2437,16 @@
             const stageEnd = $("#pfStageEnd");
             const confirmedDays = $("#pfDays");
             if (stageEnd)
-              stageEnd.onchange = () =>
+              stageEnd.onchange = () => {
                 refreshProjectFormDays(editingProject.startTime);
-            if (confirmedDays)
-              confirmedDays.onchange = () => {
-                confirmedDays.dataset.userEdited = "true";
+                refreshStageProjectAmounts(editingProject);
               };
+            if (confirmedDays)
+              confirmedDays.oninput = () => {
+                confirmedDays.dataset.userEdited = "true";
+                refreshStageProjectAmounts(editingProject);
+              };
+            refreshStageProjectAmounts(editingProject);
           }
           form.onsubmit = (event) => {
             event.preventDefault();

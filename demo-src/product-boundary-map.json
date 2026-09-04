@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "product": "英嘉科技内部管理系统",
-  "updatedAt": "2026-09-03",
+  "updatedAt": "2026-09-04",
   "purpose": "AI feature classification and product impact analysis",
   "scope": {
     "primary_features": ["M01", "M02", "M03", "M04", "M05", "M06", "M07", "M08", "M09", "M10", "M11", "M12"],
@@ -23,6 +23,7 @@
     "prd-workspace/decisions/DEC-191-P01-数字角标与消息未读状态按明确动作联动.md",
     "prd-workspace/decisions/DEC-194-M12-收口销售与商机管理并排除合同财务.md",
     "prd-workspace/decisions/DEC-198-客户侧停用恢复仅管理员直接生效.md",
+    "prd-workspace/decisions/DEC-201-项目取消收紧并新增进行中中止与结算记录.md",
     "prd-workspace/GLOSSARY.md",
     "prd-workspace/current/modules/"
   ],
@@ -167,7 +168,7 @@
         "维护英嘉内部部门、主管和员工档案",
         "维护员工与系统角色的关联及账号可用状态",
         "维护员工一个或多个平级部门及人工/自动来源角色",
-        "由 HR/admin 直接停用或恢复员工；未完成项目须先通过既有地区责任调整完成项目迁移，并记录责任清空、未完成任务取消、项目保留与审批节点保留结果",
+        "由 HR/admin 直接停用或恢复员工；已立项、进行中或已交付项目须先通过既有地区责任调整完成项目迁移，已完成继续迁移，已取消和已中止不迁移且不阻断停用，并记录责任清空、未完成任务取消、项目保留与审批节点保留结果",
         "让用户查找组织成员并理解当前组织责任关系"
       ],
       "not_responsible_for": [
@@ -297,20 +298,20 @@
       "id": "M11",
       "name": "项目管理",
       "responsibility": [
-        "管理培训项目与 AI 软件项目的立项、执行、交付、完成和取消生命周期",
+        "管理培训项目与 AI 软件项目的立项、执行、交付、完成、取消和中止生命周期",
         "维护项目人员、资料、满意度、商业快照、采购包和平台公司",
         "让项目当前负责人由客户业务责任层级及业务责任区域唯一驱动并随责任交接同步迁移"
       ],
       "not_responsible_for": [
         "维护客户公司、显式组织上级、业务责任区划、区域中心、区域总监或地市 PM 责任",
         "承载项目初始化导入批次或消息已读状态",
-        "实现 M12 商机、当前尚未上线的合同菜单、财务回款明细、正式讲师管理或取消审批",
-        "在员工停用中新增交接人字段、独立迁移审批或自动取消项目；未完成项目迁移复用 M08 既有地区责任调整",
+        "实现 M12 商机、当前尚未上线的合同菜单、财务回款明细、正式讲师管理或取消/中止审批",
+        "在员工停用中新增交接人字段、独立迁移审批或自动取消/中止项目；已立项、进行中和已交付项目迁移复用 M08 既有地区责任调整，已取消和已中止不迁移",
         "替代 Shared 定义统一权限、附件、安全和审计规则"
       ],
       "core_objects": ["项目", "项目责任", "项目商业快照", "采购包", "课程方向", "平台公司", "项目人员安排", "项目资料", "满意度", "项目并行待办"],
       "pages": ["项目列表", "项目详情", "项目创建/编辑", "采购包管理", "平台公司管理"],
-      "states": ["page:Loading/Empty/EmptyResult/Error/PermissionDenied/Submitting", "business-project:已立项/进行中/已交付/已完成/已取消", "business-todo:资料待上传/待评价/待回款", "business-config:正常/停用", "operation:排期冲突/负责人无法匹配/阶段不允许/名称重复"],
+      "states": ["page:Loading/Empty/EmptyResult/Error/PermissionDenied/Submitting", "business-project:已立项/进行中/已交付/已完成/已取消/已中止", "business-todo:资料待上传/待评价/待回款", "business-config:正常/停用", "operation:排期冲突/负责人无法匹配/阶段不允许/名称重复"],
       "related_features": ["M01", "M02", "M06", "M08", "M10", "M12", "P01"],
       "common_changes": ["项目字段或阶段调整", "项目角色和数据范围调整", "资源与商业规则调整", "项目资料或满意度调整", "项目责任交接调整"],
       "classification_guide": {

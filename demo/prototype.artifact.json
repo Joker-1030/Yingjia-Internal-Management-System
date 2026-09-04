@@ -1,11 +1,11 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-09-03T07:53:41.077Z",
+  "generatedAt": "2026-09-04T03:36:27.198Z",
   "generator": "scripts/build-prototype.mjs",
   "buildCommand": "node scripts/build-prototype.mjs",
   "sourceRoot": "src",
   "entry": "src/prototype.html",
-  "sourceDigest": "eaef2c54d4383085608a0da05d9163270bf08388fc688ced17281238b2f31c30",
+  "sourceDigest": "b6d7cf246cd033a2daefe783fde33ca3b30a419cf0dfc088c253ed85d0612079",
   "sourceFiles": [
     {
       "path": "src/app.js",
@@ -104,13 +104,13 @@
     },
     {
       "path": "src/data/project-packages.js",
-      "sha256": "24aeb9b73df9162f43253df380653412282f1afec7f2bca791b71f6885e8384a",
-      "bytes": 2042
+      "sha256": "cea4c30ac5e2c920248184e405ddb721a51f4ca3d68c11134beb8202edcf8614",
+      "bytes": 2077
     },
     {
       "path": "src/data/projects.js",
-      "sha256": "d02d6f6b162a6fbb0ed7d4b5e83bea6f231990adb7eb3fb8ca84db400d85dd86",
-      "bytes": 20921
+      "sha256": "9b1c634e12ee7a1f78a4815ff0a60438d94b1e180cb8350a7802311dcbe9e5de",
+      "bytes": 20934
     },
     {
       "path": "src/data/regions.js",
@@ -274,8 +274,8 @@
     },
     {
       "path": "src/modules/m06-organization/interactions.js",
-      "sha256": "d75f40b09fc2717a9d754753ec94e5644c18becf466b47e9d2eb7af7e1851962",
-      "bytes": 42524
+      "sha256": "04994a106c9c0053929d8fb4c58a42e2f0ea88aebf3811c650b8ec2049696a16",
+      "bytes": 41794
     },
     {
       "path": "src/modules/m06-organization/module.json",
@@ -349,8 +349,8 @@
     },
     {
       "path": "src/modules/m11-project-management/interactions.js",
-      "sha256": "603830a77869e6413af464e893a1bac756606983c25b3947d0a3352ec214d4b0",
-      "bytes": 90560
+      "sha256": "fcfbc166d19fc2b9d62e755c66df6ca8fd8ae7b3c9325ceeb93dd65aaf18433e",
+      "bytes": 109114
     },
     {
       "path": "src/modules/m11-project-management/module.json",
@@ -359,8 +359,8 @@
     },
     {
       "path": "src/modules/m11-project-management/page.js",
-      "sha256": "cc6abfc8cf0e4d0a23853413619a7105809270ae432070e4b956e45f186f666c",
-      "bytes": 81782
+      "sha256": "cbeb1bc78ea8572a82117f9696147dcda81d76d919b0fd3134dd78654b67b884",
+      "bytes": 89913
     },
     {
       "path": "src/modules/m12-sales-opportunity/interactions.js",
@@ -374,8 +374,8 @@
     },
     {
       "path": "src/modules/m12-sales-opportunity/page.js",
-      "sha256": "a0e4a963aefdebfc6d77b4ca5c2a79c8b60f80098b697e316cbd436fb91a592b",
-      "bytes": 34329
+      "sha256": "96a342f3f4db07511d499055f78fe15ff831f5fbb5e95da53e343d429bad0daf",
+      "bytes": 34359
     },
     {
       "path": "src/prototype.html",
@@ -384,8 +384,8 @@
     },
     {
       "path": "src/styles/prototype.css",
-      "sha256": "c7ca4605fcd485b841a3404c6425d7282bee6fbd1d3097e5d07d7711d145399e",
-      "bytes": 128818
+      "sha256": "cc92371f0b7b6d43c0224686d92454e1bfaf9096047ad7de42adb81421e8b02b",
+      "bytes": 131195
     }
   ],
   "artifactInputs": [
@@ -456,8 +456,8 @@
   ],
   "artifact": {
     "path": "demo/prototype.html",
-    "sha256": "520f7b86c52ac596e25cfd1e6f0097a4d1041019c98b8037f9a714c6f048ed47",
-    "bytes": 1492578
+    "sha256": "d6091554f91580a06e218da1c82c6eb1733e7fc0831e364b132a3a64a7b52cb8",
+    "bytes": 1520988
   },
   "legacyBridge": false,
   "architecture": "lightweight-modular",

@@ -1,4 +1,4 @@
-      const PROJECT_STAGES = ["已立项", "进行中", "已交付", "已完成", "已取消"];
+      const PROJECT_STAGES = ["已立项", "进行中", "已交付", "已完成", "已取消", "已中止"];
       const PROJECT_TODO_LABELS = ["资料待上传", "待评价", "待回款"];
       const PROJECT_ACTION_TODO_LABELS = [
         "确认 AI 项目交付",
@@ -72,6 +72,8 @@
       function projectCurrentOwner(project) {
         if (project.stage === "已取消")
           return project.cancelledOwner || project.ownerSnapshot || "—";
+        if (project.stage === "已中止")
+          return project.terminatedOwner || project.currentOwner || project.ownerSnapshot || "—";
         const facts = projectCustomerFacts(project);
         const resolvedOwner = facts ? resolveProjectOwner(facts) : "";
         return resolvedOwner || project.currentOwner || "待配置";
@@ -342,6 +344,11 @@
       }
       function computeProjectStageAndTodos(project) {
         if (project.stage === "已取消") return { stage: "已取消", todos: [] };
+        if (project.stage === "已中止")
+          return {
+            stage: "已中止",
+            todos: project.terminationInvolvesSettlement ? ["待回款"] : [],
+          };
         if (project.stage === "已完成") return { stage: "已完成", todos: ["待回款"] };
         let stage;
         if (project.startTime > DEMO_NOW) {
@@ -380,7 +387,8 @@
         projects.forEach(normalizeProjectLifecycle);
       }
       function projectActionTodoLabels(project) {
-        if (!project || ["已完成", "已取消"].includes(project.stage)) return [];
+        if (!project || ["已完成", "已取消", "已中止"].includes(project.stage))
+          return [];
         const labels = [];
         if (
           project.type === "AI软件项目" &&
@@ -415,7 +423,8 @@
         return `${moment.getUTCFullYear()}-${pad(moment.getUTCMonth() + 1)}-${pad(moment.getUTCDate())} ${pad(moment.getUTCHours())}:${pad(moment.getUTCMinutes())}`;
       }
       function projectReminderTrigger(project, moment) {
-        if (!project || ["已完成", "已取消"].includes(project.stage)) return null;
+        if (!project || ["已完成", "已取消", "已中止"].includes(project.stage))
+          return null;
         if (
           project.type === "AI软件项目" &&
           !project.deliveryConfirmed &&
@@ -627,18 +636,26 @@
         return projectOperableByCurrentUser(project);
       }
       function canCancelProject(project) {
-        if (!project || !["已立项", "进行中", "已交付"].includes(project.stage))
-          return false;
+        if (!project || project.stage !== "已立项") return false;
+        return projectOperableByCurrentUser(project);
+      }
+      function canTerminateProject(project) {
+        if (!project || project.stage !== "进行中") return false;
         return projectOperableByCurrentUser(project);
       }
       function canSupplementProjectMaterial(project) {
         if (!project || project.stage !== "已完成") return false;
-        return projectOperableByCurrentUser(project) && canUploadProjectMaterials();
+        const hasMaterialCategory = projectMaterialCategories(project).length > 0;
+        return (
+          hasMaterialCategory &&
+          projectOperableByCurrentUser(project) &&
+          canUploadProjectMaterials()
+        );
       }
       function projectMaterialMaintenanceMode(project) {
         if (!projectOperableByCurrentUser(project)) return "none";
         if (project.stage === "已交付") return "full";
-        if (project.stage === "已完成") return "optional-add";
+        if (project.stage === "已完成") return "completed-add";
         return "none";
       }
       function canEditProjectSatisfaction(project) {
@@ -826,12 +843,13 @@
           `data-start="${project.startTime.slice(0, 10)}" ` +
           `data-end="${project.endTime.slice(0, 10)}">` +
           `<td>${projectId}</td>` +
-          `<td><button class="link" data-project-open="${projectId}">${projectName}</button></td>` +
+          `<td>${projectName}</td>` +
           `<td>${project.type}</td><td>${customerNameText}</td><td>${areaText}</td><td>${ownerText}</td>` +
           `<td>${project.startTime}</td><td>${project.endTime}</td>` +
           `<td>${project.days}</td><td>¥${formatProjectMoney(project.amount)}</td>` +
           `<td>${projectStageTag(project.stage)}</td>` +
-          `<td>${projectTodoTags(project.todos)}</td><td>—</td></tr>`
+          `<td>${projectTodoTags(project.todos)}</td>` +
+          `<td><button class="link" type="button" data-project-open="${projectId}">详情</button></td></tr>`
         );
       }
       function renderProjects() {
@@ -921,7 +939,7 @@
           "开始时间",
           "结束时间",
           "项目确认天数",
-          "项目金额",
+          "项目金额（含税，元）",
           "主阶段",
           "并行待办标识",
           "当前可用操作",
@@ -999,18 +1017,45 @@
             ? [["管理费比例", formatConfigPercent(project.snapshot.managementFeeRate)]]
             : []),
           [
-            "项目单价",
+            "项目单价（含税，元/天）",
             project.type === "培训项目"
-              ? `${formatProjectMoney(project.unitPrice)} 元/天`
+              ? formatProjectMoney(project.unitPrice)
               : "—",
           ],
-          ["项目金额（含税）", `${formatProjectMoney(project.amount)} 元`],
-          ["结账金额", `${formatProjectMoney(project.settlementAmount)} 元`],
+          [
+            "项目金额（含税，元）",
+            formatProjectMoney(project.amount),
+            projectAmountFormulaText(project.type),
+          ],
+          [
+            "结账金额（含税，元）",
+            formatProjectMoney(project.settlementAmount),
+            projectSettlementFormulaText(project.cooperation),
+          ],
+          ...(project.stage === "已中止"
+            ? [
+                [
+                  "是否涉及金额结算",
+                  project.terminationInvolvesSettlement ? "是" : "否",
+                ],
+                ...(project.terminationInvolvesSettlement
+                  ? [
+                      [
+                        "应结算金额（含税，元）",
+                        formatProjectMoney(project.terminationSettlementAmount),
+                      ],
+                    ]
+                  : []),
+                ["中止原因", project.terminationReason || "—"],
+                ["中止操作人", project.terminatedBy || "—"],
+                ["中止时间", project.terminatedAt || "—"],
+              ]
+            : []),
         ];
         return `<div class="project-detail-section"><div class="section-title">项目基本信息</div><div class="detail-grid">${items
           .map(
-            ([label, value]) =>
-              `<div class="detail-item"><label>${escapeHtml(label)}</label><div>${escapeHtml(value)}</div></div>`,
+            ([label, value, formula]) =>
+              `<div class="detail-item"><label${formula ? ' class="project-money-label"' : ""}>${escapeHtml(label)}${formula ? `<span class="project-money-formula">${escapeHtml(formula)}</span>` : ""}</label><div>${escapeHtml(value)}</div></div>`,
           )
           .join("")}</div></div>`;
       }
@@ -1080,7 +1125,7 @@
         const canView = canViewProjectMaterials();
         const canUpload = canUploadProjectMaterials();
         const canDelete = canDeleteProjectMaterials();
-        const materialRows = categories
+        const materialGroups = categories
           .map((category) => {
             const files = materials.filter(
               (material) => material.category === category.name,
@@ -1105,11 +1150,23 @@
             const canAdd =
               canUpload &&
               (maintenanceMode === "full" ||
-                (maintenanceMode === "optional-add" && !category.required));
+                maintenanceMode === "completed-add");
             const addBtn = canAdd
-              ? `<button class="link" data-material-add="${category.name}">添加文件</button>`
+              ? `<button class="btn" type="button" data-material-add="${category.name}">${
+                  maintenanceMode === "completed-add" ? "补充文件" : "添加文件"
+                }</button>`
               : "";
-            return `<tr><td>${category.name}</td><td>${category.required ? "必填" : "可选"}</td><td>${filesHtml}</td><td>${addBtn}</td></tr>`;
+            const target =
+              maintenanceMode === "completed-add" && canAdd
+                ? ' data-material-supplement-target tabindex="-1"'
+                : "";
+            const countText = canView ? `${files.length} 个文件` : "—";
+            return (
+              `<section class="project-material-group"${target}>` +
+              `<div class="project-material-group-head"><div><div class="project-material-group-title">${escapeHtml(category.name)}</div><div class="project-material-group-meta">${category.required ? "必填" : "可选"} · ${countText}</div></div>${addBtn}</div>` +
+              `<div class="project-material-files">${filesHtml}</div>` +
+              `</section>`
+            );
           })
           .join("");
         const results = currentProjectMaterialResults();
@@ -1122,7 +1179,7 @@
               .join("")}</div></div>`
           : "";
         return (
-          `<div class="project-detail-section"><div class="section-title">项目资料</div><div class="table-wrap project-material-table-wrap"><table class="project-material-table"><thead><tr><th>资料分类</th><th>是否必填</th><th>已有文件</th><th>操作</th></tr></thead><tbody>${materialRows || '<tr data-empty-row><td colspan="4"><div class="empty">暂无资料分类</div></td></tr>'}</tbody></table></div></div>` +
+          `<div class="project-detail-section"><div class="section-title">项目资料</div><div class="project-material-groups">${materialGroups || '<div class="empty">暂无资料分类</div>'}</div></div>` +
           '<input type="file" id="materialAddInput" multiple style="display:none">' +
           '<input type="file" id="materialReplaceInput" style="display:none">' +
           resultsHtml
@@ -1190,7 +1247,10 @@
             ? `<button class="btn btn-primary" data-project-confirm-delivery>确认 AI 软件项目交付</button>`
             : "",
           canCancelProject(project)
-            ? `<button class="btn" data-project-cancel-open>取消</button>`
+            ? `<button class="btn" data-project-cancel-open>取消项目</button>`
+            : "",
+          canTerminateProject(project)
+            ? `<button class="btn" data-project-terminate-open>中止项目</button>`
             : "",
           canSupplementProjectMaterial(project)
             ? `<button class="btn" data-project-supplement>补充资料</button>`
@@ -1214,6 +1274,13 @@
         );
       }
       function projectDirectionTaxRate(direction) {
+        if (
+          direction?.taxRate !== null &&
+          direction?.taxRate !== undefined &&
+          direction?.taxRate !== "" &&
+          Number.isFinite(Number(direction.taxRate))
+        )
+          return Number(direction.taxRate);
         const untaxed = Number(direction?.untaxedPrice);
         const taxed = Number(direction?.taxedPrice);
         if (!untaxed) return null;
@@ -1245,14 +1312,30 @@
           return platformCompanies;
         return platformCompanies.filter((company) => company.status === "正常");
       }
-      function projectPackageDirectionsHtml(pkg) {
-        return pkg.directions
+      function projectPackageDetailHtml(pkg) {
+        const directionRows = pkg.directions
           .map((direction) => {
             const rate = projectDirectionTaxRate(direction);
-            const rateText = rate === null ? "—" : formatConfigPercent(rate);
-            return `<div class="project-package-direction"><div class="project-package-direction-name">${direction.intro}</div><div class="list-sub">不含税 ${formatProjectMoney(direction.untaxedPrice)} 元/天 · 含税 ${formatProjectMoney(direction.taxedPrice)} 元/天 · 税率 ${rateText}</div></div>`;
+            return (
+              `<tr><td>${escapeHtml(direction.intro)}</td>` +
+              `<td>${formatProjectMoney(direction.untaxedPrice)}</td>` +
+              `<td>${rate === null ? "—" : formatConfigPercent(rate)}</td>` +
+              `<td>${formatProjectMoney(direction.taxedPrice)}</td></tr>`
+            );
           })
           .join("");
+        return (
+          '<div class="drawer-head"><div class="modal-title">采购包详情</div><button class="icon-btn close" data-close title="关闭" aria-label="关闭">×</button></div>' +
+          '<div class="drawer-body project-package-detail-drawer">' +
+          `<div class="detail-hero project-package-detail-hero"><div class="avatar">采</div><div><div class="detail-name">${escapeHtml(pkg.name)}</div></div><div class="spacer"></div>${configStatusTag(pkg.status)}</div>` +
+          '<div class="project-detail-section"><div class="section-title">基本信息</div><div class="detail-grid">' +
+          `<div class="detail-item"><label>采购包编号</label><div>${escapeHtml(pkg.id)}</div></div>` +
+          `<div class="detail-item"><label>有效期起</label><div>${escapeHtml(pkg.validFrom)}</div></div>` +
+          `<div class="detail-item"><label>有效期止</label><div>${escapeHtml(pkg.validTo)}</div></div>` +
+          "</div></div>" +
+          '<div class="project-detail-section"><div class="section-title">课程方向</div><div class="table-wrap"><table class="project-package-detail-table"><thead><tr><th>课程方向</th><th>不含税报价（元/天）</th><th>税率（%）</th><th>含税报价（元/天）</th></tr></thead>' +
+          `<tbody>${directionRows}</tbody></table></div></div></div>`
+        );
       }
       function renderProjectPackages() {
         if (!currentUser) return "";
@@ -1267,10 +1350,11 @@
           : "";
         const rows = visible
           .map((pkg) => {
-            const ops = canManage
-              ? `<span class="project-config-actions"><button class="link" data-config-action="edit-package" data-config-id="${pkg.id}">编辑</button><button class="link" data-config-action="${pkg.status === "正常" ? "stop-package" : "restore-package"}" data-config-id="${pkg.id}">${pkg.status === "正常" ? "停用" : "恢复"}</button></span>`
-              : "—";
-            return `<tr><td>${pkg.id}</td><td>${pkg.name}</td><td>${configStatusTag(pkg.status)}</td><td>${pkg.validFrom} ~ ${pkg.validTo}</td><td>${projectPackageDirectionsHtml(pkg)}</td><td>${ops}</td></tr>`;
+            const manageOps = canManage
+              ? `<button class="link" data-config-action="edit-package" data-config-id="${pkg.id}">编辑</button><button class="link" data-config-action="${pkg.status === "正常" ? "stop-package" : "restore-package"}" data-config-id="${pkg.id}">${pkg.status === "正常" ? "停用" : "恢复"}</button>`
+              : "";
+            const ops = `<span class="project-config-actions"><button class="link" data-config-action="view-package" data-config-id="${pkg.id}">详情</button>${manageOps}</span>`;
+            return `<tr><td>${pkg.id}</td><td>${pkg.name}</td><td>${configStatusTag(pkg.status)}</td><td>${pkg.validFrom} ~ ${pkg.validTo}</td><td>${pkg.directions.length} 个</td><td>${ops}</td></tr>`;
           })
           .join("");
         return (
@@ -1351,16 +1435,60 @@
       function round2(value) {
         return Math.round(value * 100) / 100;
       }
-      function projectFormFieldHtml(id, label, innerHtml, requiredLabel) {
-        return `<div class="form-group"><label class="form-label">${requiredLabel ? '<span class="required-marker" aria-hidden="true">*</span>' : ""}${label}</label>${innerHtml}<div class="field-error" id="err-${id}"></div></div>`;
+      function projectAmountFormulaText(type) {
+        if (type === "培训项目")
+          return "项目金额 = 项目单价 × 项目确认天数";
+        if (type === "AI软件项目") return "由项目负责人填写，不按天数计算";
+        return "";
       }
-      function instructorCheckboxGrid(id, selectedNames) {
-        return `<div class="choice-grid" id="${id}">${projectInstructors
+      function projectSettlementFormulaText(cooperation) {
+        if (["直接服务", "师资合作"].includes(cooperation))
+          return "结账金额 = 项目金额";
+        if (cooperation === "走账合作")
+          return "结账金额 = 项目金额 ×（1 - 管理费比例）";
+        return "";
+      }
+      function projectFormFieldHtml(
+        id,
+        label,
+        innerHtml,
+        requiredLabel,
+        formulaText,
+        formulaId,
+      ) {
+        const hasFormula = Boolean(formulaId);
+        const formula = hasFormula
+          ? `<span class="project-money-formula" id="${formulaId}"${formulaText ? "" : ' style="display:none"'}>${escapeHtml(formulaText || "")}</span>`
+          : "";
+        return `<div class="form-group"><label class="form-label${hasFormula ? " project-money-label" : ""}">${requiredLabel ? '<span class="required-marker" aria-hidden="true">*</span>' : ""}${label}${formula}</label>${innerHtml}<div class="field-error" id="err-${id}"></div></div>`;
+      }
+      function instructorSelectHtml(id, roleLabel, selectedNames) {
+        const selected = [
+          ...new Set(
+            (selectedNames || []).filter((name) =>
+              projectInstructors.includes(name),
+            ),
+          ),
+        ];
+        const optionHtml = projectInstructors
           .map(
             (name) =>
-              `<label class="choice-item"><input type="checkbox" data-instructor value="${name}" ${selectedNames.includes(name) ? "checked" : ""}><span>${name}</span></label>`,
+              `<label class="multi-select-option" data-instructor-option><input type="checkbox" data-instructor value="${escapeHtml(name)}" ${selected.includes(name) ? "checked" : ""}><span>${escapeHtml(name)}</span></label>`,
           )
-          .join("")}</div>`;
+          .join("");
+        const selectedHtml = selected
+          .map(
+            (name) =>
+              `<span class="instructor-selected-item"><span>${escapeHtml(name)}</span><button class="instructor-selected-remove" type="button" data-instructor-remove="${escapeHtml(name)}" title="移除${escapeHtml(name)}" aria-label="移除${escapeHtml(name)}">×</button></span>`,
+          )
+          .join("");
+        return (
+          `<div class="instructor-picker" id="${id}" data-instructor-picker data-instructor-label="${escapeHtml(roleLabel)}">` +
+          `<div class="multi-select instructor-select" data-instructor-select>` +
+          `<button class="multi-select-trigger" type="button" data-instructor-trigger aria-haspopup="listbox" aria-expanded="false"><span>搜索并选择${escapeHtml(roleLabel)}</span><span aria-hidden="true">⌄</span></button>` +
+          `<div class="multi-select-menu hidden" data-instructor-menu><input class="input" type="search" data-instructor-search placeholder="搜索${escapeHtml(roleLabel)}" aria-label="搜索${escapeHtml(roleLabel)}"><div data-instructor-options>${optionHtml}</div></div>` +
+          `</div><div class="instructor-selected-list" data-instructor-selected aria-live="polite">${selectedHtml}</div></div>`
+        );
       }
       function projectFormHtml(project) {
         const editing = Boolean(project);
@@ -1450,14 +1578,20 @@
               `<option value="${company.id}" ${project?.companyId === company.id ? "selected" : ""}>${company.name}（${company.id}）</option>`,
           )
           .join("")}`;
+        const initialManagementFeeRate =
+          cooperation === "走账合作"
+            ? project?.snapshot?.managementFeeRate ??
+              referencedCompany?.managementFeeRate ??
+              null
+            : null;
         const isTraining = type === "培训项目";
         const amountField = isTraining
           ? `<input class="input" id="pfAmount" value="${project ? round2(project.amount) : ""}" disabled>`
           : `<input class="input" id="pfAmount" type="number" step="0.01" value="${project ? round2(project.amount) : ""}">`;
         const personnelHtml =
-          `<div class="form-group full"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>主讲师</label>${instructorCheckboxGrid("pfLecturers", project?.lecturers || [])}<div class="field-error" id="err-pfLecturers"></div></div>` +
-          `<div class="form-group full"><label class="form-label">辅讲师</label>${instructorCheckboxGrid("pfAssistants", project?.assistantLecturers || [])}</div>` +
-          `<div class="form-group full"><label class="form-label">项目助教</label>${instructorCheckboxGrid("pfHelpers", project?.teachingAssistants || [])}</div>`;
+          `<div class="form-group full"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>主讲师</label>${instructorSelectHtml("pfLecturers", "主讲师", project?.lecturers || [])}<div class="field-error" id="err-pfLecturers"></div></div>` +
+          `<div class="form-group full"><label class="form-label">辅讲师</label>${instructorSelectHtml("pfAssistants", "辅讲师", project?.assistantLecturers || [])}</div>` +
+          `<div class="form-group full"><label class="form-label">项目助教</label>${instructorSelectHtml("pfHelpers", "项目助教", project?.teachingAssistants || [])}</div>`;
         return (
           `<div class="form-grid">` +
           projectFormFieldHtml(
@@ -1536,20 +1670,30 @@
             `<select class="input" id="pfCompany">${companyOptions}</select>`,
           ) +
           projectFormFieldHtml(
+            "pfManagementFeeRate",
+            "管理费比例（%）",
+            `<input class="input" id="pfManagementFeeRate" value="${initialManagementFeeRate === null ? "—" : Number(initialManagementFeeRate).toFixed(2)}" disabled>`,
+          ) +
+          projectFormFieldHtml(
             "pfUnitPrice",
-            "项目单价",
+            "项目单价（含税，元/天）",
             `<input class="input" id="pfUnitPrice" value="${project?.unitPrice != null ? formatProjectMoney(project.unitPrice) : "—"}" disabled>`,
           ) +
           projectFormFieldHtml(
             "pfAmount",
-            "项目金额（含税）",
+            "项目金额（含税，元）",
             amountField,
             !isTraining,
+            projectAmountFormulaText(type),
+            "pfAmountFormula",
           ) +
           projectFormFieldHtml(
             "pfSettlement",
-            "结账金额",
+            "结账金额（含税，元）",
             `<input class="input" id="pfSettlement" value="${project ? formatProjectMoney(project.settlementAmount) : "—"}" disabled>`,
+            false,
+            projectSettlementFormulaText(cooperation),
+            "pfSettlementFormula",
           ) +
           `</div>` +
           `<div id="pfPersonnelSection" ${isTraining ? "" : 'style="display:none"'}>` +
@@ -1573,9 +1717,9 @@
             : `<div class="form-group"><label class="form-label">结束时间</label><div class="input">${project.endTime}</div></div>`;
         const personnelHtml = isTraining
           ? `<div class="section-title">项目人员</div>` +
-            `<div class="form-group full"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>主讲师</label>${instructorCheckboxGrid("pfStageLecturers", project.lecturers)}<div class="field-error" id="err-pfStageLecturers"></div></div>` +
-            `<div class="form-group full"><label class="form-label">辅讲师</label>${instructorCheckboxGrid("pfStageAssistants", project.assistantLecturers)}</div>` +
-            `<div class="form-group full"><label class="form-label">项目助教</label>${instructorCheckboxGrid("pfStageHelpers", project.teachingAssistants)}</div>` +
+            `<div class="form-group full"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>主讲师</label>${instructorSelectHtml("pfStageLecturers", "主讲师", project.lecturers)}<div class="field-error" id="err-pfStageLecturers"></div></div>` +
+            `<div class="form-group full"><label class="form-label">辅讲师</label>${instructorSelectHtml("pfStageAssistants", "辅讲师", project.assistantLecturers)}</div>` +
+            `<div class="form-group full"><label class="form-label">项目助教</label>${instructorSelectHtml("pfStageHelpers", "项目助教", project.teachingAssistants)}</div>` +
             projectFormFieldHtml(
               "pfChangeReason",
               "人员调整原因",
@@ -1604,6 +1748,22 @@
                 "pfDays",
                 "项目确认天数",
                 `<input class="input" id="pfDays" type="number" step="0.5" min="0.5" value="${project.days}" data-user-edited="${confirmationDaysEdited}"><div class="list-sub" id="pfDaysHelp">${isTraining ? "项目费用按此天数计算" : "仅用于记录项目周期，不参与项目金额计算"}</div>`,
+              ) +
+              projectFormFieldHtml(
+                "pfAmount",
+                "项目金额（含税，元）",
+                `<input class="input" id="pfAmount" value="${formatProjectMoney(project.amount)}" disabled>`,
+                false,
+                projectAmountFormulaText(project.type),
+                "pfAmountFormula",
+              ) +
+              projectFormFieldHtml(
+                "pfSettlement",
+                "结账金额（含税，元）",
+                `<input class="input" id="pfSettlement" value="${formatProjectMoney(project.settlementAmount)}" disabled>`,
+                false,
+                projectSettlementFormulaText(project.cooperation),
+                "pfSettlementFormula",
               )
             : "") +
           `</div>` +

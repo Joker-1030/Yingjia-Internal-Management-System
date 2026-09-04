@@ -3814,17 +3814,47 @@
       .project-detail-body .empty {
         min-height: 180px;
       }
-      .project-material-table {
-        min-width: 900px;
+      .project-material-groups {
+        display: grid;
+        gap: var(--space-3);
       }
-      .project-material-table th:nth-child(1) {
-        width: 180px;
+      .project-material-group {
+        border: 1px solid var(--color-border-default);
+        border-radius: var(--radius-surface);
+        background: var(--color-surface);
+        overflow: hidden;
       }
-      .project-material-table th:nth-child(2) {
-        width: 96px;
+      .project-material-group:focus-visible {
+        outline: none;
+        box-shadow: var(--shadow-focus);
       }
-      .project-material-table th:nth-child(4) {
-        width: 104px;
+      .project-material-group-head {
+        display: flex;
+        min-height: 64px;
+        align-items: center;
+        justify-content: space-between;
+        gap: var(--space-4);
+        padding: var(--space-3) var(--space-4);
+        background: var(--color-surface-secondary);
+      }
+      .project-material-group-title {
+        color: var(--color-text-primary);
+        font-size: var(--font-size-secondary);
+        font-weight: var(--font-weight-semibold);
+        line-height: var(--line-height-secondary);
+      }
+      .project-material-group-meta {
+        margin-top: var(--space-1);
+        color: var(--color-text-tertiary);
+        font-size: var(--font-size-caption);
+        line-height: var(--line-height-caption);
+      }
+      .project-material-files {
+        padding: var(--space-2) var(--space-4);
+      }
+      .project-material-files > .panel-sub:only-child {
+        display: block;
+        padding: var(--space-3) 0;
       }
       .material-file {
         display: flex;
@@ -3904,6 +3934,19 @@
       #projectForm .form-label {
         color: var(--color-text-secondary);
       }
+      .project-money-label {
+        display: flex !important;
+        min-width: 0;
+        align-items: baseline;
+        flex-wrap: wrap;
+        gap: var(--space-1) var(--space-2);
+      }
+      .project-money-formula {
+        color: var(--color-text-tertiary);
+        font-size: var(--font-size-caption);
+        font-weight: var(--font-weight-regular);
+        line-height: var(--line-height-caption);
+      }
       #projectForm div.input {
         display: flex;
         align-items: center;
@@ -3911,29 +3954,61 @@
         background: var(--color-surface-secondary);
         color: var(--color-text-secondary);
       }
-      #projectForm .choice-grid {
-        grid-template-columns: repeat(3, minmax(0, 1fr));
+      #projectForm .instructor-picker {
+        min-width: 0;
       }
-      #projectForm .choice-item {
-        min-height: var(--control-height-default);
-        align-items: center;
-        border-color: transparent;
-        background: var(--color-surface-secondary);
+      #projectForm .instructor-select .multi-select-menu {
+        max-height: 292px;
       }
-      #projectForm .choice-item:hover {
-        border-color: var(--color-border-hover);
-        background: var(--color-hover);
+      #projectForm .instructor-select [data-instructor-options] {
+        max-height: 220px;
+        overflow-y: auto;
       }
-      #projectForm .choice-item:has(input:checked) {
-        border-color: var(--color-primary);
-        background: var(--brand-soft);
-        color: var(--color-primary-active);
-      }
-      #projectForm .choice-item:has(input:focus-visible) {
-        box-shadow: var(--shadow-focus);
-      }
-      #projectForm .choice-item input {
+      #projectForm .instructor-select .multi-select-option input {
         accent-color: var(--brand);
+      }
+      #projectForm .instructor-selected-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--space-2);
+        margin-top: var(--space-2);
+      }
+      #projectForm .instructor-selected-list:empty {
+        display: none;
+      }
+      #projectForm .instructor-selected-item {
+        display: inline-flex;
+        min-width: 0;
+        align-items: center;
+        gap: var(--space-1);
+        min-height: 30px;
+        padding: 3px 4px 3px var(--space-2);
+        border: 1px solid var(--color-border-default);
+        border-radius: var(--radius-control);
+        background: var(--color-surface-secondary);
+        color: var(--color-text-primary);
+        font-size: var(--font-size-secondary);
+        line-height: var(--line-height-secondary);
+      }
+      #projectForm .instructor-selected-remove {
+        width: 24px;
+        height: 24px;
+        padding: 0;
+        border: 0;
+        border-radius: 50%;
+        background: transparent;
+        color: var(--color-text-secondary);
+        cursor: pointer;
+        font-size: 18px;
+        line-height: 1;
+      }
+      #projectForm .instructor-selected-remove:hover {
+        background: var(--color-hover);
+        color: var(--color-danger);
+      }
+      #projectForm .instructor-selected-remove:focus-visible {
+        outline: none;
+        box-shadow: var(--shadow-focus);
       }
       #projectForm .field-error:empty {
         display: none;
@@ -3954,34 +4029,33 @@
         min-width: 960px;
       }
       .project-package-table {
-        min-width: 1180px;
+        min-width: 980px;
       }
       .project-package-table th:nth-child(5) {
-        min-width: 420px;
+        width: 120px;
       }
       .project-package-table td {
-        vertical-align: top;
+        vertical-align: middle;
       }
-      .project-package-direction {
-        padding: var(--space-2) 0;
+      .project-package-detail-drawer {
+        display: grid;
+        align-content: start;
+        gap: var(--space-6);
       }
-      .project-package-direction:first-child {
-        padding-top: 0;
+      .project-package-detail-hero {
+        padding-bottom: var(--space-4);
       }
-      .project-package-direction:last-child {
-        padding-bottom: 0;
+      .project-package-detail-drawer .project-detail-section {
+        margin: 0;
       }
-      .project-package-direction + .project-package-direction {
-        border-top: 1px solid var(--color-divider);
+      .project-package-detail-drawer .detail-grid {
+        margin: 0;
       }
-      .project-package-direction-name {
-        color: var(--color-text-primary);
-        font-size: var(--font-size-secondary);
-        font-weight: var(--font-weight-medium);
-        line-height: var(--line-height-secondary);
+      .project-package-detail-table {
+        min-width: 720px;
       }
-      .project-package-direction .list-sub {
-        margin-top: var(--space-1);
+      .project-package-detail-table th:first-child {
+        min-width: 260px;
       }
       .project-config-actions {
         flex-wrap: nowrap;
@@ -4007,7 +4081,7 @@
       }
       .package-direction-row {
         display: grid;
-        grid-template-columns: minmax(0, 1fr) minmax(120px, 144px) minmax(120px, 144px) var(--control-height-default);
+        grid-template-columns: minmax(0, 1fr) repeat(3, minmax(112px, 136px)) var(--control-height-default);
         align-items: end;
         gap: var(--space-2);
         padding: var(--space-3) 0;
@@ -4046,24 +4120,24 @@
         .project-filter-grid {
           grid-template-columns: repeat(2, minmax(0, 1fr));
         }
-        #projectForm .choice-grid {
-          grid-template-columns: repeat(2, minmax(0, 1fr));
-        }
         .package-direction-row {
-          grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) var(--control-height-default);
+          grid-template-columns: repeat(3, minmax(0, 1fr)) var(--control-height-default);
         }
         .package-direction-name-field {
-          grid-column: 1 / 3;
+          grid-column: 1 / 4;
           grid-row: 1;
         }
         .package-direction-untaxed-field {
           grid-column: 1;
         }
-        .package-direction-taxed-field {
+        .package-direction-tax-rate-field {
           grid-column: 2;
         }
-        .package-direction-remove {
+        .package-direction-taxed-field {
           grid-column: 3;
+        }
+        .package-direction-remove {
+          grid-column: 4;
           grid-row: 1;
         }
       }
@@ -4100,8 +4174,11 @@
           margin-top: var(--space-6);
           padding-top: var(--space-5);
         }
+        .project-material-group-head {
+          align-items: flex-start;
+          flex-wrap: wrap;
+        }
         #projectForm .form-grid,
-        #projectForm .choice-grid,
         .project-config-form .form-grid {
           grid-template-columns: minmax(0, 1fr);
         }
@@ -4155,6 +4232,7 @@
           grid-row: 1;
         }
         .package-direction-untaxed-field,
+        .package-direction-tax-rate-field,
         .package-direction-taxed-field {
           grid-column: 1 / -1;
         }
@@ -8669,11 +8747,11 @@
       ];
 
       // Demo 示例项目数据（M11 项目管理）。
-      // 仅表达当前 PRD 已确认的正式字段、培训项目/AI软件项目、五个主阶段与三个并行待办标识。
+      // 仅表达当前 PRD 已确认的正式字段、培训项目/AI软件项目、六个主阶段与三个并行待办标识。
       // customerSnapshot 为创建立项时锁定的客户快照（稳定编号、客户公司、层级、省市区县），
       // 列表、详情、数据范围与负责人解析均使用该快照，客户主数据后续变化不追溯修改项目。
       // 当前项目负责人由地区责任唯一驱动（DEC-175）：在客户快照基础上按当前地区责任 + 员工在职及角色有效解析。
-      // 已取消项目保留取消时负责人（cancelledOwner），不继续跟随地区责任变化（DEC-175、M11 PRD 14）。
+      // 已取消/已中止项目分别保留取消/中止时负责人，不继续跟随地区责任变化（DEC-175、DEC-201、M11 PRD 14）。
       // 资源标识（packageId/directionIntro/companyId/companyName）与 snapshot 表达创建时商业快照，
       // 配置后续变化不追溯修改已有项目（M11 PRD 8.5）。
       const projects = [
@@ -9245,7 +9323,7 @@
       ];
       // Demo 示例采购包数据（M11 项目管理）。
       // 字段仅包含 PRD 8.2 已确认的：采购包编号、采购包名称、状态（正常/停用）、有效期、课程方向。
-      // 每个课程方向维护一句话课程介绍、不含税报价、含税报价；税率在渲染时按两种报价自动计算（M11 PRD 8.2）。
+      // 每个课程方向维护一句话课程介绍、不含税报价、税率和含税报价（M11 PRD 8.2）。
       // 编号格式 CGB + 4 位年份 + 6 位年度流水；停用不回收、不物理删除。
       const projectPackages = [
         {
@@ -9255,8 +9333,8 @@
           validFrom: "2026-01-01",
           validTo: "2026-12-31",
           directions: [
-            { intro: "面向中基层管理者的管理沟通课程", untaxedPrice: 800, taxedPrice: 848 },
-            { intro: "面向新任管理者的领导力课程", untaxedPrice: 1200, taxedPrice: 1290 },
+            { intro: "面向中基层管理者的管理沟通课程", untaxedPrice: 800, taxRate: 6, taxedPrice: 848 },
+            { intro: "面向新任管理者的领导力课程", untaxedPrice: 1200, taxRate: 7.5, taxedPrice: 1290 },
           ],
         },
         {
@@ -9266,8 +9344,8 @@
           validFrom: "2026-01-01",
           validTo: "2026-12-31",
           directions: [
-            { intro: "面向业务骨干的 AI 应用课程", untaxedPrice: 1500, taxedPrice: 1590 },
-            { intro: "面向运营人员的数据分析课程", untaxedPrice: 1600, taxedPrice: 1744 },
+            { intro: "面向业务骨干的 AI 应用课程", untaxedPrice: 1500, taxRate: 6, taxedPrice: 1590 },
+            { intro: "面向运营人员的数据分析课程", untaxedPrice: 1600, taxRate: 9, taxedPrice: 1744 },
           ],
         },
         {
@@ -9277,7 +9355,7 @@
           validFrom: "2026-01-01",
           validTo: "2026-06-30",
           directions: [
-            { intro: "面向一线服务人员的服务礼仪课程", untaxedPrice: 900, taxedPrice: 963 },
+            { intro: "面向一线服务人员的服务礼仪课程", untaxedPrice: 900, taxRate: 7, taxedPrice: 963 },
           ],
         },
         {
@@ -9287,7 +9365,7 @@
           validFrom: "2026-01-01",
           validTo: "2026-12-31",
           directions: [
-            { intro: "面向新入职员工的企业文化课程", untaxedPrice: 700, taxedPrice: 735 },
+            { intro: "面向新入职员工的企业文化课程", untaxedPrice: 700, taxRate: 5, taxedPrice: 735 },
           ],
         },
       ];
@@ -13787,7 +13865,7 @@
         });
         refreshUnifiedTablePagination("m06-employees", true);
       }
-      const PROJECT_STAGES = ["已立项", "进行中", "已交付", "已完成", "已取消"];
+      const PROJECT_STAGES = ["已立项", "进行中", "已交付", "已完成", "已取消", "已中止"];
       const PROJECT_TODO_LABELS = ["资料待上传", "待评价", "待回款"];
       const PROJECT_ACTION_TODO_LABELS = [
         "确认 AI 项目交付",
@@ -13861,6 +13939,8 @@
       function projectCurrentOwner(project) {
         if (project.stage === "已取消")
           return project.cancelledOwner || project.ownerSnapshot || "—";
+        if (project.stage === "已中止")
+          return project.terminatedOwner || project.currentOwner || project.ownerSnapshot || "—";
         const facts = projectCustomerFacts(project);
         const resolvedOwner = facts ? resolveProjectOwner(facts) : "";
         return resolvedOwner || project.currentOwner || "待配置";
@@ -14131,6 +14211,11 @@
       }
       function computeProjectStageAndTodos(project) {
         if (project.stage === "已取消") return { stage: "已取消", todos: [] };
+        if (project.stage === "已中止")
+          return {
+            stage: "已中止",
+            todos: project.terminationInvolvesSettlement ? ["待回款"] : [],
+          };
         if (project.stage === "已完成") return { stage: "已完成", todos: ["待回款"] };
         let stage;
         if (project.startTime > DEMO_NOW) {
@@ -14169,7 +14254,8 @@
         projects.forEach(normalizeProjectLifecycle);
       }
       function projectActionTodoLabels(project) {
-        if (!project || ["已完成", "已取消"].includes(project.stage)) return [];
+        if (!project || ["已完成", "已取消", "已中止"].includes(project.stage))
+          return [];
         const labels = [];
         if (
           project.type === "AI软件项目" &&
@@ -14204,7 +14290,8 @@
         return `${moment.getUTCFullYear()}-${pad(moment.getUTCMonth() + 1)}-${pad(moment.getUTCDate())} ${pad(moment.getUTCHours())}:${pad(moment.getUTCMinutes())}`;
       }
       function projectReminderTrigger(project, moment) {
-        if (!project || ["已完成", "已取消"].includes(project.stage)) return null;
+        if (!project || ["已完成", "已取消", "已中止"].includes(project.stage))
+          return null;
         if (
           project.type === "AI软件项目" &&
           !project.deliveryConfirmed &&
@@ -14416,18 +14503,26 @@
         return projectOperableByCurrentUser(project);
       }
       function canCancelProject(project) {
-        if (!project || !["已立项", "进行中", "已交付"].includes(project.stage))
-          return false;
+        if (!project || project.stage !== "已立项") return false;
+        return projectOperableByCurrentUser(project);
+      }
+      function canTerminateProject(project) {
+        if (!project || project.stage !== "进行中") return false;
         return projectOperableByCurrentUser(project);
       }
       function canSupplementProjectMaterial(project) {
         if (!project || project.stage !== "已完成") return false;
-        return projectOperableByCurrentUser(project) && canUploadProjectMaterials();
+        const hasMaterialCategory = projectMaterialCategories(project).length > 0;
+        return (
+          hasMaterialCategory &&
+          projectOperableByCurrentUser(project) &&
+          canUploadProjectMaterials()
+        );
       }
       function projectMaterialMaintenanceMode(project) {
         if (!projectOperableByCurrentUser(project)) return "none";
         if (project.stage === "已交付") return "full";
-        if (project.stage === "已完成") return "optional-add";
+        if (project.stage === "已完成") return "completed-add";
         return "none";
       }
       function canEditProjectSatisfaction(project) {
@@ -14615,12 +14710,13 @@
           `data-start="${project.startTime.slice(0, 10)}" ` +
           `data-end="${project.endTime.slice(0, 10)}">` +
           `<td>${projectId}</td>` +
-          `<td><button class="link" data-project-open="${projectId}">${projectName}</button></td>` +
+          `<td>${projectName}</td>` +
           `<td>${project.type}</td><td>${customerNameText}</td><td>${areaText}</td><td>${ownerText}</td>` +
           `<td>${project.startTime}</td><td>${project.endTime}</td>` +
           `<td>${project.days}</td><td>¥${formatProjectMoney(project.amount)}</td>` +
           `<td>${projectStageTag(project.stage)}</td>` +
-          `<td>${projectTodoTags(project.todos)}</td><td>—</td></tr>`
+          `<td>${projectTodoTags(project.todos)}</td>` +
+          `<td><button class="link" type="button" data-project-open="${projectId}">详情</button></td></tr>`
         );
       }
       function renderProjects() {
@@ -14710,7 +14806,7 @@
           "开始时间",
           "结束时间",
           "项目确认天数",
-          "项目金额",
+          "项目金额（含税，元）",
           "主阶段",
           "并行待办标识",
           "当前可用操作",
@@ -14788,18 +14884,45 @@
             ? [["管理费比例", formatConfigPercent(project.snapshot.managementFeeRate)]]
             : []),
           [
-            "项目单价",
+            "项目单价（含税，元/天）",
             project.type === "培训项目"
-              ? `${formatProjectMoney(project.unitPrice)} 元/天`
+              ? formatProjectMoney(project.unitPrice)
               : "—",
           ],
-          ["项目金额（含税）", `${formatProjectMoney(project.amount)} 元`],
-          ["结账金额", `${formatProjectMoney(project.settlementAmount)} 元`],
+          [
+            "项目金额（含税，元）",
+            formatProjectMoney(project.amount),
+            projectAmountFormulaText(project.type),
+          ],
+          [
+            "结账金额（含税，元）",
+            formatProjectMoney(project.settlementAmount),
+            projectSettlementFormulaText(project.cooperation),
+          ],
+          ...(project.stage === "已中止"
+            ? [
+                [
+                  "是否涉及金额结算",
+                  project.terminationInvolvesSettlement ? "是" : "否",
+                ],
+                ...(project.terminationInvolvesSettlement
+                  ? [
+                      [
+                        "应结算金额（含税，元）",
+                        formatProjectMoney(project.terminationSettlementAmount),
+                      ],
+                    ]
+                  : []),
+                ["中止原因", project.terminationReason || "—"],
+                ["中止操作人", project.terminatedBy || "—"],
+                ["中止时间", project.terminatedAt || "—"],
+              ]
+            : []),
         ];
         return `<div class="project-detail-section"><div class="section-title">项目基本信息</div><div class="detail-grid">${items
           .map(
-            ([label, value]) =>
-              `<div class="detail-item"><label>${escapeHtml(label)}</label><div>${escapeHtml(value)}</div></div>`,
+            ([label, value, formula]) =>
+              `<div class="detail-item"><label${formula ? ' class="project-money-label"' : ""}>${escapeHtml(label)}${formula ? `<span class="project-money-formula">${escapeHtml(formula)}</span>` : ""}</label><div>${escapeHtml(value)}</div></div>`,
           )
           .join("")}</div></div>`;
       }
@@ -14869,7 +14992,7 @@
         const canView = canViewProjectMaterials();
         const canUpload = canUploadProjectMaterials();
         const canDelete = canDeleteProjectMaterials();
-        const materialRows = categories
+        const materialGroups = categories
           .map((category) => {
             const files = materials.filter(
               (material) => material.category === category.name,
@@ -14894,11 +15017,23 @@
             const canAdd =
               canUpload &&
               (maintenanceMode === "full" ||
-                (maintenanceMode === "optional-add" && !category.required));
+                maintenanceMode === "completed-add");
             const addBtn = canAdd
-              ? `<button class="link" data-material-add="${category.name}">添加文件</button>`
+              ? `<button class="btn" type="button" data-material-add="${category.name}">${
+                  maintenanceMode === "completed-add" ? "补充文件" : "添加文件"
+                }</button>`
               : "";
-            return `<tr><td>${category.name}</td><td>${category.required ? "必填" : "可选"}</td><td>${filesHtml}</td><td>${addBtn}</td></tr>`;
+            const target =
+              maintenanceMode === "completed-add" && canAdd
+                ? ' data-material-supplement-target tabindex="-1"'
+                : "";
+            const countText = canView ? `${files.length} 个文件` : "—";
+            return (
+              `<section class="project-material-group"${target}>` +
+              `<div class="project-material-group-head"><div><div class="project-material-group-title">${escapeHtml(category.name)}</div><div class="project-material-group-meta">${category.required ? "必填" : "可选"} · ${countText}</div></div>${addBtn}</div>` +
+              `<div class="project-material-files">${filesHtml}</div>` +
+              `</section>`
+            );
           })
           .join("");
         const results = currentProjectMaterialResults();
@@ -14911,7 +15046,7 @@
               .join("")}</div></div>`
           : "";
         return (
-          `<div class="project-detail-section"><div class="section-title">项目资料</div><div class="table-wrap project-material-table-wrap"><table class="project-material-table"><thead><tr><th>资料分类</th><th>是否必填</th><th>已有文件</th><th>操作</th></tr></thead><tbody>${materialRows || '<tr data-empty-row><td colspan="4"><div class="empty">暂无资料分类</div></td></tr>'}</tbody></table></div></div>` +
+          `<div class="project-detail-section"><div class="section-title">项目资料</div><div class="project-material-groups">${materialGroups || '<div class="empty">暂无资料分类</div>'}</div></div>` +
           '<input type="file" id="materialAddInput" multiple style="display:none">' +
           '<input type="file" id="materialReplaceInput" style="display:none">' +
           resultsHtml
@@ -14979,7 +15114,10 @@
             ? `<button class="btn btn-primary" data-project-confirm-delivery>确认 AI 软件项目交付</button>`
             : "",
           canCancelProject(project)
-            ? `<button class="btn" data-project-cancel-open>取消</button>`
+            ? `<button class="btn" data-project-cancel-open>取消项目</button>`
+            : "",
+          canTerminateProject(project)
+            ? `<button class="btn" data-project-terminate-open>中止项目</button>`
             : "",
           canSupplementProjectMaterial(project)
             ? `<button class="btn" data-project-supplement>补充资料</button>`
@@ -15003,6 +15141,13 @@
         );
       }
       function projectDirectionTaxRate(direction) {
+        if (
+          direction?.taxRate !== null &&
+          direction?.taxRate !== undefined &&
+          direction?.taxRate !== "" &&
+          Number.isFinite(Number(direction.taxRate))
+        )
+          return Number(direction.taxRate);
         const untaxed = Number(direction?.untaxedPrice);
         const taxed = Number(direction?.taxedPrice);
         if (!untaxed) return null;
@@ -15034,14 +15179,30 @@
           return platformCompanies;
         return platformCompanies.filter((company) => company.status === "正常");
       }
-      function projectPackageDirectionsHtml(pkg) {
-        return pkg.directions
+      function projectPackageDetailHtml(pkg) {
+        const directionRows = pkg.directions
           .map((direction) => {
             const rate = projectDirectionTaxRate(direction);
-            const rateText = rate === null ? "—" : formatConfigPercent(rate);
-            return `<div class="project-package-direction"><div class="project-package-direction-name">${direction.intro}</div><div class="list-sub">不含税 ${formatProjectMoney(direction.untaxedPrice)} 元/天 · 含税 ${formatProjectMoney(direction.taxedPrice)} 元/天 · 税率 ${rateText}</div></div>`;
+            return (
+              `<tr><td>${escapeHtml(direction.intro)}</td>` +
+              `<td>${formatProjectMoney(direction.untaxedPrice)}</td>` +
+              `<td>${rate === null ? "—" : formatConfigPercent(rate)}</td>` +
+              `<td>${formatProjectMoney(direction.taxedPrice)}</td></tr>`
+            );
           })
           .join("");
+        return (
+          '<div class="drawer-head"><div class="modal-title">采购包详情</div><button class="icon-btn close" data-close title="关闭" aria-label="关闭">×</button></div>' +
+          '<div class="drawer-body project-package-detail-drawer">' +
+          `<div class="detail-hero project-package-detail-hero"><div class="avatar">采</div><div><div class="detail-name">${escapeHtml(pkg.name)}</div></div><div class="spacer"></div>${configStatusTag(pkg.status)}</div>` +
+          '<div class="project-detail-section"><div class="section-title">基本信息</div><div class="detail-grid">' +
+          `<div class="detail-item"><label>采购包编号</label><div>${escapeHtml(pkg.id)}</div></div>` +
+          `<div class="detail-item"><label>有效期起</label><div>${escapeHtml(pkg.validFrom)}</div></div>` +
+          `<div class="detail-item"><label>有效期止</label><div>${escapeHtml(pkg.validTo)}</div></div>` +
+          "</div></div>" +
+          '<div class="project-detail-section"><div class="section-title">课程方向</div><div class="table-wrap"><table class="project-package-detail-table"><thead><tr><th>课程方向</th><th>不含税报价（元/天）</th><th>税率（%）</th><th>含税报价（元/天）</th></tr></thead>' +
+          `<tbody>${directionRows}</tbody></table></div></div></div>`
+        );
       }
       function renderProjectPackages() {
         if (!currentUser) return "";
@@ -15056,10 +15217,11 @@
           : "";
         const rows = visible
           .map((pkg) => {
-            const ops = canManage
-              ? `<span class="project-config-actions"><button class="link" data-config-action="edit-package" data-config-id="${pkg.id}">编辑</button><button class="link" data-config-action="${pkg.status === "正常" ? "stop-package" : "restore-package"}" data-config-id="${pkg.id}">${pkg.status === "正常" ? "停用" : "恢复"}</button></span>`
-              : "—";
-            return `<tr><td>${pkg.id}</td><td>${pkg.name}</td><td>${configStatusTag(pkg.status)}</td><td>${pkg.validFrom} ~ ${pkg.validTo}</td><td>${projectPackageDirectionsHtml(pkg)}</td><td>${ops}</td></tr>`;
+            const manageOps = canManage
+              ? `<button class="link" data-config-action="edit-package" data-config-id="${pkg.id}">编辑</button><button class="link" data-config-action="${pkg.status === "正常" ? "stop-package" : "restore-package"}" data-config-id="${pkg.id}">${pkg.status === "正常" ? "停用" : "恢复"}</button>`
+              : "";
+            const ops = `<span class="project-config-actions"><button class="link" data-config-action="view-package" data-config-id="${pkg.id}">详情</button>${manageOps}</span>`;
+            return `<tr><td>${pkg.id}</td><td>${pkg.name}</td><td>${configStatusTag(pkg.status)}</td><td>${pkg.validFrom} ~ ${pkg.validTo}</td><td>${pkg.directions.length} 个</td><td>${ops}</td></tr>`;
           })
           .join("");
         return (
@@ -15140,16 +15302,60 @@
       function round2(value) {
         return Math.round(value * 100) / 100;
       }
-      function projectFormFieldHtml(id, label, innerHtml, requiredLabel) {
-        return `<div class="form-group"><label class="form-label">${requiredLabel ? '<span class="required-marker" aria-hidden="true">*</span>' : ""}${label}</label>${innerHtml}<div class="field-error" id="err-${id}"></div></div>`;
+      function projectAmountFormulaText(type) {
+        if (type === "培训项目")
+          return "项目金额 = 项目单价 × 项目确认天数";
+        if (type === "AI软件项目") return "由项目负责人填写，不按天数计算";
+        return "";
       }
-      function instructorCheckboxGrid(id, selectedNames) {
-        return `<div class="choice-grid" id="${id}">${projectInstructors
+      function projectSettlementFormulaText(cooperation) {
+        if (["直接服务", "师资合作"].includes(cooperation))
+          return "结账金额 = 项目金额";
+        if (cooperation === "走账合作")
+          return "结账金额 = 项目金额 ×（1 - 管理费比例）";
+        return "";
+      }
+      function projectFormFieldHtml(
+        id,
+        label,
+        innerHtml,
+        requiredLabel,
+        formulaText,
+        formulaId,
+      ) {
+        const hasFormula = Boolean(formulaId);
+        const formula = hasFormula
+          ? `<span class="project-money-formula" id="${formulaId}"${formulaText ? "" : ' style="display:none"'}>${escapeHtml(formulaText || "")}</span>`
+          : "";
+        return `<div class="form-group"><label class="form-label${hasFormula ? " project-money-label" : ""}">${requiredLabel ? '<span class="required-marker" aria-hidden="true">*</span>' : ""}${label}${formula}</label>${innerHtml}<div class="field-error" id="err-${id}"></div></div>`;
+      }
+      function instructorSelectHtml(id, roleLabel, selectedNames) {
+        const selected = [
+          ...new Set(
+            (selectedNames || []).filter((name) =>
+              projectInstructors.includes(name),
+            ),
+          ),
+        ];
+        const optionHtml = projectInstructors
           .map(
             (name) =>
-              `<label class="choice-item"><input type="checkbox" data-instructor value="${name}" ${selectedNames.includes(name) ? "checked" : ""}><span>${name}</span></label>`,
+              `<label class="multi-select-option" data-instructor-option><input type="checkbox" data-instructor value="${escapeHtml(name)}" ${selected.includes(name) ? "checked" : ""}><span>${escapeHtml(name)}</span></label>`,
           )
-          .join("")}</div>`;
+          .join("");
+        const selectedHtml = selected
+          .map(
+            (name) =>
+              `<span class="instructor-selected-item"><span>${escapeHtml(name)}</span><button class="instructor-selected-remove" type="button" data-instructor-remove="${escapeHtml(name)}" title="移除${escapeHtml(name)}" aria-label="移除${escapeHtml(name)}">×</button></span>`,
+          )
+          .join("");
+        return (
+          `<div class="instructor-picker" id="${id}" data-instructor-picker data-instructor-label="${escapeHtml(roleLabel)}">` +
+          `<div class="multi-select instructor-select" data-instructor-select>` +
+          `<button class="multi-select-trigger" type="button" data-instructor-trigger aria-haspopup="listbox" aria-expanded="false"><span>搜索并选择${escapeHtml(roleLabel)}</span><span aria-hidden="true">⌄</span></button>` +
+          `<div class="multi-select-menu hidden" data-instructor-menu><input class="input" type="search" data-instructor-search placeholder="搜索${escapeHtml(roleLabel)}" aria-label="搜索${escapeHtml(roleLabel)}"><div data-instructor-options>${optionHtml}</div></div>` +
+          `</div><div class="instructor-selected-list" data-instructor-selected aria-live="polite">${selectedHtml}</div></div>`
+        );
       }
       function projectFormHtml(project) {
         const editing = Boolean(project);
@@ -15239,14 +15445,20 @@
               `<option value="${company.id}" ${project?.companyId === company.id ? "selected" : ""}>${company.name}（${company.id}）</option>`,
           )
           .join("")}`;
+        const initialManagementFeeRate =
+          cooperation === "走账合作"
+            ? project?.snapshot?.managementFeeRate ??
+              referencedCompany?.managementFeeRate ??
+              null
+            : null;
         const isTraining = type === "培训项目";
         const amountField = isTraining
           ? `<input class="input" id="pfAmount" value="${project ? round2(project.amount) : ""}" disabled>`
           : `<input class="input" id="pfAmount" type="number" step="0.01" value="${project ? round2(project.amount) : ""}">`;
         const personnelHtml =
-          `<div class="form-group full"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>主讲师</label>${instructorCheckboxGrid("pfLecturers", project?.lecturers || [])}<div class="field-error" id="err-pfLecturers"></div></div>` +
-          `<div class="form-group full"><label class="form-label">辅讲师</label>${instructorCheckboxGrid("pfAssistants", project?.assistantLecturers || [])}</div>` +
-          `<div class="form-group full"><label class="form-label">项目助教</label>${instructorCheckboxGrid("pfHelpers", project?.teachingAssistants || [])}</div>`;
+          `<div class="form-group full"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>主讲师</label>${instructorSelectHtml("pfLecturers", "主讲师", project?.lecturers || [])}<div class="field-error" id="err-pfLecturers"></div></div>` +
+          `<div class="form-group full"><label class="form-label">辅讲师</label>${instructorSelectHtml("pfAssistants", "辅讲师", project?.assistantLecturers || [])}</div>` +
+          `<div class="form-group full"><label class="form-label">项目助教</label>${instructorSelectHtml("pfHelpers", "项目助教", project?.teachingAssistants || [])}</div>`;
         return (
           `<div class="form-grid">` +
           projectFormFieldHtml(
@@ -15325,20 +15537,30 @@
             `<select class="input" id="pfCompany">${companyOptions}</select>`,
           ) +
           projectFormFieldHtml(
+            "pfManagementFeeRate",
+            "管理费比例（%）",
+            `<input class="input" id="pfManagementFeeRate" value="${initialManagementFeeRate === null ? "—" : Number(initialManagementFeeRate).toFixed(2)}" disabled>`,
+          ) +
+          projectFormFieldHtml(
             "pfUnitPrice",
-            "项目单价",
+            "项目单价（含税，元/天）",
             `<input class="input" id="pfUnitPrice" value="${project?.unitPrice != null ? formatProjectMoney(project.unitPrice) : "—"}" disabled>`,
           ) +
           projectFormFieldHtml(
             "pfAmount",
-            "项目金额（含税）",
+            "项目金额（含税，元）",
             amountField,
             !isTraining,
+            projectAmountFormulaText(type),
+            "pfAmountFormula",
           ) +
           projectFormFieldHtml(
             "pfSettlement",
-            "结账金额",
+            "结账金额（含税，元）",
             `<input class="input" id="pfSettlement" value="${project ? formatProjectMoney(project.settlementAmount) : "—"}" disabled>`,
+            false,
+            projectSettlementFormulaText(cooperation),
+            "pfSettlementFormula",
           ) +
           `</div>` +
           `<div id="pfPersonnelSection" ${isTraining ? "" : 'style="display:none"'}>` +
@@ -15362,9 +15584,9 @@
             : `<div class="form-group"><label class="form-label">结束时间</label><div class="input">${project.endTime}</div></div>`;
         const personnelHtml = isTraining
           ? `<div class="section-title">项目人员</div>` +
-            `<div class="form-group full"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>主讲师</label>${instructorCheckboxGrid("pfStageLecturers", project.lecturers)}<div class="field-error" id="err-pfStageLecturers"></div></div>` +
-            `<div class="form-group full"><label class="form-label">辅讲师</label>${instructorCheckboxGrid("pfStageAssistants", project.assistantLecturers)}</div>` +
-            `<div class="form-group full"><label class="form-label">项目助教</label>${instructorCheckboxGrid("pfStageHelpers", project.teachingAssistants)}</div>` +
+            `<div class="form-group full"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>主讲师</label>${instructorSelectHtml("pfStageLecturers", "主讲师", project.lecturers)}<div class="field-error" id="err-pfStageLecturers"></div></div>` +
+            `<div class="form-group full"><label class="form-label">辅讲师</label>${instructorSelectHtml("pfStageAssistants", "辅讲师", project.assistantLecturers)}</div>` +
+            `<div class="form-group full"><label class="form-label">项目助教</label>${instructorSelectHtml("pfStageHelpers", "项目助教", project.teachingAssistants)}</div>` +
             projectFormFieldHtml(
               "pfChangeReason",
               "人员调整原因",
@@ -15393,6 +15615,22 @@
                 "pfDays",
                 "项目确认天数",
                 `<input class="input" id="pfDays" type="number" step="0.5" min="0.5" value="${project.days}" data-user-edited="${confirmationDaysEdited}"><div class="list-sub" id="pfDaysHelp">${isTraining ? "项目费用按此天数计算" : "仅用于记录项目周期，不参与项目金额计算"}</div>`,
+              ) +
+              projectFormFieldHtml(
+                "pfAmount",
+                "项目金额（含税，元）",
+                `<input class="input" id="pfAmount" value="${formatProjectMoney(project.amount)}" disabled>`,
+                false,
+                projectAmountFormulaText(project.type),
+                "pfAmountFormula",
+              ) +
+              projectFormFieldHtml(
+                "pfSettlement",
+                "结账金额（含税，元）",
+                `<input class="input" id="pfSettlement" value="${formatProjectMoney(project.settlementAmount)}" disabled>`,
+                false,
+                projectSettlementFormulaText(project.cooperation),
+                "pfSettlementFormula",
               )
             : "") +
           `</div>` +
@@ -15820,7 +16058,7 @@
           .sort((left, right) => right.stageChangedAt.localeCompare(left.stageChangedAt))
           .map(
             (item) =>
-              `<tr data-page-row><td><button class="link" type="button" data-opportunity-open="${item.id}">${item.id}</button></td><td>${item.name}</td><td>${item.type}</td><td>${salesStageTag(item.stage)}</td><td>${item.customer}</td><td>${salesMoney(salesAmountValue(item))}</td><td>${salesPriorityTag(item.priority)}</td><td>${salesStageDays(item)} 天</td><td>${item.owner}</td><td>${item.createdDate}</td><td>${item.createdBy}</td></tr>`,
+              `<tr data-page-row><td>${item.id}</td><td>${item.name}</td><td>${item.type}</td><td>${salesStageTag(item.stage)}</td><td>${item.customer}</td><td>${salesMoney(salesAmountValue(item))}</td><td>${salesPriorityTag(item.priority)}</td><td>${salesStageDays(item)} 天</td><td>${item.owner}</td><td>${item.createdDate}</td><td>${item.createdBy}</td><td><button class="link" type="button" data-opportunity-open="${item.id}">详情</button></td></tr>`,
           )
           .join("");
         const drillText = salesOpportunityDrill === "period"
@@ -15831,13 +16069,13 @@
         const drillHtml = salesOpportunityDrill
           ? `<div class="sales-drill-strip"><span>当前下钻条件：${drillText}</span><button class="btn" type="button" id="clearSalesDrill">清除</button></div>`
           : "";
-        const emptyRow = '<tr data-empty-row><td colspan="11"><div class="empty">暂无数据</div></td></tr>';
+        const emptyRow = '<tr data-empty-row><td colspan="12"><div class="empty">暂无数据</div></td></tr>';
         const tableHtml = [
           '<section class="panel">',
           opportunityFiltersHtml(),
-          '<div class="table-wrap"><table style="min-width:1420px" data-paged-table="m12-opportunities">',
-          '<thead><tr><th>商机编号</th><th>商机名称</th><th>商机类型</th><th>阶段</th><th>客户单位</th><th>当前有效金额</th><th>优先级</th><th>当前阶段停留时间</th><th>负责人</th><th>创建时间</th><th>创建人</th></tr></thead>',
-          `<tbody>${body || emptyRow}<tr data-filter-empty style="display:none"><td colspan="11"><div class="empty">暂无数据</div></td></tr></tbody>`,
+          '<div class="table-wrap"><table style="min-width:1500px" data-paged-table="m12-opportunities">',
+          '<thead><tr><th>商机编号</th><th>商机名称</th><th>商机类型</th><th>阶段</th><th>客户单位</th><th>当前有效金额</th><th>优先级</th><th>当前阶段停留时间</th><th>负责人</th><th>创建时间</th><th>创建人</th><th>操作</th></tr></thead>',
+          `<tbody>${body || emptyRow}<tr data-filter-empty style="display:none"><td colspan="12"><div class="empty">暂无数据</div></td></tr></tbody>`,
           `</table></div>${tablePagination("m12-opportunities")}</section>`,
         ].join("");
         return (
@@ -21417,10 +21655,20 @@
         document.querySelectorAll("[data-project-cancel-open]").forEach((button) => {
           button.onclick = () => openProjectCancelModal();
         });
+        document.querySelectorAll("[data-project-terminate-open]").forEach((button) => {
+          button.onclick = () => openProjectTerminationModal();
+        });
         document.querySelectorAll("[data-project-supplement]").forEach((button) => {
           button.onclick = () => {
             projectDetailTab = "materials";
             renderPage();
+            const target = document.querySelector(
+              "[data-material-supplement-target]",
+            );
+            if (target) {
+              target.focus({ preventScroll: true });
+              target.scrollIntoView({ block: "center", behavior: "smooth" });
+            }
           };
         });
         document.querySelectorAll("[data-material-add]").forEach((button) => {
@@ -21433,7 +21681,8 @@
           };
         });
         document.querySelectorAll("[data-material-delete]").forEach((button) => {
-          button.onclick = () => handleMaterialDelete(button.dataset.materialDelete);
+          button.onclick = () =>
+            openProjectMaterialDeleteModal(button.dataset.materialDelete);
         });
         document.querySelectorAll("[data-material-replace]").forEach((button) => {
           button.onclick = () => {
@@ -21537,8 +21786,102 @@
         );
         return `PT${String((seqs.length ? Math.max(...seqs) : 0) + 1).padStart(6, "0")}`;
       }
+      function packageDirectionInputValue(value) {
+        if (value === null || value === undefined || value === "") return "";
+        return Number(value).toFixed(2);
+      }
       function packageDirectionRowHtml(direction = {}) {
-        return `<div class="package-direction-row"><label class="package-direction-field package-direction-name-field"><span class="form-label"><span class="required-marker" aria-hidden="true">*</span>课程方向一句话介绍</span><input class="input package-direction-name" data-pkg-dir-intro value="${direction.intro || ""}" placeholder="一句话课程介绍" required></label><label class="package-direction-field package-direction-untaxed-field"><span class="form-label"><span class="required-marker" aria-hidden="true">*</span>不含税报价</span><input class="input package-direction-price" type="number" step="0.01" data-pkg-dir-untaxed value="${direction.untaxedPrice ?? ""}" placeholder="不含税报价" required></label><label class="package-direction-field package-direction-taxed-field"><span class="form-label"><span class="required-marker" aria-hidden="true">*</span>含税报价</span><input class="input package-direction-price" type="number" step="0.01" data-pkg-dir-taxed value="${direction.taxedPrice ?? ""}" placeholder="含税报价" required></label><button class="icon-btn package-direction-remove" type="button" data-pkg-dir-remove title="移除该课程方向" aria-label="移除该课程方向">×</button></div>`;
+        const taxRate = projectDirectionTaxRate(direction);
+        return (
+          '<div class="package-direction-row" data-price-basis="untaxed">' +
+          '<label class="package-direction-field package-direction-name-field"><span class="form-label"><span class="required-marker" aria-hidden="true">*</span>课程方向一句话介绍</span>' +
+          `<input class="input package-direction-name" data-pkg-dir-intro value="${direction.intro || ""}" placeholder="一句话课程介绍" required></label>` +
+          '<label class="package-direction-field package-direction-untaxed-field"><span class="form-label"><span class="required-marker" aria-hidden="true">*</span>不含税报价（元/天）</span>' +
+          `<input class="input package-direction-price" type="number" min="0.01" step="0.01" data-pkg-dir-untaxed value="${packageDirectionInputValue(direction.untaxedPrice)}" placeholder="请输入不含税报价" required></label>` +
+          '<label class="package-direction-field package-direction-tax-rate-field"><span class="form-label"><span class="required-marker" aria-hidden="true">*</span>税率（%）</span>' +
+          `<input class="input package-direction-price" type="number" min="0" max="100" step="0.01" data-pkg-dir-tax-rate value="${packageDirectionInputValue(taxRate)}" placeholder="请输入税率" required></label>` +
+          '<label class="package-direction-field package-direction-taxed-field"><span class="form-label"><span class="required-marker" aria-hidden="true">*</span>含税报价（元/天）</span>' +
+          `<input class="input package-direction-price" type="number" min="0.01" step="0.01" data-pkg-dir-taxed value="${packageDirectionInputValue(direction.taxedPrice)}" placeholder="请输入含税报价" required></label>` +
+          '<button class="icon-btn package-direction-remove" type="button" data-pkg-dir-remove title="移除该课程方向" aria-label="移除该课程方向">×</button></div>'
+        );
+      }
+      function packageDirectionNumber(input) {
+        if (!input || input.value.trim() === "") return null;
+        const value = Number(input.value);
+        return Number.isFinite(value) ? value : null;
+      }
+      function recalculatePackageDirection(row, source) {
+        const untaxedInput = row.querySelector("[data-pkg-dir-untaxed]");
+        const taxRateInput = row.querySelector("[data-pkg-dir-tax-rate]");
+        const taxedInput = row.querySelector("[data-pkg-dir-taxed]");
+        if (source === "untaxed" || source === "taxed")
+          row.dataset.priceBasis = source;
+        const taxRate = packageDirectionNumber(taxRateInput);
+        if (taxRate === null || taxRate < 0 || taxRate > 100) return;
+        const basis = row.dataset.priceBasis || "untaxed";
+        if (basis === "taxed") {
+          const taxed = packageDirectionNumber(taxedInput);
+          if (taxed === null || taxed <= 0) return;
+          untaxedInput.value = round2(taxed / (1 + taxRate / 100)).toFixed(2);
+          return;
+        }
+        const untaxed = packageDirectionNumber(untaxedInput);
+        if (untaxed === null || untaxed <= 0) return;
+        taxedInput.value = round2(untaxed * (1 + taxRate / 100)).toFixed(2);
+      }
+      function normalizePackageDirectionInput(row, input, source) {
+        const value = packageDirectionNumber(input);
+        if (value !== null) input.value = round2(value).toFixed(2);
+        recalculatePackageDirection(row, source === "taxRate" ? source : null);
+      }
+      function bindPackageDirectionInputs(row) {
+        const fields = [
+          [row.querySelector("[data-pkg-dir-untaxed]"), "untaxed"],
+          [row.querySelector("[data-pkg-dir-tax-rate]"), "taxRate"],
+          [row.querySelector("[data-pkg-dir-taxed]"), "taxed"],
+        ];
+        fields.forEach(([input, source]) => {
+          input.oninput = () => recalculatePackageDirection(row, source);
+          input.onblur = () => normalizePackageDirectionInput(row, input, source);
+        });
+      }
+      function packageDirectionData(row) {
+        const untaxedInput = row.querySelector("[data-pkg-dir-untaxed]");
+        const taxRateInput = row.querySelector("[data-pkg-dir-tax-rate]");
+        const taxedInput = row.querySelector("[data-pkg-dir-taxed]");
+        const rawUntaxedPrice = packageDirectionNumber(untaxedInput);
+        const rawTaxRate = packageDirectionNumber(taxRateInput);
+        const rawTaxedPrice = packageDirectionNumber(taxedInput);
+        if (rawUntaxedPrice === null || rawUntaxedPrice <= 0) {
+          untaxedInput.reportValidity();
+          return null;
+        }
+        if (rawTaxRate === null || rawTaxRate < 0 || rawTaxRate > 100) {
+          taxRateInput.reportValidity();
+          return null;
+        }
+        if (rawTaxedPrice === null || rawTaxedPrice <= 0) {
+          taxedInput.reportValidity();
+          return null;
+        }
+        const untaxedPrice = round2(rawUntaxedPrice);
+        const taxRate = round2(rawTaxRate);
+        const taxedPrice = round2(rawTaxedPrice);
+        const basis = row.dataset.priceBasis || "untaxed";
+        const expected =
+          basis === "taxed"
+            ? round2(taxedPrice / (1 + taxRate / 100))
+            : round2(untaxedPrice * (1 + taxRate / 100));
+        const actual = basis === "taxed" ? untaxedPrice : taxedPrice;
+        if (actual !== expected) {
+          return null;
+        }
+        return {
+          intro: row.querySelector("[data-pkg-dir-intro]").value.trim(),
+          untaxedPrice,
+          taxRate,
+          taxedPrice,
+        };
       }
       function openPackageForm(packageId) {
         if (!hasOperationPermission("packages.manage")) return;
@@ -21569,15 +21912,19 @@
             '</div></form>',
         );
         const bindDirectionRemove = () => {
-          document.querySelectorAll("[data-pkg-dir-remove]").forEach((button) => {
-            button.onclick = () => {
-              const rows = document.querySelectorAll(
-                "#packageDirections .package-direction-row",
-              );
-              if (rows.length <= 1) return;
-              button.closest(".package-direction-row").remove();
-            };
-          });
+          document
+            .querySelectorAll("#packageDirections .package-direction-row")
+            .forEach((row) => {
+              bindPackageDirectionInputs(row);
+              const button = row.querySelector("[data-pkg-dir-remove]");
+              button.onclick = () => {
+                const rows = document.querySelectorAll(
+                  "#packageDirections .package-direction-row",
+                );
+                if (rows.length <= 1) return;
+                button.closest(".package-direction-row").remove();
+              };
+            });
         };
         bindDirectionRemove();
         $("#addPackageDirection").onclick = () => {
@@ -21593,13 +21940,8 @@
             ...document.querySelectorAll(
               "#packageDirections .package-direction-row",
             ),
-          ].map((row) => ({
-            intro: row.querySelector("[data-pkg-dir-intro]").value.trim(),
-            untaxedPrice: Number(
-              row.querySelector("[data-pkg-dir-untaxed]").value,
-            ),
-            taxedPrice: Number(row.querySelector("[data-pkg-dir-taxed]").value),
-          }));
+          ].map(packageDirectionData);
+          if (directions.some((direction) => direction === null)) return;
           const data = {
             name: $("#pkgName").value.trim(),
             validFrom: $("#pkgValidFrom").value,
@@ -21697,6 +22039,12 @@
           renderPage();
         };
       }
+      function openPackageDetail(packageId) {
+        if (!hasOperationPermission("packages.view")) return;
+        const pkg = scopedProjectPackages().find((item) => item.id === packageId);
+        if (!pkg) return;
+        openDrawer(projectPackageDetailHtml(pkg));
+      }
       function openConfigStatusConfirm(kind, id, action) {
         if (!hasOperationPermission(`${kind}.manage`)) return;
         const isPackage = kind === "packages";
@@ -21727,6 +22075,7 @@
       function dispatchConfigAction(action, id) {
         const handlers = {
           "add-package": () => openPackageForm(null),
+          "view-package": () => openPackageDetail(id),
           "edit-package": () => openPackageForm(id),
           "stop-package": () => openConfigStatusConfirm("packages", id, "stop"),
           "restore-package": () => openConfigStatusConfirm("packages", id, "restore"),
@@ -22253,6 +22602,103 @@
           projectInstructors.includes(name),
         );
       }
+      let projectInstructorOutsideClickBound = false;
+      function setInstructorSelectOpen(picker, open) {
+        const trigger = picker.querySelector("[data-instructor-trigger]");
+        const menu = picker.querySelector("[data-instructor-menu]");
+        const search = picker.querySelector("[data-instructor-search]");
+        if (!trigger || !menu) return;
+        trigger.setAttribute("aria-expanded", open ? "true" : "false");
+        menu.classList.toggle("hidden", !open);
+        if (open) {
+          search?.focus();
+          return;
+        }
+        if (search) search.value = "";
+        picker
+          .querySelectorAll("[data-instructor-option]")
+          .forEach((option) => (option.hidden = false));
+      }
+      function renderInstructorSelected(picker) {
+        const selectedContainer = picker.querySelector(
+          "[data-instructor-selected]",
+        );
+        if (!selectedContainer) return;
+        const names = [
+          ...picker.querySelectorAll("input[data-instructor]:checked"),
+        ].map((input) => input.value);
+        selectedContainer.innerHTML = names
+          .map(
+            (name) =>
+              `<span class="instructor-selected-item"><span>${escapeHtml(name)}</span><button class="instructor-selected-remove" type="button" data-instructor-remove="${escapeHtml(name)}" title="移除${escapeHtml(name)}" aria-label="移除${escapeHtml(name)}">×</button></span>`,
+          )
+          .join("");
+      }
+      function bindInstructorSelects(form) {
+        const pickers = [...form.querySelectorAll("[data-instructor-picker]")];
+        pickers.forEach((picker) => {
+          const trigger = picker.querySelector("[data-instructor-trigger]");
+          const search = picker.querySelector("[data-instructor-search]");
+          const selectedContainer = picker.querySelector(
+            "[data-instructor-selected]",
+          );
+          trigger.onclick = () => {
+            const open = trigger.getAttribute("aria-expanded") !== "true";
+            document
+              .querySelectorAll("[data-instructor-picker]")
+              .forEach((other) => setInstructorSelectOpen(other, false));
+            setInstructorSelectOpen(picker, open);
+          };
+          search.oninput = () => {
+            const keyword = search.value.trim().toLocaleLowerCase("zh-CN");
+            picker
+              .querySelectorAll("[data-instructor-option]")
+              .forEach((option) => {
+                option.hidden = !option.textContent
+                  .toLocaleLowerCase("zh-CN")
+                  .includes(keyword);
+              });
+          };
+          search.onkeydown = (event) => {
+            if (event.key === "Enter") event.preventDefault();
+            if (event.key === "Escape") {
+              event.preventDefault();
+              setInstructorSelectOpen(picker, false);
+              trigger.focus();
+            }
+          };
+          picker
+            .querySelectorAll("input[data-instructor]")
+            .forEach((input) => {
+              input.onchange = () => renderInstructorSelected(picker);
+            });
+          selectedContainer.onclick = (event) => {
+            const removeButton = event.target.closest(
+              "[data-instructor-remove]",
+            );
+            if (!removeButton) return;
+            const input = [
+              ...picker.querySelectorAll("input[data-instructor]"),
+            ].find(
+              (candidate) =>
+                candidate.value === removeButton.dataset.instructorRemove,
+            );
+            if (input) input.checked = false;
+            renderInstructorSelected(picker);
+          };
+        });
+        if (!projectInstructorOutsideClickBound) {
+          document.addEventListener("click", (event) => {
+            document
+              .querySelectorAll("[data-instructor-picker]")
+              .forEach((picker) => {
+                if (!picker.contains(event.target))
+                  setInstructorSelectOpen(picker, false);
+              });
+          });
+          projectInstructorOutsideClickBound = true;
+        }
+      }
       function clearProjectFormErrors() {
         document
           .querySelectorAll("#projectForm .field-error")
@@ -22276,7 +22722,7 @@
         if (!names.size || !startTime || !endTime) return conflicts;
         projects.forEach((other) => {
           if (other.id === excludeId) return;
-          if (other.stage === "已取消") return;
+          if (["已取消", "已中止"].includes(other.stage)) return;
           const otherNames = [
             ...(other.lecturers || []),
             ...(other.assistantLecturers || []),
@@ -22369,6 +22815,20 @@
           currentPage === "project-edit" ? projectById(selectedProjectId) : null;
         const resourceChanged = projectFormResourceChanged(editingProject);
         const company = platformCompanies.find((item) => item.id === companyId);
+        const feeRate =
+          cooperation === "走账合作"
+            ? editingProject &&
+              !resourceChanged &&
+              editingProject.snapshot?.managementFeeRate != null
+              ? editingProject.snapshot.managementFeeRate
+              : company?.managementFeeRate
+            : null;
+        const feeRateInput = $("#pfManagementFeeRate");
+        if (feeRateInput)
+          feeRateInput.value =
+            feeRate === null || feeRate === undefined
+              ? "—"
+              : Number(feeRate).toFixed(2);
         let unitPrice = null;
         if (editingProject && !resourceChanged && editingProject.snapshot) {
           unitPrice = editingProject.snapshot.unitPrice;
@@ -22393,17 +22853,42 @@
         const amount = Number($("#pfAmount").value);
         if (amount) {
           let settlement = amount;
-          const feeRate =
-            cooperation === "走账合作"
-              ? editingProject && !resourceChanged && editingProject.snapshot?.managementFeeRate != null
-                ? editingProject.snapshot.managementFeeRate
-                : company?.managementFeeRate
-              : null;
           if (cooperation === "走账合作" && feeRate != null) {
             settlement = round2(amount * (1 - feeRate / 100));
           }
           $("#pfSettlement").value = formatProjectMoney(settlement);
         }
+      }
+      function refreshProjectFormulaText(id, text) {
+        const formula = $(id);
+        if (!formula) return;
+        formula.textContent = text;
+        formula.style.display = text ? "" : "none";
+      }
+      function refreshStageProjectAmounts(project) {
+        const amountInput = $("#pfAmount");
+        const settlementInput = $("#pfSettlement");
+        if (!amountInput || !settlementInput) return;
+        const days = Number($("#pfDays")?.value);
+        let amount = Number(project.amount);
+        if (project.type === "培训项目") {
+          amount =
+            Number.isFinite(days) && days > 0 && project.snapshot?.unitPrice != null
+              ? round2(project.snapshot.unitPrice * days)
+              : null;
+        }
+        if (!Number.isFinite(amount)) {
+          amountInput.value = "—";
+          settlementInput.value = "—";
+          return;
+        }
+        const feeRate = project.snapshot?.managementFeeRate;
+        const settlement =
+          project.cooperation === "走账合作" && feeRate != null
+            ? round2(amount * (1 - feeRate / 100))
+            : amount;
+        amountInput.value = formatProjectMoney(amount);
+        settlementInput.value = formatProjectMoney(settlement);
       }
       function refreshProjectFormDynamics() {
         const type = $("#pfType").value;
@@ -22428,7 +22913,19 @@
         setProjectFieldVisible("pfPackage", showPackage);
         setProjectFieldVisible("pfDirection", showPackage);
         setProjectFieldVisible("pfCompany", showCompany);
+        setProjectFieldVisible(
+          "pfManagementFeeRate",
+          cooperation === "走账合作",
+        );
         setProjectFieldVisible("pfUnitPrice", showUnitPrice);
+        refreshProjectFormulaText(
+          "#pfAmountFormula",
+          projectAmountFormulaText(type),
+        );
+        refreshProjectFormulaText(
+          "#pfSettlementFormula",
+          projectSettlementFormulaText(cooperation),
+        );
         refreshProjectFormAmounts();
       }
       function writePreStartEditHistory(project, payload) {
@@ -23070,7 +23567,7 @@
         );
         if (!category) return false;
         const mode = projectMaterialMaintenanceMode(context.project);
-        return mode === "full" || (mode === "optional-add" && !category.required);
+        return mode === "full" || mode === "completed-add";
       }
       async function validateProjectMaterialFile(file, categoryName, project, excludeMaterialId) {
         const category = projectMaterialCategories(project).find(
@@ -23125,8 +23622,7 @@
           (item) => item.name === categoryName,
         );
         if (!category) return;
-        const canAdd =
-          mode === "full" || (mode === "optional-add" && !category.required);
+        const canAdd = mode === "full" || mode === "completed-add";
         if (!canAdd) return;
         const context = projectMaterialOperationContext(project);
         const validations = [];
@@ -23199,6 +23695,24 @@
         setProjectMaterialResults([]);
         normalizeProjectLifecycle(project);
         renderPage();
+      }
+      function openProjectMaterialDeleteModal(fileId) {
+        const project = projectById(selectedProjectId);
+        if (!project) return;
+        normalizeProjectLifecycle(project);
+        if (!canDeleteProjectMaterials()) return;
+        if (projectMaterialMaintenanceMode(project) !== "full") return;
+        if (!projectMaterials(project).some((material) => material.id === fileId))
+          return;
+        openModal(
+          '<div class="modal-head project-modal-head"><div class="modal-title">确认删除文件</div><button class="icon-btn close" data-close>×</button></div>' +
+            '<div class="modal-body project-modal-body"><div class="role-note danger-note">删除后不可恢复，确认删除？</div></div>' +
+            '<div class="modal-foot project-modal-foot"><button class="btn" type="button" data-close>取消</button><button class="btn btn-danger" type="button" id="confirmProjectMaterialDelete">确认删除</button></div>',
+        );
+        $("#confirmProjectMaterialDelete").onclick = () => {
+          closeOverlay();
+          handleMaterialDelete(fileId);
+        };
       }
       async function handleMaterialReplace(fileId, file) {
         const project = projectById(selectedProjectId);
@@ -23396,6 +23910,116 @@
           submitProjectCancel();
         };
       }
+      function submitProjectTermination() {
+        const project = projectById(selectedProjectId);
+        if (!project) {
+          closeOverlay();
+          return;
+        }
+        normalizeProjectLifecycle(project);
+        if (!canTerminateProject(project)) {
+          closeOverlay();
+          renderPage();
+          return;
+        }
+        const settlementChoice = document.querySelector(
+          'input[name="projectTerminationSettlement"]:checked',
+        )?.value;
+        const amountRaw = ($("#projectTerminationAmount")?.value || "").trim();
+        const reason = ($("#projectTerminationReason")?.value || "").trim();
+        const settlementError = $("#err-terminationSettlement");
+        const amountError = $("#err-terminationAmount");
+        const reasonError = $("#err-terminationReason");
+        if (settlementError) settlementError.textContent = "";
+        if (amountError) amountError.textContent = "";
+        if (reasonError) reasonError.textContent = "";
+        let invalid = false;
+        if (!settlementChoice) {
+          if (settlementError)
+            settlementError.textContent = "请选择是否涉及金额结算";
+          invalid = true;
+        }
+        const involvesSettlement = settlementChoice === "yes";
+        const amountFormatValid = /^(?:0|[1-9]\d*)(?:\.\d{1,2})?$/.test(
+          amountRaw,
+        );
+        const amount = Number(amountRaw);
+        if (
+          involvesSettlement &&
+          (!amountRaw || !amountFormatValid || !Number.isFinite(amount) || amount <= 0)
+        ) {
+          if (amountError)
+            amountError.textContent = "请填写大于 0 且最多两位小数的应结算金额";
+          invalid = true;
+        }
+        if (reason.length < 5 || reason.length > 500) {
+          if (reasonError) reasonError.textContent = "中止原因需填写 5-500 字";
+          invalid = true;
+        }
+        if (invalid) return;
+
+        const oldStage = project.stage;
+        const terminatedOwner = projectCurrentOwner(project);
+        project.terminationInvolvesSettlement = involvesSettlement;
+        if (involvesSettlement) project.terminationSettlementAmount = amount;
+        else delete project.terminationSettlementAmount;
+        project.terminationReason = reason;
+        project.terminatedOwner = terminatedOwner;
+        project.terminatedBy = currentUser.name;
+        project.terminatedAt = projectNow();
+        project.stage = "已中止";
+        project.todos = involvesSettlement ? ["待回款"] : [];
+        recordProjectChange(
+          project,
+          "是否涉及金额结算",
+          "—",
+          involvesSettlement ? "是" : "否",
+        );
+        if (involvesSettlement)
+          recordProjectChange(
+            project,
+            "应结算金额（含税，元）",
+            "—",
+            formatProjectMoney(amount),
+          );
+        recordProjectChange(project, "主阶段", oldStage, "已中止", reason);
+        closeOverlay();
+        renderPage();
+      }
+      function openProjectTerminationModal() {
+        const project = projectById(selectedProjectId);
+        if (!project) return;
+        normalizeProjectLifecycle(project);
+        if (!canTerminateProject(project)) return;
+        openModal(
+          '<div class="modal-head project-modal-head"><div class="modal-title">中止项目</div><button class="icon-btn close" data-close>×</button></div>' +
+            '<form id="projectTerminationForm" class="project-config-form" novalidate><div class="modal-body project-modal-body">' +
+            '<div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>是否涉及金额结算</label><div class="choice-grid"><label class="check-row"><input type="radio" name="projectTerminationSettlement" value="yes"><span>是</span></label><label class="check-row"><input type="radio" name="projectTerminationSettlement" value="no"><span>否</span></label></div><div class="field-error" id="err-terminationSettlement"></div></div>' +
+            '<div class="form-group" id="projectTerminationAmountGroup" style="display:none"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>应结算金额（含税，元）</label><input class="input" id="projectTerminationAmount" type="number" min="0.01" step="0.01" value=""><div class="field-error" id="err-terminationAmount"></div></div>' +
+            '<div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>中止原因</label><textarea class="input" id="projectTerminationReason" rows="3" maxlength="500"></textarea><div class="field-error" id="err-terminationReason"></div></div>' +
+            '</div><div class="modal-foot project-modal-foot"><button class="btn" type="button" data-close>取消</button><button class="btn btn-primary" type="submit">确认中止</button></div></form>',
+        );
+        const updateSettlementFields = () => {
+          const choice = document.querySelector(
+            'input[name="projectTerminationSettlement"]:checked',
+          )?.value;
+          const group = $("#projectTerminationAmountGroup");
+          const amountInput = $("#projectTerminationAmount");
+          if (group) group.style.display = choice === "yes" ? "" : "none";
+          if (choice !== "yes" && amountInput) amountInput.value = "";
+          const settlementError = $("#err-terminationSettlement");
+          const amountError = $("#err-terminationAmount");
+          if (settlementError) settlementError.textContent = "";
+          if (amountError) amountError.textContent = "";
+        };
+        document
+          .querySelectorAll('input[name="projectTerminationSettlement"]')
+          .forEach((input) => (input.onchange = updateSettlementFields));
+        $("#projectTerminationForm").onsubmit = (event) => {
+          event.preventDefault();
+          submitProjectTermination();
+        };
+      }
       function bindProjectFormEvents() {
         document.querySelectorAll("[data-project-create]").forEach((button) => {
           button.onclick = () => {
@@ -23425,6 +24049,7 @@
         });
         const form = $("#projectForm");
         if (!form) return;
+        bindInstructorSelects(form);
         const editing = currentPage === "project-edit";
         const editingProject = editing ? projectById(selectedProjectId) : null;
         if (editingProject) normalizeProjectLifecycle(editingProject);
@@ -23436,12 +24061,16 @@
             const stageEnd = $("#pfStageEnd");
             const confirmedDays = $("#pfDays");
             if (stageEnd)
-              stageEnd.onchange = () =>
+              stageEnd.onchange = () => {
                 refreshProjectFormDays(editingProject.startTime);
-            if (confirmedDays)
-              confirmedDays.onchange = () => {
-                confirmedDays.dataset.userEdited = "true";
+                refreshStageProjectAmounts(editingProject);
               };
+            if (confirmedDays)
+              confirmedDays.oninput = () => {
+                confirmedDays.dataset.userEdited = "true";
+                refreshStageProjectAmounts(editingProject);
+              };
+            refreshStageProjectAmounts(editingProject);
           }
           form.onsubmit = (event) => {
             event.preventDefault();
@@ -27055,7 +27684,7 @@
             employee.status === "在职" && employee.role !== "系统管理员",
         );
         openModal(
-          `<div class="modal-head"><div class="modal-title">${department ? "管理" : "新增"}部门</div><button class="icon-btn close" data-close>×</button></div><form id="organizationDepartmentForm"><div class="modal-body"><div class="form-grid"><div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>部门名称</label><input class="input" id="odName" value="${department?.name || ""}" minlength="2" maxlength="100" required></div>${department ? `<div class="form-group"><label class="form-label">部门编码</label><input class="input" value="${department.code}" disabled></div>` : `<div class="form-group"><label class="form-label">部门编码</label><input class="input" value="保存后自动生成" disabled></div>`}<div class="form-group"><label class="form-label">上级部门</label><select class="input" id="odParent"><option value="">英嘉科技（一级部门）</option>${parents.map((item) => `<option value="${item.id}" ${department?.parentId === item.id ? "selected" : ""}>${departmentPath(item)}</option>`).join("")}</select></div><div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>排序</label><input class="input" id="odSort" type="number" min="1" max="9999" value="${department?.sort || 100}" required></div><div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>是否区域中心</label><select class="input" id="odIsRegion"><option value="false" ${department?.type !== "region" ? "selected" : ""}>否</option><option value="true" ${department?.type === "region" ? "selected" : ""}>是</option></select></div><div class="form-group"><label class="form-label">部门主管</label><select class="input" id="odSupervisor"><option value="">暂不设置主管（待设置）</option>${supervisorCandidates.map((employee) => `<option value="${employee.code}" ${department?.supervisorCode === employee.code ? "selected" : ""}>${employee.name} · ${employee.code} · ${employeeDepartmentNames(employee).join("、") || "未归属部门"} · ${employeeRoleDisplay(employee)}</option>`).join("")}</select><div class="list-sub">每部门最多一名主管；可选部门外员工，保存后自动增加成员关系且解除主管不自动移除。</div></div>${department ? `<div class="form-group"><label class="form-label">组织状态</label><select class="input" id="odStatus"><option value="启用" ${department.status === "启用" ? "selected" : ""}>正常</option><option value="停用" ${department.status === "停用" ? "selected" : ""}>已停用</option></select></div>` : ""}</div></div><div class="modal-foot"><button class="btn" type="button" data-close>取消</button><button class="btn btn-primary" type="submit">保存部门</button></div></form>`,
+          `<div class="modal-head"><div class="modal-title">${department ? "管理" : "新增"}部门</div><button class="icon-btn close" data-close>×</button></div><form id="organizationDepartmentForm"><div class="modal-body"><div class="form-grid"><div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>部门名称</label><input class="input" id="odName" value="${department?.name || ""}" minlength="2" maxlength="100" required></div>${department ? `<div class="form-group"><label class="form-label">部门编码</label><input class="input" value="${department.code}" disabled></div>` : `<div class="form-group"><label class="form-label">部门编码</label><input class="input" value="保存后自动生成" disabled></div>`}<div class="form-group"><label class="form-label">上级部门</label><select class="input" id="odParent"><option value="">英嘉科技（一级部门）</option>${parents.map((item) => `<option value="${item.id}" ${department?.parentId === item.id ? "selected" : ""}>${departmentPath(item)}</option>`).join("")}</select></div><div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>排序</label><input class="input" id="odSort" type="number" min="1" max="9999" value="${department?.sort || 100}" required></div><div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>是否区域中心</label><select class="input" id="odIsRegion"><option value="false" ${department?.type !== "region" ? "selected" : ""}>否</option><option value="true" ${department?.type === "region" ? "selected" : ""}>是</option></select></div><div class="form-group"><label class="form-label">部门主管</label><select class="input" id="odSupervisor"><option value="">暂不设置主管（待设置）</option>${supervisorCandidates.map((employee) => `<option value="${employee.code}" ${department?.supervisorCode === employee.code ? "selected" : ""}>${employee.name} · ${employee.code} · ${employeeDepartmentNames(employee).join("、") || "未归属部门"} · ${employeeRoleDisplay(employee)}</option>`).join("")}</select><div class="list-sub">每部门最多一名主管；可选部门外员工，保存后自动增加成员关系且解除主管不自动移除。</div></div></div></div><div class="modal-foot"><button class="btn" type="button" data-close>取消</button><button class="btn btn-primary" type="submit">保存部门</button></div></form>`,
         );
         $("#organizationDepartmentForm").onsubmit = (event) => {
           event.preventDefault();
@@ -27087,21 +27716,12 @@
             (employee) => employee.code === supervisorCode,
           );
           if (department) {
-            const status = $("#odStatus").value;
-            if (
-              status === "停用" &&
-              (employees.some(
-                (employee) =>
-                  employee.status === "在职" && employeeDepartmentNames(employee).includes(department.name),
-              ) || organizationChildren(department.id).length)
-            )
-              return toast("请先移出在职员工并处理下级组织");
             const linkedRegion = regionsData.find(
               (region) => region.id === department.regionId,
             );
             if (
               department.type === "region" &&
-              (!isRegion || status === "停用") &&
+              !isRegion &&
               (regionProvinceList(linkedRegion).length ||
                 cityOwners.some((city) =>
                   regionProvinceList(linkedRegion).includes(city.province),
@@ -27123,7 +27743,7 @@
             const shouldTransferDirectorProjects =
               oldType === "region" &&
               isRegion &&
-              status === "启用" &&
+              department.status === "启用" &&
               oldSupervisorCode !== supervisorCode &&
               Boolean(linkedRegion);
             const projectTransferPlan = shouldTransferDirectorProjects
@@ -27143,7 +27763,6 @@
                 name,
                 code,
                 parentId,
-                status,
                 supervisorCode,
                 sort,
                 type: isRegion ? "region" : "department",
@@ -27212,14 +27831,12 @@
                 actualEffectiveAt: effectiveAt,
                 object: name,
                 type:
-                  status === "停用"
-                    ? "组织停用"
-                    : oldParent !== parentId
-                      ? "部门移动"
-                      : oldSupervisorCode !== supervisorCode
-                        ? "主管变更"
-                        : oldType !== department.type
-                          ? "区域中心标记变更"
+                  oldParent !== parentId
+                    ? "部门移动"
+                    : oldSupervisorCode !== supervisorCode
+                      ? "主管变更"
+                      : oldType !== department.type
+                        ? "区域中心标记变更"
                         : oldName !== name
                           ? "部门改名"
                           : "组织编辑",
@@ -27303,27 +27920,27 @@
             ["pending", "paused_invalid_handler"].includes(approval.status) &&
             approvalCurrentAssignees(approval).includes(employee.name),
         );
-        const unfinishedProjectsForEmployee = () =>
+        const blockingProjectsForEmployee = () =>
           projects.filter(
             (project) =>
-              !["已完成", "已取消"].includes(project.stage) &&
+              ["已立项", "进行中", "已交付"].includes(project.stage) &&
               projectCurrentOwner(project) === employee.name,
           );
         const projectMigrationRequired = () =>
           toast(
-            "该员工仍负责未完成项目，请先在“区域中心与地市配置”通过地区责任直接调整完成项目迁移，再重新停用。",
+            "该员工仍负责已立项、进行中或已交付项目，请先在“区域中心与地市配置”通过地区责任直接调整完成项目迁移，再重新停用。",
           );
-        if (mode === "停用" && unfinishedProjectsForEmployee().length)
+        if (mode === "停用" && blockingProjectsForEmployee().length)
           return projectMigrationRequired();
         openModal(
-          `<div class="modal-head"><div class="modal-title">确认员工${mode}</div><button class="icon-btn close" data-close>×</button></div><form id="employeeStatusForm"><div class="modal-body"><div class="role-note ${mode === "停用" ? "danger-note" : ""}"><strong>${employee.name} · ${employee.code}</strong><br>本操作由 HR/admin 直接生效，不创建审批、WF 编号、待办或抄送。</div>${mode === "停用" ? `<div class="impact-summary"><div class="impact-grid"><div><label>将清空主管部门</label><strong>${managedDepartments.length}</strong></div><div><label>将清空地市责任</label><strong>${ownedCities.length}</strong></div><div><label>将取消未完成任务</label><strong>${openTasks.length}</strong></div></div></div><div class="role-note">停用前已确认不存在未迁移未完成项目。部门成员、系统角色、当前审批实例及已迁移/历史项目保留；处理人失效节点按既有规则暂停，全部未完成任务直接取消，项目不取消。</div>` : `<div class="role-note">恢复后继续保留原部门成员和系统角色；已取消任务不恢复，此前清空的主管、区域/地市及客户当前责任不会自动恢复。</div>`}<div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>${mode}原因</label><textarea class="input" id="esReason" minlength="5" maxlength="500" required></textarea></div></div><div class="modal-foot"><button class="btn" type="button" data-close>取消</button><button class="btn ${mode === "停用" ? "btn-danger" : "btn-primary"}" type="submit">确认并立即${mode}</button></div></form>`,
+          `<div class="modal-head"><div class="modal-title">确认员工${mode}</div><button class="icon-btn close" data-close>×</button></div><form id="employeeStatusForm"><div class="modal-body"><div class="role-note ${mode === "停用" ? "danger-note" : ""}"><strong>${employee.name} · ${employee.code}</strong><br>本操作由 HR/admin 直接生效，不创建审批、WF 编号、待办或抄送。</div>${mode === "停用" ? `<div class="impact-summary"><div class="impact-grid"><div><label>将清空主管部门</label><strong>${managedDepartments.length}</strong></div><div><label>将清空地市责任</label><strong>${ownedCities.length}</strong></div><div><label>将取消未完成任务</label><strong>${openTasks.length}</strong></div></div></div><div class="role-note">停用前已确认不存在未迁移的已立项、进行中或已交付项目。部门成员、系统角色、当前审批实例及已迁移/历史项目保留；已取消和已中止项目不迁移且不阻断停用；处理人失效节点按既有规则暂停，全部未完成任务直接取消，项目不自动取消或中止。</div>` : `<div class="role-note">恢复后继续保留原部门成员和系统角色；已取消任务不恢复，此前清空的主管、区域/地市及客户当前责任不会自动恢复。</div>`}<div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>${mode}原因</label><textarea class="input" id="esReason" minlength="5" maxlength="500" required></textarea></div></div><div class="modal-foot"><button class="btn" type="button" data-close>取消</button><button class="btn ${mode === "停用" ? "btn-danger" : "btn-primary"}" type="submit">确认并立即${mode}</button></div></form>`,
         );
         $("#employeeStatusForm").onsubmit = (event) => {
           event.preventDefault();
           const reason = $("#esReason").value.trim();
           if (reason.length < 5 || reason.length > 500)
             return toast(`${mode}原因需填写 5-500 字`);
-          if (mode === "停用" && unfinishedProjectsForEmployee().length)
+          if (mode === "停用" && blockingProjectsForEmployee().length)
             return projectMigrationRequired();
           const changedAt = recordCreatedAt();
           const changeId = `PC-${Date.now()}`;
@@ -27433,7 +28050,7 @@
             handover: [],
             impactSummary:
               mode === "停用"
-                ? `未完成项目迁移校验通过；清空主管 ${managedDepartments.length} 个、地市责任 ${ownedCities.length} 个；取消未完成任务 ${tasksToCancel.length} 条；保留当前审批节点 ${activeApprovals.length} 个`
+                ? `已立项、进行中和已交付项目迁移校验通过；清空主管 ${managedDepartments.length} 个、地市责任 ${ownedCities.length} 个；取消未完成任务 ${tasksToCancel.length} 条；保留当前审批节点 ${activeApprovals.length} 个`
                 : "恢复账号；已取消任务和已清空责任不自动恢复",
           };
           personnelChanges.unshift(change);

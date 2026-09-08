@@ -2,6 +2,12 @@
         return `<div class="metric dashboard-metric ${tone || ""}"><span class="metric-label">${label}</span><span class="metric-value">${value}</span><span class="metric-foot">${foot}</span></div>`;
       }
 
+      function dashboardPercent(value) {
+        return value == null || !Number.isFinite(Number(value))
+          ? "--"
+          : `${Number(value).toFixed(1)}%`;
+      }
+
       function escapeDashboardHtml(value) {
         return String(value ?? "")
           .replaceAll("&", "&amp;")
@@ -64,29 +70,33 @@
       }
 
       function dashboardHealthRate(people = scopedContacts(), rows = scopedTasks()) {
-        if (!people.length) return 0;
+        if (!people.length) return null;
         const overdueContacts = new Set(
           rows
             .filter(taskIsHealthRisk)
             .map((task) => `${task.company}:${task.person}`),
         );
-        return Math.round(
-          (people.filter(
-            (person) => !overdueContacts.has(`${person.company}:${person.name}`),
-          ).length /
-            people.length) *
-            100,
+        return Number(
+          (
+            (people.filter(
+              (person) => !overdueContacts.has(`${person.company}:${person.name}`),
+            ).length /
+              people.length) *
+            100
+          ).toFixed(1),
         );
       }
 
       function dashboardCoverageRate(companies, people) {
-        if (!companies.length) return 0;
-        return Math.round(
-          (companies.filter((company) =>
-            people.some((person) => person.company === company.name),
-          ).length /
-            companies.length) *
-            100,
+        if (!companies.length) return null;
+        return Number(
+          (
+            (companies.filter((company) =>
+              people.some((person) => person.company === company.name),
+            ).length /
+              companies.length) *
+            100
+          ).toFixed(1),
         );
       }
 
@@ -184,7 +194,7 @@
         return `<section class="panel"><div class="panel-head"><div><div class="panel-title">${title}</div><div class="panel-sub">资产指标为当前快照；完成率统计 ${period.start} 至 ${period.end} 已到期任务</div></div><div class="spacer"></div>${dashboardPeriodControl()}</div><div class="table-wrap"><table class="dashboard-scope-table"><thead><tr><th>范围</th><th>当前客户</th><th>当前关键人</th><th>当前覆盖率</th><th>当前健康率</th><th>${period.label}按期完成率</th><th>当前逾期</th></tr></thead><tbody>${rows
           .map(
             (row) =>
-              `<tr><td><strong>${row.name}</strong></td><td>${row.companies}</td><td>${row.people}</td><td>${row.coverage}%</td><td>${row.health}%</td><td><strong>${row.onTimeRate}%</strong><div class="progress"><i style="width:${row.onTimeRate}%"></i></div></td><td><span class="tag ${row.overdue ? "red" : "green"}">${row.overdue}</span></td></tr>`,
+              `<tr><td><strong>${row.name}</strong></td><td>${row.companies}</td><td>${row.people}</td><td>${dashboardPercent(row.coverage)}</td><td>${dashboardPercent(row.health)}</td><td><strong>${dashboardPercent(row.onTimeRate)}</strong><div class="progress"><i style="width:${row.onTimeRate || 0}%"></i></div></td><td><span class="tag ${row.overdue ? "red" : "green"}">${row.overdue}</span></td></tr>`,
           )
           .join("") || '<tr><td colspan="7"><div class="empty">当前范围暂无经营数据</div></td></tr>'}</tbody></table></div></section>`;
       }
@@ -200,7 +210,7 @@
               dashboardDuePeriodRows(pmRows),
             );
             const currentNumbers = dashboardTaskNumbers(pmRows);
-            return `<tr><td><strong>${pm}</strong></td><td>${periodNumbers.total}</td><td>${periodNumbers.done}</td><td>${periodNumbers.rate}%</td><td><strong>${periodNumbers.onTimeRate}%</strong></td><td><span class="tag ${currentNumbers.overdue ? "red" : "green"}">${currentNumbers.overdue}</span></td></tr>`;
+            return `<tr><td><strong>${pm}</strong></td><td>${periodNumbers.total}</td><td>${periodNumbers.done}</td><td>${dashboardPercent(periodNumbers.rate)}</td><td><strong>${dashboardPercent(periodNumbers.onTimeRate)}</strong></td><td><span class="tag ${currentNumbers.overdue ? "red" : "green"}">${currentNumbers.overdue}</span></td></tr>`;
           })
           .join("") || '<tr><td colspan="6"><div class="empty">当前范围暂无责任人执行数据</div></td></tr>'}</tbody></table></div></section>`;
       }
@@ -260,7 +270,7 @@
               isCoverage,
               total,
               done,
-              rate: total ? Math.round((done / total) * 100) : null,
+              rate: total ? Number(((done / total) * 100).toFixed(1)) : null,
               numbers: isCoverage
                 ? null
                 : dashboardTaskNumbers(campaignRows),
@@ -287,8 +297,8 @@
             icon: "专",
             title: "专项动态",
             detail: item.isCoverage
-              ? `${item.campaign.name} · 覆盖 KPI 达标率 ${item.rate}% · ${item.done}/${item.total} 名有效责任人已达标`
-              : `${item.campaign.name} · 专项维系总完成率 ${item.numbers.rate}% · ${item.numbers.done}/${item.numbers.total} 条有效执行项已完成`,
+              ? `${item.campaign.name} · 覆盖 KPI 达标率 ${dashboardPercent(item.rate)} · ${item.done}/${item.total} 名有效责任人已达标`
+              : `${item.campaign.name} · 专项维系总完成率 ${dashboardPercent(item.numbers.rate)} · ${item.numbers.done}/${item.numbers.total} 条有效执行项已完成`,
             tone: "red",
             action: "campaign-detail",
             id: item.campaign.id,
@@ -393,7 +403,7 @@
           : `${currentUser.name}，以下统计均由当前权限范围内的客户、关键人、任务和维系记录实时聚合。`;
         const metrics = isPm
           ? `${dashboardMetric("当前逾期", overdue, "不含暂停及已过期", "red", "tasks", { "task-view": "mine", "task-group": "overdue" })}${dashboardMetric("今日到期", rows.filter((task) => task.status === "pending" && task.due === DEMO_TODAY).length, "今日必须处理", "orange", "tasks", { "task-view": "mine", "task-group": "today" })}${dashboardMetric("未来 7 天", rows.filter((task) => task.status === "pending" && task.due > DEMO_TODAY && task.due <= addDays(DEMO_TODAY, 7)).length, "按截止日期计算", "yellow", "tasks", { "task-view": "mine", "task-group": "next7" })}${dashboardMetric("生日 / 节日", careTodos, "未结束关怀任务", "green", "tasks", { "task-view": "mine", "task-type": "care" })}${dashboardMetric("专项维系", campaignTodos, "本人待执行项", "blue", "tasks", { "task-view": "mine", "task-type": "专项维系" })}${dashboardMetric("覆盖 KPI", coverageKpiTodos, "系统按覆盖率判定", "orange", "tasks", { "task-view": "mine", "task-type": "关键人覆盖 KPI" })}${dashboardMetric("本月已完成", completedThisMonth, "按实际完成月统计", "", "tasks", { "task-view": "mine", "task-group": "done", "task-month": currentMonth, "task-event": "done" })}`
-          : `${dashboardMetric("客户单位", companies.length, "当前正常状态", "", "operations")}${dashboardMetric("有效关键人", people.length, "当前有效任职", "blue", "operations")}${dashboardMetric("关键人覆盖率", `${coverage}%`, "全部关键人当前快照", "blue", "operations", { coverage: "none" })}${dashboardMetric("维系健康率", `${health}%`, "常规、生日、节假日风险", "", "tasks", { "task-view": "mine", "task-group": "risk" })}${dashboardMetric(`${selectedPeriod.label}总完成率`, `${selectedPeriodNumbers.rate}%`, `${selectedPeriodNumbers.done}/${selectedPeriodNumbers.total} 条已到期维系任务`, "orange", "tasks", { "task-view": "mine", "task-group": "period-done", "task-due-start": selectedPeriod.start, "task-due-end": selectedPeriod.end })}${dashboardMetric(`${selectedPeriod.label}按期完成率`, `${selectedPeriodNumbers.onTimeRate}%`, `${selectedPeriodNumbers.onTimeDone}/${selectedPeriodNumbers.total} 条已到期维系任务`, "blue", "tasks", { "task-view": "mine", "task-group": "on-time", "task-due-start": selectedPeriod.start, "task-due-end": selectedPeriod.end })}${dashboardMetric("当前逾期", overdue, "不含暂停风险及已过期", "red", "tasks", { "task-view": "mine", "task-group": "overdue" })}${dashboardMetric("进行中专项", activeCampaigns, "专项维系 + 覆盖 KPI", "yellow", "tasks", { "task-view": "summary" })}`;
+          : `${dashboardMetric("客户单位", companies.length, "当前正常状态", "", "operations")}${dashboardMetric("有效关键人", people.length, "当前有效任职", "blue", "operations")}${dashboardMetric("关键人覆盖率", dashboardPercent(coverage), "全部关键人当前快照", "blue", "operations", { coverage: "none" })}${dashboardMetric("维系健康率", dashboardPercent(health), "常规、生日、节假日风险", "", "tasks", { "task-view": "mine", "task-group": "risk" })}${dashboardMetric(`${selectedPeriod.label}总完成率`, dashboardPercent(selectedPeriodNumbers.rate), `${selectedPeriodNumbers.done}/${selectedPeriodNumbers.total} 条已到期维系任务`, "orange", "tasks", { "task-view": "mine", "task-group": "period-done", "task-due-start": selectedPeriod.start, "task-due-end": selectedPeriod.end })}${dashboardMetric(`${selectedPeriod.label}按期完成率`, dashboardPercent(selectedPeriodNumbers.onTimeRate), `${selectedPeriodNumbers.onTimeDone}/${selectedPeriodNumbers.total} 条已到期维系任务`, "blue", "tasks", { "task-view": "mine", "task-group": "on-time", "task-due-start": selectedPeriod.start, "task-due-end": selectedPeriod.end })}${dashboardMetric("当前逾期", overdue, "不含暂停风险及已过期", "red", "tasks", { "task-view": "mine", "task-group": "overdue" })}${dashboardMetric("进行中专项", activeCampaigns, "专项维系 + 覆盖 KPI", "yellow", "tasks", { "task-view": "summary" })}`;
         const primary = isPm
           ? `<div class="dashboard-primary-grid">${dashboardPmActionGroups(rows)}<section class="panel dashboard-todo-panel"><div class="panel-head"><div class="panel-title">我的待办</div><span class="tag red dashboard-panel-count">${todoItems.length}</span><div class="spacer"></div><button class="btn" type="button" data-dashboard-nav="tasks" data-task-view="mine">全部任务</button></div><div class="panel-body list dashboard-list">${dashboardList(todoItems, "当前没有待处理事项")}</div></section></div>`
           : `<div class="dashboard-primary-grid">${dashboardScopeTable()}<section class="panel dashboard-todo-panel"><div class="panel-head"><div class="panel-title">待办</div><span class="tag red dashboard-panel-count">${todoItems.length}</span></div><div class="panel-body list dashboard-list">${dashboardList(todoItems, "当前没有需要本人处理的事项")}</div></section></div>`;

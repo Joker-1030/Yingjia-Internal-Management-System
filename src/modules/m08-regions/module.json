@@ -12,12 +12,15 @@
     "区域选择",
     "地市/区域视图",
     "配置状态",
+    "PM 地市责任",
+    "PM 地市交接与未落选商机迁移",
     "交接与调整反馈"
   ],
   "dataReferences": [
     "data/regions.js",
     "data/organization.js",
-    "data/notifications.js"
+    "data/notifications.js",
+    "data/opportunities.js"
   ],
   "sourceFiles": [
     "modules/m08-regions/interactions.js",

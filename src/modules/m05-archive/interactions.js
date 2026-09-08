@@ -52,7 +52,7 @@
         if (item.targetKind !== "group" && !targetObject)
           return toast("恢复对象已不存在，业务状态未改变");
         openModal(
-          `<div class="modal-head"><div class="modal-title">恢复${item.type}</div><button class="icon-btn close" data-close>×</button></div><form id="restoreForm"><div class="modal-body"><div class="detail-grid"><div class="detail-item"><label>恢复对象</label><div>${item.name}</div></div>${item.type === "集团公司" ? `<div class="detail-item"><label>集团编号</label><div>${item.businessNumber || item.groupSnapshot?.groupNumber || "—"}</div></div>` : ""}<div class="detail-item"><label>当前状态</label><div>已停用</div></div><div class="detail-item"><label>恢复顺序校验</label><div>通过</div></div><div class="detail-item"><label>任务生成影响</label><div>不补造停用期间历史任务</div></div></div><div class="role-note">确认后恢复操作立即生效且不生成审批流程。对象重新进入正常列表和候选；关键人仅从恢复时间起生成仍适用的未来任务。</div><div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>恢复原因</label><textarea class="input" id="restoreReason" minlength="5" maxlength="500" required placeholder="请填写 5-500 字恢复原因"></textarea></div></div><div class="modal-foot"><button class="btn" type="button" data-close>取消</button><button class="btn btn-primary" type="submit">确认恢复</button></div></form>`,
+          `<div class="modal-head"><div class="modal-title">恢复${item.type}</div><button class="icon-btn close" data-close>×</button></div><form id="restoreForm"><div class="modal-body"><div class="detail-grid"><div class="detail-item"><label>恢复对象</label><div>${item.name}</div></div>${item.type === "集团公司" ? `<div class="detail-item"><label>集团编号</label><div>${item.businessNumber || item.groupSnapshot?.groupNumber || "—"}</div></div>` : ""}<div class="detail-item"><label>当前状态</label><div>已停用</div></div>${item.targetKind === "contact" ? "" : '<div class="detail-item"><label>恢复顺序校验</label><div>通过</div></div>'}${item.targetKind === "contact" ? "" : '<div class="detail-item"><label>任务生成影响</label><div>不补造停用期间历史任务</div></div>'}</div><div class="role-note">${item.targetKind === "contact" ? "恢复后继续生成适用任务，停用期间的任务不补建。" : "确认后恢复操作立即生效且不生成审批流程。对象重新进入正常列表和候选；关键人仅从恢复时间起生成仍适用的未来任务。"}</div><div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>恢复原因</label><textarea class="input" id="restoreReason" minlength="5" maxlength="500" required placeholder="请填写 5-500 字恢复原因"></textarea></div></div><div class="modal-foot"><button class="btn" type="button" data-close>取消</button><button class="btn btn-primary" type="submit">确认恢复</button></div></form>`,
         );
         $("#restoreForm").onsubmit = (e) => {
           e.preventDefault();
@@ -86,6 +86,6 @@
           });
           closeOverlay();
           renderPage();
-          toast("恢复已直接生效并记录操作历史");
+          toast(item.targetKind === "contact" ? "恢复成功" : "恢复已直接生效并记录操作历史");
         };
       }

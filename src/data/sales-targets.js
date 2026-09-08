@@ -5,9 +5,9 @@
           version: "V2026.08-01",
           effectiveAt: "2026-08-01 09:00",
           regions: [
-            { name: "山东区域", target: 6, pms: [{ name: "陈经理", target: 3 }, { name: "刘经理", target: 3 }] },
-            { name: "江苏区域", target: 3, pms: [{ name: "周经理", target: 3 }] },
-            { name: "浙江区域", target: 1, pms: [{ name: "吴经理", target: 1 }] },
+            { name: "山东区域", target: 6, salespeople: [{ name: "陈经理", target: 3 }, { name: "刘经理", target: 3 }] },
+            { name: "江苏区域", target: 3, salespeople: [{ name: "周经理", target: 3 }] },
+            { name: "浙江区域", target: 1, salespeople: [{ name: "吴经理", target: 1 }] },
           ],
         },
         {
@@ -16,9 +16,9 @@
           version: "V2026.09-02",
           effectiveAt: "2026-09-01 09:30",
           regions: [
-            { name: "山东区域", target: 7, pms: [{ name: "陈经理", target: 4 }, { name: "刘经理", target: 3 }] },
-            { name: "江苏区域", target: 3, pms: [{ name: "周经理", target: 3 }] },
-            { name: "浙江区域", target: 2, pms: [{ name: "吴经理", target: 2 }] },
+            { name: "山东区域", target: 7, salespeople: [{ name: "陈经理", target: 4 }, { name: "刘经理", target: 3 }] },
+            { name: "江苏区域", target: 3, salespeople: [{ name: "周经理", target: 3 }] },
+            { name: "浙江区域", target: 2, salespeople: [{ name: "吴经理", target: 2 }] },
           ],
         },
         {
@@ -27,12 +27,31 @@
           version: "V2026.10-01",
           effectiveAt: "2026-09-01 10:10",
           regions: [
-            { name: "山东区域", target: 8, pms: [{ name: "陈经理", target: 4 }, { name: "刘经理", target: 4 }] },
-            { name: "江苏区域", target: 4, pms: [{ name: "周经理", target: 4 }] },
-            { name: "浙江区域", target: 2, pms: [{ name: "吴经理", target: 2 }] },
+            { name: "山东区域", target: 8, salespeople: [{ name: "陈经理", target: 4 }, { name: "刘经理", target: 4 }] },
+            { name: "江苏区域", target: 4, salespeople: [{ name: "周经理", target: null }] },
+            { name: "浙江区域", target: 2, salespeople: [{ name: "吴经理", target: 2 }] },
           ],
         },
       ];
+      [
+        ["2026-01", 8], ["2026-02", 8], ["2026-03", 9], ["2026-04", 9],
+        ["2026-05", 10], ["2026-06", 10], ["2026-07", 10], ["2026-11", 14],
+        ["2026-12", 14],
+      ].forEach(([month, companyTarget]) => {
+        if (salesTargetMonths.some((item) => item.month === month)) return;
+        salesTargetMonths.push({
+          month,
+          companyTarget,
+          version: `V${month}-01`,
+          effectiveAt: `${month}-01 09:00`,
+          regions: [
+            { name: "山东区域", target: Math.ceil(companyTarget * 0.5), salespeople: [{ name: "陈经理", target: null }, { name: "刘经理", target: null }] },
+            { name: "江苏区域", target: Math.floor(companyTarget * 0.3), salespeople: [{ name: "周经理", target: null }] },
+            { name: "浙江区域", target: companyTarget - Math.ceil(companyTarget * 0.5) - Math.floor(companyTarget * 0.3), salespeople: [{ name: "吴经理", target: null }] },
+          ],
+        });
+      });
+      salesTargetMonths.sort((left, right) => left.month.localeCompare(right.month));
 
       const salesTargetHistory = [
         {

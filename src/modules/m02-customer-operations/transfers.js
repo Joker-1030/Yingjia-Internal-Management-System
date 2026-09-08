@@ -162,15 +162,15 @@
               task.person === person.name &&
               !["done", "cancelled"].includes(task.status),
           );
-          $("#transferImpact").innerHTML = `<div class="impact-grid"><div><label>责任变化</label><strong>${customerOwnerName(sourceCompany)} → ${target ? customerOwnerName(target) : "待匹配"}</strong></div><div><label>任职变化</label><strong>${person.department} / ${person.positionName} → ${targetDepartment?.name || "待选择"} / ${targetPosition?.name || "待选择"}</strong></div><div><label>未结束任务</label><strong>${unfinished.length} 条</strong></div><div><label>覆盖影响</label><strong>部门 / 岗位覆盖重新计算</strong></div></div>`;
+          $("#transferImpact").innerHTML = `<div class="impact-grid"><div><label>责任变化</label><strong>${customerOwnerName(sourceCompany)} → ${target ? customerOwnerName(target) : "待匹配"}</strong></div><div><label>任职变化</label><strong>${person.department} / ${person.positionName} → ${targetDepartment?.name || "待选择"} / ${targetPosition?.name || "待选择"}</strong></div><div><label>未结束任务</label><strong>${unfinished.length} 条</strong></div></div>`;
           if (!target)
             $("#transferFlowNote").textContent =
               "请依次选择目标行业、集团、客户公司、客户部门和关键人岗位。";
           else
             $("#transferFlowNote").textContent =
               $("#tfEffectiveDate").value > DEMO_TODAY
-                ? "完成影响确认后进入待生效；计划日到期重新校验，生效前当前任职继续有效。"
-                : "完成影响确认和校验后当日直接生效，不经过接收或审批。";
+                ? "调岗将于所选日期生效，此前当前任职继续有效。"
+                : "确认后立即生效。";
         };
         $("#tfChangeMode").onchange = () => refreshTransfer("mode");
         $("#tfIndustry").onchange = () => refreshTransfer("industry");
@@ -269,6 +269,6 @@
           }
           closeOverlay();
           renderPage();
-          toast(effectiveDate > DEMO_TODAY ? `调岗已确认，将于 ${effectiveDate} 重新校验并生效` : "关键人调岗已生效");
+          toast(effectiveDate > DEMO_TODAY ? `调岗已确认，将于 ${effectiveDate} 生效` : "关键人调岗已生效");
         };
       }

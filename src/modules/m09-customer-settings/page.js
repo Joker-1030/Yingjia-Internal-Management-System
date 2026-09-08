@@ -72,6 +72,49 @@
         return "yellow";
       }
 
+      function customerOrgGroupNames() {
+        return [
+          ...new Set([
+            ...customerGroupNames,
+            ...archivedItems
+              .filter((item) => item.targetKind === "group")
+              .map((item) => item.name),
+          ]),
+        ];
+      }
+
+      function customerOrgArchivedGroup(group) {
+        return archivedItems.find(
+          (item) => item.targetKind === "group" && item.name === group,
+        );
+      }
+
+      function customerOrgGroupIndustry(group) {
+        return (
+          customerGroupIndustries[group] ||
+          customerOrgArchivedGroup(group)?.groupSnapshot?.industry ||
+          ""
+        );
+      }
+
+      function customerOrgGroupNumber(group) {
+        const archivedGroup = customerOrgArchivedGroup(group);
+        return (
+          customerGroupNumbers[group] ||
+          archivedGroup?.businessNumber ||
+          archivedGroup?.groupSnapshot?.groupNumber ||
+          ""
+        );
+      }
+
+      function customerOrgGroupCreditCode(group) {
+        return (
+          customerGroupCreditCodes[group] ||
+          customerOrgArchivedGroup(group)?.groupSnapshot?.creditCode ||
+          ""
+        );
+      }
+
       function customerOrgNodeHtml({
         key,
         type,
@@ -215,7 +258,7 @@
               : filters.statuses.size
                 ? "any"
                 : "none";
-        return industries
+        const industryTree = industries
           .filter(
             (industry) =>
               customerOrgIncludes(industry.name, filters.industryName) &&
@@ -226,12 +269,12 @@
                 filters.statuses.has(customerOrgStatus("industry", industry))),
           )
           .map((industry) => {
-            const groups = customerGroupNames.filter(
+            const groups = customerOrgGroupNames().filter(
               (group) =>
-                customerGroupIndustries[group] === industry.name &&
-                customerOrgIncludes(customerGroupNumbers[group], filters.groupNumber) &&
+                customerOrgGroupIndustry(group) === industry.name &&
+                customerOrgIncludes(customerOrgGroupNumber(group), filters.groupNumber) &&
                 customerOrgIncludes(group, filters.groupName) &&
-                customerOrgIncludes(customerGroupCreditCodes[group], filters.creditCode) &&
+                customerOrgIncludes(customerOrgGroupCreditCode(group), filters.creditCode) &&
                 (!filters.group || filters.group === group) &&
                 (!filters.statuses.size ||
                   statusTarget !== "group" ||
@@ -323,6 +366,45 @@
             return html;
           })
           .join("");
+        const configuredIndustryNames = new Set(
+          industries.map((industry) => industry.name),
+        );
+        const unparentedStoppedGroups = customerOrgGroupNames()
+          .filter(
+            (group) =>
+              customerOrgStatus("group", group) === "已停用" &&
+              !configuredIndustryNames.has(customerOrgGroupIndustry(group)) &&
+              !filters.industry &&
+              !filters.industryCode &&
+              !hasCompanyCriteria &&
+              customerOrgIncludes(
+                customerOrgGroupIndustry(group),
+                filters.industryName,
+              ) &&
+              customerOrgIncludes(
+                customerOrgGroupNumber(group),
+                filters.groupNumber,
+              ) &&
+              customerOrgIncludes(group, filters.groupName) &&
+              customerOrgIncludes(
+                customerOrgGroupCreditCode(group),
+                filters.creditCode,
+              ) &&
+              (!filters.group || filters.group === group) &&
+              (!filters.statuses.size || filters.statuses.has("已停用")),
+          )
+          .map((group) =>
+            customerOrgNodeHtml({
+              key: `group:${group}`,
+              type: "group",
+              label: group,
+              depth: 0,
+              hasChildren: false,
+              meta: '<span class="tag red">已停用</span>',
+            }),
+          )
+          .join("");
+        return industryTree + unparentedStoppedGroups;
       }
 
       function customerOrgDetailField(label, value) {
@@ -338,7 +420,7 @@
           );
           if (!department) return '<div class="empty">请选择左侧部门或岗位查看详情</div>';
           const status = customerOrgStatus("department", department);
-          return `<div class="customer-company-head"><div class="customer-company-head-main"><div class="customer-company-name">${department.name}</div><div class="customer-org-path">${company.group} / ${company.name} / ${customerDepartmentPath(department)}</div></div><span class="tag ${customerOrgStatusTone(status)}">${status}</span></div><div class="company-overview">${customerOrgDetailField("部门编码", department.code)}${customerOrgDetailField("所属客户公司", department.company)}${customerOrgDetailField("上级部门", department.parent === "无" ? "公司直属部门" : department.parent)}${customerOrgDetailField("排序", department.sort)}${customerOrgDetailField("部门说明", department.duty || "未填写")}${customerOrgDetailField("更新时间", department.updatedAt)}</div>${canEditSettings ? `<div class="customer-org-actions"><button class="btn" data-action="edit-department-template" data-id="${department.id}">编辑部门</button><button class="btn" data-action="add-department-template">新增下级部门</button><button class="btn" data-action="add-contact-position">新增标准岗位</button>${stopObjectActionHtml("department", department.id)}</div>` : ""}`;
+          return `<div class="customer-company-head"><div class="customer-company-head-main"><div class="customer-company-name">${department.name}</div><div class="customer-org-path">${company.group} / ${company.name} / ${customerDepartmentPath(department)}</div></div><span class="tag ${customerOrgStatusTone(status)}">${status}</span></div><div class="company-overview">${customerOrgDetailField("部门编码", department.code)}${customerOrgDetailField("所属客户公司", department.company)}${customerOrgDetailField("上级部门", department.parent === "无" ? "公司直属部门" : department.parent)}${customerOrgDetailField("排序", department.sort)}${customerOrgDetailField("部门说明", department.duty || "未填写")}${customerOrgDetailField("更新时间", department.updatedAt)}</div>${canEditSettings ? `<div class="customer-org-actions">${status === "已停用" ? objectLifecycleActionHtml("department", department.id) : `<button class="btn" data-action="edit-department-template" data-id="${department.id}">编辑部门</button><button class="btn" data-action="add-department-template">新增下级部门</button><button class="btn" data-action="add-contact-position">新增标准岗位</button>${objectLifecycleActionHtml("department", department.id)}`}</div>` : ""}`;
         }
         if (type === "position") {
           const position = contactPositionCatalog.find(
@@ -471,7 +553,7 @@
         const parent = customerOrganizationParent(company);
         const organizationPath = customerOrganizationPath(company);
         const status = customerOrgStatus("company", company);
-        return `<div class="customer-company-head"><div class="customer-company-head-main"><div class="customer-company-name">${company.name}</div><div class="customer-org-path">${organizationPath}</div></div><span class="tag ${customerOrgStatusTone(status)}">${status}</span></div><div class="company-overview">${customerOrgDetailField("公司编码", company.companyCode || `CC${String(company.id).padStart(8, "0")}`)}${customerOrgDetailField("所属行业", company.industry)}${customerOrgDetailField("所属集团", company.group)}${customerOrgDetailField("组织上级", parent?.name || company.group)}${customerOrgDetailField("业务责任层级", customerBusinessResponsibilityLevel(company))}${customerOrgDetailField("业务责任省/市/区县", adminArea(company))}${customerOrgDetailField("统一社会信用代码", company.creditCode || "未填写")}${customerOrgDetailField("更新时间", company.updatedAt || "2026-08-17 09:30")}</div><div class="role-note">组织上级唯一决定公司树路径；业务责任层级和业务责任省/市/区县只用于区域、负责人、权限和任务责任。</div>${canEditSettings ? `<div class="customer-org-actions"><button class="btn" data-action="edit-customer-parent" data-id="${company.id}">调整组织上级</button>${stopObjectActionHtml("customer", company.id)}</div>` : ""}`;
+        return `<div class="customer-company-head"><div class="customer-company-head-main"><div class="customer-company-name">${company.name}</div><div class="customer-org-path">${organizationPath}</div></div><span class="tag ${customerOrgStatusTone(status)}">${status}</span></div><div class="company-overview">${customerOrgDetailField("公司编码", company.companyCode || `CC${String(company.id).padStart(8, "0")}`)}${customerOrgDetailField("所属行业", company.industry)}${customerOrgDetailField("所属集团", company.group)}${customerOrgDetailField("组织上级", parent?.name || company.group)}${customerOrgDetailField("业务责任层级", customerBusinessResponsibilityLevel(company))}${customerOrgDetailField("业务责任省/市/区县", adminArea(company))}${customerOrgDetailField("统一社会信用代码", company.creditCode || "未填写")}${customerOrgDetailField("更新时间", company.updatedAt || "2026-08-17 09:30")}</div><div class="role-note">组织上级唯一决定公司树路径；业务责任层级和业务责任省/市/区县只用于区域、负责人、权限和任务责任。</div>${canEditSettings ? `<div class="customer-org-actions">${status === "已停用" ? objectLifecycleActionHtml("customer", company.id) : `<button class="btn" data-action="edit-customer-parent" data-id="${company.id}">调整组织上级</button>${objectLifecycleActionHtml("customer", company.id)}`}</div>` : ""}`;
       }
 
       function customerOrgFilterMultiSelect(id, options, selectedValues) {
@@ -489,21 +571,25 @@
       function customerOrgNavFiltersHtml() {
         const filters = customerOrgNavFilters;
         const industryOptions = industries.map((item) => item.name);
-        const groupOptions = customerGroupNames.filter(
-          (group) => !filters.industry || customerGroupIndustries[group] === filters.industry,
+        const groupOptions = customerOrgGroupNames().filter(
+          (group) =>
+            !filters.industry ||
+            customerOrgGroupIndustry(group) === filters.industry,
         );
         return `<div class="toolbar filter-toolbar customer-org-filter-toolbar">${filterField("行业名称", `<input class="input" id="customerOrgIndustryName" maxlength="100" value="${filters.industryName}">`)}${filterField("集团编号", `<input class="input" id="customerOrgGroupNumber" maxlength="100" value="${filters.groupNumber}">`)}${filterField("集团名称", `<input class="input" id="customerOrgGroupName" maxlength="100" value="${filters.groupName}">`)}${filterField("客户公司名称", `<input class="input" id="customerOrgCompanyName" maxlength="100" value="${filters.companyName}">`)}${filterField("行业编码", `<input class="input" id="customerOrgIndustryCode" maxlength="100" value="${filters.industryCode}">`)}${filterField("统一社会信用代码", `<input class="input" id="customerOrgCreditCode" maxlength="100" value="${filters.creditCode}">`)}${filterField("行业", `<select class="input" id="customerOrgIndustry"><option value="">全部</option>${industryOptions.map((item) => `<option ${item === filters.industry ? "selected" : ""}>${item}</option>`).join("")}</select>`)}${filterField("集团", `<select class="input" id="customerOrgGroup"><option value="">全部</option>${groupOptions.map((item) => `<option ${item === filters.group ? "selected" : ""}>${item}</option>`).join("")}</select>`)}${filterField("业务责任层级", customerOrgFilterMultiSelect("customerOrgLevels", ["省级", "市级", "区县级"], filters.levels))}${filterField("状态", customerOrgFilterMultiSelect("customerOrgStatuses", ["正常", "已停用"], filters.statuses))}${filterActions('<button class="btn btn-primary" id="queryCustomerOrgNav" type="button">筛选</button><button class="btn" id="resetCustomerOrgNav" type="button">重置</button>')}</div>`;
       }
 
       function customerOrgCompanyWorkspaceHtml(company, canEditSettings) {
+        const companyCanEdit =
+          canEditSettings && customerOrgStatus("company", company) === "正常";
         const tabs = `<div class="config-nav customer-org-company-tabs"><button class="tab ${customerOrgCompanyTab === "info" ? "active" : ""}" type="button" data-customer-org-company-tab="info">公司信息</button><button class="tab ${customerOrgCompanyTab === "organization" ? "active" : ""}" type="button" data-customer-org-company-tab="organization">部门与岗位</button></div>`;
         if (customerOrgCompanyTab === "info")
           return `${tabs}<div class="customer-org-company-info">${customerOrgCompanyInfoHtml(company, canEditSettings)}</div>`;
         const treeHtml = customerOrgInternalTreeHtml(company);
-        const actions = canEditSettings
+        const actions = companyCanEdit
           ? '<button class="btn" data-action="add-department-template">新增客户部门</button><button class="btn" data-action="add-contact-position">新增标准岗位</button>'
           : '<span class="tag blue">只读</span>';
-        return `${tabs}<div class="customer-org-internal-head"><div><div class="panel-title">${company.name}</div><div class="panel-sub">当前公司部门与岗位</div></div><div class="spacer"></div>${actions}</div><div class="customer-org-internal-layout"><div class="customer-org-internal-tree">${treeHtml || '<div class="empty">当前公司暂无部门或岗位</div>'}</div><div class="customer-org-internal-detail">${customerOrgDepartmentDetailHtml(company, canEditSettings)}</div></div>`;
+        return `${tabs}<div class="customer-org-internal-head"><div><div class="panel-title">${company.name}</div><div class="panel-sub">当前公司部门与岗位</div></div><div class="spacer"></div>${actions}</div><div class="customer-org-internal-layout"><div class="customer-org-internal-tree">${treeHtml || '<div class="empty">当前公司暂无部门或岗位</div>'}</div><div class="customer-org-internal-detail">${customerOrgDepartmentDetailHtml(company, companyCanEdit)}</div></div>`;
       }
 
       function customerOrgDetailHtml(canEditSettings) {
@@ -516,9 +602,9 @@
         }
         if (type === "group") {
           const group = rawId;
-          const industry = customerGroupIndustries[group];
+          const industry = customerOrgGroupIndustry(group) || "未记录";
           const status = customerOrgStatus("group", group);
-          return `<div class="customer-company-head"><div class="customer-company-head-main"><div class="customer-company-name">${group}</div><div class="customer-org-path">${industry} / ${group}</div></div><span class="tag ${customerOrgStatusTone(status)}">${status}</span></div><div class="company-overview">${customerOrgDetailField("集团编号", customerGroupNumbers[group])}${customerOrgDetailField("所属行业", industry)}${customerOrgDetailField("统一社会信用代码", customerGroupCreditCodes[group] || "未填写")}</div><div class="role-note">客户公司按显式选择的组织上级形成公司子树；客户部门必须从具体客户公司节点新增。</div>${canEditSettings ? `<div class="customer-org-actions"><button class="btn" data-action="add-customer">新增客户公司</button>${stopObjectActionHtml("group", group)}</div>` : ""}`;
+          return `<div class="customer-company-head"><div class="customer-company-head-main"><div class="customer-company-name">${group}</div><div class="customer-org-path">${industry} / ${group}</div></div><span class="tag ${customerOrgStatusTone(status)}">${status}</span></div><div class="company-overview">${customerOrgDetailField("集团编号", customerOrgGroupNumber(group))}${customerOrgDetailField("所属行业", industry)}${customerOrgDetailField("统一社会信用代码", customerOrgGroupCreditCode(group) || "未填写")}</div><div class="role-note">客户公司按显式选择的组织上级形成公司子树；客户部门必须从具体客户公司节点新增。</div>${canEditSettings ? `<div class="customer-org-actions">${status === "已停用" ? objectLifecycleActionHtml("group", group) : `<button class="btn" data-action="add-customer">新增客户公司</button>${objectLifecycleActionHtml("group", group)}`}</div>` : ""}`;
         }
         if (type === "company") {
           const company = customers.find((item) => item.id === Number(rawId));
@@ -577,7 +663,7 @@
                     "、",
                   )}</td><td><span class="tag ${item.status === "启用" ? "green" : "red"}">${item.status}</span></td><td>${canEditSettings ? `<button class="link" type="button" data-action="edit-rule" data-id="${item.id}">编辑</button> · <button class="link" type="button" data-action="toggle-rule" data-id="${item.id}">${item.status === "启用" ? "停用" : "启用"}</button>` : "—"}</td></tr>`,
             )
-            .join("") || '<tr data-empty-row><td colspan="10"><div class="empty">暂无自动任务规则</div></td></tr>'}<tr data-filter-empty style="display:none"><td colspan="10"><div class="empty">未找到符合条件的规则，请调整条件或重置筛选</div></td></tr></tbody></table></div>${tablePagination("m09-rules")}</section>`;
+            .join("") || '<tr data-empty-row><td colspan="10"><div class="empty">暂无自动任务规则</div></td></tr>'}<tr data-filter-empty style="display:none"><td colspan="10"><div class="empty">未找到符合条件的规则，请调整条件或重置筛选</div></td></tr></tbody></table></div>${tablePagination("m09-rules", 20, [20])}</section>`;
         if (settingsSection === "industries")
           content = `<section class="panel"><div class="panel-head"><div><div class="panel-title">行业配置</div><div class="panel-sub">停用后不再进入新增与筛选候选，存量集团引用保留</div></div><div class="spacer"></div>${canEditSettings ? '<button class="btn btn-primary" data-action="add-industry">＋ 新增行业</button>' : '<span class="tag blue">只读</span>'}</div><div class="toolbar filter-toolbar">${filterField("行业名称", '<input class="input" id="industryConfigName" placeholder="行业名称">')}${filterField("行业编码", '<input class="input" id="industryConfigCode" placeholder="行业编码">')}${filterField("状态", '<select class="input" id="industryConfigStatus"><option value="">全部状态</option><option value="正常">正常</option><option value="已停用">已停用</option></select>')}${filterActions('<button class="btn btn-primary" id="applyIndustryConfigFilters" type="button">筛选</button><button class="btn" id="resetIndustryConfigFilters" type="button">重置</button>')}</div><div class="table-wrap"><table data-paged-table="m09-industries"><thead><tr><th>行业名称</th><th>行业编码</th><th>引用集团数</th><th>状态</th><th>排序</th><th>更新时间</th><th>操作</th></tr></thead><tbody id="industryConfigBody">${industries.map((item, index) => `<tr data-page-row data-config-row data-name="${item.name}" data-code="${item.code}" data-status="${item.enabled ? "正常" : "已停用"}"><td><strong>${item.name}</strong></td><td>${item.code}</td><td>${new Set(customers.filter((customer) => customer.industry === item.name).map((customer) => customer.group)).size}</td><td><span class="tag ${item.enabled ? "green" : "red"}">${item.enabled ? "正常" : "已停用"}</span></td><td>${item.sort}</td><td>${item.updatedAt}</td><td>${canEditSettings ? `<button class="link" type="button" data-action="edit-industry" data-id="${index}">编辑</button> · <button class="link" type="button" data-action="toggle-industry" data-id="${index}">${item.enabled ? "停用" : "恢复"}</button>` : "—"}</td></tr>`).join("") || '<tr data-empty-row><td colspan="7"><div class="empty">暂无行业配置</div></td></tr>'}<tr data-filter-empty style="display:none"><td colspan="7"><div class="empty">未找到符合条件的行业，请调整条件或重置筛选</div></td></tr></tbody></table></div>${tablePagination("m09-industries")}</section>`;
         return (

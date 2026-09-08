@@ -3,6 +3,7 @@
           button.onclick = () => {
             clearProjectMaterialResults();
             selectedProjectId = button.dataset.projectOpen;
+            resetProjectHistoryPagination(selectedProjectId);
             projectDetailTab = "basic";
             currentPage = "project-detail";
             window.history.replaceState(null, "", "#project-detail");
@@ -13,6 +14,7 @@
         if (backToProjects)
           backToProjects.onclick = () => {
             clearProjectMaterialResults();
+            resetProjectHistoryPagination();
             currentPage = "projects";
             window.history.replaceState(null, "", "#projects");
             renderPage();
@@ -23,6 +25,29 @@
             renderPage();
           };
         });
+        document
+          .querySelectorAll("[data-project-history-page]")
+          .forEach((button) => {
+            button.onclick = () => {
+              const kind = button.dataset.projectHistoryKind;
+              if (!kind || !(kind in projectHistoryPagination)) return;
+              projectHistoryPagination[kind] = Number(
+                button.dataset.projectHistoryPage,
+              );
+              renderPage();
+            };
+          });
+        document
+          .querySelectorAll("[data-project-history-direction]")
+          .forEach((button) => {
+            button.onclick = () => {
+              const kind = button.dataset.projectHistoryKind;
+              if (!kind || !(kind in projectHistoryPagination)) return;
+              projectHistoryPagination[kind] +=
+                button.dataset.projectHistoryDirection === "next" ? 1 : -1;
+              renderPage();
+            };
+          });
         document
           .querySelectorAll("[data-project-confirm-delivery]")
           .forEach((button) => {
@@ -380,11 +405,13 @@
             directions,
           };
           if (editing) {
-            Object.assign(editing, data);
+            Object.assign(editing, data, { lastEditedAt: projectNow() });
           } else {
             projectPackages.push({
               id: nextProjectPackageId(),
               status: "正常",
+              createdAt: projectNow(),
+              lastEditedAt: "",
               ...data,
             });
           }
@@ -522,6 +549,63 @@
           button.onclick = () =>
             dispatchConfigAction(button.dataset.configAction, button.dataset.configId);
         });
+        const applyProjectPackageFilters = () => {
+          const id =
+            $("#projectPackageIdFilter")?.value.trim().toUpperCase() || "";
+          const name =
+            $("#projectPackageNameFilter")?.value.trim().toLowerCase() || "";
+          const status = $("#projectPackageStatusFilter")?.value || "";
+          const createdFrom =
+            $("#projectPackageCreatedFromFilter")?.value || "";
+          const createdTo =
+            $("#projectPackageCreatedToFilter")?.value || "";
+          const editedFrom =
+            $("#projectPackageEditedFromFilter")?.value || "";
+          const editedTo =
+            $("#projectPackageEditedToFilter")?.value || "";
+          const rows = [
+            ...document.querySelectorAll("[data-project-package-row]"),
+          ];
+          let matched = 0;
+          rows.forEach((row) => {
+            const createdDate = row.dataset.packageCreatedDate;
+            const editedDate = row.dataset.packageEditedDate;
+            const visible =
+              (!id || row.dataset.packageId === id) &&
+              (!name || row.dataset.packageName.includes(name)) &&
+              (!status || row.dataset.packageStatus === status) &&
+              (!createdFrom ||
+                (createdDate && createdDate >= createdFrom)) &&
+              (!createdTo || (createdDate && createdDate <= createdTo)) &&
+              (!editedFrom || (editedDate && editedDate >= editedFrom)) &&
+              (!editedTo || (editedDate && editedDate <= editedTo));
+            row.classList.toggle("hidden", !visible);
+            if (visible) matched += 1;
+          });
+          const empty = $("#projectPackageFilterEmpty");
+          if (empty) empty.style.display = rows.length && !matched ? "" : "none";
+          refreshUnifiedTablePagination("m11-packages", true);
+        };
+        const applyPackageButton = $("#applyProjectPackageFilters");
+        if (applyPackageButton)
+          applyPackageButton.onclick = applyProjectPackageFilters;
+        const resetPackageButton = $("#resetProjectPackageFilters");
+        if (resetPackageButton)
+          resetPackageButton.onclick = () => {
+            [
+              "#projectPackageIdFilter",
+              "#projectPackageNameFilter",
+              "#projectPackageStatusFilter",
+              "#projectPackageCreatedFromFilter",
+              "#projectPackageCreatedToFilter",
+              "#projectPackageEditedFromFilter",
+              "#projectPackageEditedToFilter",
+            ].forEach((selector) => {
+              const element = $(selector);
+              if (element) element.value = "";
+            });
+            applyProjectPackageFilters();
+          };
         const applyPlatformCompanyFilters = () => {
           const id =
             $("#platformCompanyIdFilter")?.value.trim().toUpperCase() || "";
@@ -545,6 +629,7 @@
           });
           const empty = $("#platformCompanyFilterEmpty");
           if (empty) empty.style.display = rows.length && !matched ? "" : "none";
+          refreshUnifiedTablePagination("m11-platform-companies", true);
         };
         const applyButton = $("#applyPlatformCompanyFilters");
         if (applyButton) applyButton.onclick = applyPlatformCompanyFilters;
@@ -988,24 +1073,123 @@
         const p = (x) => String(x).padStart(2, "0");
         return `${n.getFullYear()}-${p(n.getMonth() + 1)}-${p(n.getDate())} ${p(n.getHours())}:${p(n.getMinutes())}:${p(n.getSeconds())}`;
       }
-      function recordProjectChange(
-        project,
+      function createProjectHistoryEvent(project, title, options = {}) {
+        return {
+          project,
+          title,
+          categories: [],
+          changes: [],
+          summaries: [],
+          facts: [],
+          operator: options.operator || currentUser?.name || "未填写",
+          time: normalizedProjectHistoryTime(options.time || projectNow()),
+          reason: options.reason || "",
+        };
+      }
+      function appendProjectHistoryCategory(event, category) {
+        if (!event || !category || event.categories.includes(category)) return;
+        event.categories.push(category);
+        event.categories.sort(
+          (left, right) =>
+            PROJECT_HISTORY_CATEGORY_ORDER.indexOf(left) -
+            PROJECT_HISTORY_CATEGORY_ORDER.indexOf(right),
+        );
+      }
+      function appendProjectHistoryChange(
+        event,
         field,
         before,
         after,
-        reason = "",
-        operator = currentUser?.name || "—",
+        category = projectHistoryCategory(field),
       ) {
-        if (!project || before === after) return;
-        if (!Array.isArray(project.changeHistory)) project.changeHistory = [];
-        project.changeHistory.push({
-          field,
-          before,
-          after,
-          operator,
-          time: projectNow(),
-          reason: reason || "",
+        if (!event || before === after) return;
+        appendProjectHistoryCategory(event, category);
+        event.changes.push({ category, field, before, after });
+      }
+      function appendProjectHistorySummary(event, summary, category) {
+        if (!event || !summary) return;
+        appendProjectHistoryCategory(event, category);
+        event.summaries.push(summary);
+      }
+      function appendProjectHistoryFact(event, label, value) {
+        if (!event || !label || value === undefined || value === null || value === "")
+          return;
+        event.facts.push({ label, value });
+      }
+      function commitProjectHistoryEvent(event) {
+        if (
+          !event?.project ||
+          (!event.changes.length && !event.summaries.length && !event.facts.length)
+        )
+          return false;
+        if (!Array.isArray(event.project.changeHistory))
+          event.project.changeHistory = [];
+        event.project.changeHistory.push({
+          title: event.title,
+          categories: event.categories,
+          changes: event.changes,
+          summaries: event.summaries,
+          facts: event.facts,
+          operator: event.operator,
+          time: event.time,
+          reason: event.reason,
         });
+        return true;
+      }
+      function projectLifecycleEventDetails(project, fromStage, toStage) {
+        if (fromStage === "已立项" && toStage === "进行中")
+          return {
+            title: "项目自动开始",
+            operator: "系统",
+            time: project.startTime,
+            summary: "到达项目开始时间",
+          };
+        if (fromStage === "进行中" && toStage === "已交付") {
+          if (project.type === "AI软件项目")
+            return {
+              title: "确认项目交付",
+              operator: project.deliveryConfirmedBy || currentUser?.name || "未填写",
+              time: project.deliveryConfirmedAt || projectNow(),
+              summary: "项目负责人或有权代操作人确认交付",
+            };
+          return {
+            title: "培训项目自动交付",
+            operator: "系统",
+            time: project.endTime,
+            summary: "到达培训项目结束时间",
+          };
+        }
+        return {
+          title: "项目自动完成",
+          operator: "系统",
+          time: project.completionPrerequisitesCompletedAt || projectNow(),
+          summary: "必填资料、项目满意度及适用人员满意度全部齐全",
+        };
+      }
+      function recordProjectLifecycleChange(
+        project,
+        fromStage,
+        toStage,
+        activeEvent = null,
+        effectiveTime = "",
+      ) {
+        const details = projectLifecycleEventDetails(project, fromStage, toStage);
+        const mergeIntoActive = Boolean(activeEvent);
+        const event = mergeIntoActive
+          ? activeEvent
+          : createProjectHistoryEvent(project, details.title, {
+              operator: details.operator,
+              time: effectiveTime || details.time,
+            });
+        appendProjectHistoryChange(
+          event,
+          "项目状态",
+          fromStage,
+          toStage,
+          "状态变更",
+        );
+        appendProjectHistoryFact(event, "触发摘要", details.summary);
+        if (!mergeIntoActive) commitProjectHistoryEvent(event);
       }
       function pruneProjectStaffScores(project) {
         if (!project?.satisfaction?.staffScores) return;
@@ -1360,111 +1544,113 @@
         refreshProjectFormAmounts();
       }
       function writePreStartEditHistory(project, payload) {
+        const event = createProjectHistoryEvent(project, "编辑项目");
         const previousCalculatedDays = projectCalculatedDays(project);
         const nextCalculatedDays = naturalDayCount(
           payload.startTime,
           payload.endTime,
         );
         if (project.name !== payload.name)
-          recordProjectChange(project, "项目名称", project.name, payload.name);
+          appendProjectHistoryChange(event, "项目名称", project.name, payload.name);
         if (project.startTime !== payload.startTime)
-          recordProjectChange(
-            project,
+          appendProjectHistoryChange(
+            event,
             "开始时间",
             project.startTime,
             payload.startTime,
           );
         if (project.endTime !== payload.endTime)
-          recordProjectChange(
-            project,
+          appendProjectHistoryChange(
+            event,
             "结束时间",
             project.endTime,
             payload.endTime,
           );
         if (project.resourceType !== payload.resourceType)
-          recordProjectChange(
-            project,
+          appendProjectHistoryChange(
+            event,
             "资源类型",
-            project.resourceType || "—",
-            payload.resourceType || "—",
+            project.resourceType || "未填写",
+            payload.resourceType || "未填写",
           );
         if (project.cooperation !== payload.cooperation)
-          recordProjectChange(
-            project,
+          appendProjectHistoryChange(
+            event,
             "合作形式",
-            project.cooperation || "—",
-            payload.cooperation || "—",
+            project.cooperation || "未填写",
+            payload.cooperation || "未填写",
           );
         if ((project.packageId || "") !== (payload.packageId || ""))
-          recordProjectChange(
-            project,
+          appendProjectHistoryChange(
+            event,
             "采购包",
             projectPackageLabel(project.packageId),
             projectPackageLabel(payload.packageId),
           );
         if ((project.directionIntro || "") !== (payload.directionIntro || ""))
-          recordProjectChange(
-            project,
+          appendProjectHistoryChange(
+            event,
             "课程方向",
-            project.directionIntro || "—",
-            payload.directionIntro || "—",
+            project.directionIntro || "未填写",
+            payload.directionIntro || "未填写",
           );
         if ((project.companyId || "") !== (payload.companyId || ""))
-          recordProjectChange(
-            project,
+          appendProjectHistoryChange(
+            event,
             "平台公司",
             projectCompanyLabel(project.companyId),
             projectCompanyLabel(payload.companyId),
           );
         if (previousCalculatedDays !== nextCalculatedDays)
-          recordProjectChange(
-            project,
+          appendProjectHistoryChange(
+            event,
             "系统计算天数",
-            `${previousCalculatedDays} 天`,
-            `${nextCalculatedDays} 天`,
+            `${previousCalculatedDays}天`,
+            `${nextCalculatedDays}天`,
           );
         if (project.days !== payload.days)
-          recordProjectChange(
-            project,
+          appendProjectHistoryChange(
+            event,
             "项目确认天数",
-            `${project.days} 天`,
-            `${payload.days} 天`,
+            `${project.days}天`,
+            `${payload.days}天`,
           );
         if (project.amount !== payload.amount)
-          recordProjectChange(
-            project,
-            "项目金额",
-            `¥${formatProjectMoney(project.amount)}`,
-            `¥${formatProjectMoney(payload.amount)}`,
+          appendProjectHistoryChange(
+            event,
+            "项目金额（含税，元）",
+            formatProjectMoney(project.amount),
+            formatProjectMoney(payload.amount),
           );
         if (project.settlementAmount !== payload.settlementAmount)
-          recordProjectChange(
-            project,
-            "结账金额",
-            `¥${formatProjectMoney(project.settlementAmount)}`,
-            `¥${formatProjectMoney(payload.settlementAmount)}`,
+          appendProjectHistoryChange(
+            event,
+            "结账金额（含税，元）",
+            formatProjectMoney(project.settlementAmount),
+            formatProjectMoney(payload.settlementAmount),
           );
         if (!staffSetsEqual(project.lecturers, payload.lecturers))
-          recordProjectChange(
-            project,
+          appendProjectHistoryChange(
+            event,
             "主讲师",
             staffDisplay(project.lecturers),
             staffDisplay(payload.lecturers),
           );
         if (!staffSetsEqual(project.assistantLecturers, payload.assistantLecturers))
-          recordProjectChange(
-            project,
+          appendProjectHistoryChange(
+            event,
             "辅讲师",
             staffDisplay(project.assistantLecturers),
             staffDisplay(payload.assistantLecturers),
           );
         if (!staffSetsEqual(project.teachingAssistants, payload.teachingAssistants))
-          recordProjectChange(
-            project,
+          appendProjectHistoryChange(
+            event,
             "项目助教",
             staffDisplay(project.teachingAssistants),
             staffDisplay(payload.teachingAssistants),
           );
+        commitProjectHistoryEvent(event);
       }
       function handleStageProjectEditSubmit(project, mode, daysConfirmed = false) {
         clearProjectFormErrors();
@@ -1588,63 +1774,79 @@
           return;
         }
 
+        const historyEvent = createProjectHistoryEvent(project, "编辑项目", {
+          reason: staffChanged ? reason : "",
+        });
         if (name !== project.name)
-          recordProjectChange(project, "项目名称", project.name, name);
+          appendProjectHistoryChange(
+            historyEvent,
+            "项目名称",
+            project.name,
+            name,
+          );
         if (endChanged) {
-          recordProjectChange(project, "结束时间", project.endTime, endTime);
+          appendProjectHistoryChange(
+            historyEvent,
+            "结束时间",
+            project.endTime,
+            endTime,
+          );
           if (calculatedDays !== previousCalculatedDays)
-            recordProjectChange(
-              project,
+            appendProjectHistoryChange(
+              historyEvent,
               "系统计算天数",
-              `${previousCalculatedDays} 天`,
-              `${calculatedDays} 天`,
+              `${previousCalculatedDays}天`,
+              `${calculatedDays}天`,
             );
         }
         if (isTraining && amount !== project.amount)
-          recordProjectChange(
-            project,
-            "项目金额",
-            `¥${formatProjectMoney(project.amount)}`,
-            `¥${formatProjectMoney(amount)}`,
+          appendProjectHistoryChange(
+            historyEvent,
+            "项目金额（含税，元）",
+            formatProjectMoney(project.amount),
+            formatProjectMoney(amount),
           );
         if (isTraining && settlementAmount !== project.settlementAmount)
-          recordProjectChange(
-            project,
-            "结账金额",
-            `¥${formatProjectMoney(project.settlementAmount)}`,
-            `¥${formatProjectMoney(settlementAmount)}`,
+          appendProjectHistoryChange(
+            historyEvent,
+            "结账金额（含税，元）",
+            formatProjectMoney(project.settlementAmount),
+            formatProjectMoney(settlementAmount),
           );
         if (days !== project.days)
-          recordProjectChange(
-            project,
+          appendProjectHistoryChange(
+            historyEvent,
             "项目确认天数",
-            `${project.days} 天`,
-            `${days} 天`,
+            `${project.days}天`,
+            `${days}天`,
           );
         if (!staffSetsEqual(project.lecturers, lecturers))
-          recordProjectChange(
-            project,
+          appendProjectHistoryChange(
+            historyEvent,
             "主讲师",
             staffDisplay(project.lecturers),
             staffDisplay(lecturers),
-            reason,
           );
         if (!staffSetsEqual(project.assistantLecturers, assistants))
-          recordProjectChange(
-            project,
+          appendProjectHistoryChange(
+            historyEvent,
             "辅讲师",
             staffDisplay(project.assistantLecturers),
             staffDisplay(assistants),
-            reason,
           );
         if (!staffSetsEqual(project.teachingAssistants, helpers))
-          recordProjectChange(
-            project,
+          appendProjectHistoryChange(
+            historyEvent,
             "项目助教",
             staffDisplay(project.teachingAssistants),
             staffDisplay(helpers),
-            reason,
           );
+        if (
+          historyEvent.categories.length === 1 &&
+          historyEvent.categories[0] === "项目人员"
+        )
+          historyEvent.title = "调整项目人员";
+        commitProjectHistoryEvent(historyEvent);
 
         project.name = name;
         if (mode === "in-progress") {
@@ -1948,6 +2150,7 @@
           projects.push(newProject);
           normalizeProjectLifecycle(newProject);
           selectedProjectId = newProject.id;
+          resetProjectHistoryPagination(selectedProjectId);
           currentPage = "project-detail";
           window.history.replaceState(null, "", "#project-detail");
           renderPage();
@@ -2056,6 +2259,17 @@
         const canAdd = mode === "full" || mode === "completed-add";
         if (!canAdd) return;
         const context = projectMaterialOperationContext(project);
+        const existingCategoryCount = projectMaterials(project).filter(
+          (material) => material.category === categoryName,
+        ).length;
+        const operationType =
+          mode === "completed-add" || existingCategoryCount > 0 ? "补充" : "新增";
+        const operationTime = projectNow();
+        const historyEvent = createProjectHistoryEvent(
+          project,
+          `${operationType}资料`,
+          { operator: context.operatorName, time: operationTime },
+        );
         const validations = [];
         for (const file of [...files]) {
           const check = await validateProjectMaterialFile(
@@ -2090,19 +2304,27 @@
             size: file.size,
             kind: check.kind,
             addedBy: context.operatorName,
-            addedAt: projectNow(),
+            addedAt: operationTime,
           };
           project.materials.push(material);
-          recordProjectChange(
-            project,
-            "项目资料",
-            "—",
-            materialHistoryDisplay(material),
-          );
           results.push({ name: file.name, ok: true });
         }
+        const successfulCount = results.filter((result) => result.ok).length;
+        if (successfulCount)
+          appendProjectHistorySummary(
+            historyEvent,
+            `${operationType}资料：${categoryName} · ${successfulCount}个文件`,
+            "项目资料",
+          );
         setProjectMaterialResults(results, context);
-        normalizeProjectLifecycle(project);
+        const stageBeforeMaterialAdd = project.stage;
+        normalizeProjectLifecycle(project, historyEvent, operationTime);
+        if (
+          stageBeforeMaterialAdd !== "已完成" &&
+          project.stage === "已完成"
+        )
+          project.completionPrerequisitesCompletedAt = operationTime;
+        commitProjectHistoryEvent(historyEvent);
         renderPage();
       }
       function handleMaterialDelete(fileId) {
@@ -2117,12 +2339,13 @@
         if (index < 0) return;
         const material = project.materials[index];
         project.materials.splice(index, 1);
-        recordProjectChange(
-          project,
+        const historyEvent = createProjectHistoryEvent(project, "删除资料");
+        appendProjectHistorySummary(
+          historyEvent,
+          `删除资料：${material.category} · 1个文件`,
           "项目资料",
-          materialHistoryDisplay(material),
-          "已删除",
         );
+        commitProjectHistoryEvent(historyEvent);
         setProjectMaterialResults([]);
         normalizeProjectLifecycle(project);
         renderPage();
@@ -2211,14 +2434,18 @@
           addedAt: projectNow(),
         };
         project.materials.splice(index, 1, replacement);
-        recordProjectChange(
-          project,
+        const historyEvent = createProjectHistoryEvent(project, "替换资料", {
+          operator: context.operatorName,
+          time: replacement.addedAt,
+        });
+        appendProjectHistorySummary(
+          historyEvent,
+          `替换资料：${material.category} · 1个文件`,
           "项目资料",
-          materialHistoryDisplay(material),
-          materialHistoryDisplay(replacement),
         );
+        normalizeProjectLifecycle(project, historyEvent, replacement.addedAt);
+        commitProjectHistoryEvent(historyEvent);
         setProjectMaterialResults([{ name: file.name, ok: true }], context);
-        normalizeProjectLifecycle(project);
         renderPage();
       }
       function handleSatisfactionSave() {
@@ -2258,29 +2485,50 @@
           projectScore: null,
           staffScores: {},
         };
+        const hadExistingScore =
+          before.projectScore != null ||
+          Object.values(before.staffScores || {}).some((score) => score != null);
+        const operationTime = projectNow();
+        const historyEvent = createProjectHistoryEvent(
+          project,
+          hadExistingScore ? "修改满意度" : "填写满意度",
+          { time: operationTime },
+        );
         if (before.projectScore !== projectScore)
-          recordProjectChange(
-            project,
+          appendProjectHistoryChange(
+            historyEvent,
             "项目满意度",
-            before.projectScore ?? "—",
-            String(projectScore),
+            before.projectScore == null ? "未填写" : `${before.projectScore}分`,
+            `${projectScore}分`,
           );
         if (isTraining) {
           projectCurrentStaffNames(project).forEach((name) => {
             const prev = before.staffScores?.[name];
             const next = staffScores[name];
             if (prev !== next)
-              recordProjectChange(
-                project,
-                "人员满意度",
-                `${name}：${prev ?? "—"}`,
-                `${name}：${next}`,
+              appendProjectHistoryChange(
+                historyEvent,
+                `人员满意度（${name}）`,
+                prev == null ? "未填写" : `${prev}分`,
+                `${next}分`,
+                "满意度",
               );
           });
         }
-        project.satisfaction = { projectScore, staffScores };
+        project.satisfaction = {
+          projectScore,
+          staffScores,
+          updatedAt: operationTime,
+        };
         pruneProjectStaffScores(project);
-        normalizeProjectLifecycle(project);
+        const stageBeforeSatisfaction = project.stage;
+        normalizeProjectLifecycle(project, historyEvent, operationTime);
+        if (
+          stageBeforeSatisfaction !== "已完成" &&
+          project.stage === "已完成"
+        )
+          project.completionPrerequisitesCompletedAt = operationTime;
+        commitProjectHistoryEvent(historyEvent);
         renderPage();
       }
       function handleProjectConfirmDelivery() {
@@ -2289,11 +2537,17 @@
         normalizeProjectLifecycle(project);
         if (!canConfirmProjectDelivery(project) || project.deliveryConfirmed)
           return;
+        const operationTime = projectNow();
+        const historyEvent = createProjectHistoryEvent(
+          project,
+          "确认项目交付",
+          { operator: currentUser.name, time: operationTime },
+        );
         project.deliveryConfirmed = true;
         project.deliveryConfirmedBy = currentUser.name;
-        project.deliveryConfirmedAt = projectNow();
-        recordProjectChange(project, "AI 确认交付", "未确认", "已确认");
-        normalizeProjectLifecycle(project);
+        project.deliveryConfirmedAt = operationTime;
+        normalizeProjectLifecycle(project, historyEvent, operationTime);
+        commitProjectHistoryEvent(historyEvent);
         renderPage();
       }
       function submitProjectCancel() {
@@ -2315,13 +2569,26 @@
           return;
         }
         const oldStage = project.stage;
+        const operationTime = projectNow();
         project.cancelReason = reason;
         project.cancelledOwner = projectCurrentOwner(project);
         project.cancelledBy = currentUser.name;
-        project.cancelledAt = projectNow();
+        project.cancelledAt = operationTime;
         project.stage = "已取消";
         project.todos = [];
-        recordProjectChange(project, "主阶段", oldStage, "已取消", reason);
+        const historyEvent = createProjectHistoryEvent(project, "取消项目", {
+          reason,
+          time: operationTime,
+        });
+        appendProjectHistoryChange(
+          historyEvent,
+          "项目状态",
+          oldStage,
+          "已取消",
+          "状态变更",
+        );
+        appendProjectHistoryFact(historyEvent, "触发摘要", "有权人确认取消");
+        commitProjectHistoryEvent(historyEvent);
         closeOverlay();
         renderPage();
       }
@@ -2391,29 +2658,40 @@
 
         const oldStage = project.stage;
         const terminatedOwner = projectCurrentOwner(project);
+        const operationTime = projectNow();
         project.terminationInvolvesSettlement = involvesSettlement;
         if (involvesSettlement) project.terminationSettlementAmount = amount;
         else delete project.terminationSettlementAmount;
         project.terminationReason = reason;
         project.terminatedOwner = terminatedOwner;
         project.terminatedBy = currentUser.name;
-        project.terminatedAt = projectNow();
+        project.terminatedAt = operationTime;
         project.stage = "已中止";
         project.todos = involvesSettlement ? ["待回款"] : [];
-        recordProjectChange(
-          project,
+        const historyEvent = createProjectHistoryEvent(project, "中止项目", {
+          reason,
+          time: operationTime,
+        });
+        appendProjectHistoryChange(
+          historyEvent,
+          "项目状态",
+          oldStage,
+          "已中止",
+          "状态变更",
+        );
+        appendProjectHistoryFact(
+          historyEvent,
           "是否涉及金额结算",
-          "—",
           involvesSettlement ? "是" : "否",
         );
         if (involvesSettlement)
-          recordProjectChange(
-            project,
+          appendProjectHistoryFact(
+            historyEvent,
             "应结算金额（含税，元）",
-            "—",
             formatProjectMoney(amount),
           );
-        recordProjectChange(project, "主阶段", oldStage, "已中止", reason);
+        appendProjectHistoryFact(historyEvent, "触发摘要", "有权人确认中止");
+        commitProjectHistoryEvent(historyEvent);
         closeOverlay();
         renderPage();
       }

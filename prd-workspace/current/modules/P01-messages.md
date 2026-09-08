@@ -91,7 +91,7 @@ Loading、Empty、Error、PermissionDenied 是页面反馈表达，不新增业�
 
 - Acceptance：[P01 Acceptance](../acceptance/P01.md)
 - Decision：DEC-039、DEC-046、DEC-162、DEC-176、DEC-191、DEC-194、DEC-204；正文见 [Decision Index](../../decisions/index.md)
-- Related modules：M01、M02、M03、M04、M05、M06、M08、M09、M10、M11、M12
+- Related modules：M01、M02、M03、M04、M06、M08、M09、M10、M11、M12；M05 已移除且不产生独立消息事实
 - User flow：本章节无独立 Mermaid block
 
 ## 迁移边界
@@ -104,6 +104,7 @@ Loading、Empty、Error、PermissionDenied 是页面反馈表达，不新增业�
 
 | 日期 | 修订内容 |
 | --- | --- |
+| 2026-09-07 | • 独立 M05 停用记录已移除且不再产生独立消息事实；P01 只保留 M02/M06/M09 等对象 Owner 已明确定义的业务结果消息。 |
 | 2026-09-04 | • 项目中止后停止确认交付、资料和评价提醒；仅在中止时确认涉及金额结算后保留待回款只读提醒。<br>• 当前不生成审批待办、目标责任人接收待办、审批抄送或审批结果通知；M02/M03/M08/M12 仅按各来源模块已定义规则产生业务结果消息。 |
 | 2026-09-02 | • 明确 P01 未定义行为不得回退旧完整 PRD 或 Archive 补齐；缺失事实按 Product Definition Gap 处理。 |
 | 2026-09-01 | • 增加 M12 商机跟进到期/逾期升级和方案支撑首次回应超时消息；消息失败不回滚 M12 事实，也不创建审批关系或新业务状态。 |

@@ -115,7 +115,7 @@
         const regions = organizationRegionsForEmployee(employee);
         const heading = pageHead(
           "地市管理",
-          "查看本人所属区域和当前负责地市，并处理本人发起的地市交接。",
+          "查看本人所属区域和当前负责地市，并发起本人负责地市的交接。",
         );
         if (!regions.length)
           return (
@@ -155,9 +155,7 @@
                 : "yellow";
           const rows = ownCities.map((city) => {
             const pending = pendingCityHandover(city.id);
-            const actions = pending
-              ? `<button class="link" type="button" data-action="city-handover-detail" data-id="${pending.id}">查看交接</button>`
-              : hasOperationPermission("regions.handover")
+            const actions = !pending && hasOperationPermission("regions.handover")
                 ? `<button class="link" type="button" data-action="handover-city" data-id="${city.id}">发起交接</button>`
                 : "—";
             return `<tr><td>${city.province}</td><td><strong>${city.city}</strong></td><td>${city.effective || "—"}</td><td>${city.customers}</td><td>${city.contacts}</td><td><span class="tag green">已分配</span></td><td>${actions}</td></tr>`;
@@ -165,6 +163,48 @@
           return `<section class="panel"><div class="panel-head"><div><div class="panel-title">${region.name}</div><div class="panel-sub">部门编码 ${department?.code || "待同步"} · 区域总监 ${director?.name || "待配置"}</div></div><div class="spacer"></div><span class="tag ${statusTone}">${configurationStatus}</span></div><div class="region-detail-summary"><div class="overview-item"><label>关联省份</label><div>${regionProvinceList(region).join("、") || "待配置"}</div></div><div class="overview-item"><label>驻地</label><div>${region.base || "待配置"}</div></div><div class="overview-item"><label>本人负责地市</label><div>${ownCities.length}</div></div><div class="overview-item"><label>地市客户</label><div>${customerCount}</div></div><div class="overview-item"><label>关键人</label><div>${contactCount}</div></div></div><div class="panel-head" style="padding:var(--space-4) 0 var(--space-3)"><div><div class="panel-title">本人地市</div><div class="panel-sub">仅展示本人当前有效负责地市</div></div></div><div class="table-wrap"><table style="min-width:860px"><thead><tr><th>省份</th><th>地市</th><th>负责起始时间</th><th>客户</th><th>关键人</th><th>分配状态</th><th>操作</th></tr></thead><tbody>${rows || '<tr><td colspan="7"><div class="empty">当前区域暂无本人有效负责地市</div></td></tr>'}</tbody></table></div></section>`;
         }).join("");
         return heading + regionSections;
+      }
+
+      function renderRegionCityResponsibilities({
+        region,
+        regionCities,
+        provinces,
+        canAssignCities,
+        canHandoverCities,
+        viewSwitch,
+        validPmNames,
+      }) {
+        const pmAssignedCount = regionCities.filter(
+          (city) => city.pm && validPmNames.has(city.pm),
+        ).length;
+        const rows = regionCities
+          .map((city) => {
+            const pmName = city.pm && validPmNames.has(city.pm) ? city.pm : "";
+            const pmEmployee = employees.find(
+              (employee) => employee.name === pmName,
+            );
+            const invalidPriorResponsibility = Boolean(
+              city.pm && city.effective && !pmName,
+            );
+            const pending = city.id ? pendingCityHandover(city.id) : null;
+            const pmStatus = pmName ? "assigned" : "pending";
+            const canSelfHandover =
+              pmName === currentUser.name && canHandoverCities && !pending;
+            const pmActions = invalidPriorResponsibility
+              ? canAssignCities
+                ? `<button class="link" type="button" data-action="direct-adjust-city" data-id="${city.id}">直接调整</button>`
+                : "—"
+              : pmName && !pending
+                ? `${canSelfHandover ? `<button class="link" type="button" data-action="handover-city" data-id="${city.id}">发起交接</button> · ` : ""}${canAssignCities ? `<button class="link" type="button" data-action="direct-adjust-city" data-id="${city.id}">直接调整</button> · ` : ""}<button class="link" type="button" data-action="city-impact" data-id="${city.id}">查看范围</button>`
+                : pending
+                  ? "—"
+                  : canAssignCities
+                    ? `<button class="link" type="button" data-city-quick-assign="${city.city}">分配</button>`
+                    : "—";
+            return `<tr data-page-row data-region-city-row data-province="${city.province}" data-pm-status="${pmStatus}"><td>${city.province}</td><td><strong>${city.city}</strong></td><td>${city.customers}</td><td>${city.contacts}</td><td>${pmName || "—"}</td><td>${pmEmployee?.code || "—"}</td><td>${city.effective || "—"}</td><td><span class="tag ${pmName ? "green" : "yellow"}">${pmName ? "已分配" : "待分配"}</span></td><td>${pmActions}</td></tr>`;
+          })
+          .join("");
+        return `<div class="panel-head" style="padding:var(--space-3) 0"><div><div class="panel-title">地市负责人配置</div><div class="panel-sub">全部 ${regionCities.length} 个地市 · PM 已分配 ${pmAssignedCount}</div></div><div class="spacer"></div>${viewSwitch}${canAssignCities ? '<button class="btn btn-primary" type="button" id="openInitialCityAssignment">分配 PM</button>' : ""}</div><div class="toolbar" style="padding-left:0;padding-right:0"><select class="input" id="regionCityProvince"><option value="">全部省份</option>${provinces.map((province) => `<option>${province}</option>`).join("")}</select><input class="input" id="regionCityKeyword" maxlength="100" placeholder="城市 / PM"><select class="input" id="regionCityPmStatus"><option value="">全部 PM 状态</option><option value="assigned">PM 已分配</option><option value="pending">PM 待分配</option></select>${filterActions('<button class="btn btn-primary" type="button" id="queryRegionCities">筛选</button><button class="btn" type="button" id="resetRegionCities">重置</button>')}<span class="spacer"></span></div><div class="table-wrap"><table data-paged-table="m08-cities" style="min-width:1120px"><thead><tr><th>省份</th><th>城市</th><th>客户</th><th>关键人</th><th>PM 负责人</th><th>PM 工号</th><th>PM 负责起始时间</th><th>PM 状态</th><th>操作</th></tr></thead><tbody id="regionCityBody">${rows || '<tr data-empty-row><td colspan="9"><div class="empty">当前账号没有可查看的地市责任</div></td></tr>'}<tr data-filter-empty style="display:none"><td colspan="9"><div class="empty">未找到符合条件的地市责任，请调整条件或重置筛选</div></td></tr></tbody></table></div>${tablePagination("m08-cities")}`;
       }
 
       function renderRegions() {
@@ -218,38 +258,6 @@
             : "";
         if (currentUser.role === "pm") regionAssignmentView = "city";
         const viewSwitch = `<div class="assignment-view-switch" role="group" aria-label="地市分配查看视角"><button class="tab ${regionAssignmentView === "city" ? "active" : ""}" type="button" data-region-assignment-view="city">按地市</button>${currentUser.role === "pm" ? "" : `<button class="tab ${regionAssignmentView === "pm" ? "active" : ""}" type="button" data-region-assignment-view="pm">按 PM</button>`}</div>`;
-        const cityView = `<div class="panel-head" style="padding:var(--space-3) 0"><div><div class="panel-title">${currentUser.role === "pm" ? "本人地市责任" : "地市负责人配置"}</div><div class="panel-sub">${currentUser.role === "pm" ? `本人负责 ${regionCities.length} 个地市` : `全部 ${regionCities.length} 个地市 · 已分配 ${assignedCount} · 待分配 ${unassignedCount}`}</div></div><div class="spacer"></div>${viewSwitch}${canAssignCities ? '<button class="btn btn-primary" type="button" id="openInitialCityAssignment">分配</button>' : ""}</div><div class="toolbar" style="padding-left:0;padding-right:0"><select class="input" id="regionCityProvince"><option value="">全部省份</option>${provinces.map((province) => `<option>${province}</option>`).join("")}</select><input class="input" id="regionCityKeyword" maxlength="100" placeholder="城市 / PM 姓名 / 工号"><select class="input" id="regionCityStatus"><option value="">全部分配状态</option><option value="assigned">已分配</option><option value="pending">待分配</option></select>${filterActions('<button class="btn btn-primary" type="button" id="queryRegionCities">筛选</button><button class="btn" type="button" id="resetRegionCities">重置</button>')}<span class="spacer"></span><span class="panel-sub">目标 PM 不审批、不接收，仅在交接生效后收到通知</span></div>${canAssignCities ? "" : '<div class="role-note">当前角色按权限范围只读查看；地市交接仅原负责 PM 本人可发起，区域总监和 admin 使用直接调整。</div>'}<div class="table-wrap"><table data-paged-table="m08-cities" style="min-width:1320px"><thead><tr><th>省份</th><th>城市</th><th>客户</th><th>关键人</th><th>当前负责人</th><th>工号</th><th>部门</th><th>负责起始时间</th><th>状态</th><th>操作</th></tr></thead><tbody id="regionCityBody">${regionCities.map((city) => {
-          const pmName = city.pm && validPmNames.has(city.pm) ? city.pm : "";
-          const invalidPriorResponsibility = Boolean(
-            city.pm && city.effective && !pmName,
-          );
-          const pmEmployee = employees.find((employee) => employee.name === pmName);
-          const pending = city.id ? pendingCityHandover(city.id) : null;
-          const status = pmName ? "assigned" : "pending";
-          const statusName = pmName ? "已分配" : "待分配";
-          const statusTone = pmName ? "green" : "yellow";
-          const pendingWarning = !pmName && city.customers > 0;
-          const canSelfHandover = pmName === currentUser.name && canHandoverCities && !pending;
-          const handoverAction = invalidPriorResponsibility
-            ? canAssignCities
-              ? `<button class="link" type="button" data-action="direct-adjust-city" data-id="${city.id}">直接调整</button>`
-              : ""
-            : pmName && !pending
-              ? `${canSelfHandover ? `<button class="link" type="button" data-action="handover-city" data-id="${city.id}">发起交接</button> · ` : ""}${canAssignCities ? `<button class="link" type="button" data-action="direct-adjust-city" data-id="${city.id}">直接调整</button> · ` : ""}`
-              : pending
-                ? `<button class="link" type="button" data-action="city-handover-detail" data-id="${pending.id}">查看交接</button> · `
-                : "";
-          const scopeAction = invalidPriorResponsibility
-            ? canAssignCities
-              ? ""
-              : "—"
-            : pmName
-              ? `<button class="link" type="button" data-action="city-impact" data-id="${city.id}">查看范围</button>`
-              : canAssignCities
-                ? `<button class="link" type="button" data-city-quick-assign="${city.city}">分配</button>`
-                : "—";
-          return `<tr data-page-row data-region-city-row data-province="${city.province}" data-keyword="${city.city}${pmName || ""}${pmEmployee?.code || ""}" data-status="${status}"${pendingWarning ? ' data-pending-warning="true"' : ""}><td>${city.province}</td><td><strong>${city.city}</strong></td><td>${city.customers}</td><td>${city.contacts}</td><td>${pmName || "—"}</td><td>${pmEmployee?.code || "—"}</td><td>${pmEmployee?.dept || "—"}</td><td>${city.effective || "—"}</td><td><span class="tag ${statusTone}">${statusName}</span></td><td>${handoverAction}${scopeAction}</td></tr>`;
-        }).join("") || '<tr data-empty-row><td colspan="10"><div class="empty">当前账号没有可查看的地市责任</div></td></tr>'}<tr data-filter-empty style="display:none"><td colspan="10"><div class="empty">未找到符合条件的地市责任，请调整条件或重置筛选</div></td></tr></tbody></table></div>${tablePagination("m08-cities")}`;
         const pmView = `<div class="panel-head" style="padding:var(--space-3) 0"><div><div class="panel-title">按 PM 查看</div><div class="panel-sub">${region.name}组织下 ${pms.length} 名在职 PM</div></div><div class="spacer"></div>${viewSwitch}${canAssignCities ? '<button class="btn btn-primary" type="button" id="openInitialCityAssignment">分配</button>' : ""}</div><div class="toolbar" style="padding-left:0;padding-right:0"><input class="input" id="regionPmKeyword" maxlength="100" placeholder="PM 姓名 / 工号">${filterActions('<button class="btn btn-primary" type="button" id="queryRegionPms">筛选</button><button class="btn" type="button" id="resetRegionPms">重置</button>')}</div><div class="table-wrap"><table data-paged-table="m08-pms" style="min-width:980px"><thead><tr><th>PM 姓名</th><th>工号</th><th>所属区域中心</th><th>负责城市数</th><th>城市标签</th><th>待生效交接数</th><th>操作</th></tr></thead><tbody id="regionPmBody">${pms.map((employee) => {
           const owned = regionCities.filter((city) => city.pm === employee.name);
           const pendingCount = cityResponsibilityChanges.filter(
@@ -263,7 +271,7 @@
         return (
           pageHead(
             "区域中心与地市配置",
-            "左侧切换区域中心，右侧完整查看省份归属和地市 PM 责任。",
+            "左侧切换区域中心，右侧完整查看省份归属及PM 地市责任。",
             currentUser.role === "director"
               ? '<span class="tag blue">仅本区域可见 · 可分配/直接调整</span>'
               : currentUser.role === "vp"
@@ -274,6 +282,6 @@
             const department = organizationDepartments.find((entry) => entry.regionId === item.id);
             const status = regionConfigurationStatus(item);
             return `<button class="master-item ${item.id === region.id ? "active" : ""}" data-region-select="${item.id}" data-search="${item.name}${department?.code || ""}${item.director}" data-provinces="${regionProvinceList(item).join("|")}"><div class="avatar">区</div><div class="master-item-main"><div class="master-item-title">${item.name}</div><div class="master-item-sub">${department?.code || "待同步编码"} · ${item.director || "主管待配置"}</div><div class="master-item-sub">${regionProvinceList(item).length} 省 · 驻地 ${item.base || "待配置"} · <span class="tag ${status === "已配置" ? "green" : status === "配置异常" ? "red" : "yellow"}">${status}</span></div></div><span>›</span></button>`;
-          }).join("")}</div></aside><div class="detail-pane"><div class="region-detail-head"><div class="region-detail-head-main"><div class="region-detail-name">${region.name}</div><div class="region-detail-director">区域总监 ${region.director || "待配置"} · 部门编码 ${organizationDepartments.find((item) => item.regionId === region.id)?.code || "待同步"}</div></div><div class="region-detail-actions">${canEditRegion ? `<button class="btn${canAssignCities ? "" : " btn-primary"}" data-action="edit-region" data-id="${region.id}">编辑区域配置</button>` : ""}</div></div>${anomalyHtml}<div class="region-detail-summary"><div class="overview-item"><label>关联省份</label><div>${provinces.length}</div></div><div class="overview-item"><label>驻地</label><div>${region.base || "待配置"}</div></div><div class="overview-item"><label>已分配地市</label><div>${currentUser.role === "pm" ? regionCities.length : `${assignedCount}/${regionCities.length}`}</div></div><div class="overview-item"><label>地市客户</label><div>${customerCount}</div></div><div class="overview-item"><label>关键人</label><div>${contactCount}</div></div></div><div class="region-provinces"><span class="region-provinces-label">关联省份</span>${provinces.map((province) => `<span class="tag blue">${province}</span>`).join("") || '<span class="tag yellow">待配置</span>'}</div>${regionAssignmentView === "pm" ? pmView : cityView}</div></div></section>`
+          }).join("")}</div></aside><div class="detail-pane"><div class="region-detail-head"><div class="region-detail-head-main"><div class="region-detail-name">${region.name}</div><div class="region-detail-director">区域总监 ${region.director || "待配置"} · 部门编码 ${organizationDepartments.find((item) => item.regionId === region.id)?.code || "待同步"}</div></div><div class="region-detail-actions">${canEditRegion ? `<button class="btn${canAssignCities ? "" : " btn-primary"}" data-action="edit-region" data-id="${region.id}">编辑区域配置</button>` : ""}</div></div>${anomalyHtml}<div class="region-detail-summary"><div class="overview-item"><label>关联省份</label><div>${provinces.length}</div></div><div class="overview-item"><label>驻地</label><div>${region.base || "待配置"}</div></div><div class="overview-item"><label>已分配地市</label><div>${currentUser.role === "pm" ? regionCities.length : `${assignedCount}/${regionCities.length}`}</div></div><div class="overview-item"><label>地市客户</label><div>${customerCount}</div></div><div class="overview-item"><label>关键人</label><div>${contactCount}</div></div></div><div class="region-provinces"><span class="region-provinces-label">关联省份</span>${provinces.map((province) => `<span class="tag blue">${province}</span>`).join("") || '<span class="tag yellow">待配置</span>'}</div>${regionAssignmentView === "pm" ? pmView : renderRegionCityResponsibilities({ region, regionCities, provinces, canAssignCities, canHandoverCities, viewSwitch, validPmNames })}</div></div></section>`
         );
       }

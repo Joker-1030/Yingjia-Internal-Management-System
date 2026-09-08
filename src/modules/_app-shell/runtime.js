@@ -7,8 +7,15 @@
       }
 
       const unifiedTablePaginationStates = {};
-      function tablePagination(key, defaultPageSize = 10) {
-        return `<div class="table-pagination" data-table-pagination="${key}"><span data-page-summary></span><label class="table-page-size">每页<select class="input" data-page-size><option value="10" ${defaultPageSize === 10 ? "selected" : ""}>10 条</option><option value="20" ${defaultPageSize === 20 ? "selected" : ""}>20 条</option><option value="50" ${defaultPageSize === 50 ? "selected" : ""}>50 条</option></select></label><button class="icon-btn" type="button" data-page-direction="prev" title="上一页" aria-label="上一页">‹</button><button class="icon-btn" type="button" data-page-direction="next" title="下一页" aria-label="下一页">›</button></div>`;
+      function tablePagination(
+        key,
+        defaultPageSize = 20,
+        pageSizeOptions = [20, 50, 100],
+      ) {
+        const sizeControl = pageSizeOptions.length > 1
+          ? `<label class="table-page-size">每页<select class="input" data-page-size>${pageSizeOptions.map((size) => `<option value="${size}" ${defaultPageSize === size ? "selected" : ""}>${size} 条</option>`).join("")}</select></label>`
+          : `<input type="hidden" data-page-size value="${defaultPageSize}">`;
+        return `<div class="table-pagination" data-table-pagination="${key}"><span data-page-summary></span>${sizeControl}<button class="icon-btn" type="button" data-page-direction="prev" title="上一页" aria-label="上一页">‹</button><button class="icon-btn" type="button" data-page-direction="next" title="下一页" aria-label="下一页">›</button></div>`;
       }
       function refreshUnifiedTablePagination(key, resetPage = false) {
         const table = document.querySelector(`[data-paged-table="${key}"]`);
@@ -17,7 +24,7 @@
         );
         if (!table || !pagination) return;
         const sizeControl = pagination.querySelector("[data-page-size]");
-        const requestedPageSize = Number(sizeControl?.value || 10);
+        const requestedPageSize = Number(sizeControl?.value || 20);
         const state = unifiedTablePaginationStates[key] || {
           page: 1,
           pageSize: requestedPageSize,
@@ -49,14 +56,16 @@
       function bindUnifiedTablePagination() {
         document.querySelectorAll("[data-table-pagination]").forEach((pagination) => {
           const key = pagination.dataset.tablePagination;
-          pagination.querySelector("[data-page-size]").onchange = () =>
-            refreshUnifiedTablePagination(key, true);
+          const sizeControl = pagination.querySelector("[data-page-size]");
+          if (sizeControl.type !== "hidden")
+            sizeControl.onchange = () =>
+              refreshUnifiedTablePagination(key, true);
           pagination.querySelectorAll("[data-page-direction]").forEach((button) => {
             button.onclick = () => {
               const state = unifiedTablePaginationStates[key] || {
                 page: 1,
                 pageSize: Number(
-                  pagination.querySelector("[data-page-size]")?.value || 10,
+                  pagination.querySelector("[data-page-size]")?.value || 20,
                 ),
               };
               unifiedTablePaginationStates[key] = state;
@@ -103,7 +112,7 @@
           ["approvalType", "业务类型"], ["approvalApplicant", "申请人"], ["approvalHandler", "当前处理人"], ["approvalStatus", "审批实例状态"], ["approvalStartDate", "发起开始日期"], ["approvalEndDate", "发起结束日期"], ["approvalCompletedStart", "完成开始日期"], ["approvalCompletedEnd", "完成结束日期"],
           ["archiveType", "对象类型"], ["archiveStatus", "业务状态"], ["archiveOperator", "实际操作人"], ["archiveRegion", "所属区域"], ["archiveEffectiveStart", "生效开始日期"], ["archiveEffectiveEnd", "生效结束日期"],
           ["employeeRole", "系统角色"], ["employeeStatus", "员工状态"], ["employeeAccountStatus", "账号状态"],
-          ["regionProvinceFilter", "省份"], ["regionCityProvince", "省份"], ["regionCityStatus", "分配状态"],
+          ["regionProvinceFilter", "省份"], ["regionCityProvince", "省份"], ["regionCityPmStatus", "PM 分配状态"],
           ["ruleConfigKeyword", "规则名称"], ["ruleConfigType", "规则类型"], ["ruleConfigStatus", "状态"], ["industryConfigStatus", "状态"],
           ["importTemplateType", "模板类型"], ["importStatusSelect", "批次状态"], ["importCreator", "创建人"], ["importStartDate", "创建开始日期"], ["importEndDate", "创建结束日期"], ["importException", "异常情况"],
         ].forEach(([id, label]) => wrap(id, label));
@@ -200,6 +209,17 @@
         if (page === "project-edit") return hasPermission("projects");
         if (page === "opportunity-detail") return hasPermission("opportunities");
         if (page === "opportunity-create") return hasPermission("opportunities");
+        if (page === "sales-supports") {
+          if (!hasPermission("sales-supports")) return false;
+          if (currentUser?.fullAccess) return true;
+          return opportunities.some((opportunity) =>
+            opportunity.supports.some(
+              (support) =>
+                support.assignee === currentUser?.name &&
+                support.status !== "已关闭",
+            ),
+          );
+        }
         return hasPermission(page);
       };
       const hasOperationPermission = (operation) =>
@@ -923,7 +943,17 @@
         return `<span class="tag ${status === "健康" ? "green" : status === "逾期" ? "red" : "yellow"}">${status}</span>`;
       }
 
-      const captchaCode = "YJ26";
+      const captchaAlphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+      const loginFailureState = new Map();
+      const LOGIN_PASSWORD_FAILURE_LIMIT = 5;
+      const LOGIN_LOCK_DURATION_MS = 30 * 60 * 1000;
+      let captchaCode = "";
+      function nextCaptchaCode() {
+        return Array.from(
+          { length: 4 },
+          () => captchaAlphabet[Math.floor(Math.random() * captchaAlphabet.length)],
+        ).join("");
+      }
       function initAccounts() {
         employees.forEach((employee) => syncEmployeeAccount(employee));
         $("#accountGrid").innerHTML = accounts
@@ -944,8 +974,44 @@
       }
 
       function refreshCaptcha() {
+        captchaCode = nextCaptchaCode();
         if ($("#captchaImage")) $("#captchaImage").textContent = captchaCode;
         if ($("#captchaInput")) $("#captchaInput").value = captchaCode;
+      }
+
+      function activeLoginFailureState(account, now = Date.now()) {
+        if (!account) return null;
+        const state = loginFailureState.get(account.phone);
+        if (!state) return { failures: 0, lockedUntil: 0 };
+        if (state.lockedUntil && state.lockedUntil <= now) {
+          loginFailureState.delete(account.phone);
+          return { failures: 0, lockedUntil: 0 };
+        }
+        return state;
+      }
+
+      function recordPasswordFailure(account, now = Date.now()) {
+        const current = activeLoginFailureState(account, now);
+        const failures = current.failures + 1;
+        const state = {
+          failures,
+          lockedUntil:
+            failures >= LOGIN_PASSWORD_FAILURE_LIMIT
+              ? now + LOGIN_LOCK_DURATION_MS
+              : 0,
+        };
+        loginFailureState.set(account.phone, state);
+        return state;
+      }
+
+      function defaultLandingPage() {
+        if (
+          currentRoleTemplateNames().includes("HR/人事") &&
+          hasPermission("employees")
+        )
+          return "employees";
+        if (hasPermission("dashboard")) return "dashboard";
+        return currentRoleTemplate()?.permissions.find(canAccessPage) || "employees";
       }
 
 
@@ -971,21 +1037,31 @@
         e.preventDefault();
         const mobile = $("#mobile").value.trim();
         const submittedCaptcha = $("#captchaInput").value.trim().toUpperCase();
-        if (submittedCaptcha !== captchaCode) {
-          refreshCaptcha();
-          return toast("图片验证码错误，请输入 YJ26");
-        }
-        const account = accounts.find((a) => a.phone === mobile);
-        const passwordMatched = account?.password === $("#password").value;
-        $("#password").type = "password";
+        const passwordInput = $("#password");
+        passwordInput.type = "password";
         $("#passwordToggle").textContent = "◉";
         $("#passwordToggle").title = "显示密码";
         $("#passwordToggle").setAttribute("aria-label", "显示密码");
+        if (submittedCaptcha !== captchaCode) {
+          refreshCaptcha();
+          return toast("图片验证码错误，请重试");
+        }
+        const account = accounts.find((a) => a.phone === mobile);
         refreshCaptcha();
         if (account?.disabled)
           return toast("账号不可用，请联系系统管理员");
-        if (!account || !passwordMatched)
-          return toast("手机号或密码错误，请重新输入图片验证码");
+        const failureState = activeLoginFailureState(account);
+        if (failureState?.lockedUntil) {
+          passwordInput.value = "";
+          return toast("当前无法登录，请稍后重试");
+        }
+        const passwordMatched = account?.password === passwordInput.value;
+        if (!account || !passwordMatched) {
+          if (account) recordPasswordFailure(account);
+          passwordInput.value = "";
+          return toast("手机号或密码错误");
+        }
+        loginFailureState.delete(account.phone);
         currentUser = account;
         const loginEmployee = employees.find(
           (employee) => employee.name === account.name,
@@ -998,11 +1074,7 @@
           ? requestedPage
           : requestedExplicitly
             ? requestedPage
-          : account.role === "hr"
-            ? "employees"
-            : hasPermission("dashboard")
-              ? "dashboard"
-              : currentRoleTemplate()?.permissions[0] || "employees";
+          : defaultLandingPage();
         window.history.replaceState(null, "", `#${currentPage}`);
         adminDashboardView = "system";
         taskView = account.role === "pm" ? "mine" : "summary";
@@ -1017,6 +1089,27 @@
         selectedOperationRegionGroup = "";
         selectedOperationCustomerId = null;
         selectedOperationContactId = null;
+        selectedOpportunityId = null;
+        opportunityDetailTab = "overview";
+        salesPeriodDraft = "2026-09";
+        salesPeriodApplied = "2026-09";
+        salesTargetMonth = "2026-09";
+        salesTrendMode = "count";
+        appliedOpportunityFilters = {
+          code: "",
+          name: "",
+          type: "",
+          stage: "",
+          customer: "",
+          region: "",
+          owner: "",
+          priority: "",
+          expectedFrom: "",
+          expectedTo: "",
+          createdFrom: "",
+          createdTo: "",
+          overdue: "",
+        };
         selectedCustomerOrgNode = "";
         selectedCustomerOrgInternalNode = "";
         customerOrgCompanyTab = "organization";
@@ -1122,10 +1215,20 @@
             );
             if (!items.length) return "";
             return `<div class="nav-group"><div class="nav-title">${g.title}</div>${items
-              .map(
-                (i) =>
-                  `<button class="nav-item ${currentPage === i.id ? "active" : ""}" data-page="${i.id}" title="${i.label}"><span class="nav-icon">${i.icon}</span><span>${i.label}</span></button>`,
-              )
+              .map((i) => {
+                const label =
+                  i.id === "sales-supports" && currentUser?.fullAccess
+                    ? "方案支撑管理"
+                    : i.id === "sales-targets" &&
+                        currentRoleTemplateNames().includes("PM") &&
+                        !currentUser?.fullAccess &&
+                        !currentRoleTemplateNames().some((role) =>
+                          ["总裁", "市场副总", "区域总监"].includes(role),
+                        )
+                      ? "我的销售指标"
+                      : i.label;
+                return `<button class="nav-item ${currentPage === i.id ? "active" : ""}" data-page="${i.id}" title="${label}"><span class="nav-icon">${i.icon}</span><span>${label}</span></button>`;
+              })
               .join("")}</div>`;
           })
           .join("");
@@ -1176,6 +1279,7 @@
         "opportunity-detail": "商机详情",
         "opportunity-create": "新建商机",
         "sales-targets": "销售指标",
+        "sales-supports": "我的方案支撑",
       };
       function renderPage() {
         normalizeTaskStates();
@@ -1183,12 +1287,14 @@
         if (!canOpenPage) {
           const deniedName = pageNames[currentPage] || "该页面";
           $("#content").classList.remove("customer-page-shell");
+          const returnPage = defaultLandingPage();
+          const returnName = pageNames[returnPage] || "可访问页面";
           $("#content").innerHTML =
             pageHead("无权访问", "权限校验未通过，未返回任何页面数据。") +
-            `<section class="panel"><div class="empty"><div><div class="empty-icon">403</div><strong>${deniedName}</strong><p class="panel-sub">当前账号无此菜单、页面或接口权限。</p><button class="btn btn-primary" id="returnDashboard">返回工作台</button></div></div></section>`;
+            `<section class="panel"><div class="empty"><div><div class="empty-icon">403</div><strong>${deniedName}</strong><p class="panel-sub">当前账号无此菜单、页面或接口权限。</p><button class="btn btn-primary" id="returnDashboard">返回${returnName}</button></div></div></section>`;
           $("#returnDashboard").onclick = () => {
-            currentPage = "dashboard";
-            window.history.replaceState(null, "", "#dashboard");
+            currentPage = returnPage;
+            window.history.replaceState(null, "", `#${returnPage}`);
             renderPage();
           };
           renderNav();
@@ -1222,6 +1328,7 @@
           "opportunity-detail": renderOpportunityDetail,
           "opportunity-create": renderOpportunityCreate,
           "sales-targets": renderSalesTargets,
+          "sales-supports": renderSalesSupports,
         };
         $("#content").innerHTML = (renderers[currentPage] || renderDashboard)();
         if (pageChanged) $("#content").scrollTop = 0;

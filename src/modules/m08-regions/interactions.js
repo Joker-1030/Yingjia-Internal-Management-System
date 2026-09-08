@@ -67,6 +67,16 @@
         );
       }
 
+      function cityResponsibilityOpportunities(owners) {
+        return opportunities.filter((opportunity) => {
+          if (opportunity.stage === "落选") return false;
+          const customer = salesOpportunityCustomer(opportunity);
+          return customer && customer.level !== "省公司" && owners.some(
+            (owner) => owner.province === customer.province && owner.city === customer.city,
+          );
+        });
+      }
+
       const cityIdsForHandover = (handover) =>
         (handover?.targetCityIds?.length
           ? handover.targetCityIds
@@ -107,6 +117,7 @@
             !["done", "cancelled", "expired"].includes(task.status),
         );
         return {
+          opportunities: cityResponsibilityOpportunities(owners).length,
           customers: companies.length,
           people: people.length,
           tasks: openTasks.filter((task) => task.type !== "关键人覆盖 KPI").length,
@@ -156,7 +167,7 @@
         const owners = cityOwners.filter((owner) => cityIds.includes(Number(owner.id)));
         const region = regionForName(handover.region);
         const targetValid = regionPmEmployees(region).some(
-          (employee) => employee.name === handover.targetPm,
+          (employee) => employee.name === handover.targetPm && employee.accountStatus !== "停用",
         );
         if (
           !owners.length ||
@@ -181,12 +192,14 @@
           handover.businessError = projectPlan.error;
           return false;
         }
+        const affectedOpportunities = cityResponsibilityOpportunities(owners);
         const mutationState = captureResponsibilityMutationState([
           cityOwners,
           customers,
           contacts,
           tasks,
           projects,
+          opportunities,
           employees,
           accounts,
         ]);
@@ -231,6 +244,21 @@
               )
               .forEach((task) => (task.pm = handover.targetPm));
           });
+          affectedOpportunities.forEach((opportunity) => {
+            const previousOwner = opportunity.owner;
+            if (previousOwner === handover.targetPm) return;
+            opportunity.owner = handover.targetPm;
+            opportunity.updatedAt = effectiveAt;
+            opportunity.reassignments ||= [];
+            opportunity.reassignments.push({
+              before: previousOwner,
+              after: handover.targetPm,
+              reason: `PM 地市责任交接：${handover.reason}`,
+              operator: handover.operator || currentUser.name,
+              time: effectiveAt,
+              sourceResponsibilityChangeCode: handover.code,
+            });
+          });
           normalizeCustomerResponsibilities();
           syncPmEmployeeScopes();
           handover.migratedProjectIds = projectResult.projectIds;
@@ -240,7 +268,7 @@
           handover.businessError =
             error?.message?.includes("保持不变")
               ? error.message
-              : "地区责任或项目负责人迁移失败，全部业务对象保持原值";
+              : "地区责任、项目或商机负责人迁移失败，全部业务对象保持原值";
           return false;
         }
         handover.status = "effective";
@@ -286,7 +314,9 @@
         });
         closeAllOverlays();
         renderPage();
-        toast(`已为${pm}分配 ${assigned} 个地市，并记录责任变更`);
+        toast(
+          `已为${pm}分配 ${assigned} 个地市`,
+        );
       }
 
       function openDirectAdjust(cityId) {
@@ -306,7 +336,7 @@
         const pms = regionPmEmployees(region).filter((item) => item.name !== c.pm);
         if (!pms.length) return toast("该区域中心没有其他在职 PM 可接任");
         openModal(
-          `<div class="modal-head"><div class="modal-title">直接调整地市负责人</div><button class="icon-btn close" data-close>×</button></div><form id="directAdjustForm"><div class="modal-body"><div class="role-note">${c.province} · <strong>${c.city}</strong> · ${invalidPriorResponsibility ? `原负责人 ${c.pm} 的责任已失效，原生效时间 ${c.effective} 将随历史保留。` : `当前负责人 ${c.pm}。`}直接调整确认后立即生效并记录责任变更，同时通知原任和新任 PM。</div><div class="form-group full"><label class="form-label">影响摘要</label><div class="impact-summary"><div class="impact-grid"><div><label>受影响客户</label><strong>${scopedCustomers().filter((x) => x.province === c.province && x.city === c.city).length}</strong></div><div><label>关键人</label><strong>${scopedContacts().filter((x) => x.company && customers.find((cu) => cu.name === x.company && cu.province === c.province && cu.city === c.city)).length}</strong></div><div><label>未完成任务</label><strong>${tasks.filter((t) => t.pm === c.pm && !["done", "cancelled", "expired"].includes(t.status)).length}</strong></div><div><label>覆盖 KPI 待办</label><strong>${campaigns.filter((cp) => cp.category === "关键人覆盖 KPI" && cp.status === "执行中").length}</strong></div></div></div><div class="list-sub">与交接影响摘要同口径，实时计算</div></div><div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>目标 PM</label><select class="input" id="daPm" required>${pms.map((item) => `<option value="${item.name}">${item.name} · ${item.code}</option>`).join("")}</select></div><div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>调整原因</label><textarea class="input" id="daReason" minlength="5" maxlength="500" required placeholder="说明直接调整原因"></textarea></div></div><div class="modal-foot"><button class="btn" type="button" data-close>取消</button><button class="btn btn-primary" type="submit">确认调整</button></div></form>`,
+          `<div class="modal-head"><div class="modal-title">直接调整地市负责人</div><button class="icon-btn close" data-close>×</button></div><form id="directAdjustForm"><div class="modal-body"><div class="role-note">${c.province} · <strong>${c.city}</strong> · ${invalidPriorResponsibility ? `原负责人 ${c.pm} 的责任已失效，原生效时间 ${c.effective} 将随历史保留。` : `当前负责人 ${c.pm}。`}直接调整确认后立即生效并记录责任变更，同时通知原任和新任 PM。</div><div class="form-group full"><label class="form-label">影响摘要</label><div class="impact-summary"><div class="impact-grid"><div><label>受影响客户</label><strong>${scopedCustomers().filter((x) => x.province === c.province && x.city === c.city).length}</strong></div><div><label>关键人</label><strong>${scopedContacts().filter((x) => x.company && customers.find((cu) => cu.name === x.company && cu.province === c.province && cu.city === c.city)).length}</strong></div><div><label>未完成任务</label><strong>${tasks.filter((t) => t.pm === c.pm && !["done", "cancelled", "expired"].includes(t.status)).length}</strong></div><div><label>覆盖 KPI 待办</label><strong>${campaigns.filter((cp) => cp.category === "关键人覆盖 KPI" && cp.status === "执行中").length}</strong></div><div><label>未落选商机</label><strong>${cityResponsibilityOpportunities([c]).length}</strong></div></div></div><div class="list-sub">与交接影响摘要同口径，实时计算</div></div><div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>目标 PM</label><select class="input" id="daPm" required>${pms.map((item) => `<option value="${item.name}">${item.name} · ${item.code}</option>`).join("")}</select></div><div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>调整原因</label><textarea class="input" id="daReason" minlength="5" maxlength="500" required placeholder="说明直接调整原因"></textarea></div></div><div class="modal-foot"><button class="btn" type="button" data-close>取消</button><button class="btn btn-primary" type="submit">确认调整</button></div></form>`,
         );
         $("#directAdjustForm").onsubmit = (event) => {
           event.preventDefault();
@@ -449,8 +479,11 @@
           if (cities.length > 50) return toast("一次最多分配 50 个地市");
           const selectedPm = $("#cityPm").value;
           const remark = $("#cityAssignRemark").value.trim();
+          const selectedProvinces = [...document.querySelectorAll("[data-assign-province]:checked")].map(
+            (input) => input.value,
+          );
           openModal(
-            `<div class="modal-head"><div class="modal-title">确认分配</div><button class="icon-btn close" data-close>×</button></div><div class="modal-body"><div class="role-note danger-note"><strong>请核对后再确认</strong><br>${region.name} · ${$("#cityAssignProvince").value}<br>地市：${cities.join("、")}<br>目标 PM：${selectedPm}<br>确认后立即生效，已分配关系后续只能通过交接流程变更。</div></div><div class="modal-foot"><button class="btn" type="button" data-close>取消</button><button class="btn btn-primary" type="button" id="confirmCityAssignment">确认分配并生效</button></div>`,
+            `<div class="modal-head"><div class="modal-title">确认分配</div><button class="icon-btn close" data-close>×</button></div><div class="modal-body"><div class="role-note danger-note"><strong>请核对后再确认</strong><br>${region.name} · ${selectedProvinces.join("、")}<br>地市：${cities.join("、")}<br>目标 PM：${selectedPm}<br>确认后立即生效。</div></div><div class="modal-foot"><button class="btn" type="button" data-close>取消</button><button class="btn btn-primary" type="button" id="confirmCityAssignment">确认分配并生效</button></div>`,
           );
           $("#confirmCityAssignment").onclick = () =>
             createDirectCityAssignment(region, cities, selectedPm, remark);
@@ -541,7 +574,7 @@
         const refreshImpact = () => {
           const selected = selectedOwnerIds();
           const impact = cityHandoverImpact(selected);
-          $("#cityHandoverImpact").innerHTML = `<div class="detail-item"><label>客户单位</label><div>${impact.customers} 家</div></div><div class="detail-item"><label>关键人</label><div>${impact.people} 人</div></div><div class="detail-item"><label>未完成任务</label><div>${impact.tasks} 条</div></div><div class="detail-item"><label>覆盖 KPI 待办</label><div>${impact.coverageKpis} 条</div></div><div class="detail-item"><label>已选地市</label><div>${selected.length} 个</div></div>`;
+          $("#cityHandoverImpact").innerHTML = `<div class="detail-item"><label>客户单位</label><div>${impact.customers} 家</div></div><div class="detail-item"><label>关键人</label><div>${impact.people} 人</div></div><div class="detail-item"><label>未完成任务</label><div>${impact.tasks} 条</div></div><div class="detail-item"><label>覆盖 KPI 待办</label><div>${impact.coverageKpis} 条</div></div><div class="detail-item"><label>未落选商机</label><div>${impact.opportunities} 条</div></div><div class="detail-item"><label>已选地市</label><div>${selected.length} 个</div></div>`;
         };
         $("#handoverCityChoices").onchange = (changeEvent) => {
           const selected = selectedOwnerIds();
@@ -602,7 +635,7 @@
                   `<div class="list-row"><div class="avatar">企</div><div class="list-main"><div class="list-title">${x.name}</div><div class="list-sub">${x.group} · ${x.contacts}名关键人</div></div><span class="link" data-customer-region="${x.id}">详情</span></div>`,
               )
               .join("") || '<div class="role-note">暂无演示客户</div>'
-          }</div><div class="drawer-foot"><button class="btn" data-close>关闭</button>${hasOperationPermission("regions.handover") && !pendingCityHandover(c.id) ? `<button class="btn btn-primary" data-action="handover-city" data-id="${c.id}">发起交接</button>` : pendingCityHandover(c.id) ? `<button class="btn" data-action="city-handover-detail" data-id="${pendingCityHandover(c.id).id}">查看交接</button>` : ""}</div>`,
+          }</div><div class="drawer-foot"><button class="btn" data-close>关闭</button>${hasOperationPermission("regions.handover") && !pendingCityHandover(c.id) ? `<button class="btn btn-primary" data-action="handover-city" data-id="${c.id}">发起交接</button>` : ""}</div>`,
         );
       }
 
@@ -637,6 +670,6 @@
           .join("、");
         const impact = handover.impactSnapshot || {};
         openDrawer(
-          `<div class="drawer-head"><div class="modal-title">地市责任交接</div><button class="icon-btn close" data-close>×</button></div><div class="drawer-body"><div class="detail-hero"><div class="avatar">交</div><div><div class="detail-name">${cityNames || handover.title}</div><div class="detail-sub">${handover.code}</div></div><div class="spacer"></div><span class="tag ${statusTone}">${statusName}</span></div><div class="detail-grid"><div class="detail-item"><label>原负责人</label><div>${handover.originalPm}</div></div><div class="detail-item"><label>目标负责人</label><div>${handover.targetPm}</div></div><div class="detail-item"><label>计划生效日期</label><div>${handover.plannedEffectiveDate}</div></div><div class="detail-item"><label>确认人</label><div>${handover.operator}</div></div><div class="detail-item"><label>确认时间</label><div>${handover.createdAt}</div></div><div class="detail-item"><label>实际生效时间</label><div>${handover.effectiveAt || "—"}</div></div><div class="detail-item full"><label>交接原因</label><div>${handover.reason}</div></div>${handover.businessError ? `<div class="detail-item full"><label>失败结果</label><div>${handover.businessError}</div></div>` : ""}</div><div class="section-title">影响快照</div><div class="metrics compact-metrics">${metric("客户单位", impact.customers || 0, "交接确认时")}${metric("关键人", impact.people || 0, "交接确认时", "blue")}${metric("未完成任务", impact.tasks || 0, "交接确认时", "yellow")}${metric("覆盖 KPI 待办", impact.coverageKpis || 0, "交接确认时", "orange")}</div>${handover.status === "pending_effective" ? '<div class="role-note">计划生效日前原 PM 继续负责；到期时重新校验并一次性迁移责任。</div>' : ""}</div><div class="drawer-foot"><button class="btn" data-close>关闭</button></div>`,
+          `<div class="drawer-head"><div class="modal-title">地市责任交接</div><button class="icon-btn close" data-close>×</button></div><div class="drawer-body"><div class="detail-hero"><div class="avatar">交</div><div><div class="detail-name">${cityNames || handover.title}</div><div class="detail-sub">${handover.code}</div></div><div class="spacer"></div><span class="tag ${statusTone}">${statusName}</span></div><div class="detail-grid"><div class="detail-item"><label>原负责人</label><div>${handover.originalPm}</div></div><div class="detail-item"><label>目标负责人</label><div>${handover.targetPm}</div></div><div class="detail-item"><label>计划生效日期</label><div>${handover.plannedEffectiveDate}</div></div><div class="detail-item"><label>确认人</label><div>${handover.operator}</div></div><div class="detail-item"><label>确认时间</label><div>${handover.createdAt}</div></div><div class="detail-item"><label>实际生效时间</label><div>${handover.effectiveAt || "—"}</div></div><div class="detail-item full"><label>交接原因</label><div>${handover.reason}</div></div>${handover.businessError ? `<div class="detail-item full"><label>失败结果</label><div>${handover.businessError}</div></div>` : ""}</div><div class="section-title">影响快照</div><div class="metrics compact-metrics">${metric("客户单位", impact.customers || 0, "交接确认时")}${metric("关键人", impact.people || 0, "交接确认时", "blue")}${metric("未完成任务", impact.tasks || 0, "交接确认时", "yellow")}${metric("覆盖 KPI 待办", impact.coverageKpis || 0, "交接确认时", "orange")}${impact.opportunities !== undefined ? metric("未落选商机", impact.opportunities, "交接确认时") : ""}</div>${handover.status === "pending_effective" ? '<div class="role-note">计划生效日前原 PM 继续负责；到期时重新校验并一次性迁移责任。</div>' : ""}</div><div class="drawer-foot"><button class="btn" data-close>关闭</button></div>`,
         );
       }

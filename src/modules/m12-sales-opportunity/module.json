@@ -7,16 +7,20 @@
     "sales-targets",
     "opportunities",
     "opportunity-create",
-    "opportunity-detail"
+    "opportunity-detail",
+    "sales-supports"
   ],
   "pageStates": [
     "销售周期目标与当前商机快照",
     "商机筛选与分页",
+    "年季月仪表盘与月度指标",
+    "商机编辑与历史",
     "商机创建",
     "顺序推进与落选",
     "负责人改派",
     "结构化跟进",
-    "多人方案支撑"
+    "多人方案支撑",
+    "我的方案支撑"
   ],
   "dataReferences": [
     "data/sales-targets.js",

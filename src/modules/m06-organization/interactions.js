@@ -146,6 +146,7 @@
           campaigns,
           maintenanceRecords,
           projects,
+          opportunities,
           organizationChanges,
         ];
         return {
@@ -405,13 +406,13 @@
         !["done", "cancelled"].includes(task.status);
 
       function employeeDeactivationGroups(employee) {
-        const cityGroups = cityOwners
+        const pmCityGroups = cityOwners
           .filter((owner) => owner.pm === employee.name)
           .map((owner) => ({
-            key: `city:${owner.id}`,
+            key: `city-pm:${owner.id}`,
             kind: "city_pm",
             role: "PM",
-            label: `${owner.province} · ${owner.city}`,
+            label: `${owner.province} · ${owner.city} · PM 责任`,
             owner,
             region: regionsData.find((item) =>
               regionProvinceList(item).includes(owner.province),
@@ -427,7 +428,7 @@
             department,
             region: regionsData.find((item) => item.id === department.regionId),
           }));
-        return [...cityGroups, ...regionGroups];
+        return [...pmCityGroups, ...regionGroups];
       }
 
       function employeeDeactivationReceiverCandidates(group, employee) {
@@ -459,6 +460,16 @@
         );
       }
 
+      function employeeDeactivationGroupOpportunities(group) {
+        if (group.kind === "city_pm")
+          return cityResponsibilityOpportunities([group.owner]);
+        return opportunities.filter((opportunity) => {
+          const company = salesOpportunityCustomer(opportunity);
+          return opportunity.stage !== "落选" && company?.level === "省公司" &&
+            group.region && regionForCompany(company)?.id === group.region.id;
+        });
+      }
+
       function prepareEmployeeDeactivationGroup(
         group,
         employee,
@@ -481,16 +492,9 @@
         const companies = employeeDeactivationGroupCompanies(group);
         const companyNames = new Set(companies.map((company) => company.name));
         const groupTasks = tasks.filter(
-          (task) =>
-            task.pm === employee.name &&
-            companyNames.has(task.company) &&
-            employeeDeactivationTaskIsOpen(task),
+          (task) => task.pm === employee.name &&
+            companyNames.has(task.company) && employeeDeactivationTaskIsOpen(task),
         );
-        if (groupTasks.some((task) => task.status === "paused"))
-          return {
-            ok: false,
-            error: `${group.label} 存在已暂停任务，暂停继承规则尚待产品确认`,
-          };
         const projectSpec =
           group.kind === "city_pm"
             ? {
@@ -498,8 +502,12 @@
                 region: group.region,
                 owners: [group.owner],
               }
-            : { kind: "region_director", region: group.region };
-        const groupProjects = projectResponsibilityTransferCandidates(projectSpec);
+            : group.kind === "region_director"
+              ? { kind: "region_director", region: group.region }
+              : null;
+        const groupProjects = projectSpec
+          ? projectResponsibilityTransferCandidates(projectSpec)
+          : [];
         const changedProject = groupProjects.find(
           (project) => projectCurrentOwner(project) !== employee.name,
         );
@@ -515,6 +523,7 @@
           companies,
           tasks: groupTasks,
           projects: groupProjects,
+          opportunities: employeeDeactivationGroupOpportunities(group),
         };
       }
 
@@ -547,6 +556,7 @@
         changedAt,
         changeId,
       ) {
+        const inheritsPause = previousStatus === "paused";
         const nextId =
           Math.max(0, ...tasks.map((item) => Number(item.id) || 0)) + 1;
         const nextTask = {
@@ -558,8 +568,21 @@
           status: previousStatus,
           createdAt: changedAt,
           updatedAt: changedAt,
+          handoverFromTaskId: task.id,
           handoverFromExecutionCode: task.executionCode,
           employeeStopRecordId: changeId,
+          ...(inheritsPause
+            ? {
+                originalDue: task.due,
+                due: task.due,
+                resumeDate: task.resumeDate,
+                pauseReason: task.pauseReason,
+                pausedBy: task.pausedBy,
+                pausedAt: task.pausedAt,
+                inheritedPause: true,
+                everOverdue: false,
+              }
+            : {}),
         };
         [
           "statusBeforeClosure",
@@ -569,8 +592,18 @@
           "closedBy",
           "employeeStopEmployeeCode",
           "employeeStopEmployeeName",
+          "handoverToTaskId",
+          "handoverToExecutionCode",
         ].forEach((key) => delete nextTask[key]);
+        if (inheritsPause) {
+          delete nextTask.firstOverdueAt;
+          delete nextTask.lateDays;
+        } else {
+          delete nextTask.inheritedPause;
+        }
         tasks.push(nextTask);
+        task.handoverToTaskId = nextTask.id;
+        task.handoverToExecutionCode = nextTask.executionCode;
         return nextTask;
       }
 
@@ -704,8 +737,7 @@
           plan.tasks.forEach((task) => {
             if (
               task.pm !== employee.name ||
-              !employeeDeactivationTaskIsOpen(task) ||
-              task.status === "paused"
+              !employeeDeactivationTaskIsOpen(task)
             )
               throw new Error(`任务 ${task.executionCode} 当前状态已变化`);
             const previousStatus = closeEmployeeDeactivationTask(
@@ -752,6 +784,23 @@
               },
             ];
           });
+          let migratedOpportunities = 0;
+          plan.opportunities.forEach((opportunity) => {
+            const priorOwner = opportunity.owner;
+            if (priorOwner === plan.receiver.name) return;
+            opportunity.owner = plan.receiver.name;
+            opportunity.updatedAt = changedAt;
+            opportunity.reassignments ||= [];
+            opportunity.reassignments.push({
+              before: priorOwner,
+              after: plan.receiver.name,
+              reason: `员工停用责任交接：${reason}`,
+              operator: currentUser.name,
+              time: changedAt,
+              sourceEmployeeChangeId: changeId,
+            });
+            migratedOpportunities += 1;
+          });
           syncOrganizationRegions();
           syncEmployeeAccount(plan.receiver);
           return {
@@ -760,6 +809,7 @@
             receiver: plan.receiver.name,
             tasks: createdTasks,
             projects: plan.projects.length,
+            opportunities: migratedOpportunities,
           };
         } catch (error) {
           restoreOrganizationMutationState(mutationState);
@@ -796,16 +846,6 @@
             ),
           ),
         );
-        const pausedTasks = tasks.filter(
-          (task) =>
-            task.pm === employee.name &&
-            groupCompanyNames.has(task.company) &&
-            task.status === "paused",
-        );
-        if (mode === "停用" && pausedTasks.length)
-          return toast(
-            "该员工存在已暂停任务；新执行项是否继承暂停尚待产品确认，当前示例暂不执行停用。",
-          );
         const managedDepartments = departmentsManagedBy(employee.code);
         const openTasks = tasks.filter(
           (task) =>
@@ -816,15 +856,21 @@
         const projectCount = new Set(
           groups.flatMap((group) => {
             if (!group.region) return [];
-            return projectResponsibilityTransferCandidates(
+            const projectSpec =
               group.kind === "city_pm"
                 ? {
                     kind: "city_pm",
                     region: group.region,
                     owners: [group.owner],
                   }
-                : { kind: "region_director", region: group.region },
-            ).map((project) => project.id);
+                : group.kind === "region_director"
+                  ? { kind: "region_director", region: group.region }
+                  : null;
+            return projectSpec
+              ? projectResponsibilityTransferCandidates(projectSpec).map(
+                  (project) => project.id,
+                )
+              : [];
           }),
         ).size;
         const receiverFields = groups
@@ -833,11 +879,20 @@
               group,
               employee,
             );
-            return `<div class="form-group full"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>${escapeHtml(group.label)} 接收人</label><select class="input" data-employee-handover-receiver="${groupIndex}" required><option value="">请选择${group.role}</option>${candidates.map((candidate) => `<option value="${candidate.code}">${escapeHtml(candidate.name)} · ${candidate.code}</option>`).join("")}</select><div class="list-sub">${group.kind === "city_pm" ? "地市责任、未完成任务和适用项目随该地市交接" : "接收人将成为该区域运营中心主管，省级责任、未完成任务和适用项目随同交接"}</div></div>`;
+            const note =
+              group.kind === "city_pm"
+                ? "PM 地市责任、未完成任务、适用项目和未落选商机随该地市交接；落选商机不迁移"
+                : "接收人将成为该区域运营中心主管，省级责任、未完成任务、适用项目和未落选商机随同交接";
+            return `<div class="form-group full"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>${escapeHtml(group.label)} 接收人</label><select class="input" data-employee-handover-receiver="${groupIndex}" required><option value="">请选择${group.role}</option>${candidates.map((candidate) => `<option value="${candidate.code}">${escapeHtml(candidate.name)} · ${candidate.code}</option>`).join("")}</select><div class="list-sub">${note}</div></div>`;
           })
           .join("");
+        const opportunityCount = new Set(
+          groups.flatMap((group) =>
+            employeeDeactivationGroupOpportunities(group).map((item) => item.id),
+          ),
+        ).size;
         openModal(
-          `<div class="modal-head"><div class="modal-title">确认员工${mode}</div><button class="icon-btn close" data-close>×</button></div><form id="employeeStatusForm"><div class="modal-body"><div class="role-note ${mode === "停用" ? "danger-note" : ""}"><strong>${employee.name} · ${employee.code}</strong><br>本操作由 HR/admin 直接生效，不创建审批、WF 编号、待办或抄送。</div>${mode === "停用" ? `<div class="impact-summary"><div class="impact-grid"><div><label>责任交接组</label><strong>${groups.length}</strong></div><div><label>未完成任务</label><strong>${openTasks.length}</strong></div><div><label>随责任迁移项目</label><strong>${projectCount}</strong></div></div></div>${groups.length ? `<div class="section-title">责任组接收人</div><div class="form-grid">${receiverFields}</div>` : '<div class="role-note">该员工当前没有 PM 地市或区域总监区域中心责任，无需选择责任接收人。</div>'}<div class="role-note">确认后先停用员工与账号并使会话失效，再连续处理全部责任组；项目不单独选择接收人。已取消和已中止项目不迁移；部门成员和系统角色保留。交接失败不回滚账号或已成功责任组。</div>` : `<div class="role-note">恢复后继续保留原部门成员和系统角色；停用时关闭的旧任务不重新打开，已交出的主管、区域/地市、客户和项目责任不自动恢复。</div>`}<div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>${mode}原因</label><textarea class="input" id="esReason" minlength="5" maxlength="500" required></textarea></div></div><div class="modal-foot"><button class="btn" type="button" data-close>取消</button><button class="btn ${mode === "停用" ? "btn-danger" : "btn-primary"}" type="submit">确认并立即${mode}</button></div></form>`,
+          `<div class="modal-head"><div class="modal-title">确认员工${mode}</div><button class="icon-btn close" data-close>×</button></div><form id="employeeStatusForm"><div class="modal-body"><div class="role-note ${mode === "停用" ? "danger-note" : ""}"><strong>${employee.name} · ${employee.code}</strong><br>本操作由 HR/admin 直接生效，不创建审批、WF 编号、待办或抄送。</div>${mode === "停用" ? `<div class="impact-summary"><div class="impact-grid"><div><label>责任交接组</label><strong>${groups.length}</strong></div><div><label>未完成任务</label><strong>${openTasks.length}</strong></div><div><label>随责任迁移项目</label><strong>${projectCount}</strong></div><div><label>迁移未落选商机</label><strong>${opportunityCount}</strong></div></div></div>${groups.length ? `<div class="section-title">责任组接收人</div><div class="form-grid">${receiverFields}</div>` : '<div class="role-note">该员工当前没有 PM 地市或区域总监区域中心责任，无需选择责任接收人。</div>'}<div class="role-note">确认后先停用员工与账号并使会话失效，再连续处理全部责任组；任务、项目和未落选商机随同一 PM 地市或区域中心交接，项目不单独选择接收人。已取消和已中止项目、已落选商机不迁移；部门成员和系统角色保留。交接失败不回滚账号或已成功责任组。</div>` : `<div class="role-note">恢复后继续保留原部门成员和系统角色；停用时关闭的旧任务不重新打开，已交出的主管、区域/地市、客户、项目和商机责任不自动恢复。</div>`}<div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>${mode}原因</label><textarea class="input" id="esReason" minlength="5" maxlength="500" required></textarea></div></div><div class="modal-foot"><button class="btn" type="button" data-close>取消</button><button class="btn ${mode === "停用" ? "btn-danger" : "btn-primary"}" type="submit">确认并立即${mode}</button></div></form>`,
         );
         $("#employeeStatusForm").onsubmit = (event) => {
           event.preventDefault();
@@ -935,6 +990,10 @@
             (total, result) => total + result.projects,
             0,
           );
+          const migratedOpportunityCount = succeeded.reduce(
+            (total, result) => total + result.opportunities,
+            0,
+          );
           personnelChanges.unshift({
             id: changeId,
             employeeCode: employee.code,
@@ -953,7 +1012,7 @@
             approver: "无需审批",
             appliedAt: changedAt,
             handover: groupResults,
-            impactSummary: `员工与账号已停用；责任组成功 ${succeeded.length}/${groupResults.length} 个；处理任务执行项 ${taskCount} 条；迁移项目 ${migratedProjectCount} 个${failed.length ? `；失败组：${failed.map((result) => result.label).join("、")}` : ""}`,
+            impactSummary: `员工与账号已停用；责任组成功 ${succeeded.length}/${groupResults.length} 个；处理任务执行项 ${taskCount} 条；迁移项目 ${migratedProjectCount} 个；迁移未落选商机 ${migratedOpportunityCount} 条${failed.length ? `；失败组：${failed.map((result) => result.label).join("、")}` : ""}`,
           });
           closeOverlay();
           employeeView = "changes";
@@ -962,7 +1021,7 @@
             ? groupResults
                 .map((result) =>
                   result.ok
-                    ? `<div class="timeline-item"><div class="timeline-title">${escapeHtml(result.label)} · 已交接给${escapeHtml(result.receiver)}</div><div class="timeline-content">处理任务执行项 ${result.tasks} 条；迁移项目 ${result.projects} 个</div></div>`
+                    ? `<div class="timeline-item"><div class="timeline-title">${escapeHtml(result.label)} · 已交接给${escapeHtml(result.receiver)}</div><div class="timeline-content">处理任务执行项 ${result.tasks} 条；迁移项目 ${result.projects} 个；迁移未落选商机 ${result.opportunities} 条</div></div>`
                     : `<div class="timeline-item"><div class="timeline-title">${escapeHtml(result.label)} · 交接失败</div><div class="timeline-content">${escapeHtml(result.error)}；员工、账号和其他成功组不回滚，由有权人员继续处理。</div></div>`,
                 )
                 .join("")

@@ -302,14 +302,14 @@
           const city = $("#regionCityName")?.value.trim() || "";
           const pmName = $("#regionCityPmName")?.value.trim() || "";
           const pmCode = $("#regionCityPmCode")?.value.trim() || "";
-          const status = $("#regionCityStatus")?.value || "";
+          const pmStatus = $("#regionCityPmStatus")?.value || "";
           document.querySelectorAll("[data-region-city-row]").forEach((row) => {
             const visible =
               (!province || row.dataset.province === province) &&
               (!city || row.children[1]?.textContent.includes(city)) &&
               (!pmName || row.children[4]?.textContent.includes(pmName)) &&
               (!pmCode || row.children[5]?.textContent.includes(pmCode)) &&
-              (!status || row.dataset.status === status);
+              (!pmStatus || row.dataset.pmStatus === pmStatus);
             row.classList.toggle("hidden", !visible);
           });
           refreshUnifiedTablePagination("m08-cities", true);
@@ -321,7 +321,7 @@
             $("#regionCityName").value = "";
             $("#regionCityPmName").value = "";
             $("#regionCityPmCode").value = "";
-            $("#regionCityStatus").value = "";
+            $("#regionCityPmStatus").value = "";
             filterRegionCities();
           };
         const filterRegionPms = () => {
@@ -351,6 +351,7 @@
           (button) =>
             (button.onclick = () => openCityForm(button.dataset.pmCityAssign)),
         );
+
         document.querySelectorAll("[data-permission-role]").forEach(
           (button) =>
             (button.onclick = () => {

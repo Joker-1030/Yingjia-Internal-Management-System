@@ -1,7 +1,7 @@
 # 英嘉科技内部管理系统项目总览
 
-- 更新日期：2026-09-03
-- 当前产品阶段：Current PRD 持续演进；M02-M03、M06-M09 与 P00 已完成产品评审并进入研发，M01、M04-M05、M10-M12 与 P01 尚未评审且尚未开始研发；尚未正式生产发布
+- 更新日期：2026-09-07
+- 当前产品阶段：Current PRD 持续演进；M02-M03、M06-M09 与 P00 已完成产品评审并进入研发，M01、M04、M10-M12 与 P01 尚未评审且尚未开始研发；M05 独立能力已移除并保留编号；尚未正式生产发布
 - 当前产品事实入口：[`prd-workspace/current/PRD.md`](../prd-workspace/current/PRD.md)
 - 当前仓库用途：研发需求阅读、Prototype 演示与前端维护
 
@@ -26,7 +26,7 @@
 - 建立可维护的模块化 Prototype Source、确定性构建、Artifact provenance 和 source/artifact drift check。
 - 建立可点击的 M01-M12 Prototype，并保持维护源与生成产物可校验；M12 已合入销售仪表盘、销售指标、商机列表/新建/详情、跟进和方案支撑的 Current 核心演示。
 
-“已完成上述治理与工程基础”不等于全项目已评审或系统已上线。当前模块状态为：M02-M03、M06-M09 与 P00 已完成产品评审并进入研发；M01、M04、M05、M10、M11、M12 与 P01 尚未完成产品评审且研发未开始。模块已评审不冻结 Current PRD，后续产品变化仍需判断对在研 Task 的影响。
+“已完成上述治理与工程基础”不等于全项目已评审或系统已上线。当前模块状态为：M02-M03、M06-M09 与 P00 已完成产品评审并进入研发；M01、M04、M10、M11、M12 与 P01 尚未完成产品评审且研发未开始；M05 为`REMOVED / NOT REVIEWED / NOT STARTED`。模块已评审不冻结 Current PRD，后续产品变化仍需判断对在研 Task 的影响。
 
 各模块的准确 Product Review Status、Engineering Status 与 Approved Baseline 证据统一登记在 Local Workspace 的 `docs/AI_IMPLEMENTATION_RESULTS/PRD-REVIEW-BASELINE-REGISTRY-001.md`；本页和仓库 README 仅提供阅读摘要，该内部证据文件不进入 GitHub Engineering Mirror。
 
@@ -77,17 +77,17 @@ Product Boundary
 | 模块 | 主要职责 | 重要对象 | 主要流程 | 主要关系 |
 | --- | --- | --- | --- | --- |
 | [M01 工作台](../prd-workspace/current/modules/M01-dashboard.md) | 按角色聚合经营指标、趋势、待办和重点动态，并按同一口径下钻 | 指标、经营对比、趋势、待办、重点动态、角色视图 | 登录后进入角色默认入口；周期切换、聚合查看和来源模块下钻 | 消费 M02-M11/P01 事实，不拥有来源业务生命周期 |
-| [M02 客户经营](../prd-workspace/current/modules/M02-customer.md) | 浏览和使用客户资产，维护关键人身份及任职变化 | 集团、客户公司、关键人、任职、客户责任和健康 | 客户三栏浏览、关键人新增/编辑、关键人调岗及生效 | 消费 M08 责任、M09 主数据；对接 M03 任务、M04 审批、M05 停用 |
-| [M03 维系管理](../prd-workspace/current/modules/M03-maintenance.md) | 将规则转为维系任务，管理专项/KPI 并沉淀维系记录 | 父任务、执行记录、专项、覆盖 KPI、维系记录、附件 | 规则生成、任务完成/补录、专项发布执行、异常审批 | 消费 M02/M08/M09 事实，由 M04 承载审批并向 M01 输出聚合 |
-| [M04 审批中心](../prd-workspace/current/modules/M04-approval.md) | 统一承载跨业务审批实例、节点、动作、抄送和回调结果 | 审批实例、节点、处理动作、抄送、流程记录 | 发起后按路由处理、撤回/驳回/通过、来源业务生效与失败重试 | 审批容器归 M04；申请字段和业务生效仍归 M02/M03/M05/M08 等来源模块 |
-| [M05 停用记录](../prd-workspace/current/modules/M05-archive.md) | 管理客户侧对象停用、恢复、影响和历史查询 | 停用/恢复申请、对象快照、影响摘要、停用记录 | 从业务对象发起、影响确认、审批、生效、恢复 | M02/M09 拥有对象，M04 拥有审批，M05 拥有停用恢复记录和历史 |
+| [M02 客户经营](../prd-workspace/current/modules/M02-customer.md) | 浏览和使用客户资产，维护关键人身份及任职变化 | 集团、客户公司、关键人、任职、客户责任和健康 | 客户三栏浏览、关键人新增/编辑、关键人调岗及生效 | 消费 M08 责任、M09 主数据；关键人停用/恢复及历史由 M02 自己拥有 |
+| [M03 维系管理](../prd-workspace/current/modules/M03-maintenance.md) | 将规则转为维系任务，管理专项/KPI 并沉淀维系记录 | 父任务、执行记录、专项、覆盖 KPI、维系记录、附件 | 规则生成、任务完成/补录、专项发布执行、异常直接处理 | 消费 M02/M08/M09 事实，当前不创建 M04 审批；记录停用导致的任务结果 |
+| [M04 审批中心](../prd-workspace/current/modules/M04-approval.md) | `DEFERRED`；未来统一审批中心规划边界 | 尚未进入当前可用范围 | 未评审、未研发、无菜单或直接访问 | 当前业务模块不创建新的 M04 审批事实 |
+| [M05 停用记录](../prd-workspace/current/modules/M05-archive.md) | `REMOVED`；编号保留，防止历史方案被误恢复 | 无当前业务对象 | 无菜单、页面、路由、权限或统一历史中心 | 停用/恢复及历史归 M02/M06/M09 等业务对象 Owner |
 | [M06 组织与员工](../prd-workspace/current/modules/M06-organization.md) | 维护内部部门、主管、员工、账号、角色关联和人员变化 | 内部部门、成员关系、主管、员工、账号、系统角色关联 | 部门/员工维护，多部门与角色编辑，员工直接停用/恢复 | 向 M07/M08 等提供组织与人员资格；不维护权限模板或区域责任 |
 | [M07 权限授权](../prd-workspace/current/modules/M07-permission.md) | 由 admin 维护非管理员角色模板的四层权限、版本和审计 | 角色模板、权限树、当前配置、影响预览、只读变更日志 | 修改权限、影响确认、保存和历史查看；新配置直接生效，不提供一键回滚 | 只能收紧业务模块固定能力上限，不维护员工角色或数据范围事实 |
-| [M08 区域中心与地市配置](../prd-workspace/current/modules/M08-region.md) | 维护区域与省份/驻地映射、地市负责人以及交接/直接调整 | 区域配置、省份映射、驻地、地市责任、地市交接 | 区域配置、地市分配/直接调整、PM 地市管理与交接 | 消费 M06 组织人员，向 M01/M02/M03 提供责任范围，审批容器归 M04 |
+| [M08 区域中心与地市配置](../prd-workspace/current/modules/M08-region.md) | 维护区域与省份/驻地映射，以及相互独立的 PM/销售地市责任 | 区域配置、省份映射、驻地、PM 地市责任、销售地市责任、地市交接 | 区域配置、PM 分配/调整/交接、销售负责人设置与未落选商机迁移 | 消费 M06 组织人员，向 M01/M02/M03/M12 提供各自责任范围；当前不创建审批 |
 | [M09 客户基础配置](../prd-workspace/current/modules/M09-settings.md) | 唯一维护客户主数据树、职级周期提醒和生日/节假日规则 | 周期/提醒规则、行业、集团、客户公司、客户部门、标准岗位 | 规则保存、主数据维护及停用恢复、节假日日历同步 | 向 M02/M03/M10 提供稳定主数据和规则，不拥有日常经营或任务生命周期 |
 | [M10 数据导入](../prd-workspace/current/modules/M10-import.md) | 通过模板、预校验、确认和报告完成受控批量录入 | 模板、文件、批次、预校验结果、错误/重复行、结果报告 | 下载模板、上传、预校验、确认导入、查看结果 | 写入时复用 M02/M08/M09 当前规则，不覆盖既有责任或任职事实 |
 | [M11 项目管理](../prd-workspace/current/modules/M11-project-management.md) | 管理培训与 AI 软件项目的立项、执行、交付、资料、评价、商业配置和责任历史 | 项目、项目责任、商业快照、采购包、平台公司、项目人员、项目资料、满意度 | 项目创建、开始、交付、完成或取消，维护资料与评价，并随地区责任交接迁移项目责任 | 消费 M02/M06/M08 客户与责任事实，向 M01/M10/P01 输出项目待办、导入和提醒约束 |
-| [M12 销售与商机管理](../prd-workspace/current/modules/M12-sales-opportunity.md) | 管理商机数量指标、销售仪表盘、商机推进、跟进和方案支撑；线索复用商机早期阶段 | 销售指标版本、商机、阶段记录、跟进记录、方案支撑请求 | 指标分配与调整、商机创建和顺序推进、改派、跟进和支撑响应交付 | 消费 M02/M06/M08/M09 事实，由 M04 承载指标调整审批并由 P01 发送跟进/支撑消息；不包含合同和财务 |
+| [M12 销售与商机管理](../prd-workspace/current/modules/M12-sales-opportunity.md) | 管理商机数量指标、销售仪表盘、商机推进、跟进和方案支撑；线索复用商机早期阶段 | 销售指标版本、商机、阶段记录、跟进记录、方案支撑请求 | 指标分配与调整、商机创建/编辑/推进、改派、跟进和支撑响应交付 | 消费 M02/M06/M08/M09 的客户、角色与销售责任事实；指标调整直接生效，P01 发送跟进/支撑消息；不包含合同和财务 |
 
 P00 登录与 P01 消息中心是 Supporting capabilities；完整入口见 Current PRD 的产品地图和 User Flow Index。
 
@@ -103,7 +103,7 @@ P00 登录与 P01 消息中心是 Supporting capabilities；完整入口见 Curr
 - Current Prototype / Current Demo：当前 Canonical Git 状态中由 `src/` 正式构建出的上述 Demo，不使用复制文件维护版本
 - Demo Revision：只为有意义的日期或阶段性变化记录，不要求每次修改增加版本号
 - Demo Baseline：仅通过明确登记的正式展示/验收 Git Commit 定位；当前治理证据未建立符合该条件的 Demo Baseline
-- 当前项目级 Product Alignment：`PARTIAL`；M01-M11 已有 Demo 范围与 Source/Artifact 有验证证据，M12 核心页面与主流程已实现，但 M12 指标调整在 M04 的审批实例展示、P01 跟进/支撑提醒消息及全部异常状态尚未纳入本次 Demo 验证；未执行 M01-M12/P00/P01 全量 PRD-to-Demo 审计
+- 当前项目级 Product Alignment：`ALIGNED（本次审计与修复声明范围）`；已按 Product Owner 逐项确认结论完成 M01-M12/P00/P01 的 PRD ↔ Demo 差异修复。员工停用涉及暂停任务时的暂停状态继承仍为 `PRODUCT DEFINITION GAP`，Demo 保留阻止该停用操作的保护；此结论不代表未纳入 Demo 的生产后端行为已完成或通过验证。审计结果见 Local Workspace 的 `docs/AI_IMPLEMENTATION_RESULTS/PRD-DEMO-BIDIRECTIONAL-AUDIT-001.md`
 
 Prototype 用于展示角色入口、页面结构、主要控件、典型状态、关键交互和代表性校验。它可以使用内存状态和 Mock 数据，不模拟正式数据库、服务端并发、会话、真实上传扫描或完整生产架构。
 

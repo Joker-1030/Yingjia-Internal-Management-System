@@ -70,6 +70,7 @@
           { name: "交付版本或成果说明", required: true, kinds: ["document"] },
           { name: "部署或开通证明", required: true, kinds: ["image", "document"] },
           { name: "项目实施总结", required: true, kinds: ["document"] },
+          { name: "其他", required: false, kinds: ["image", "video", "document"] },
         ],
       };
       const PROJECT_FILE_EXTENSION_RULES = {
@@ -106,6 +107,33 @@
         ".docm", ".xlsm", ".pptm", ".enc", ".lock",
       ];
       let projectMaterialResults = { accountKey: "", projectId: "", items: [] };
+      const PROJECT_HISTORY_PAGE_SIZE = 10;
+      const PROJECT_HISTORY_CATEGORY_ORDER = [
+        "状态变更",
+        "基本信息",
+        "时间与金额",
+        "商业资源",
+        "项目人员",
+        "项目资料",
+        "满意度",
+      ];
+      let projectHistoryPagination = {
+        projectId: "",
+        responsibility: 1,
+        change: 1,
+      };
+
+      function resetProjectHistoryPagination(projectId = "") {
+        projectHistoryPagination = {
+          projectId,
+          responsibility: 1,
+          change: 1,
+        };
+      }
+      function ensureProjectHistoryPagination(projectId) {
+        if (projectHistoryPagination.projectId !== projectId)
+          resetProjectHistoryPagination(projectId);
+      }
 
       function projectCustomerFacts(project) {
         return project?.customerSnapshot || null;
@@ -174,6 +202,160 @@
         return Array.isArray(project?.responsibilityHistory)
           ? project.responsibilityHistory
           : [];
+      }
+      function normalizedProjectHistoryTime(value) {
+        const time = String(value || "").trim();
+        if (!time) return "未填写";
+        return /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/.test(time)
+          ? `${time}:00`
+          : time;
+      }
+      function projectHistoryCategory(field) {
+        if (["主阶段", "项目状态", "AI 确认交付"].includes(field))
+          return "状态变更";
+        if (field === "项目名称") return "基本信息";
+        if (
+          [
+            "开始时间",
+            "结束时间",
+            "系统计算天数",
+            "项目确认天数",
+            "项目金额",
+            "项目金额（含税，元）",
+            "结账金额",
+            "结账金额（含税，元）",
+          ].includes(field)
+        )
+          return "时间与金额";
+        if (
+          ["资源类型", "采购包", "课程方向", "合作形式", "平台公司"].includes(
+            field,
+          )
+        )
+          return "商业资源";
+        if (["主讲师", "辅讲师", "项目助教"].includes(field))
+          return "项目人员";
+        if (field === "项目资料") return "项目资料";
+        if (["项目满意度", "人员满意度"].includes(field)) return "满意度";
+        return "基本信息";
+      }
+      function projectHistoryTitle(entry, changes) {
+        if (entry.title) return entry.title;
+        const field = changes[0]?.field;
+        if (["主阶段", "项目状态"].includes(field)) {
+          const after = changes[0]?.after;
+          if (after === "进行中") return "项目自动开始";
+          if (after === "已交付")
+            return entry.operator === "系统"
+              ? "培训项目自动交付"
+              : "确认项目交付";
+          if (after === "已完成") return "项目自动完成";
+          if (after === "已取消") return "取消项目";
+          if (after === "已中止") return "中止项目";
+        }
+        if (field === "AI 确认交付") return "确认项目交付";
+        if (field === "项目资料") return "维护项目资料";
+        if (["项目满意度", "人员满意度"].includes(field))
+          return "修改满意度";
+        return "编辑项目";
+      }
+      function normalizeProjectChangeEntry(entry, index) {
+        const changes = (Array.isArray(entry?.changes)
+          ? entry.changes
+          : entry?.field
+            ? [
+                {
+                  category: projectHistoryCategory(entry.field),
+                  field: entry.field === "主阶段" ? "项目状态" : entry.field,
+                  before: entry.before,
+                  after: entry.after,
+                },
+              ]
+            : []
+        )
+          .map((change, changeIndex) => ({ ...change, changeIndex }))
+          .sort(
+            (left, right) =>
+              PROJECT_HISTORY_CATEGORY_ORDER.indexOf(
+                left.category || projectHistoryCategory(left.field),
+              ) -
+                PROJECT_HISTORY_CATEGORY_ORDER.indexOf(
+                  right.category || projectHistoryCategory(right.field),
+                ) ||
+              left.changeIndex - right.changeIndex,
+          );
+        const categories = [
+          ...new Set([
+            ...(Array.isArray(entry?.categories) ? entry.categories : []),
+            ...changes.map(
+              (change) => change.category || projectHistoryCategory(change.field),
+            ),
+          ]),
+        ].sort(
+          (left, right) =>
+            PROJECT_HISTORY_CATEGORY_ORDER.indexOf(left) -
+            PROJECT_HISTORY_CATEGORY_ORDER.indexOf(right),
+        );
+        return {
+          ...entry,
+          index,
+          changes,
+          categories,
+          title: projectHistoryTitle(entry || {}, changes),
+          operator: entry?.operator || "未填写",
+          time: normalizedProjectHistoryTime(entry?.time),
+          summaries: Array.isArray(entry?.summaries) ? entry.summaries : [],
+          facts: Array.isArray(entry?.facts) ? entry.facts : [],
+        };
+      }
+      function sortedProjectHistory(items, timeField) {
+        return items
+          .map((item, index) => ({
+            item,
+            index,
+            time:
+              normalizedProjectHistoryTime(item?.[timeField]) === "未填写"
+                ? ""
+                : normalizedProjectHistoryTime(item?.[timeField]),
+          }))
+          .sort(
+            (left, right) =>
+              right.time.localeCompare(left.time) || right.index - left.index,
+          )
+          .map((entry) => ({ ...entry.item, _historyIndex: entry.index }));
+      }
+      function projectHistoryPage(kind, items) {
+        ensureProjectHistoryPagination(selectedProjectId || "");
+        const totalPages = Math.max(
+          Math.ceil(items.length / PROJECT_HISTORY_PAGE_SIZE),
+          1,
+        );
+        projectHistoryPagination[kind] = Math.min(
+          Math.max(projectHistoryPagination[kind] || 1, 1),
+          totalPages,
+        );
+        const currentPageNumber = projectHistoryPagination[kind];
+        return {
+          currentPageNumber,
+          totalPages,
+          items: items.slice(
+            (currentPageNumber - 1) * PROJECT_HISTORY_PAGE_SIZE,
+            currentPageNumber * PROJECT_HISTORY_PAGE_SIZE,
+          ),
+        };
+      }
+      function projectHistoryPaginationHtml(kind, page) {
+        if (page.totalPages <= 1) return "";
+        const pageButtons = Array.from(
+          { length: page.totalPages },
+          (_, index) => index + 1,
+        )
+          .map(
+            (pageNumber) =>
+              `<button class="project-history-page-number${pageNumber === page.currentPageNumber ? " active" : ""}" type="button" data-project-history-kind="${kind}" data-project-history-page="${pageNumber}" aria-label="第 ${pageNumber} 页"${pageNumber === page.currentPageNumber ? ' aria-current="page"' : ""}>${pageNumber}</button>`,
+          )
+          .join("");
+        return `<nav class="project-history-pagination" aria-label="${kind === "responsibility" ? "责任历史" : "变更历史"}分页"><button class="icon-btn" type="button" data-project-history-kind="${kind}" data-project-history-direction="prev" title="上一页" aria-label="上一页"${page.currentPageNumber <= 1 ? " disabled" : ""}>‹</button>${pageButtons}<button class="icon-btn" type="button" data-project-history-kind="${kind}" data-project-history-direction="next" title="下一页" aria-label="下一页"${page.currentPageNumber >= page.totalPages ? " disabled" : ""}>›</button></nav>`;
       }
       const PROJECT_RESPONSIBILITY_TRANSFER_STAGES = new Set([
         "已立项",
@@ -315,7 +497,7 @@
         );
       }
       function staffDisplay(names) {
-        return (names || []).join("、") || "—";
+        return (names || []).join("、") || "无";
       }
       function escapeHtml(value) {
         return String(value ?? "")
@@ -417,19 +599,36 @@
         const b = right || [];
         return a.length === b.length && a.every((item, index) => item === b[index]);
       }
-      function normalizeProjectLifecycle(project) {
+      function normalizeProjectLifecycle(
+        project,
+        activeHistoryEvent = null,
+        effectiveTime = "",
+      ) {
         if (!project) return;
         const target = computeProjectStageAndTodos(project);
-        if (target.stage !== project.stage) {
-          recordProjectChange(project, "主阶段", project.stage, target.stage, "", "系统");
-          project.stage = target.stage;
+        const stageOrder = ["已立项", "进行中", "已交付", "已完成"];
+        while (target.stage !== project.stage) {
+          const currentIndex = stageOrder.indexOf(project.stage);
+          const targetIndex = stageOrder.indexOf(target.stage);
+          const nextStage =
+            currentIndex >= 0 && targetIndex > currentIndex
+              ? stageOrder[currentIndex + 1]
+              : target.stage;
+          recordProjectLifecycleChange(
+            project,
+            project.stage,
+            nextStage,
+            activeHistoryEvent,
+            effectiveTime,
+          );
+          project.stage = nextStage;
         }
         if (!projectTodosEqual(project.todos, target.todos)) {
           project.todos = target.todos;
         }
       }
       function normalizeAllProjectLifecycles() {
-        projects.forEach(normalizeProjectLifecycle);
+        projects.forEach((project) => normalizeProjectLifecycle(project));
       }
       function projectActionTodoLabels(project) {
         if (!project || ["已完成", "已取消", "已中止"].includes(project.stage))
@@ -723,18 +922,6 @@
         return Object.keys(PROJECT_FILE_EXTENSION_RULES).filter((ext) =>
           category.kinds.includes(PROJECT_FILE_EXTENSION_RULES[ext].kind),
         );
-      }
-      function materialHistoryDisplay(material) {
-        if (!material) return "—";
-        return [
-          material.id,
-          material.category,
-          material.name,
-          material.kind,
-          formatFileSize(material.size),
-          material.addedBy,
-          material.addedAt,
-        ].join("｜");
       }
       function currentAccountKey() {
         const username = String(currentUser?.username || "").trim();
@@ -1258,30 +1445,101 @@
       function projectSatisfactionTab(project) {
         return `<div class="project-detail-section"><div class="section-title">满意度（1-100 分）</div>${projectSatisfactionHtml(project)}</div>`;
       }
+      function projectResponsibilitySummary(item) {
+        if (item.referenceSummary) return item.referenceSummary;
+        if (!item.referenceId) return "";
+        return `${item.area || "未填写"}责任由${item.fromOwner || "未填写"}交接给${item.toOwner || "未填写"}（${item.referenceType || "责任变更"}）`;
+      }
+      function projectResponsibilityItemHtml(item) {
+        if (item.isCreation) {
+          return `<div class="timeline-item project-history-item"><div class="timeline-title">创建立项，按客户业务责任地区匹配项目负责人 ${escapeHtml(item.owner)}</div><div class="project-history-meta">实际操作人 ${escapeHtml(item.operator)} · 生效时间 ${escapeHtml(item.effectiveAt)}</div></div>`;
+        }
+        const facts = [
+          `<div><span>责任地区</span>${escapeHtml(item.area || "未填写")}</div>`,
+          item.referenceId
+            ? `<div><span>关联业务编号</span>${escapeHtml(item.referenceId)}</div>`
+            : "",
+          item.referenceId
+            ? `<div><span>关联业务摘要</span>${escapeHtml(projectResponsibilitySummary(item))}</div>`
+            : "",
+          item.reason
+            ? `<div><span>变更原因</span>${escapeHtml(item.reason)}</div>`
+            : "",
+        ].join("");
+        return `<div class="timeline-item project-history-item"><div class="timeline-title">项目负责人：${escapeHtml(item.fromOwner || "未填写")} → ${escapeHtml(item.toOwner || "未填写")}</div><div class="project-history-facts">${facts}</div><div class="project-history-meta">实际操作人 ${escapeHtml(item.operator || "未填写")} · 生效时间 ${escapeHtml(normalizedProjectHistoryTime(item.effectiveAt))}</div></div>`;
+      }
+      function projectChangeItemHtml(entry) {
+        const displayHistoryValue = (change, value) => {
+          if (["开始时间", "结束时间"].includes(change.field))
+            return normalizedProjectHistoryTime(value);
+          return value === null || value === undefined || value === "" || value === "—"
+            ? "未填写"
+            : value;
+        };
+        const categories = entry.categories
+          .map(
+            (category) =>
+              `<span class="project-history-category" data-history-category="${escapeHtml(category)}">${escapeHtml(category)}</span>`,
+          )
+          .join("");
+        const changes = entry.changes
+          .map(
+            (change) =>
+              `<div class="project-history-change"><span>${escapeHtml(change.field)}</span>：${escapeHtml(displayHistoryValue(change, change.before))} <b aria-label="变更为">→</b> ${escapeHtml(displayHistoryValue(change, change.after))}</div>`,
+          )
+          .join("");
+        const summaries = entry.summaries
+          .map(
+            (summary) =>
+              `<div class="project-history-summary">${escapeHtml(summary)}</div>`,
+          )
+          .join("");
+        const facts = [
+          entry.reason
+            ? { label: "变更原因", value: entry.reason }
+            : null,
+          ...entry.facts,
+        ]
+          .filter(Boolean)
+          .map(
+            (fact) =>
+              `<div><span>${escapeHtml(fact.label)}</span>${escapeHtml(fact.value)}</div>`,
+          )
+          .join("");
+        return `<div class="timeline-item project-history-item"><div class="project-history-head"><div class="project-history-categories">${categories}</div><div class="timeline-title">${escapeHtml(entry.title)}</div></div>${changes || summaries ? `<div class="project-history-body">${changes}${summaries}</div>` : ""}<div class="project-history-meta">实际操作人 ${escapeHtml(entry.operator)} · 操作/生效时间 ${escapeHtml(entry.time)}</div>${facts ? `<div class="project-history-facts">${facts}</div>` : ""}</div>`;
+      }
       function projectHistoryTab(project) {
         const currentOwner = projectCurrentOwner(project);
-        const responsibilityHistory = projectResponsibilityHistory(project);
-        const responsibilityHtml = responsibilityHistory.length
-          ? responsibilityHistory
-              .map((item) => {
-                const ownerChange =
-                  item.fromOwner === item.toOwner
-                    ? `员工停用，项目保留原负责人 ${escapeHtml(item.toOwner)}`
-                    : `项目负责人 ${escapeHtml(item.fromOwner)} → ${escapeHtml(item.toOwner)}`;
-                return `<div class="timeline-item"><div>${ownerChange}</div><div class="detail-sub">${escapeHtml(item.area || "—")} · ${escapeHtml(item.effectiveAt || "—")} · 操作人 ${escapeHtml(item.operator || "—")}${item.referenceId ? ` · 关联 ${escapeHtml(item.referenceId)}` : ""}${item.reason ? ` · 原因 ${escapeHtml(item.reason)}` : ""}</div></div>`;
-              })
-              .join("")
-          : "";
-        const changes = projectChangeHistory(project);
-        const changeHtml = changes.length
-          ? `<div class="timeline">${changes
-              .map(
-                (change) =>
-                  `<div class="timeline-item"><div>${escapeHtml(change.field)}：${escapeHtml(change.before)} → ${escapeHtml(change.after)}</div><div class="detail-sub">${escapeHtml(change.operator)} · ${escapeHtml(change.time)}${change.reason ? ` · ${escapeHtml(change.reason)}` : ""}</div></div>`,
-              )
-              .join("")}</div>`
-          : '<div class="empty">暂无字段变更记录</div>';
-        return `<div class="project-detail-section"><div class="section-title">项目责任</div><div class="detail-grid"><div class="detail-item"><label>创建负责人快照</label><div>${escapeHtml(project.ownerSnapshot)}</div></div><div class="detail-item"><label>当前项目负责人</label><div>${escapeHtml(currentOwner)}</div></div></div></div><div class="project-detail-section"><div class="section-title">责任历史</div><div class="timeline"><div class="timeline-item"><div>创建立项，按客户地区责任匹配项目负责人 ${escapeHtml(project.ownerSnapshot)}</div><div class="detail-sub">${escapeHtml(project.createdAt)}</div></div>${responsibilityHtml}</div></div><div class="project-detail-section"><div class="section-title">变更历史</div>${changeHtml}</div>`;
+        const responsibilityRecords = sortedProjectHistory(
+          [
+            {
+              isCreation: true,
+              owner: project.ownerSnapshot,
+              operator: project.createdBy || project.ownerSnapshot,
+              effectiveAt: normalizedProjectHistoryTime(project.createdAt),
+            },
+            ...projectResponsibilityHistory(project),
+          ],
+          "effectiveAt",
+        );
+        const responsibilityPage = projectHistoryPage(
+          "responsibility",
+          responsibilityRecords,
+        );
+        const responsibilityHtml = responsibilityPage.items
+          .map(projectResponsibilityItemHtml)
+          .join("");
+        const changes = sortedProjectHistory(
+          projectChangeHistory(project),
+          "time",
+        ).map((entry) =>
+          normalizeProjectChangeEntry(entry, entry._historyIndex),
+        );
+        const changePage = projectHistoryPage("change", changes);
+        const changeHtml = changePage.items.length
+          ? `<div class="timeline project-history-timeline">${changePage.items.map(projectChangeItemHtml).join("")}</div>${projectHistoryPaginationHtml("change", changePage)}`
+          : '<div class="empty">暂无变更记录</div>';
+        return `<div class="project-detail-section"><div class="section-title">项目责任</div><div class="detail-grid"><div class="detail-item"><label>创建负责人快照</label><div>${escapeHtml(project.ownerSnapshot)}</div></div><div class="detail-item"><label>当前项目负责人</label><div>${escapeHtml(currentOwner)}</div></div></div></div><div class="project-detail-section"><div class="section-title">责任历史</div><div class="timeline project-history-timeline">${responsibilityHtml}</div>${projectHistoryPaginationHtml("responsibility", responsibilityPage)}</div><div class="project-detail-section"><div class="section-title">变更历史</div>${changeHtml}</div>`;
       }
       function renderProjectDetail() {
         if (!currentUser) return "";
@@ -1402,6 +1660,8 @@
           `<div class="detail-item"><label>采购包编号</label><div>${escapeHtml(pkg.id)}</div></div>` +
           `<div class="detail-item"><label>有效期起</label><div>${escapeHtml(pkg.validFrom)}</div></div>` +
           `<div class="detail-item"><label>有效期止</label><div>${escapeHtml(pkg.validTo)}</div></div>` +
+          `<div class="detail-item"><label>创建时间</label><div>${escapeHtml(pkg.createdAt || "—")}</div></div>` +
+          `<div class="detail-item"><label>最近编辑时间</label><div>${escapeHtml(pkg.lastEditedAt || "—")}</div></div>` +
           "</div></div>" +
           '<div class="project-detail-section"><div class="section-title">课程方向</div><div class="table-wrap"><table class="project-package-detail-table"><thead><tr><th>课程方向</th><th>不含税报价（元/天）</th><th>税率（%）</th><th>含税报价（元/天）</th></tr></thead>' +
           `<tbody>${directionRows}</tbody></table></div></div></div>`
@@ -1418,23 +1678,65 @@
         const actions = canManage
           ? '<button class="btn btn-primary" data-config-action="add-package">新增采购包</button>'
           : "";
+        const filters =
+          '<div class="toolbar filter-toolbar">' +
+          filterField(
+            "采购包编号",
+            '<input class="input" id="projectPackageIdFilter" maxlength="13" placeholder="采购包编号">',
+          ) +
+          filterField(
+            "采购包名称",
+            '<input class="input" id="projectPackageNameFilter" maxlength="100" placeholder="采购包名称">',
+          ) +
+          (canManage
+            ? filterField(
+                "状态",
+                '<select class="input" id="projectPackageStatusFilter"><option value="">全部状态</option><option value="正常">正常</option><option value="停用">停用</option></select>',
+              )
+            : "") +
+          filterField(
+            "创建时间起",
+            '<input class="input" id="projectPackageCreatedFromFilter" type="date">',
+          ) +
+          filterField(
+            "创建时间止",
+            '<input class="input" id="projectPackageCreatedToFilter" type="date">',
+          ) +
+          filterField(
+            "最近编辑时间起",
+            '<input class="input" id="projectPackageEditedFromFilter" type="date">',
+          ) +
+          filterField(
+            "最近编辑时间止",
+            '<input class="input" id="projectPackageEditedToFilter" type="date">',
+          ) +
+          filterActions(
+            '<button class="btn btn-primary" id="applyProjectPackageFilters" type="button">筛选</button><button class="btn" id="resetProjectPackageFilters" type="button">重置</button>',
+          ) +
+          "</div>";
         const rows = visible
           .map((pkg) => {
+            const packageId = escapeHtml(pkg.id);
+            const packageName = escapeHtml(pkg.name);
+            const packageNameFilter = escapeHtml(pkg.name.toLowerCase());
+            const packageStatus = escapeHtml(pkg.status);
+            const createdAt = escapeHtml(pkg.createdAt || "");
+            const lastEditedAt = escapeHtml(pkg.lastEditedAt || "");
             const manageOps = canManage
               ? `<button class="link" data-config-action="edit-package" data-config-id="${pkg.id}">编辑</button><button class="link" data-config-action="${pkg.status === "正常" ? "stop-package" : "restore-package"}" data-config-id="${pkg.id}">${pkg.status === "正常" ? "停用" : "恢复"}</button>`
               : "";
             const ops = `<span class="project-config-actions"><button class="link" data-config-action="view-package" data-config-id="${pkg.id}">详情</button>${manageOps}</span>`;
-            return `<tr><td>${pkg.id}</td><td>${pkg.name}</td><td>${configStatusTag(pkg.status)}</td><td>${pkg.validFrom} ~ ${pkg.validTo}</td><td>${pkg.directions.length} 个</td><td>${ops}</td></tr>`;
+            return `<tr data-page-row data-project-package-row data-package-id="${packageId}" data-package-name="${packageNameFilter}" data-package-status="${packageStatus}" data-package-created-date="${createdAt.slice(0, 10)}" data-package-edited-date="${lastEditedAt.slice(0, 10)}"><td>${packageId}</td><td>${packageName}</td><td>${configStatusTag(pkg.status)}</td><td>${pkg.validFrom} ~ ${pkg.validTo}</td><td>${createdAt || "—"}</td><td>${lastEditedAt || "—"}</td><td>${pkg.directions.length} 个</td><td>${ops}</td></tr>`;
           })
           .join("");
         return (
           '<div class="project-page project-config-page">' +
           pageHead(
             "采购包管理",
-            "查看采购包编号、名称、状态、有效期与课程方向。",
+            "查看采购包编号、名称、状态、有效期、创建与编辑时间及课程方向。",
             actions,
           ) +
-          `<section class="panel project-config-panel"><div class="table-wrap project-config-table-wrap"><table class="project-config-table project-package-table"><thead><tr><th>采购包编号</th><th>采购包名称</th><th>状态</th><th>有效期</th><th>课程方向</th><th>操作</th></tr></thead><tbody>${rows || '<tr data-empty-row><td colspan="6"><div class="empty">暂无采购包</div></td></tr>'}</tbody></table></div></section>` +
+          `<section class="panel project-config-panel">${filters}<div class="table-wrap project-config-table-wrap"><table class="project-config-table project-package-table" data-paged-table="m11-packages"><thead><tr><th>采购包编号</th><th>采购包名称</th><th>状态</th><th>有效期</th><th>创建时间</th><th>最近编辑时间</th><th>课程方向</th><th>操作</th></tr></thead><tbody>${rows || '<tr data-empty-row id="projectPackageDefaultEmpty"><td colspan="8"><div class="empty">暂无采购包</div></td></tr>'}<tr data-filter-empty id="projectPackageFilterEmpty" style="display:none"><td colspan="8"><div class="empty">未找到符合条件的采购包，请调整条件或重置筛选</div></td></tr></tbody></table></div>${tablePagination("m11-packages")}</section>` +
           "</div>"
         );
       }
@@ -1900,10 +2202,12 @@
             "统一社会信用代码",
             '<input class="input" id="platformCompanyCreditFilter" maxlength="18" placeholder="统一社会信用代码">',
           ) +
-          filterField(
-            "状态",
-            '<select class="input" id="platformCompanyStatusFilter"><option value="">全部状态</option><option value="正常">正常</option><option value="停用">停用</option></select>',
-          ) +
+          (canManage
+            ? filterField(
+                "状态",
+                '<select class="input" id="platformCompanyStatusFilter"><option value="">全部状态</option><option value="正常">正常</option><option value="停用">停用</option></select>',
+              )
+            : "") +
           filterActions(
             '<button class="btn btn-primary" id="applyPlatformCompanyFilters" type="button">筛选</button><button class="btn" id="resetPlatformCompanyFilters" type="button">重置</button>',
           ) +
@@ -1918,7 +2222,7 @@
             const ops = canManage
               ? `<span class="project-config-actions"><button class="link" data-config-action="edit-company" data-config-id="${company.id}">编辑</button><button class="link" data-config-action="${company.status === "正常" ? "stop-company" : "restore-company"}" data-config-id="${company.id}">${company.status === "正常" ? "停用" : "恢复"}</button></span>`
               : "—";
-            return `<tr data-platform-company-row data-company-id="${companyId}" data-company-name="${companyNameFilter}" data-company-credit="${creditCode}" data-company-status="${status}"><td>${companyId}</td><td>${companyName}</td><td>${creditCode || "—"}</td><td>${formatConfigPercent(company.managementFeeRate)}</td><td>${formatProjectMoney(company.cooperationPay)} 元/天</td><td>${configStatusTag(company.status)}</td><td>${ops}</td></tr>`;
+            return `<tr data-page-row data-platform-company-row data-company-id="${companyId}" data-company-name="${companyNameFilter}" data-company-credit="${creditCode}" data-company-status="${status}"><td>${companyId}</td><td>${companyName}</td><td>${creditCode || "—"}</td><td>${formatConfigPercent(company.managementFeeRate)}</td><td>${formatProjectMoney(company.cooperationPay)} 元/天</td><td>${configStatusTag(company.status)}</td><td>${ops}</td></tr>`;
           })
           .join("");
         return (
@@ -1928,7 +2232,7 @@
             "查看平台公司编号、名称、统一社会信用代码、管理费比例、合作课酬与状态。",
             actions,
           ) +
-          `<section class="panel project-config-panel">${filters}<div class="table-wrap project-config-table-wrap"><table class="project-config-table project-company-table" style="min-width:1120px"><thead><tr><th>平台公司编号</th><th>平台公司名称</th><th>统一社会信用代码</th><th>管理费比例</th><th>合作课酬</th><th>状态</th><th>操作</th></tr></thead><tbody>${rows || '<tr data-empty-row id="platformCompanyDefaultEmpty"><td colspan="7"><div class="empty">暂无平台公司</div></td></tr>'}<tr id="platformCompanyFilterEmpty" style="display:none"><td colspan="7"><div class="empty">未找到符合条件的平台公司，请调整条件或重置筛选</div></td></tr></tbody></table></div></section>` +
+          `<section class="panel project-config-panel">${filters}<div class="table-wrap project-config-table-wrap"><table class="project-config-table project-company-table" style="min-width:1120px" data-paged-table="m11-platform-companies"><thead><tr><th>平台公司编号</th><th>平台公司名称</th><th>统一社会信用代码</th><th>管理费比例</th><th>合作课酬</th><th>状态</th><th>操作</th></tr></thead><tbody>${rows || '<tr data-empty-row id="platformCompanyDefaultEmpty"><td colspan="7"><div class="empty">暂无平台公司</div></td></tr>'}<tr data-filter-empty id="platformCompanyFilterEmpty" style="display:none"><td colspan="7"><div class="empty">未找到符合条件的平台公司，请调整条件或重置筛选</div></td></tr></tbody></table></div>${tablePagination("m11-platform-companies")}</section>` +
           "</div>"
         );
       }

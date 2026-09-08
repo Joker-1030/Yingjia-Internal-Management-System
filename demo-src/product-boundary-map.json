@@ -1,11 +1,11 @@
 {
   "schemaVersion": 1,
   "product": "英嘉科技内部管理系统",
-  "updatedAt": "2026-09-04",
+  "updatedAt": "2026-09-07",
   "purpose": "AI feature classification and product impact analysis",
   "scope": {
     "primary_features": ["M01", "M02", "M03", "M04", "M05", "M06", "M07", "M08", "M09", "M10", "M11", "M12"],
-    "supporting_capabilities": ["P01"],
+    "supporting_capabilities": ["P00", "P01"],
     "boundary_basis": ["user_goal", "business_responsibility", "user_workflow", "product_lifecycle"],
     "not_a_code_map": true
   },
@@ -25,11 +25,41 @@
     "prd-workspace/decisions/DEC-198-客户侧停用恢复仅管理员直接生效.md",
     "prd-workspace/decisions/DEC-201-项目取消收紧并新增进行中中止与结算记录.md",
     "prd-workspace/decisions/DEC-202-员工停用先失效账号并按责任分组交接.md",
+    "prd-workspace/decisions/DEC-206-PM与地市销售责任独立于PM责任.md",
+    "prd-workspace/decisions/DEC-207-取消独立停用记录并由业务所有者保留历史.md",
+    "prd-workspace/decisions/DEC-208-商机负责人按客户责任匹配并纳入员工停用交接.md",
+    "prd-workspace/decisions/DEC-209-PM统一承担销售与地市商机责任.md",
     "prd-workspace/GLOSSARY.md",
     "prd-workspace/current/modules/"
   ],
   "unknown_policy": "Use unknown when the current product truth does not define a boundary or behavior.",
   "features": [
+    {
+      "id": "P00",
+      "name": "登录与会话边界",
+      "kind": "supporting_capability",
+      "responsibility": [
+        "使用手机号、密码和图片验证码完成登录",
+        "按当前角色权限进入默认页面并处理无权返回",
+        "在密码或验证码错误时按确认规则保留、清空和刷新字段"
+      ],
+      "not_responsible_for": [
+        "定义业务模块权限或数据范围",
+        "从登录页推导新角色、新权限或业务菜单"
+      ],
+      "core_objects": ["登录凭证", "图片验证码", "会话", "默认落地页"],
+      "pages": ["登录", "无权访问"],
+      "states": ["未登录", "登录成功", "图片验证码错误", "手机号或密码错误", "账号不可用", "无权访问"],
+      "related_features": ["M01", "M06", "M07"],
+      "common_changes": ["登录凭证校验", "异常恢复", "默认落地页", "无权返回"],
+      "classification_guide": {
+        "module_upgrade": "既有登录字段、验证、会话或返回行为变化",
+        "new_capability": "仍服务身份验证和会话边界但形成新的完整流程",
+        "new_module": "业务模块权限和数据范围不属于登录能力"
+      },
+      "migration_status": "supporting-current",
+      "source": "prd-workspace/current/modules/P00-login.md"
+    },
     {
       "id": "M01",
       "name": "工作台",
@@ -71,7 +101,7 @@
       ],
       "core_objects": ["集团公司", "客户公司", "关键人", "关键人任职", "客户责任", "客户健康"],
       "pages": ["客户经营", "集团公司详情", "客户公司详情", "关键人详情", "关键人全部客户动态", "关键人调岗"],
-      "states": ["page:Loading/Empty/EmptyResult/Error/PermissionDenied", "selection:未选择客户/未选择关键人", "business:关键人正常/已停用", "related-approval:调岗审批中", "runtime:责任配置异常"],
+      "states": ["page:Loading/Empty/EmptyResult/Error/PermissionDenied", "selection:未选择客户/未选择关键人", "business:关键人正常/已停用", "runtime:责任配置异常"],
       "related_features": ["M01", "M03", "M04", "M05", "M06", "M08", "M09", "M10", "M11", "M12", "P01"],
       "common_changes": ["客户或关键人字段调整", "客户筛选调整", "客户详情展示调整", "关键人任职或调岗规则调整", "客户责任与可见范围调整"],
       "classification_guide": {
@@ -98,7 +128,7 @@
       ],
       "core_objects": ["父任务", "任务执行记录", "专项", "覆盖 KPI 执行项", "维系记录", "附件"],
       "pages": ["任务总览", "执行明细/我的任务", "专项详情", "维系记录"],
-      "states": ["page:Loading/Empty/EmptyResult/Error/PermissionDenied", "business-task:待执行/当前逾期/补录审核中/已完成/已过期未完成/已取消", "business-parent:待开始/进行中/已结束", "business-special:待开始/进行中/已结束", "runtime:暂停事实/局部数据不可用"],
+      "states": ["page:Loading/Empty/EmptyResult/Error/PermissionDenied", "business-task:待执行/暂停/当前逾期/已完成/已过期未完成/已取消", "business-parent:待开始/进行中/已结束", "business-special:待开始/进行中/已结束", "runtime:局部数据不可用"],
       "related_features": ["M01", "M02", "M04", "M05", "M06", "M07", "M08", "M09", "M10", "P01"],
       "common_changes": ["任务筛选或字段调整", "任务状态或完成口径调整", "维系规则调整", "专项范围或 KPI 口径调整", "维系记录字段调整"],
       "classification_guide": {
@@ -113,9 +143,7 @@
       "id": "M04",
       "name": "审批中心",
       "responsibility": [
-        "集中展示和处理跨业务模块的审批实例，普通审批动作仅提交、通过、驳回",
-        "提供待处理、已处理、我发起和抄送视角",
-        "呈现流程节点、处理记录、失效处理人受控替换及业务生效失败重试结果"
+        "保留已评审前的延期边界，不作为当前可用能力"
       ],
       "not_responsible_for": [
         "定义业务对象自身的字段和生命周期",
@@ -123,9 +151,9 @@
         "提供流程设计器或任意流程配置",
         "承载员工部门/角色编辑、员工停用/恢复或客户侧停用/恢复审批"
       ],
-      "core_objects": ["审批实例", "审批节点", "处理动作", "抄送关系", "流程记录"],
-      "pages": ["待我处理", "我已处理", "我发起的", "抄送我的", "审批详情"],
-      "states": ["page:Loading/Empty/EmptyResult/Error/PermissionDenied/Submitting", "approval-instance:审批中/已通过/已驳回/已通过-业务处理失败", "related-display:已通过待生效", "node-runtime:处理人失效/流程暂停"],
+      "core_objects": [],
+      "pages": [],
+      "states": [],
       "related_features": ["M02", "M03", "M05", "M06", "M07", "M08", "M09", "M10", "M12", "P01"],
       "common_changes": ["审批筛选或展示调整", "审批动作调整", "业务流程路由调整", "节点状态与历史展示调整", "预设会签或预设抄送规则调整"],
       "classification_guide": {
@@ -133,25 +161,23 @@
         "new_capability": "审批目标不变但增加新的通用处理流程",
         "new_module": "业务对象的核心生命周期应归属发起业务模块；流程设计器属于另行评估的新能力"
       },
-      "migration_status": "current",
+      "migration_status": "deferred-unreviewed-not-started",
       "source": "prd-workspace/current/modules/M04-approval.md"
     },
     {
       "id": "M05",
       "name": "停用记录",
       "responsibility": [
-        "统一承载客户侧对象的停用、恢复和历史查询",
-        "按显式组织上级识别正常下级并展示停用原因、影响校验、级联处理、替代关系及恢复记录",
-        "仅由唯一内置admin二次确认后直接原子生效，并保持停用对象的审计链"
+        "保留 M05 编号和已移除边界，防止历史停用记录方案被误恢复"
       ],
       "not_responsible_for": [
         "物理删除业务对象",
         "处理行业直接停用或内部员工停用",
         "普通编辑客户、关键人或客户部门"
       ],
-      "core_objects": ["停用操作", "恢复操作", "对象快照", "影响摘要", "停用记录"],
-      "pages": ["停用记录列表", "停用记录详情", "恢复操作"],
-      "states": ["page:Loading/Empty/EmptyResult/Error/PermissionDenied/Submitting", "business:正常/已停用"],
+      "core_objects": [],
+      "pages": [],
+      "states": [],
       "related_features": ["M02", "M03", "M04", "M06", "M08", "M09", "M10", "P01"],
       "common_changes": ["适用对象调整", "停用或恢复规则调整", "级联影响调整", "筛选与历史展示调整", "阻断条件调整"],
       "classification_guide": {
@@ -159,7 +185,7 @@
         "new_capability": "仍以对象退出/恢复和审计为目标但形成新流程",
         "new_module": "与对象停用恢复无关的归档、删除或其他独立生命周期"
       },
-      "migration_status": "current",
+      "migration_status": "removed",
       "source": "prd-workspace/current/modules/M05-archive.md"
     },
     {
@@ -169,7 +195,8 @@
         "维护英嘉内部部门、主管和员工档案",
         "维护员工与系统角色的关联及账号可用状态",
         "维护员工一个或多个平级部门及人工/自动来源角色",
-        "由 HR/admin 直接停用或恢复员工；停用确认后先停用员工和账号，再按 PM 地市或区域总监区域中心选择同角色接收人，编排责任、任务和项目交接并保留审批节点",
+        "由 HR/admin 直接停用或恢复员工；停用确认后先停用员工和账号，再独立处理 PM 地市和区域总监区域中心责任组",
+        "PM 责任组统一处理任务、项目和未落选商机，区域总监责任组同时接任区域运营中心主管",
         "让用户查找组织成员并理解当前组织责任关系"
       ],
       "not_responsible_for": [
@@ -180,7 +207,7 @@
       ],
       "core_objects": ["内部部门", "部门成员关系", "部门主管", "员工", "员工账号", "系统角色关联", "人员/组织变动记录"],
       "pages": ["组织树", "员工列表", "员工详情", "人员/组织变动记录", "员工新增/编辑", "员工停用/恢复"],
-      "states": ["page:Loading/Empty/EmptyResult/Error/PermissionDenied/Submitting", "business-department:正常/已停用/主管待设置", "business-employee:在职/停用", "business-account:启用/停用", "operation:编辑成功/停用成功/恢复成功/版本冲突/操作失败"],
+      "states": ["page:Loading/Empty/EmptyResult/Error/PermissionDenied/Submitting", "business-department:正常/主管待设置", "business-employee:在职/停用", "business-account:启用/停用", "operation:编辑成功/停用成功/恢复成功/版本冲突/操作失败"],
       "related_features": ["M01", "M02", "M03", "M04", "M05", "M07", "M08", "M09", "M10", "M11", "M12", "P01"],
       "common_changes": ["组织层级或主管规则调整", "员工多部门关系调整", "员工档案字段调整", "员工筛选与可见性调整", "人工/自动角色关联调整", "停用/恢复及责任清空调整", "账号状态与用户可见记录调整"],
       "classification_guide": {
@@ -223,17 +250,18 @@
       "responsibility": [
         "把内部区域中心部门配置为业务区域",
         "维护区域与省份、驻地的映射",
-        "维护区域 PM 与地市责任关系及交接/直接调整，受控修复失效责任并保留原历史，按客户业务责任事实输出负责人和范围",
-        "在 M06 员工停用中按地市或区域中心责任组建立新责任并保留历史，不接管员工生命周期"
+        "维护统一 PM 地市责任关系，按客户业务责任事实输出项目/维系负责人和商机负责人",
+        "地市交接无审批，支持立即或计划生效，保留交接事实和历史，不在我的地市提供“查看交接”",
+        "在 M06 员工停用中按 PM 地市或区域中心责任组建立新责任并保留历史，不接管员工生命周期"
       ],
       "not_responsible_for": [
         "新增或编辑内部部门、部门名称和区域中心主管",
         "编辑员工多部门关系、员工状态或人工/自动系统角色",
         "维护客户公司主数据、显式组织上级、客户组织路径、关键人或项目生命周期"
       ],
-      "core_objects": ["区域中心配置", "省份映射", "驻地城市", "地市负责人关系", "地市交接"],
+      "core_objects": ["区域中心配置", "省份映射", "驻地城市", "PM地市责任", "地市交接"],
       "pages": ["区域中心配置", "地市负责人配置-按地市", "地市负责人配置-按PM", "PM地市管理", "地市负责人交接"],
-      "states": ["page:Loading/Empty/EmptyResult/Error/PermissionDenied/Submitting", "business-region:待配置/已配置/配置异常", "business-city-responsibility:待分配/已分配", "related-approval:交接审批中/已通过待生效/已驳回", "operation:迁移成功/业务处理失败"],
+      "states": ["page:Loading/Empty/EmptyResult/Error/PermissionDenied/Submitting", "business-region:待配置/已配置/配置异常", "business-city-responsibility:待分配/已分配", "handover:立即生效/计划生效/待生效", "operation:迁移成功/业务处理失败"],
       "related_features": ["M01", "M02", "M03", "M04", "M06", "M10", "M11", "M12", "P01"],
       "common_changes": ["区域映射调整", "区域可见范围或菜单调整", "地市分配规则调整", "负责人交接流程调整", "责任迁移影响调整"],
       "classification_guide": {
@@ -329,7 +357,7 @@
       "id": "M12",
       "name": "销售与商机管理",
       "responsibility": [
-        "维护公司、区域和 PM 的逐月商机数量指标、版本和守恒分配",
+        "维护公司、区域和PM的逐月商机数量指标、版本和守恒分配",
         "展示所选周期目标完成与当前商机快照、漏斗、趋势和客户覆盖",
         "管理商机创建、顺序推进、负责人改派、结构化跟进和多人方案支撑"
       ],
@@ -340,7 +368,7 @@
         "改变 M11 当前人工创建项目的规则"
       ],
       "core_objects": ["销售指标版本", "商机", "商机阶段记录", "商机跟进记录", "方案支撑请求"],
-      "pages": ["销售仪表盘", "销售指标", "商机列表", "商机新建", "商机详情"],
+      "pages": ["销售仪表盘", "销售指标", "我的销售指标", "商机列表", "商机新建", "商机详情", "我的方案支撑", "方案支撑管理"],
       "states": ["page:Loading/Empty/EmptyResult/Error/PermissionDenied/Submitting", "business-opportunity:商机录入/需求确认/方案支撑/比选/中选/落选", "business-support:待响应/已响应/支撑中/已交付/已关闭", "operation:指标不守恒/阶段不允许/跟进逾期/支撑超时"],
       "related_features": ["M02", "M04", "M06", "M08", "M09", "M11", "P01"],
       "common_changes": ["销售指标维度或分配规则调整", "仪表盘口径调整", "商机字段或阶段调整", "跟进规则调整", "方案支撑规则调整"],

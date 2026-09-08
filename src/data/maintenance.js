@@ -1,4 +1,4 @@
-      const DEMO_TODAY = "2026-08-17";
+      const DEMO_TODAY = "2026-09-07";
       const maintenanceConfig = {
         cycles: { 一级: 7, 二级: 15, 三级: 30, 四级: 45 },
         reminders: {
@@ -320,7 +320,7 @@
           createdAt: "2026-08-11 10:05",
           summary: "沟通下半年培训预算和内部决策安排。",
           feedback: "预算已进入最终复核。",
-          next: "审批后补充需求清单",
+          next: "预算复核完成后补充需求清单",
           pm: "徐经理",
           region: "江苏区域",
           attachments: ["合肥联通沟通截图.png"],

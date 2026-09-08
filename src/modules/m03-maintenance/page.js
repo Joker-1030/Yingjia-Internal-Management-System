@@ -56,8 +56,8 @@
             ? Number(((done / active.length) * 100).toFixed(1))
             : null,
           onTimeRate: active.length
-            ? Math.round((onTimeDone / active.length) * 100)
-            : 0,
+            ? Number(((onTimeDone / active.length) * 100).toFixed(1))
+            : null,
         };
       }
 
@@ -269,9 +269,9 @@
         const activeRows = rows.filter((task) => task.status !== "cancelled");
         const counts = executionStatusCounts(activeRows);
         if (!executionTableStates[key])
-          executionTableStates[key] = { status: "pending", page: 1, pageSize: 10 };
+          executionTableStates[key] = { status: "pending", page: 1, pageSize: 20 };
         const state = executionTableStates[key];
-        return `<div class="execution-table" data-execution-table="${key}"><div class="tabs execution-tabs">${executionStatusTabsHtml(counts, state.status)}</div><div class="table-wrap"><table style="min-width:1360px"><thead><tr><th>客户公司</th><th>关键人</th><th>任务标题</th><th>任务编号</th><th>任务执行记录编号</th><th>区域</th><th>城市</th><th>执行人</th><th>截止时间</th><th>当前状态</th></tr></thead><tbody>${activeRows.map((task) => `<tr data-execution-group="${executionStatusGroup(task.status)}"><td><strong>${task.company}</strong></td><td>${task.person}</td><td>${task.title}</td><td>${task.parentTaskCode}</td><td>${task.executionCode}</td><td>${task.region || "待配置"}</td><td>${taskCity(task)}</td><td>${task.pm}</td><td>${task.due}</td><td><span class="tag ${taskStatusTone(task)}">${taskStatusName(task.status, task)}</span></td></tr>`).join("") || '<tr data-empty-row><td colspan="10">当前范围暂无执行明细</td></tr>'}</tbody></table></div><div class="table-pagination"><span data-page-summary></span><label class="table-page-size">每页<select class="input" data-execution-page-size><option value="10">10 条</option><option value="20">20 条</option><option value="50">50 条</option></select></label><button class="icon-btn" type="button" data-page-direction="prev" title="上一页" aria-label="上一页">‹</button><button class="icon-btn" type="button" data-page-direction="next" title="下一页" aria-label="下一页">›</button></div></div>`;
+        return `<div class="execution-table" data-execution-table="${key}"><div class="tabs execution-tabs">${executionStatusTabsHtml(counts, state.status)}</div><div class="table-wrap"><table style="min-width:1360px"><thead><tr><th>客户公司</th><th>关键人</th><th>任务标题</th><th>任务编号</th><th>任务执行记录编号</th><th>区域</th><th>城市</th><th>执行人</th><th>截止时间</th><th>当前状态</th></tr></thead><tbody>${activeRows.map((task) => `<tr data-execution-group="${executionStatusGroup(task.status)}"><td><strong>${task.company}</strong></td><td>${task.person}</td><td>${task.title}</td><td>${task.parentTaskCode}</td><td>${task.executionCode}</td><td>${task.region || "待配置"}</td><td>${taskCity(task)}</td><td>${task.pm}</td><td>${task.due}</td><td><span class="tag ${taskStatusTone(task)}">${taskStatusName(task.status, task)}</span></td></tr>`).join("") || '<tr data-empty-row><td colspan="10">当前范围暂无执行明细</td></tr>'}</tbody></table></div><div class="table-pagination"><span data-page-summary></span><label class="table-page-size">每页<select class="input" data-execution-page-size><option value="20">20 条</option><option value="50">50 条</option><option value="100">100 条</option></select></label><button class="icon-btn" type="button" data-page-direction="prev" title="上一页" aria-label="上一页">‹</button><button class="icon-btn" type="button" data-page-direction="next" title="下一页" aria-label="下一页">›</button></div></div>`;
       }
 
       function bindExecutionTables() {
@@ -280,14 +280,14 @@
           const state = executionTableStates[key] || {
             status: "pending",
             page: 1,
-            pageSize: 10,
+            pageSize: 20,
           };
           executionTableStates[key] = state;
           const pageSizeControl = table.querySelector("[data-execution-page-size]");
           if (pageSizeControl)
-            pageSizeControl.value = String(state.pageSize || 10);
+            pageSizeControl.value = String(state.pageSize || 20);
           const apply = () => {
-            const pageSize = state.pageSize || 10;
+            const pageSize = state.pageSize || 20;
             const rows = [...table.querySelectorAll("tbody tr[data-execution-group]")];
             const filteredByControls = rows.filter(
               (row) => row.dataset.filterMatch !== "false",
@@ -348,7 +348,7 @@
           });
           if (pageSizeControl)
             pageSizeControl.onchange = () => {
-              state.pageSize = Number(pageSizeControl.value || 10);
+              state.pageSize = Number(pageSizeControl.value || 20);
               state.page = 1;
               apply();
             };
@@ -481,7 +481,7 @@
               ? `<span class="link" data-action="record-detail" data-id="${record.id}">维系记录</span>`
               : `<span class="link" data-action="task-detail" data-id="${t.id}">任务详情</span>`;
           return `<tr data-execution-group="${executionStatusGroup(t.status)}" data-search="${t.parentTaskCode}${t.executionCode}${t.title}${t.person}${t.company}${t.type}${t.status}${taskCity(t)}" data-task-type="${t.type}" data-task-owner="${t.pm}" data-task-region="${t.region || "待配置"}" data-task-city="${taskCity(t)}" data-task-due="${t.due}" data-task-risk="${taskIsHealthRisk(t) ? "true" : "false"}" data-task-done-month="${t.status === "done" ? taskBusinessMonth(t, "done") : ""}" data-task-overdue-month="${t.everOverdue ? taskBusinessMonth(t, "overdue") : ""}" data-task-completion-type="${t.completionType || (t.status === "done" ? "on_time" : "")}"><td><strong>${t.title}</strong><div class="list-sub">执行编号 ${t.executionCode} · 任务编号 ${t.parentTaskCode}</div><div class="list-sub">${t.company}${t.status === "paused" ? ` · 至${t.resumeDate}恢复 · 暂停期间不计逾期` : ""}</div></td><td><span class="tag ${taskTypeMeta(t.type).tone}">${t.type}</span></td><td>${t.person}</td><td>${t.region || "待配置"}</td><td>${taskCity(t)}</td><td>${t.pm}</td><td>${t.due}</td><td><span class="tag ${taskStatusTone(t)}">${taskStatusName(t.status, t)}</span></td><td>${detail}${taskCanTakeAction(t) ? ` · <span class="link" data-complete="${t.id}">${currentUser.fullAccess ? "代办完成" : "完成"}</span>` : ""}</td></tr>`;
-        }).join("") || '<tr data-empty-row><td colspan="9">当前范围暂无执行明细</td></tr>'}</tbody></table></div><div class="table-pagination"><span data-page-summary></span><label class="table-page-size">每页<select class="input" data-execution-page-size><option value="10">10 条</option><option value="20">20 条</option><option value="50">50 条</option></select></label><button class="icon-btn" type="button" data-page-direction="prev" title="上一页" aria-label="上一页">‹</button><button class="icon-btn" type="button" data-page-direction="next" title="下一页" aria-label="下一页">›</button></div></div>`;
+        }).join("") || '<tr data-empty-row><td colspan="9">当前范围暂无执行明细</td></tr>'}</tbody></table></div><div class="table-pagination"><span data-page-summary></span><label class="table-page-size">每页<select class="input" data-execution-page-size><option value="20">20 条</option><option value="50">50 条</option><option value="100">100 条</option></select></label><button class="icon-btn" type="button" data-page-direction="prev" title="上一页" aria-label="上一页">‹</button><button class="icon-btn" type="button" data-page-direction="next" title="下一页" aria-label="下一页">›</button></div></div>`;
       }
 
       function maintenanceRecordCode(record) {

@@ -19,7 +19,7 @@
           (cities) => Object.keys(cities),
         );
         openModal(
-          `<div class="modal-head"><div class="modal-title">编辑区域配置</div><button class="icon-btn close" data-close>×</button></div><form id="regionForm"><div class="modal-body"><div class="form-grid"><div class="form-group"><label class="form-label">区域中心名称 / 编码</label><input class="input" value="${department.name} / ${department.code}" disabled><div class="list-sub">组织基础信息须在“组织与员工”中修改</div></div><div class="form-group"><label class="form-label">区域总监</label><input class="input" value="${supervisor ? `${supervisor.name} / ${supervisor.code}` : "主管待配置"}" disabled><div class="list-sub">区域中心主管即区域总监</div></div><div class="form-group full"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>关联省份</label><div class="multi-select" id="regionProvinceSelect"><button class="multi-select-trigger" id="regionProvinceTrigger" type="button"><span id="regionProvinceText"></span><span>⌄</span></button><div class="multi-select-menu hidden" id="regionProvinceMenu"><input class="input" id="regionProvinceSearch" placeholder="搜索省份"><div id="regionProvinceOptions">${allProvinces
+          `<div class="modal-head"><div class="modal-title">编辑区域配置</div><button class="icon-btn close" data-close>×</button></div><form id="regionForm"><div class="modal-body"><div class="role-note">${escapeHtml(department.name)}</div><div class="form-grid"><div class="form-group full"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>关联省份</label><div class="multi-select" id="regionProvinceSelect"><button class="multi-select-trigger" id="regionProvinceTrigger" type="button"><span id="regionProvinceText"></span><span>⌄</span></button><div class="multi-select-menu hidden" id="regionProvinceMenu"><input class="input" id="regionProvinceSearch" placeholder="搜索省份"><div id="regionProvinceOptions">${allProvinces
             .map((province) => {
               const owner = regionsData.find(
                 (item) =>
@@ -30,7 +30,7 @@
             })
             .join(
               "",
-            )}</div></div></div></div><div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>驻地城市</label><select class="input" id="regBase" required></select><div class="list-sub">系统管理员与市场副总可修改</div></div><div class="form-group full"><label class="form-label">备注</label><textarea class="input" id="regRemark" maxlength="500" placeholder="选填，最多 500 字">${region.remark || ""}</textarea></div></div><div class="role-note">这里只维护区域业务映射。部门名称、编码、区域中心标记和主管统一在“组织与员工”维护，保存后按组织主管重新计算省公司负责人和数据范围。</div></div><div class="modal-foot"><button class="btn" type="button" data-close>取消</button><button class="btn btn-primary" type="submit">保存区域配置</button></div></form>`,
+            )}</div></div></div></div><div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>驻地城市</label><select class="input" id="regBase" required></select></div><div class="form-group full"><label class="form-label">备注</label><textarea class="input" id="regRemark" maxlength="500" placeholder="选填，最多 500 字">${region.remark || ""}</textarea></div></div></div><div class="modal-foot"><button class="btn" type="button" data-close>取消</button><button class="btn btn-primary" type="submit">保存区域配置</button></div></form>`,
         );
         const provinceChecks = () =>
           Array.from(
@@ -99,7 +99,7 @@
           const base = $("#regBase")?.value || region.base;
           const remark = $("#regRemark").value.trim();
           openModal(
-            `<div class="modal-head"><div class="modal-title">确认保存区域配置</div><button class="icon-btn close" data-close>×</button></div><div class="modal-body"><div class="role-note danger-note"><strong>请核对后再确认</strong><br>关联省份：${provinces.join("、")}<br>驻地城市：${base}<br>备注：${remark || "无"}<br>保存后按组织主管重新计算省公司负责人和数据范围。</div></div><div class="modal-foot"><button class="btn" type="button" data-close>取消</button><button class="btn btn-primary" type="button" id="confirmRegionSave">确认保存</button></div>`,
+            `<div class="modal-head"><div class="modal-title">确认保存区域配置</div><button class="icon-btn close" data-close>×</button></div><div class="modal-body"><div class="role-note danger-note"><strong>请核对后再确认</strong><br>关联省份：${provinces.join("、")}<br>驻地城市：${base}<br>备注：${remark || "无"}</div></div><div class="modal-foot"><button class="btn" type="button" data-close>取消</button><button class="btn btn-primary" type="button" id="confirmRegionSave">确认保存</button></div>`,
           );
           $("#confirmRegionSave").onclick = () => {
             Object.assign(region, {
@@ -115,7 +115,7 @@
             selectedRegionId = region.id;
             closeOverlay();
             renderPage();
-            toast("区域配置已保存，业务责任将按组织主管重新计算");
+            toast("区域配置已保存");
           };
         };
       }

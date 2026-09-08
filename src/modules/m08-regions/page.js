@@ -115,7 +115,7 @@
         const regions = organizationRegionsForEmployee(employee);
         const heading = pageHead(
           "地市管理",
-          "查看本人所属区域和当前负责地市，并发起本人负责地市的交接。",
+          "查看负责地市，办理地市交接。",
         );
         if (!regions.length)
           return (
@@ -258,7 +258,7 @@
             : "";
         if (currentUser.role === "pm") regionAssignmentView = "city";
         const viewSwitch = `<div class="assignment-view-switch" role="group" aria-label="地市分配查看视角"><button class="tab ${regionAssignmentView === "city" ? "active" : ""}" type="button" data-region-assignment-view="city">按地市</button>${currentUser.role === "pm" ? "" : `<button class="tab ${regionAssignmentView === "pm" ? "active" : ""}" type="button" data-region-assignment-view="pm">按 PM</button>`}</div>`;
-        const pmView = `<div class="panel-head" style="padding:var(--space-3) 0"><div><div class="panel-title">按 PM 查看</div><div class="panel-sub">${region.name}组织下 ${pms.length} 名在职 PM</div></div><div class="spacer"></div>${viewSwitch}${canAssignCities ? '<button class="btn btn-primary" type="button" id="openInitialCityAssignment">分配</button>' : ""}</div><div class="toolbar" style="padding-left:0;padding-right:0"><input class="input" id="regionPmKeyword" maxlength="100" placeholder="PM 姓名 / 工号">${filterActions('<button class="btn btn-primary" type="button" id="queryRegionPms">筛选</button><button class="btn" type="button" id="resetRegionPms">重置</button>')}</div><div class="table-wrap"><table data-paged-table="m08-pms" style="min-width:980px"><thead><tr><th>PM 姓名</th><th>工号</th><th>所属区域中心</th><th>负责城市数</th><th>城市标签</th><th>待生效交接数</th><th>操作</th></tr></thead><tbody id="regionPmBody">${pms.map((employee) => {
+        const pmView = `<div class="panel-head" style="padding:var(--space-3) 0"><div><div class="panel-title">按 PM 查看</div><div class="panel-sub">${region.name}组织下 ${pms.length} 名在职 PM</div></div><div class="spacer"></div>${viewSwitch}${canAssignCities ? '<button class="btn btn-primary" type="button" id="openInitialCityAssignment">分配</button>' : ""}</div><div class="toolbar" style="padding-left:0;padding-right:0"><input class="input" id="regionPmKeyword" maxlength="100" placeholder="PM 姓名 / 工号">${filterActions('<button class="btn btn-primary" type="button" id="queryRegionPms">筛选</button><button class="btn" type="button" id="resetRegionPms">重置</button>')}</div><div class="table-wrap"><table data-paged-table="m08-pms" style="min-width:980px"><thead><tr><th>PM 姓名</th><th>工号</th><th>负责城市数</th><th>城市标签</th><th>待生效交接数</th><th>操作</th></tr></thead><tbody id="regionPmBody">${pms.map((employee) => {
           const owned = regionCities.filter((city) => city.pm === employee.name);
           const pendingCount = cityResponsibilityChanges.filter(
             (handover) =>
@@ -266,19 +266,14 @@
               handover.originalPm === employee.name &&
               handover.status === "pending_effective",
           ).length;
-          return `<tr data-page-row data-region-pm-row data-keyword="${employee.name}${employee.code}"><td><div class="person"><div class="avatar">${employee.name[0]}</div><strong>${employee.name}</strong></div></td><td>${employee.code}</td><td>${region.name}</td><td>${owned.length}</td><td>${owned.map((city) => `<span class="tag ${pendingCityHandover(city.id) ? "yellow" : "blue"}" title="${city.province}">${city.city}${pendingCityHandover(city.id) ? " · 待生效" : ""}</span>`).join(" ") || '<span class="tag">尚未分配</span>'}</td><td>${pendingCount ? `<span class="tag yellow">${pendingCount}</span>` : "0"}</td><td>${canAssignCities ? `<button class="link" type="button" data-pm-city-assign="${employee.name}" ${unassignedCount ? "" : "disabled"}>分配</button>` : "—"}</td></tr>`;
-        }).join("") || '<tr data-empty-row><td colspan="7"><div class="empty">该区域组织下暂无在职 PM</div></td></tr>'}<tr data-filter-empty style="display:none"><td colspan="7"><div class="empty">未找到符合条件的 PM，请调整条件或重置筛选</div></td></tr></tbody></table></div>${tablePagination("m08-pms")}`;
+          return `<tr data-page-row data-region-pm-row data-keyword="${employee.name}${employee.code}"><td><div class="person"><div class="avatar">${employee.name[0]}</div><strong>${employee.name}</strong></div></td><td>${employee.code}</td><td>${owned.length}</td><td>${owned.map((city) => `<span class="tag ${pendingCityHandover(city.id) ? "yellow" : "blue"}" title="${city.province}">${city.city}${pendingCityHandover(city.id) ? " · 待生效" : ""}</span>`).join(" ") || '<span class="tag">尚未分配</span>'}</td><td>${pendingCount ? `<span class="tag yellow">${pendingCount}</span>` : "0"}</td><td>${canAssignCities ? `<button class="link" type="button" data-pm-city-assign="${employee.name}" ${unassignedCount ? "" : "disabled"}>分配</button>` : "—"}</td></tr>`;
+        }).join("") || '<tr data-empty-row><td colspan="6"><div class="empty">该区域组织下暂无在职 PM</div></td></tr>'}<tr data-filter-empty style="display:none"><td colspan="6"><div class="empty">未找到符合条件的 PM，请调整条件或重置筛选</div></td></tr></tbody></table></div>${tablePagination("m08-pms")}`;
         return (
           pageHead(
             "区域中心与地市配置",
-            "左侧切换区域中心，右侧完整查看省份归属及PM 地市责任。",
-            currentUser.role === "director"
-              ? '<span class="tag blue">仅本区域可见 · 可分配/直接调整</span>'
-              : currentUser.role === "vp"
-                ? '<span class="tag blue">可编辑关联省份与驻地城市</span>'
-                : "",
+            "查看区域中心与地市责任分工。",
           ) +
-          `<section class="panel"><div class="toolbar" style="border-bottom:1px solid var(--line)"><input class="input" id="regionSearch" maxlength="100" placeholder="区域名称 / 编码 / 区域总监"><select class="input" id="regionProvinceFilter"><option value="">全部省份</option>${[...new Set(rows.flatMap(regionProvinceList))].map((province) => `<option>${province}</option>`).join("")}</select>${filterActions('<button class="btn btn-primary" type="button" id="applyRegionFilters">筛选</button><button class="btn" type="button" id="resetRegionFilters">重置</button>')}<span class="spacer"></span><span class="panel-sub">区域中心和主管来自“组织与员工”</span></div><div class="master-detail"><aside class="master-pane"><div class="master-pane-head"><div class="panel-title">区域中心</div><div class="panel-sub">${rows.length} 个可见区域</div></div><div class="master-list" id="regionMasterList">${rows.map((item) => {
+          `<section class="panel"><div class="toolbar" style="border-bottom:1px solid var(--line)"><input class="input" id="regionSearch" maxlength="100" placeholder="区域名称 / 编码 / 区域总监"><select class="input" id="regionProvinceFilter"><option value="">全部省份</option>${[...new Set(rows.flatMap(regionProvinceList))].map((province) => `<option>${province}</option>`).join("")}</select>${filterActions('<button class="btn btn-primary" type="button" id="applyRegionFilters">筛选</button><button class="btn" type="button" id="resetRegionFilters">重置</button>')}<span class="spacer"></span></div><div class="master-detail"><aside class="master-pane"><div class="master-pane-head"><div class="panel-title">区域中心</div><div class="panel-sub">${rows.length} 个可见区域</div></div><div class="master-list" id="regionMasterList">${rows.map((item) => {
             const department = organizationDepartments.find((entry) => entry.regionId === item.id);
             const status = regionConfigurationStatus(item);
             return `<button class="master-item ${item.id === region.id ? "active" : ""}" data-region-select="${item.id}" data-search="${item.name}${department?.code || ""}${item.director}" data-provinces="${regionProvinceList(item).join("|")}"><div class="avatar">区</div><div class="master-item-main"><div class="master-item-title">${item.name}</div><div class="master-item-sub">${department?.code || "待同步编码"} · ${item.director || "主管待配置"}</div><div class="master-item-sub">${regionProvinceList(item).length} 省 · 驻地 ${item.base || "待配置"} · <span class="tag ${status === "已配置" ? "green" : status === "配置异常" ? "red" : "yellow"}">${status}</span></div></div><span>›</span></button>`;

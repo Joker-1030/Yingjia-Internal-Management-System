@@ -1290,7 +1290,7 @@
           const returnPage = defaultLandingPage();
           const returnName = pageNames[returnPage] || "可访问页面";
           $("#content").innerHTML =
-            pageHead("无权访问", "权限校验未通过，未返回任何页面数据。") +
+            pageHead("无权访问", "当前账号无法访问此页面。") +
             `<section class="panel"><div class="empty"><div><div class="empty-icon">403</div><strong>${deniedName}</strong><p class="panel-sub">当前账号无此菜单、页面或接口权限。</p><button class="btn btn-primary" id="returnDashboard">返回${returnName}</button></div></div></section>`;
           $("#returnDashboard").onclick = () => {
             currentPage = returnPage;

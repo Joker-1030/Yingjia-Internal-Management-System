@@ -4,7 +4,7 @@
         const html = (
           pageHead(
             "维系管理",
-            "按任务查看整体进度，需要执行时再下钻到客户与关键人。",
+            "查看维系任务、执行进度与维系记录。",
             `${hasOperationPermission("tasks.publish_campaign") ? '<button class="btn" data-action="new-campaign">＋ 发布专项任务</button>' : ""}${canCreateMaintenanceRecord() ? '<button class="btn btn-primary" data-action="new-record">＋ 新增维系记录</button>' : ""}`,
           ) + tabs
         );
@@ -578,7 +578,7 @@
         const progressMetric = type === "常规维系"
           ? ""
           : metric("任务完成进度", taskProgressDisplay(numbers), `${numbers.done}/${numbers.total}`);
-        const dashboardContent = `<div class="metrics compact-metrics" style="grid-template-columns:repeat(4,1fr)">${metric("覆盖客户", numbers.customers, "去重统计")}${metric("覆盖关键人", numbers.contacts, "去重统计", "blue")}${progressMetric}${metric("已完成", numbers.done, "执行明细")}${metric("待执行/暂停", numbers.pending, "当前待处理", "yellow")}${metric("当前逾期", numbers.overdue, "需优先处理", "red")}${metric("已过期未完成", numbers.expired, "不再执行", "red")}</div>`;
+        const dashboardContent = `<div class="metrics compact-metrics" style="grid-template-columns:repeat(4,1fr)">${metric("覆盖客户", numbers.customers, "")}${metric("覆盖关键人", numbers.contacts, "", "blue")}${progressMetric}${metric("已完成", numbers.done, "执行明细")}${metric("待执行/暂停", numbers.pending, "当前待处理", "yellow")}${metric("当前逾期", numbers.overdue, "需优先处理", "red")}${metric("已过期未完成", numbers.expired, "不再执行", "red")}</div>`;
         const executionContent = `${taskExecutionHeader("refresh-task-theme", themeKey)}${pmExecutionTable(rows, `theme-${themeKey}`)}`;
         openDrawer(
           `<div class="drawer-head"><div class="modal-title">任务详情</div><button class="icon-btn close" data-close>×</button></div><div class="drawer-body"><div class="detail-hero"><div class="avatar">任</div><div class="detail-name">${title}</div><div class="spacer"></div>${taskThemeStatusTag(taskThemeStatus({ ...numbers, endDate: type === "节假日关怀" && themeValue ? holidayPeriod(themeValue).endDate : undefined }))}</div><div class="tabs"><button class="tab active" type="button" data-task-theme-detail-tab="detail">任务详情</button><button class="tab" type="button" data-task-theme-detail-tab="dashboard">数据看板</button><button class="tab" type="button" data-task-theme-detail-tab="executions">执行明细</button></div><div data-task-theme-detail-panel="detail">${detailContent}</div><div class="hidden" data-task-theme-detail-panel="dashboard">${dashboardContent}</div><div class="hidden" data-task-theme-detail-panel="executions">${executionContent}</div></div><div class="drawer-foot"><button class="btn" data-close>关闭</button></div>`,

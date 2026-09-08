@@ -394,7 +394,7 @@
         const pageActions = `${hasOperationPermission("customers.create_contact") ? '<button class="btn" data-operation-add-contact-global>＋ 新增关键人</button>' : ""}${canCreateMaintenanceRecord() ? '<button class="btn" data-action="new-record">＋ 新增维系</button>' : ""}`;
         const operationPageHead = pageHead(
           "客户经营",
-          "按客户层级浏览档案，选择关键人后直接完成日常维系。",
+          "查看客户档案，跟进关键人维系。",
           pageActions,
         );
         const contactScopeLabel = selectedCustomer

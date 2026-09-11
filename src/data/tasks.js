@@ -26,6 +26,7 @@
         },
         {
           id: 203,
+          createdAt: "2026-08-18 01:00",
           type: "生日关怀",
           birthdayMonth: "2026-08",
           title: "马骏生日关怀",
@@ -39,6 +40,7 @@
         },
         {
           id: 222,
+          createdAt: "2026-08-27 01:00",
           type: "生日关怀",
           birthdayMonth: "2026-09",
           title: "吴敏生日关怀",
@@ -78,6 +80,8 @@
         },
         {
           id: 206,
+          createdAt: "2026-09-11 01:10",
+          holidayEndDate: "2026-09-27",
           type: "节假日关怀",
           holidayName: "中秋节",
           title: "中秋节客户关怀",
@@ -85,12 +89,14 @@
           company: "中国移动山东有限公司",
           pm: "陈经理",
           region: "山东区域",
-          due: "2026-09-20",
+          due: "2026-09-27",
           status: "pending",
           level: "一级",
         },
         {
           id: 219,
+          createdAt: "2026-06-05 01:10",
+          holidayEndDate: "2026-06-21",
           type: "节假日关怀",
           holidayName: "端午节",
           title: "端午节客户关怀",
@@ -323,6 +329,7 @@
         },
         {
           id: 226,
+          createdAt: "2026-08-18 01:00",
           type: "生日关怀",
           birthdayMonth: "2026-08",
           title: "姚静生日关怀",
@@ -437,6 +444,8 @@
         },
         {
           id: 234,
+          createdAt: "2026-06-05 01:10",
+          holidayEndDate: "2026-06-21",
           type: "节假日关怀",
           holidayName: "端午节",
           title: "端午节客户关怀",
@@ -468,6 +477,7 @@
         },
         {
           id: 236,
+          createdAt: "2026-09-09 01:00",
           type: "生日关怀",
           birthdayMonth: "2026-09",
           title: "李雪生日关怀",
@@ -496,6 +506,7 @@
         },
         {
           id: 238,
+          createdAt: "2026-08-08 01:00",
           type: "生日关怀",
           birthdayMonth: "2026-08",
           title: "王建国生日关怀",

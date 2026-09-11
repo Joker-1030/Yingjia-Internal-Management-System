@@ -390,12 +390,14 @@
 
       let dashboardProjectDimension = "stage";
       let dashboardProjectMeasure = "count";
-      let dashboardProjectTypeFilter = "";
+      let dashboardProjectFilter = "";
 
-      function dashboardProjectAnalysis(summary, dimension = dashboardProjectDimension, measure = dashboardProjectMeasure, typeFilter = dashboardProjectTypeFilter) {
-        if (!["", ...PROJECT_TYPES].includes(typeFilter)) return null;
+      function dashboardProjectAnalysis(summary, dimension = dashboardProjectDimension, measure = dashboardProjectMeasure, filter = dashboardProjectFilter) {
         if (!summary || !["stage", "type"].includes(dimension) || !["count", "amount"].includes(measure)) return null;
-        const selected = summary.projects.filter((project) => !typeFilter || project.type === typeFilter);
+        const filterField = dimension === "stage" ? "type" : "stage";
+        const filterValues = dimension === "stage" ? PROJECT_TYPES : PROJECT_STAGES;
+        if (!["", ...filterValues].includes(filter)) return null;
+        const selected = summary.projects.filter((project) => !filter || project[filterField] === filter);
         const labels = dimension === "stage" ? PROJECT_STAGES : PROJECT_TYPES;
         if (selected.some((project) => !labels.includes(project[dimension]))) return null;
         const values = selected.map((project) => {
@@ -442,20 +444,66 @@
 
       function dashboardProjectControls() {
         const select = (key, value, label, options) => '<label>' + label + '<select class="input" aria-label="' + label + '" data-workbench-project="' + key + '">' + options.map(([id, name]) => '<option value="' + id + '"' + (value === id ? ' selected' : '') + '>' + name + '</option>').join('') + '</select></label>';
-        return '<div class="workbench-analysis-controls">' + select('typeFilter', dashboardProjectTypeFilter, '项目类型', [['','全部'], ...PROJECT_TYPES.map((type) => [type, type])]) + select('dimension', dashboardProjectDimension, '分析维度', [['stage','项目阶段'],['type','项目类型']]) + select('measure', dashboardProjectMeasure, '统计指标', [['count','项目数量'],['amount','项目金额（含税，元）']]) + '</div>';
+        const byStage = dashboardProjectDimension === "stage";
+        const filterOptions = [['', byStage ? '全部类型' : '全部阶段'], ...(byStage ? PROJECT_TYPES : PROJECT_STAGES).map((value) => [value, value])];
+        return '<div class="workbench-analysis-controls" id="workbenchProjectControls">' + select('dimension', dashboardProjectDimension, '分析方式', [['stage','按项目阶段'],['type','按项目类型']]) + select('filter', dashboardProjectFilter, byStage ? '项目类型' : '项目阶段', filterOptions) + select('measure', dashboardProjectMeasure, '统计指标', [['count','项目数量'],['amount','项目金额（含税，元）']]) + '</div>';
       }
 
       function handleWorkbenchProjectChange(target) {
         if (!currentUser || currentPage !== "dashboard" || !canAccessPage("dashboard") || !hasPermission("projects")) return;
-        if (target.dataset.workbenchProject === "dimension" && ["stage", "type"].includes(target.value)) dashboardProjectDimension = target.value;
+        if (target.dataset.workbenchProject === "dimension" && ["stage", "type"].includes(target.value)) {
+          if (dashboardProjectDimension !== target.value) {
+            dashboardProjectDimension = target.value;
+            dashboardProjectFilter = "";
+            const controls = document.querySelector("#workbenchProjectControls");
+            if (controls) controls.outerHTML = dashboardProjectControls();
+          }
+        }
         else if (target.dataset.workbenchProject === "measure" && ["count", "amount"].includes(target.value)) dashboardProjectMeasure = target.value;
-        else if (target.dataset.workbenchProject === "typeFilter" && ["", ...PROJECT_TYPES].includes(target.value)) dashboardProjectTypeFilter = target.value;
+        else if (target.dataset.workbenchProject === "filter" && ["", ...(dashboardProjectDimension === "stage" ? PROJECT_TYPES : PROJECT_STAGES)].includes(target.value)) dashboardProjectFilter = target.value;
         else return;
         const host = document.querySelector("#workbenchProjectVisualization");
         if (host) host.innerHTML = dashboardProjectChart(dashboardProjectSummary());
       }
       document.addEventListener("change", (event) => {
         if (event.target?.matches?.("[data-workbench-project]")) handleWorkbenchProjectChange(event.target);
+      });
+
+      let dashboardCoverageOrder = "asc";
+      let dashboardCampaignOrder = "asc";
+      let dashboardSortOwner = "";
+
+      function dashboardRateCompare(a, b, order) {
+        if (a.rate == null) return b.rate == null ? 0 : 1;
+        if (b.rate == null) return -1;
+        return (a.rate - b.rate) * (order === "desc" ? -1 : 1);
+      }
+
+      function dashboardSortHeader(key, label, order) {
+        const ascending = order === "asc";
+        return `<th aria-sort="${ascending ? "ascending" : "descending"}"><button class="workbench-sort" type="button" data-workbench-sort="${key}" aria-label="${label}，当前${ascending ? "低到高" : "高到低"}，点击切换${ascending ? "高到低" : "低到高"}">${label}<span aria-hidden="true">${ascending ? "↑" : "↓"}</span></button></th>`;
+      }
+
+      function handleWorkbenchSort(target) {
+        if (!currentUser || currentPage !== "dashboard" || !canAccessPage("dashboard") || ["hr", "support"].includes(currentUser.role) || (currentUser.role === "admin" && adminDashboardView === "system")) return;
+        const key = target.dataset.workbenchSort;
+        if (key === "coverage") {
+          if (!["president", "vp", "director", "admin"].includes(currentUser.role) || !hasDataObject("客户单位") || !hasDataObject("关键人")) return;
+          dashboardCoverageOrder = dashboardCoverageOrder === "asc" ? "desc" : "asc";
+          const { companies, people } = dashboardBusinessRows();
+          const host = document.querySelector("#workbenchCoverageList");
+          if (host) host.outerHTML = dashboardCoverageTable(companies, people);
+        } else if (key === "campaign") {
+          if (!hasPermission("tasks") || !hasDataObject("维系任务")) return;
+          dashboardCampaignOrder = dashboardCampaignOrder === "asc" ? "desc" : "asc";
+          const host = document.querySelector("#workbenchCampaignList");
+          if (host) host.outerHTML = dashboardCampaignTable(dashboardBusinessRows().rows);
+        } else return;
+        document.querySelector(`[data-workbench-sort="${key}"]`)?.focus?.({ preventScroll: true });
+      }
+      document.addEventListener("click", (event) => {
+        const target = event.target?.closest?.("[data-workbench-sort]");
+        if (target) handleWorkbenchSort(target);
       });
 
       function dashboardCoverageGroups(companies, people) {
@@ -469,12 +517,14 @@
           .slice().sort((a, b) => a.name.localeCompare(b.name, "zh-CN") || a.code.localeCompare(b.code))
           .map((employee) => ({ employee, selected: companies.filter((company) => company.level !== "省公司" && customerOwnerName(company) === employee.name) }))
           .filter((item) => item.selected.length)
-          .map((item) => group(item.employee.name, item.selected));
+          .map((item) => group(item.employee.name, item.selected))
+          .sort((a, b) => dashboardRateCompare(a, b, dashboardCoverageOrder));
         if (!["president", "vp", "admin"].includes(currentUser.role)) return [];
         return organizationDepartments.filter((department) => department.type === "region" && department.status === "启用")
           .slice().sort((a, b) => a.sort - b.sort || a.name.localeCompare(b.name, "zh-CN") || String(a.id).localeCompare(String(b.id)))
           .map((department) => regionsData.find((region) => region.id === department.regionId)).filter(Boolean)
-          .map((region) => group(regionScopeName(region), companies.filter((company) => regionsMatch(customerRegionScope(company), regionScopeName(region)))));
+          .map((region) => group(regionScopeName(region), companies.filter((company) => regionsMatch(customerRegionScope(company), regionScopeName(region)))))
+          .sort((a, b) => dashboardRateCompare(a, b, dashboardCoverageOrder));
       }
 
       function dashboardCoverageTable(companies, people) {
@@ -486,21 +536,21 @@
         }
         if (!["president", "vp", "director", "admin"].includes(currentUser.role)) return "";
         const groups = dashboardCoverageGroups(companies, people);
-        return '<div class="workbench-breakdown" tabindex="0" role="region" aria-label="关键人覆盖明细"><table><thead><tr><th>' + (currentUser.role === "director" ? 'PM' : '区域运营中心') + '</th><th>关键人</th><th>覆盖率</th></tr></thead><tbody>' + groups.map((item) => '<tr><td>' + escapeDashboardHtml(item.label) + '</td><td>' + item.people + '</td><td>' + dashboardPercent(item.rate) + '</td></tr>').join('') + '</tbody></table>' + (groups.length ? '' : '<div class="empty">暂无PM客户覆盖数据</div>') + '</div>';
+        return '<div class="workbench-breakdown" id="workbenchCoverageList" tabindex="0" role="region" aria-label="关键人覆盖明细"><table><thead><tr><th>' + (currentUser.role === "director" ? 'PM' : '区域运营中心') + '</th><th>关键人</th>' + dashboardSortHeader('coverage', '覆盖率', dashboardCoverageOrder) + '</tr></thead><tbody>' + groups.map((item) => '<tr><td>' + escapeDashboardHtml(item.label) + '</td><td>' + item.people + '</td><td>' + dashboardPercent(item.rate) + '</td></tr>').join('') + '</tbody></table>' + (groups.length ? '' : '<div class="empty">暂无PM客户覆盖数据</div>') + '</div>';
       }
 
       function dashboardCampaignProgress(rows) {
-        return campaigns.filter((campaign) => ["专项维系", "关键人覆盖 KPI"].includes(campaign.category) && rows.some((task) => task.campaignId === campaign.id))
+        return campaigns.filter((campaign) => ["专项维系", "关键人覆盖 KPI"].includes(campaign.category) && taskThemeStatus(campaign) === "进行中" && rows.some((task) => task.campaignId === campaign.id))
           .map((campaign) => {
             const valid = rows.filter((task) => task.campaignId === campaign.id && ["pending", "paused", "overdue", "expired", "done"].includes(task.status));
             const done = valid.filter((task) => task.status === "done").length;
-            return { name: campaign.name, state: taskThemeStatus(campaign), done, total: valid.length, rate: valid.length ? done / valid.length * 100 : null };
-          });
+            return { id: campaign.id, createdAt: campaign.createdAt, name: campaign.name, state: taskThemeStatus(campaign), done, total: valid.length, rate: valid.length ? done / valid.length * 100 : null };
+          }).sort((a, b) => dashboardRateCompare(a, b, dashboardCampaignOrder) || b.createdAt.localeCompare(a.createdAt) || String(b.id).localeCompare(String(a.id), "en", { numeric: true }));
       }
 
       function dashboardCampaignTable(rows) {
         const progress = dashboardCampaignProgress(rows);
-        return '<div class="workbench-breakdown" tabindex="0" role="region" aria-label="专项任务进度"><table><thead><tr><th>专项任务</th><th>状态</th><th>完成进度</th></tr></thead><tbody>' + progress.map((item) => '<tr><td>' + escapeDashboardHtml(item.name) + '</td><td>' + escapeDashboardHtml(item.state) + '</td><td><div class="workbench-progress"><strong>' + dashboardPercent(item.rate) + '</strong><progress max="100" value="' + (item.rate || 0) + '" aria-label="' + escapeDashboardHtml(item.name) + '完成进度"></progress></div></td></tr>').join('') + '</tbody></table>' + (progress.length ? '' : '<div class="empty">暂无专项任务</div>') + '</div>';
+        return '<div class="workbench-breakdown" id="workbenchCampaignList" tabindex="0" role="region" aria-label="专项任务进度"><table><thead><tr><th>专项任务</th><th>状态</th>' + dashboardSortHeader('campaign', '完成进度', dashboardCampaignOrder) + '</tr></thead><tbody>' + progress.map((item) => '<tr><td>' + escapeDashboardHtml(item.name) + '</td><td>' + escapeDashboardHtml(item.state) + '</td><td><div class="workbench-progress"><strong>' + dashboardPercent(item.rate) + '</strong><progress max="100" value="' + (item.rate || 0) + '" aria-label="' + escapeDashboardHtml(item.name) + '完成进度"></progress></div></td></tr>').join('') + '</tbody></table>' + (progress.length ? '' : '<div class="empty">暂无专项任务</div>') + '</div>';
       }
 
       function dashboardOverviewValue(label, value, key, suffix = "") {
@@ -524,6 +574,12 @@
 
       function renderDashboard() {
         if (!currentUser || !canAccessPage("dashboard") || ["hr", "support"].includes(currentUser.role)) return "";
+        const sortOwner = `${currentUser.employeeCode || currentUser.phone || currentUser.name}:${currentUser.role}`;
+        if (lastRenderedPage !== "dashboard" || dashboardSortOwner !== sortOwner) {
+          dashboardCoverageOrder = "asc";
+          dashboardCampaignOrder = "asc";
+          dashboardSortOwner = sortOwner;
+        }
         if (currentUser.role === "admin" && adminDashboardView === "system")
           return renderAdminDashboard();
         const { companies, people, rows } = dashboardBusinessRows();

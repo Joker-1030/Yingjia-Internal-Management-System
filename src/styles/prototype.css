@@ -4730,6 +4730,9 @@
       .workbench .workbench-breakdown th:first-child { width: 52%; }
       .workbench .workbench-breakdown td:not(:first-child),
       .workbench .workbench-breakdown th:not(:first-child) { text-align: right; font-variant-numeric: tabular-nums; }
+      .workbench-sort { display: inline-flex; align-items: center; justify-content: flex-end; gap: 4px; padding: 2px 0; border: 0; background: transparent; color: inherit; font: inherit; cursor: pointer; text-align: right; }
+      .workbench-sort:hover { color: var(--brand); }
+      .workbench-sort:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; border-radius: 3px; }
       .workbench .workbench-progress { display: grid; gap: 7px; justify-items: end; }
       .workbench .workbench-progress strong { font-weight: 500; }
       .workbench .workbench-progress progress { appearance: none; border: 0; border-radius: 4px; overflow: hidden; width: 100%; max-width: 140px; height: 5px; background: #edf1f5; accent-color: #658aa9; }

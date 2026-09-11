@@ -1,6 +1,7 @@
       const campaigns = [
         {
           id: 401,
+          createdAt: "2026-07-31 09:00",
           category: "专项维系",
           name: "AI岗位能力实训课程全国推广",
           taskTitleTemplate: "{{专项标题}} - {{关键人姓名}}",
@@ -31,6 +32,7 @@
         },
         {
           id: 402,
+          createdAt: "2026-07-14 10:00",
           category: "专项维系",
           name: "运营商数字化课程年度需求摸排",
           taskTitleTemplate: "{{专项标题}} - {{关键人姓名}}",
@@ -61,6 +63,7 @@
         },
         {
           id: 403,
+          createdAt: "2026-08-14 09:00",
           category: "专项维系",
           name: "华电AI知识库产品专项沟通",
           taskTitleTemplate: "{{专项标题}} - {{关键人姓名}}",
@@ -87,6 +90,7 @@
         },
         {
           id: 404,
+          createdAt: "2026-08-09 10:00",
           category: "关键人覆盖 KPI",
           name: "中国移动省公司关键决策人岗位覆盖提升",
           description: "按目标岗位覆盖口径完成责任范围内客户覆盖。",

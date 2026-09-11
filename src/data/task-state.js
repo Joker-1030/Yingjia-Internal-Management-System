@@ -59,6 +59,8 @@
             type: task.type,
             name: `${holidayName}客户关怀`,
             holidayName,
+            createdAt: task.createdAt,
+            endDate: task.holidayEndDate,
           };
         }
         return {
@@ -103,12 +105,11 @@
             const [year, month] = monthKey.split("-");
             return { key: `birthday:${monthKey}`, type: "生日关怀", name: `${year}年${Number(month)}月生日关怀`, birthdayMonth: monthKey };
           }),
-          ...[...new Set(tasks.filter((task) => task.type === "节假日关怀").map((task) => task.holidayName || task.title.replace("客户关怀", "")))].filter(Boolean).sort().map((holidayName) => ({
-            key: `holiday:${holidayName}`,
-            type: "节假日关怀",
-            name: `${holidayName}客户关怀`,
-            holidayName,
-          })),
+          ...[...new Set(tasks.filter((task) => task.type === "节假日关怀").map((task) => task.holidayName || task.title.replace("客户关怀", "")))].filter(Boolean).sort().map((holidayName) => {
+            const firstTask = tasks.filter((task) => task.type === "节假日关怀" && task.holidayName === holidayName)
+              .slice().sort((a, b) => String(a.createdAt || "").localeCompare(String(b.createdAt || "")))[0];
+            return taskThemeDescriptor(firstTask);
+          }),
         ];
         descriptors.forEach((descriptor) => {
           const theme = ensureTaskTheme(descriptor);

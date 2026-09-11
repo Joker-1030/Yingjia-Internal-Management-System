@@ -4738,6 +4738,9 @@
       .workbench .workbench-breakdown th:first-child { width: 52%; }
       .workbench .workbench-breakdown td:not(:first-child),
       .workbench .workbench-breakdown th:not(:first-child) { text-align: right; font-variant-numeric: tabular-nums; }
+      .workbench-sort { display: inline-flex; align-items: center; justify-content: flex-end; gap: 4px; padding: 2px 0; border: 0; background: transparent; color: inherit; font: inherit; cursor: pointer; text-align: right; }
+      .workbench-sort:hover { color: var(--brand); }
+      .workbench-sort:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; border-radius: 3px; }
       .workbench .workbench-progress { display: grid; gap: 7px; justify-items: end; }
       .workbench .workbench-progress strong { font-weight: 500; }
       .workbench .workbench-progress progress { appearance: none; border: 0; border-radius: 4px; overflow: hidden; width: 100%; max-width: 140px; height: 5px; background: #edf1f5; accent-color: #658aa9; }
@@ -6167,6 +6170,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
         },
         {
           id: 203,
+          createdAt: "2026-08-18 01:00",
           type: "生日关怀",
           birthdayMonth: "2026-08",
           title: "马骏生日关怀",
@@ -6180,6 +6184,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
         },
         {
           id: 222,
+          createdAt: "2026-08-27 01:00",
           type: "生日关怀",
           birthdayMonth: "2026-09",
           title: "吴敏生日关怀",
@@ -6219,6 +6224,8 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
         },
         {
           id: 206,
+          createdAt: "2026-09-11 01:10",
+          holidayEndDate: "2026-09-27",
           type: "节假日关怀",
           holidayName: "中秋节",
           title: "中秋节客户关怀",
@@ -6226,12 +6233,14 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
           company: "中国移动山东有限公司",
           pm: "陈经理",
           region: "山东区域",
-          due: "2026-09-20",
+          due: "2026-09-27",
           status: "pending",
           level: "一级",
         },
         {
           id: 219,
+          createdAt: "2026-06-05 01:10",
+          holidayEndDate: "2026-06-21",
           type: "节假日关怀",
           holidayName: "端午节",
           title: "端午节客户关怀",
@@ -6464,6 +6473,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
         },
         {
           id: 226,
+          createdAt: "2026-08-18 01:00",
           type: "生日关怀",
           birthdayMonth: "2026-08",
           title: "姚静生日关怀",
@@ -6578,6 +6588,8 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
         },
         {
           id: 234,
+          createdAt: "2026-06-05 01:10",
+          holidayEndDate: "2026-06-21",
           type: "节假日关怀",
           holidayName: "端午节",
           title: "端午节客户关怀",
@@ -6609,6 +6621,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
         },
         {
           id: 236,
+          createdAt: "2026-09-09 01:00",
           type: "生日关怀",
           birthdayMonth: "2026-09",
           title: "李雪生日关怀",
@@ -6637,6 +6650,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
         },
         {
           id: 238,
+          createdAt: "2026-08-08 01:00",
           type: "生日关怀",
           birthdayMonth: "2026-08",
           title: "王建国生日关怀",
@@ -6905,6 +6919,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
       const campaigns = [
         {
           id: 401,
+          createdAt: "2026-07-31 09:00",
           category: "专项维系",
           name: "AI岗位能力实训课程全国推广",
           taskTitleTemplate: "{{专项标题}} - {{关键人姓名}}",
@@ -6935,6 +6950,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
         },
         {
           id: 402,
+          createdAt: "2026-07-14 10:00",
           category: "专项维系",
           name: "运营商数字化课程年度需求摸排",
           taskTitleTemplate: "{{专项标题}} - {{关键人姓名}}",
@@ -6965,6 +6981,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
         },
         {
           id: 403,
+          createdAt: "2026-08-14 09:00",
           category: "专项维系",
           name: "华电AI知识库产品专项沟通",
           taskTitleTemplate: "{{专项标题}} - {{关键人姓名}}",
@@ -6991,6 +7008,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
         },
         {
           id: 404,
+          createdAt: "2026-08-09 10:00",
           category: "关键人覆盖 KPI",
           name: "中国移动省公司关键决策人岗位覆盖提升",
           description: "按目标岗位覆盖口径完成责任范围内客户覆盖。",
@@ -7778,6 +7796,8 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
             type: task.type,
             name: `${holidayName}客户关怀`,
             holidayName,
+            createdAt: task.createdAt,
+            endDate: task.holidayEndDate,
           };
         }
         return {
@@ -7822,12 +7842,11 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
             const [year, month] = monthKey.split("-");
             return { key: `birthday:${monthKey}`, type: "生日关怀", name: `${year}年${Number(month)}月生日关怀`, birthdayMonth: monthKey };
           }),
-          ...[...new Set(tasks.filter((task) => task.type === "节假日关怀").map((task) => task.holidayName || task.title.replace("客户关怀", "")))].filter(Boolean).sort().map((holidayName) => ({
-            key: `holiday:${holidayName}`,
-            type: "节假日关怀",
-            name: `${holidayName}客户关怀`,
-            holidayName,
-          })),
+          ...[...new Set(tasks.filter((task) => task.type === "节假日关怀").map((task) => task.holidayName || task.title.replace("客户关怀", "")))].filter(Boolean).sort().map((holidayName) => {
+            const firstTask = tasks.filter((task) => task.type === "节假日关怀" && task.holidayName === holidayName)
+              .slice().sort((a, b) => String(a.createdAt || "").localeCompare(String(b.createdAt || "")))[0];
+            return taskThemeDescriptor(firstTask);
+          }),
         ];
         descriptors.forEach((descriptor) => {
           const theme = ensureTaskTheme(descriptor);
@@ -12428,12 +12447,14 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
 
       let dashboardProjectDimension = "stage";
       let dashboardProjectMeasure = "count";
-      let dashboardProjectTypeFilter = "";
+      let dashboardProjectFilter = "";
 
-      function dashboardProjectAnalysis(summary, dimension = dashboardProjectDimension, measure = dashboardProjectMeasure, typeFilter = dashboardProjectTypeFilter) {
-        if (!["", ...PROJECT_TYPES].includes(typeFilter)) return null;
+      function dashboardProjectAnalysis(summary, dimension = dashboardProjectDimension, measure = dashboardProjectMeasure, filter = dashboardProjectFilter) {
         if (!summary || !["stage", "type"].includes(dimension) || !["count", "amount"].includes(measure)) return null;
-        const selected = summary.projects.filter((project) => !typeFilter || project.type === typeFilter);
+        const filterField = dimension === "stage" ? "type" : "stage";
+        const filterValues = dimension === "stage" ? PROJECT_TYPES : PROJECT_STAGES;
+        if (!["", ...filterValues].includes(filter)) return null;
+        const selected = summary.projects.filter((project) => !filter || project[filterField] === filter);
         const labels = dimension === "stage" ? PROJECT_STAGES : PROJECT_TYPES;
         if (selected.some((project) => !labels.includes(project[dimension]))) return null;
         const values = selected.map((project) => {
@@ -12480,20 +12501,66 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
 
       function dashboardProjectControls() {
         const select = (key, value, label, options) => '<label>' + label + '<select class="input" aria-label="' + label + '" data-workbench-project="' + key + '">' + options.map(([id, name]) => '<option value="' + id + '"' + (value === id ? ' selected' : '') + '>' + name + '</option>').join('') + '</select></label>';
-        return '<div class="workbench-analysis-controls">' + select('typeFilter', dashboardProjectTypeFilter, '项目类型', [['','全部'], ...PROJECT_TYPES.map((type) => [type, type])]) + select('dimension', dashboardProjectDimension, '分析维度', [['stage','项目阶段'],['type','项目类型']]) + select('measure', dashboardProjectMeasure, '统计指标', [['count','项目数量'],['amount','项目金额（含税，元）']]) + '</div>';
+        const byStage = dashboardProjectDimension === "stage";
+        const filterOptions = [['', byStage ? '全部类型' : '全部阶段'], ...(byStage ? PROJECT_TYPES : PROJECT_STAGES).map((value) => [value, value])];
+        return '<div class="workbench-analysis-controls" id="workbenchProjectControls">' + select('dimension', dashboardProjectDimension, '分析方式', [['stage','按项目阶段'],['type','按项目类型']]) + select('filter', dashboardProjectFilter, byStage ? '项目类型' : '项目阶段', filterOptions) + select('measure', dashboardProjectMeasure, '统计指标', [['count','项目数量'],['amount','项目金额（含税，元）']]) + '</div>';
       }
 
       function handleWorkbenchProjectChange(target) {
         if (!currentUser || currentPage !== "dashboard" || !canAccessPage("dashboard") || !hasPermission("projects")) return;
-        if (target.dataset.workbenchProject === "dimension" && ["stage", "type"].includes(target.value)) dashboardProjectDimension = target.value;
+        if (target.dataset.workbenchProject === "dimension" && ["stage", "type"].includes(target.value)) {
+          if (dashboardProjectDimension !== target.value) {
+            dashboardProjectDimension = target.value;
+            dashboardProjectFilter = "";
+            const controls = document.querySelector("#workbenchProjectControls");
+            if (controls) controls.outerHTML = dashboardProjectControls();
+          }
+        }
         else if (target.dataset.workbenchProject === "measure" && ["count", "amount"].includes(target.value)) dashboardProjectMeasure = target.value;
-        else if (target.dataset.workbenchProject === "typeFilter" && ["", ...PROJECT_TYPES].includes(target.value)) dashboardProjectTypeFilter = target.value;
+        else if (target.dataset.workbenchProject === "filter" && ["", ...(dashboardProjectDimension === "stage" ? PROJECT_TYPES : PROJECT_STAGES)].includes(target.value)) dashboardProjectFilter = target.value;
         else return;
         const host = document.querySelector("#workbenchProjectVisualization");
         if (host) host.innerHTML = dashboardProjectChart(dashboardProjectSummary());
       }
       document.addEventListener("change", (event) => {
         if (event.target?.matches?.("[data-workbench-project]")) handleWorkbenchProjectChange(event.target);
+      });
+
+      let dashboardCoverageOrder = "asc";
+      let dashboardCampaignOrder = "asc";
+      let dashboardSortOwner = "";
+
+      function dashboardRateCompare(a, b, order) {
+        if (a.rate == null) return b.rate == null ? 0 : 1;
+        if (b.rate == null) return -1;
+        return (a.rate - b.rate) * (order === "desc" ? -1 : 1);
+      }
+
+      function dashboardSortHeader(key, label, order) {
+        const ascending = order === "asc";
+        return `<th aria-sort="${ascending ? "ascending" : "descending"}"><button class="workbench-sort" type="button" data-workbench-sort="${key}" aria-label="${label}，当前${ascending ? "低到高" : "高到低"}，点击切换${ascending ? "高到低" : "低到高"}">${label}<span aria-hidden="true">${ascending ? "↑" : "↓"}</span></button></th>`;
+      }
+
+      function handleWorkbenchSort(target) {
+        if (!currentUser || currentPage !== "dashboard" || !canAccessPage("dashboard") || ["hr", "support"].includes(currentUser.role) || (currentUser.role === "admin" && adminDashboardView === "system")) return;
+        const key = target.dataset.workbenchSort;
+        if (key === "coverage") {
+          if (!["president", "vp", "director", "admin"].includes(currentUser.role) || !hasDataObject("客户单位") || !hasDataObject("关键人")) return;
+          dashboardCoverageOrder = dashboardCoverageOrder === "asc" ? "desc" : "asc";
+          const { companies, people } = dashboardBusinessRows();
+          const host = document.querySelector("#workbenchCoverageList");
+          if (host) host.outerHTML = dashboardCoverageTable(companies, people);
+        } else if (key === "campaign") {
+          if (!hasPermission("tasks") || !hasDataObject("维系任务")) return;
+          dashboardCampaignOrder = dashboardCampaignOrder === "asc" ? "desc" : "asc";
+          const host = document.querySelector("#workbenchCampaignList");
+          if (host) host.outerHTML = dashboardCampaignTable(dashboardBusinessRows().rows);
+        } else return;
+        document.querySelector(`[data-workbench-sort="${key}"]`)?.focus?.({ preventScroll: true });
+      }
+      document.addEventListener("click", (event) => {
+        const target = event.target?.closest?.("[data-workbench-sort]");
+        if (target) handleWorkbenchSort(target);
       });
 
       function dashboardCoverageGroups(companies, people) {
@@ -12507,12 +12574,14 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
           .slice().sort((a, b) => a.name.localeCompare(b.name, "zh-CN") || a.code.localeCompare(b.code))
           .map((employee) => ({ employee, selected: companies.filter((company) => company.level !== "省公司" && customerOwnerName(company) === employee.name) }))
           .filter((item) => item.selected.length)
-          .map((item) => group(item.employee.name, item.selected));
+          .map((item) => group(item.employee.name, item.selected))
+          .sort((a, b) => dashboardRateCompare(a, b, dashboardCoverageOrder));
         if (!["president", "vp", "admin"].includes(currentUser.role)) return [];
         return organizationDepartments.filter((department) => department.type === "region" && department.status === "启用")
           .slice().sort((a, b) => a.sort - b.sort || a.name.localeCompare(b.name, "zh-CN") || String(a.id).localeCompare(String(b.id)))
           .map((department) => regionsData.find((region) => region.id === department.regionId)).filter(Boolean)
-          .map((region) => group(regionScopeName(region), companies.filter((company) => regionsMatch(customerRegionScope(company), regionScopeName(region)))));
+          .map((region) => group(regionScopeName(region), companies.filter((company) => regionsMatch(customerRegionScope(company), regionScopeName(region)))))
+          .sort((a, b) => dashboardRateCompare(a, b, dashboardCoverageOrder));
       }
 
       function dashboardCoverageTable(companies, people) {
@@ -12524,21 +12593,21 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
         }
         if (!["president", "vp", "director", "admin"].includes(currentUser.role)) return "";
         const groups = dashboardCoverageGroups(companies, people);
-        return '<div class="workbench-breakdown" tabindex="0" role="region" aria-label="关键人覆盖明细"><table><thead><tr><th>' + (currentUser.role === "director" ? 'PM' : '区域运营中心') + '</th><th>关键人</th><th>覆盖率</th></tr></thead><tbody>' + groups.map((item) => '<tr><td>' + escapeDashboardHtml(item.label) + '</td><td>' + item.people + '</td><td>' + dashboardPercent(item.rate) + '</td></tr>').join('') + '</tbody></table>' + (groups.length ? '' : '<div class="empty">暂无PM客户覆盖数据</div>') + '</div>';
+        return '<div class="workbench-breakdown" id="workbenchCoverageList" tabindex="0" role="region" aria-label="关键人覆盖明细"><table><thead><tr><th>' + (currentUser.role === "director" ? 'PM' : '区域运营中心') + '</th><th>关键人</th>' + dashboardSortHeader('coverage', '覆盖率', dashboardCoverageOrder) + '</tr></thead><tbody>' + groups.map((item) => '<tr><td>' + escapeDashboardHtml(item.label) + '</td><td>' + item.people + '</td><td>' + dashboardPercent(item.rate) + '</td></tr>').join('') + '</tbody></table>' + (groups.length ? '' : '<div class="empty">暂无PM客户覆盖数据</div>') + '</div>';
       }
 
       function dashboardCampaignProgress(rows) {
-        return campaigns.filter((campaign) => ["专项维系", "关键人覆盖 KPI"].includes(campaign.category) && rows.some((task) => task.campaignId === campaign.id))
+        return campaigns.filter((campaign) => ["专项维系", "关键人覆盖 KPI"].includes(campaign.category) && taskThemeStatus(campaign) === "进行中" && rows.some((task) => task.campaignId === campaign.id))
           .map((campaign) => {
             const valid = rows.filter((task) => task.campaignId === campaign.id && ["pending", "paused", "overdue", "expired", "done"].includes(task.status));
             const done = valid.filter((task) => task.status === "done").length;
-            return { name: campaign.name, state: taskThemeStatus(campaign), done, total: valid.length, rate: valid.length ? done / valid.length * 100 : null };
-          });
+            return { id: campaign.id, createdAt: campaign.createdAt, name: campaign.name, state: taskThemeStatus(campaign), done, total: valid.length, rate: valid.length ? done / valid.length * 100 : null };
+          }).sort((a, b) => dashboardRateCompare(a, b, dashboardCampaignOrder) || b.createdAt.localeCompare(a.createdAt) || String(b.id).localeCompare(String(a.id), "en", { numeric: true }));
       }
 
       function dashboardCampaignTable(rows) {
         const progress = dashboardCampaignProgress(rows);
-        return '<div class="workbench-breakdown" tabindex="0" role="region" aria-label="专项任务进度"><table><thead><tr><th>专项任务</th><th>状态</th><th>完成进度</th></tr></thead><tbody>' + progress.map((item) => '<tr><td>' + escapeDashboardHtml(item.name) + '</td><td>' + escapeDashboardHtml(item.state) + '</td><td><div class="workbench-progress"><strong>' + dashboardPercent(item.rate) + '</strong><progress max="100" value="' + (item.rate || 0) + '" aria-label="' + escapeDashboardHtml(item.name) + '完成进度"></progress></div></td></tr>').join('') + '</tbody></table>' + (progress.length ? '' : '<div class="empty">暂无专项任务</div>') + '</div>';
+        return '<div class="workbench-breakdown" id="workbenchCampaignList" tabindex="0" role="region" aria-label="专项任务进度"><table><thead><tr><th>专项任务</th><th>状态</th>' + dashboardSortHeader('campaign', '完成进度', dashboardCampaignOrder) + '</tr></thead><tbody>' + progress.map((item) => '<tr><td>' + escapeDashboardHtml(item.name) + '</td><td>' + escapeDashboardHtml(item.state) + '</td><td><div class="workbench-progress"><strong>' + dashboardPercent(item.rate) + '</strong><progress max="100" value="' + (item.rate || 0) + '" aria-label="' + escapeDashboardHtml(item.name) + '完成进度"></progress></div></td></tr>').join('') + '</tbody></table>' + (progress.length ? '' : '<div class="empty">暂无专项任务</div>') + '</div>';
       }
 
       function dashboardOverviewValue(label, value, key, suffix = "") {
@@ -12562,6 +12631,12 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
 
       function renderDashboard() {
         if (!currentUser || !canAccessPage("dashboard") || ["hr", "support"].includes(currentUser.role)) return "";
+        const sortOwner = `${currentUser.employeeCode || currentUser.phone || currentUser.name}:${currentUser.role}`;
+        if (lastRenderedPage !== "dashboard" || dashboardSortOwner !== sortOwner) {
+          dashboardCoverageOrder = "asc";
+          dashboardCampaignOrder = "asc";
+          dashboardSortOwner = sortOwner;
+        }
         if (currentUser.role === "admin" && adminDashboardView === "system")
           return renderAdminDashboard();
         const { companies, people, rows } = dashboardBusinessRows();
@@ -13325,8 +13400,8 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
       }
 
       function taskThemeStatus(row) {
-        if (row.startDate && row.startDate > DEMO_TODAY) return "待开始";
-        if (row.endDate && row.endDate < DEMO_TODAY) return "已结束";
+        if (row.startDate && row.startDate.slice(0, 10) > DEMO_TODAY) return "待开始";
+        if (row.endDate && row.endDate.slice(0, 10) < DEMO_TODAY) return "已结束";
         return "进行中";
       }
 
@@ -13346,12 +13421,10 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
       }
 
       function holidayPeriod(holidayName) {
-        const holiday = holidayCalendar.holidays.find(
-          (item) => item.name === holidayName,
-        );
+        const theme = taskThemes.find((item) => item.key === `holiday:${holidayName}`);
         return {
-          startDate: holiday?.startDate || "-",
-          endDate: holiday?.endDate || "-",
+          startDate: theme?.createdAt || "-",
+          endDate: theme?.endDate ? `${theme.endDate} 23:59:59` : "-",
         };
       }
 
@@ -13834,13 +13907,16 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
             : `holiday:${themeValue}`;
         const theme = taskThemes.find((item) => item.key === registryKey);
         const detailContent = taskThemeRuleDetails(type, themeValue, theme);
+        const period = type === "生日关怀"
+          ? { startDate: `${themeValue}-01`, endDate: monthEndDate(themeValue) }
+          : type === "节假日关怀" ? holidayPeriod(themeValue) : {};
         const progressMetric = type === "常规维系"
           ? ""
           : metric("任务完成进度", taskProgressDisplay(numbers), `${numbers.done}/${numbers.total}`);
         const dashboardContent = `<div class="metrics compact-metrics" style="grid-template-columns:repeat(4,1fr)">${metric("覆盖客户", numbers.customers, "")}${metric("覆盖关键人", numbers.contacts, "", "blue")}${progressMetric}${metric("已完成", numbers.done, "执行明细")}${metric("待执行/暂停", numbers.pending, "当前待处理", "yellow")}${metric("当前逾期", numbers.overdue, "需优先处理", "red")}${metric("已过期未完成", numbers.expired, "不再执行", "red")}</div>`;
         const executionContent = `${taskExecutionHeader("refresh-task-theme", themeKey)}${pmExecutionTable(rows, `theme-${themeKey}`)}`;
         openDrawer(
-          `<div class="drawer-head"><div class="modal-title">任务详情</div><button class="icon-btn close" data-close>×</button></div><div class="drawer-body"><div class="detail-hero"><div class="avatar">任</div><div class="detail-name">${title}</div><div class="spacer"></div>${taskThemeStatusTag(taskThemeStatus({ ...numbers, endDate: type === "节假日关怀" && themeValue ? holidayPeriod(themeValue).endDate : undefined }))}</div><div class="tabs"><button class="tab active" type="button" data-task-theme-detail-tab="detail">任务详情</button><button class="tab" type="button" data-task-theme-detail-tab="dashboard">数据看板</button><button class="tab" type="button" data-task-theme-detail-tab="executions">执行明细</button></div><div data-task-theme-detail-panel="detail">${detailContent}</div><div class="hidden" data-task-theme-detail-panel="dashboard">${dashboardContent}</div><div class="hidden" data-task-theme-detail-panel="executions">${executionContent}</div></div><div class="drawer-foot"><button class="btn" data-close>关闭</button></div>`,
+          `<div class="drawer-head"><div class="modal-title">任务详情</div><button class="icon-btn close" data-close>×</button></div><div class="drawer-body"><div class="detail-hero"><div class="avatar">任</div><div class="detail-name">${title}</div><div class="spacer"></div>${taskThemeStatusTag(taskThemeStatus({ ...numbers, ...period }))}</div><div class="tabs"><button class="tab active" type="button" data-task-theme-detail-tab="detail">任务详情</button><button class="tab" type="button" data-task-theme-detail-tab="dashboard">数据看板</button><button class="tab" type="button" data-task-theme-detail-tab="executions">执行明细</button></div><div data-task-theme-detail-panel="detail">${detailContent}</div><div class="hidden" data-task-theme-detail-panel="dashboard">${dashboardContent}</div><div class="hidden" data-task-theme-detail-panel="executions">${executionContent}</div></div><div class="drawer-foot"><button class="btn" data-close>关闭</button></div>`,
         );
         document.querySelectorAll("[data-task-theme-detail-tab]").forEach(
           (button) =>
@@ -18928,6 +19004,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
         const t = tasks.find((x) => x.id === id);
         if (!t || !scopedTasks().some((x) => x.id === id))
           return toast("无权查看该任务");
+        const isEventTask = ["生日关怀", "节假日关怀"].includes(t.type);
         const canExecute = taskCanTakeAction(t);
         const canChange = taskCanRequestChange(t);
         const record = taskRecord(t);
@@ -18986,7 +19063,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
           ? "延期/取消/暂停"
           : "延期/取消";
         openDrawer(
-          `<div class="drawer-head"><div class="modal-title">任务详情</div><button class="icon-btn close" data-close>×</button></div><div class="drawer-body"><div class="detail-hero"><div class="avatar">任</div><div><div class="detail-name">${t.title}</div><div class="detail-sub">${taskStatusName(t.status, t)}</div></div></div><div class="detail-grid"><div class="detail-item"><label>任务编号</label><div>${t.parentTaskCode}</div></div><div class="detail-item"><label>任务执行记录编号</label><div>${t.executionCode}</div></div>${handoverRelationFields}<div class="detail-item"><label>执行目标</label><div>${t.person}</div></div><div class="detail-item"><label>执行人</label><div>${t.pm} · ${t.executorRole || (t.company?.includes("有限公司") ? "区域总监" : "PM")}</div></div><div class="detail-item"><label>客户范围</label><div>${t.company}</div></div><div class="detail-item"><label>任务类型</label><div>${t.type}</div></div><div class="detail-item"><label>生成时间</label><div>${t.createdAt || "2026-08-01 09:00"}</div></div><div class="detail-item"><label>更新时间</label><div>${t.updatedAt || t.createdAt || "-"}</div></div><div class="detail-item"><label>原截止时间</label><div>${t.originalDue || t.due} 23:59:59</div></div><div class="detail-item"><label>当前截止时间</label><div>${t.due} 23:59:59</div></div><div class="detail-item full"><label>执行要求</label><div>${taskRequirementText(t)}</div></div><div class="detail-item full"><label>逾期补完成</label><div>${completionPolicy.allowed ? completionPolicy.cutoff ? `允许补完成至 ${completionPolicy.cutoff} 23:59:59` : "允许（无截止日期）" : "不允许"}</div></div>${t.resumeDate ? `<div class="detail-item"><label>暂停至</label><div>${t.resumeDate}</div></div>` : ""}${t.closeReason ? `<div class="detail-item"><label>${autoClosed ? "关闭原因" : "取消原因"}</label><div>${escapeHtml(t.closeReason)}</div></div>` : ""}${employeeStopClosure}</div>${completionAudit}<div class="section-title">流程记录</div><div class="timeline"><div class="timeline-item"><div class="timeline-title">${t.createdAt || "2026-08-01 09:00"} · 任务已生成</div><div class="timeline-content">执行人：${t.pm}</div></div>${t.everOverdue ? `<div class="timeline-item"><div class="timeline-title">${t.firstOverdueAt || addDays(t.due, 1)} · 首次转为当前逾期</div><div class="timeline-content">原截止日期：${t.originalDue || t.due}</div></div>` : ""}${pauseTimeline}${resumeTimeline}${t.status === "done" ? `<div class="timeline-item"><div class="timeline-title">${record?.createdAt || t.completedAt || DEMO_TODAY} · 任务已完成</div><div class="timeline-content">${completionTypeName(t.completionType)}；维系记录已保存</div></div>` : ""}${t.status === "cancelled" ? `<div class="timeline-item"><div class="timeline-title">${escapeHtml(t.closedAt || DEMO_TODAY)} · ${autoClosed ? "任务已关闭" : "任务已取消"}</div><div class="timeline-content">${escapeHtml(t.closeReason || (autoClosed ? "系统自动关闭" : "系统取消"))}${t.employeeStopRecordId ? `；关联员工停用 ${escapeHtml(t.employeeStopRecordId)}` : ""}</div></div>` : ""}</div></div><div class="drawer-foot"><button class="btn" data-close>关闭</button>${canChange ? `<button class="btn" data-action="change-task" data-id="${t.id}">${changeActionLabel}</button>` : ""}${canExecute ? `<button class="btn btn-primary" data-complete="${t.id}">${currentUser.fullAccess ? "管理员代办完成" : "提交维系结果"}</button>` : ""}</div>`,
+          `<div class="drawer-head"><div class="modal-title">任务详情</div><button class="icon-btn close" data-close>×</button></div><div class="drawer-body"><div class="detail-hero"><div class="avatar">任</div><div><div class="detail-name">${t.title}</div><div class="detail-sub">${taskStatusName(t.status, t)}</div></div></div><div class="detail-grid"><div class="detail-item"><label>任务编号</label><div>${t.parentTaskCode}</div></div><div class="detail-item"><label>任务执行记录编号</label><div>${t.executionCode}</div></div>${handoverRelationFields}<div class="detail-item"><label>执行目标</label><div>${t.person}</div></div><div class="detail-item"><label>执行人</label><div>${t.pm} · ${t.executorRole || (t.company?.includes("有限公司") ? "区域总监" : "PM")}</div></div><div class="detail-item"><label>客户范围</label><div>${t.company}</div></div><div class="detail-item"><label>任务类型</label><div>${t.type}</div></div><div class="detail-item"><label>${isEventTask ? "开始时间" : "生成时间"}</label><div>${isEventTask ? escapeHtml(t.createdAt || "—") : (t.createdAt || "2026-08-01 09:00")}</div></div><div class="detail-item"><label>更新时间</label><div>${t.updatedAt || t.createdAt || "-"}</div></div><div class="detail-item"><label>原截止时间</label><div>${t.originalDue || t.due} 23:59:59</div></div><div class="detail-item"><label>${isEventTask ? "结束时间" : "当前截止时间"}</label><div>${t.due} 23:59:59</div></div><div class="detail-item full"><label>执行要求</label><div>${taskRequirementText(t)}</div></div><div class="detail-item full"><label>逾期补完成</label><div>${completionPolicy.allowed ? completionPolicy.cutoff ? `允许补完成至 ${completionPolicy.cutoff} 23:59:59` : "允许（无截止日期）" : "不允许"}</div></div>${t.resumeDate ? `<div class="detail-item"><label>暂停至</label><div>${t.resumeDate}</div></div>` : ""}${t.closeReason ? `<div class="detail-item"><label>${autoClosed ? "关闭原因" : "取消原因"}</label><div>${escapeHtml(t.closeReason)}</div></div>` : ""}${employeeStopClosure}</div>${completionAudit}<div class="section-title">流程记录</div><div class="timeline"><div class="timeline-item"><div class="timeline-title">${isEventTask ? escapeHtml(t.createdAt || "—") : (t.createdAt || "2026-08-01 09:00")} · 任务已生成</div><div class="timeline-content">执行人：${t.pm}</div></div>${t.everOverdue ? `<div class="timeline-item"><div class="timeline-title">${t.firstOverdueAt || addDays(t.due, 1)} · 首次转为当前逾期</div><div class="timeline-content">原截止日期：${t.originalDue || t.due}</div></div>` : ""}${pauseTimeline}${resumeTimeline}${t.status === "done" ? `<div class="timeline-item"><div class="timeline-title">${record?.createdAt || t.completedAt || DEMO_TODAY} · 任务已完成</div><div class="timeline-content">${completionTypeName(t.completionType)}；维系记录已保存</div></div>` : ""}${t.status === "cancelled" ? `<div class="timeline-item"><div class="timeline-title">${escapeHtml(t.closedAt || DEMO_TODAY)} · ${autoClosed ? "任务已关闭" : "任务已取消"}</div><div class="timeline-content">${escapeHtml(t.closeReason || (autoClosed ? "系统自动关闭" : "系统取消"))}${t.employeeStopRecordId ? `；关联员工停用 ${escapeHtml(t.employeeStopRecordId)}` : ""}</div></div>` : ""}</div></div><div class="drawer-foot"><button class="btn" data-close>关闭</button>${canChange ? `<button class="btn" data-action="change-task" data-id="${t.id}">${changeActionLabel}</button>` : ""}${canExecute ? `<button class="btn btn-primary" data-complete="${t.id}">${currentUser.fullAccess ? "管理员代办完成" : "提交维系结果"}</button>` : ""}</div>`,
         );
       }
 
@@ -19113,7 +19190,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
         const rangeDetails = isCoverage
           ? `<div class="detail-item"><label>目标集团</label><div>${targetValue(c.targets?.groups)}</div></div><div class="detail-item"><label>业务责任层级</label><div>${targetValue(c.targets?.companyLevels)}</div></div><div class="detail-item"><label>业务责任区域</label><div>${targetValue(c.targets?.regions)}</div></div><div class="detail-item"><label>覆盖维度</label><div>${c.coverageDimension}</div></div><div class="detail-item"><label>${c.coverageDimension === "部门覆盖" ? "目标部门" : "目标岗位"}</label><div>${targetLabel.replace(/^部门：|^标准岗位：/, "")}</div></div><div class="detail-item"><label>目标覆盖率</label><div>${c.targetCoverageRate}%</div></div>`
           : `<div class="detail-item"><label>目标行业</label><div>${targetValue(c.targets?.industries)}</div></div><div class="detail-item"><label>目标集团</label><div>${targetValue(c.targets?.groups)}</div></div><div class="detail-item"><label>目标区域</label><div>${targetValue(c.targets?.regions)}</div></div><div class="detail-item"><label>关键人职级</label><div>${targetValue(c.targets?.levels, "全部职级")}</div></div><div class="detail-item"><label>关键决策人</label><div>${c.decisionFilter || "全部"}</div></div><div class="detail-item"><label>关键人岗位</label><div>${c.targetPosition || "不限"}</div></div>`;
-        const detailContent = `<div class="detail-grid"><div class="detail-item"><label>任务编号</label><div>${c.code || theme?.code || "待生成"}</div></div><div class="detail-item"><label>任务类型</label><div>${c.category}</div></div><div class="detail-item"><label>开始时间</label><div>${c.startDate}</div></div><div class="detail-item"><label>结束时间</label><div>${c.endDate}</div></div><div class="detail-item"><label>更新时间</label><div>${c.updatedAt || "-"}</div></div><div class="detail-item"><label>发布人</label><div>${c.owner}</div></div>${rangeDetails}${isCoverage ? "" : `<div class="detail-item full"><label>任务标题模板</label><div>${c.taskTitleTemplate || "{{专项标题}} - {{关键人姓名}}"}</div></div><div class="detail-item"><label>逾期补完成</label><div>${c.allowLateCompletion ? `允许，最晚至 ${c.lateCompletionEndDate}` : "不允许"}</div></div>`}<div class="detail-item full"><label>执行说明</label><div>${c.description || "按发布条件完成专项要求"}</div></div></div>`;
+        const detailContent = `<div class="detail-grid"><div class="detail-item"><label>任务编号</label><div>${c.code || theme?.code || "待生成"}</div></div><div class="detail-item"><label>任务类型</label><div>${c.category}</div></div><div class="detail-item"><label>开始时间</label><div>${c.startDate}</div></div><div class="detail-item"><label>结束时间</label><div>${c.endDate}</div></div><div class="detail-item"><label>创建时间</label><div>${escapeHtml(c.createdAt || "—")}</div></div><div class="detail-item"><label>更新时间</label><div>${c.updatedAt || "-"}</div></div><div class="detail-item"><label>发布人</label><div>${c.owner}</div></div>${rangeDetails}${isCoverage ? "" : `<div class="detail-item full"><label>任务标题模板</label><div>${c.taskTitleTemplate || "{{专项标题}} - {{关键人姓名}}"}</div></div><div class="detail-item"><label>逾期补完成</label><div>${c.allowLateCompletion ? `允许，最晚至 ${c.lateCompletionEndDate}` : "不允许"}</div></div>`}<div class="detail-item full"><label>执行说明</label><div>${c.description || "按发布条件完成专项要求"}</div></div></div>`;
         const dashboardContent = isCoverage
           ? `<div class="role-note"><strong>${c.coverageDimension} · ${targetLabel}</strong></div><div class="metrics compact-metrics" style="grid-template-columns:repeat(4,1fr)">${metric("应覆盖单位", denominator, "")}${metric("已覆盖单位", numerator, `未覆盖 ${Math.max(denominator - numerator, 0)}`, "blue")}${metric("当前覆盖率", `${coverageRate}%`, `目标 ${c.targetCoverageRate}%`, coverageRate >= c.targetCoverageRate ? "green" : "red")}${metric("达标责任人", `${reached}/${coverageRows.length}`, `未达标 ${coverageRows.length - reached}`, "yellow")}</div><div class="table-wrap"><table><thead><tr><th>区域 / 责任人</th><th>应覆盖</th><th>已覆盖</th><th>未覆盖</th><th>当前覆盖率</th><th>目标覆盖率</th><th>差额</th><th>操作</th></tr></thead><tbody>${coverageRows.map((row) => `<tr><td>${row.region}<div class="list-sub">${row.owner}</div></td><td>${row.denominator}</td><td>${row.numerator}</td><td>${Math.max(row.denominator - row.numerator, 0)}</td><td><strong>${row.currentRate}%</strong></td><td>${row.targetRate}%</td><td>${Math.max(row.required - row.numerator, 0)} 家</td><td><button class="link" type="button" data-coverage-row="${row.owner}">查看客户单位</button></td></tr>`).join("") || '<tr><td colspan="8">当前范围没有可考核单位</td></tr>'}</tbody></table></div>`
           : `<div class="metrics compact-metrics" style="grid-template-columns:repeat(4,1fr)">${metric("有效总数", local.total, "当前有效执行项")}${metric("总完成率", local.total ? Math.round((local.done / local.total) * 100) + "%" : "--", `${local.done}/${local.total}`)}${metric("按期完成率", local.total ? Math.round((local.onTimeDone / local.total) * 100) + "%" : "--", `${local.onTimeDone}/${local.total}`, "blue")}${metric("逾期补录", local.lateEntryDone, "", "yellow")}${metric("逾期补完成", local.lateCompletionDone, "不计入按期", "red")}${metric("已过期未完成", local.expired, "", "red")}</div>`;
@@ -19561,6 +19638,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
               id: Date.now(),
               owner: currentUser.name,
               ...commonData,
+              createdAt: commonData.updatedAt,
               customers: isCoverage
                 ? preview.companies.length
                 : new Set(preview.people.map((person) => person.company)).size,
@@ -21784,7 +21862,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
         const selectedLevels = new Set(ruleLevelValues(r));
         const selectedHolidayIds = new Set(r?.holidayIds || []);
         openModal(
-          `<div class="modal-head"><div class="modal-title">编辑自动任务规则</div><button class="icon-btn close" data-close>×</button></div><form id="ruleForm"><div class="modal-body"><div class="section-title">触发来源</div><div class="form-grid"><div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>规则类型</label><select class="input" id="ruleType" disabled><option value="birthday" ${r?.type !== "holiday" ? "selected" : ""}>生日关怀</option><option value="holiday" ${r?.type === "holiday" ? "selected" : ""}>节假日关怀</option></select></div><div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>规则名称</label><input class="input" id="ruleName" minlength="2" maxlength="100" value="${r?.name || ""}" required></div><div class="form-group full" id="ruleHolidayGroup"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>关联节假日 <span class="panel-sub">可多选</span></label><select class="input" id="ruleHolidaySelect"><option value="">从下拉中选择节假日添加…</option>${holidayCalendar.holidays.filter((holiday) => !selectedHolidayIds.has(holiday.id)).map((holiday) => `<option value="${holiday.id}">${holiday.name} · ${holiday.year} · ${holiday.startDate} 至 ${holiday.endDate}</option>`).join("")}</select><div id="ruleHolidayTags" style="margin-top:var(--space-2);display:flex;flex-wrap:wrap;gap:var(--space-2)"></div></div></div><div class="section-title">目标与时点</div><div class="form-grid"><div class="form-group full"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>适用职级</label><div class="checkbox-grid">${["一级", "二级", "三级", "四级"].map((level) => `<label class="check-row"><input type="checkbox" data-rule-level value="${level}" ${selectedLevels.has(level) ? "checked" : ""}><span>${level}</span></label>`).join("")}</div></div><div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>提前生成（天）</label><input class="input" id="ruleLead" type="number" min="0" max="60" value="${r?.lead ?? 7}" required></div><div class="form-group"><div class="form-label">截止时间</div><div>事件日当天 23:59:59</div></div><div class="form-group full"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>站内提醒节点 <span class="panel-sub">至少选择 1 项</span></label><div class="choice-grid" id="ruleReminderChoices"></div></div></div><div class="section-title">任务内容</div><div class="form-grid"><div class="form-group full"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>任务标题模板</label><input class="input" id="ruleTitle" minlength="2" maxlength="100" value="${r?.title || "【{{事件名称}}关怀】{{关键人姓名}}"}" required></div><div class="form-group full"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>执行要求</label><textarea class="input" id="ruleContent" minlength="5" maxlength="1000" required>${r?.content || "完成客户关怀并记录沟通结果。"}</textarea></div></div></div><div class="modal-foot"><button class="btn" type="button" data-close>取消</button><button class="btn btn-primary" type="submit">保存并启用</button></div></form>`,
+          `<div class="modal-head"><div class="modal-title">编辑自动任务规则</div><button class="icon-btn close" data-close>×</button></div><form id="ruleForm"><div class="modal-body"><div class="section-title">触发来源</div><div class="form-grid"><div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>规则类型</label><select class="input" id="ruleType" disabled><option value="birthday" ${r?.type !== "holiday" ? "selected" : ""}>生日关怀</option><option value="holiday" ${r?.type === "holiday" ? "selected" : ""}>节假日关怀</option></select></div><div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>规则名称</label><input class="input" id="ruleName" minlength="2" maxlength="100" value="${r?.name || ""}" required></div><div class="form-group full" id="ruleHolidayGroup"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>关联节假日 <span class="panel-sub">可多选</span></label><select class="input" id="ruleHolidaySelect"><option value="">从下拉中选择节假日添加…</option>${holidayCalendar.holidays.filter((holiday) => !selectedHolidayIds.has(holiday.id)).map((holiday) => `<option value="${holiday.id}">${holiday.name} · ${holiday.year} · ${holiday.startDate} 至 ${holiday.endDate}</option>`).join("")}</select><div id="ruleHolidayTags" style="margin-top:var(--space-2);display:flex;flex-wrap:wrap;gap:var(--space-2)"></div></div></div><div class="section-title">目标与时点</div><div class="form-grid"><div class="form-group full"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>适用职级</label><div class="checkbox-grid">${["一级", "二级", "三级", "四级"].map((level) => `<label class="check-row"><input type="checkbox" data-rule-level value="${level}" ${selectedLevels.has(level) ? "checked" : ""}><span>${level}</span></label>`).join("")}</div></div><div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>提前生成（天）</label><input class="input" id="ruleLead" type="number" min="0" max="60" value="${r?.lead ?? 7}" required></div><div class="form-group"><div class="form-label">截止时间</div><div>${r.type === "birthday" ? "生日当天" : "法定假期最后一天"} 23:59:59</div></div><div class="form-group full"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>站内提醒节点 <span class="panel-sub">至少选择 1 项</span></label><div class="choice-grid" id="ruleReminderChoices"></div></div></div><div class="section-title">任务内容</div><div class="form-grid"><div class="form-group full"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>任务标题模板</label><input class="input" id="ruleTitle" minlength="2" maxlength="100" value="${r?.title || "【{{事件名称}}关怀】{{关键人姓名}}"}" required></div><div class="form-group full"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>执行要求</label><textarea class="input" id="ruleContent" minlength="5" maxlength="1000" required>${r?.content || "完成客户关怀并记录沟通结果。"}</textarea></div></div></div><div class="modal-foot"><button class="btn" type="button" data-close>取消</button><button class="btn btn-primary" type="submit">保存并启用</button></div></form>`,
         );
         const refresh = () => {
           const birthday = $("#ruleType").value === "birthday";

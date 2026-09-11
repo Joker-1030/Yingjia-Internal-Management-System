@@ -1,11 +1,11 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-09-11T07:24:50.889Z",
+  "generatedAt": "2026-09-11T08:28:23.882Z",
   "generator": "scripts/build-prototype.mjs",
   "buildCommand": "node scripts/build-prototype.mjs",
   "sourceRoot": "src",
   "entry": "src/prototype.html",
-  "sourceDigest": "6ae848360003ef19566f7b905d3bc2573dfa14e32f849ba24769effd1927de26",
+  "sourceDigest": "9b3a319d1f88bc7df436db582aa56d84456ae66d31b6da1702c33763d7d12776",
   "sourceFiles": [
     {
       "path": "src/app.js",
@@ -199,8 +199,8 @@
     },
     {
       "path": "src/modules/m02-customer-operations/details.js",
-      "sha256": "0939c673f83cd72506362b6e29b38987c1b1c7e0ebf673fe0c6e02afbb08f9a9",
-      "bytes": 73745
+      "sha256": "d5032d9c970b5fa498ab9cf93848b43dacdee0ca26fe7e7bea62f386f85312b5",
+      "bytes": 73774
     },
     {
       "path": "src/modules/m02-customer-operations/module.json",
@@ -214,8 +214,8 @@
     },
     {
       "path": "src/modules/m02-customer-operations/records.js",
-      "sha256": "ee5dc06599094f9473a361cdfb1ff694a05f7e59a8a48f4732551d4e35f81c81",
-      "bytes": 18511
+      "sha256": "9462a599e4c38a291d254ae1314bf15d33adcdbcb55e3a17c2b4590b262c7e89",
+      "bytes": 19133
     },
     {
       "path": "src/modules/m02-customer-operations/scoped-records.js",
@@ -239,13 +239,13 @@
     },
     {
       "path": "src/modules/m03-maintenance/page.js",
-      "sha256": "cfc6b8bf230fb7d54400c7c0599651b01304b39a1ac147a4d440e79b7e4e638d",
-      "bytes": 43999
+      "sha256": "0b44e735138bf8ad5761a8e4b382d6cca3180c3d2312ac63aba11e2802be1a9e",
+      "bytes": 44028
     },
     {
       "path": "src/modules/m03-maintenance/task-actions.js",
-      "sha256": "d1c6f9fe91f30dba3825529e7c87c608f715a56ca2393a3ec717ed57ba01289f",
-      "bytes": 14542
+      "sha256": "7d81756148cb04a3bb770bed520ccc05cc4066edd2710f99cb724c6435a54938",
+      "bytes": 15910
     },
     {
       "path": "src/modules/m04-approvals/interactions.js",
@@ -472,8 +472,8 @@
   ],
   "artifact": {
     "path": "demo/prototype.html",
-    "sha256": "5370d0c23d1db22e852c53829111e5862c1ddd901f5bb23b46cec5fea6f155f4",
-    "bytes": 2348609
+    "sha256": "c310523a87f546fbc9a6bccd3dd7698edff3950fb3ffad7dd6da9bac7db84c52",
+    "bytes": 2350657
   },
   "legacyBridge": false,
   "architecture": "lightweight-modular",

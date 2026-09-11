@@ -88,6 +88,8 @@
       let projectDetailTab = "basic";
       let selectedOpportunityId = null;
       let opportunityDetailTab = "overview";
+      let opportunityDetailContext = "sales";
+      let selectedOpportunitySupportId = null;
       let salesPeriodDraft = "2026-09";
       let salesPeriodApplied = "2026-09";
       let salesTargetMonth = "2026-09";
@@ -107,6 +109,8 @@
         createdTo: "",
         overdue: "",
       };
+      let appliedSupportFilters = { name: "", customer: "", status: "", deadlineFrom: "", deadlineTo: "" };
+      let supportRemainingTimer = null;
       const expandedCustomerOrgNodes = new Set([
         "industry:通信",
         "industry:能源",

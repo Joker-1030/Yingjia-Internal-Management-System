@@ -2,8 +2,8 @@
         if (!permissionDraft || permissionDraft.role !== template.name) {
           permissionDraft = {
             role: template.name,
-            permissions: [...template.permissions],
-            operations: [...roleOperationPermissions[template.name]],
+            permissions: template.permissions.filter((page) => !isAdminOnlyProjectConfigPage(page)),
+            operations: roleOperationPermissions[template.name].filter((operation) => !isAdminOnlyProjectConfigPage(operation.split(".")[0])),
             fields: [...roleFieldPermissions[template.name]],
             attachments: [...roleAttachmentPermissions[template.name]],
           };
@@ -44,6 +44,11 @@
       function commitPermissionVersion(template, permissions, operations, fields, attachments, reason) {
         if (template.name === "系统管理员") {
           toast("系统管理员模板固定全权限，不允许修改");
+          return false;
+        }
+        if (permissions.some(isAdminOnlyProjectConfigPage) ||
+            operations.some((operation) => isAdminOnlyProjectConfigPage(operation.split(".")[0]))) {
+          toast("采购包和平台公司管理仅限 admin");
           return false;
         }
         const history = permissionVersions[template.name];
@@ -92,12 +97,15 @@
         const currentVersion = versions[0];
         const dirty = !immutable && permissionDraftDirty(template);
         const groups = permissionTreeGroups
+          .map((group) => ({...group, items: group.items.filter(([id]) => immutable || !isAdminOnlyProjectConfigPage(id))}))
+          .filter((group) => group.items.length)
           .map((group) => {
             const checkedCount = group.items.filter(([id]) => draft.permissions.includes(id)).length;
             return `<div class="permission-tree-group"><label class="permission-tree-head"><input type="checkbox" data-permission-group="${group.name}" ${checkedCount === group.items.length ? "checked" : ""} ${immutable ? "disabled" : ""}><span>${group.name}</span><span class="spacer"></span><span class="tag ${checkedCount === group.items.length ? "green" : "yellow"}">${checkedCount}/${group.items.length}</span></label>${group.items.map(([id, label, detail]) => `<label class="permission-tree-node"><input type="checkbox" data-role-permission="${id}" ${draft.permissions.includes(id) ? "checked" : ""} ${immutable ? "disabled" : ""}><span>${label}</span><small>${detail}</small></label>`).join("")}</div>`;
           })
           .join("");
         const operations = permissionCatalog
+          .filter(([page]) => immutable || !isAdminOnlyProjectConfigPage(page))
           .map(([page, label]) => {
             const items = operationPermissionCatalog.filter(
               ([, operationPage]) => operationPage === page,

@@ -379,13 +379,16 @@
             );
             const activePermissions =
               permissionDraft?.permissions || template?.permissions || [];
-            const selected = group.items.filter(([id]) =>
+            const groupItems = group.items.filter(([id]) =>
+              template?.name === "系统管理员" || !isAdminOnlyProjectConfigPage(id),
+            );
+            const selected = groupItems.filter(([id]) =>
               activePermissions.includes(id),
             ).length;
-            checkbox.indeterminate = selected > 0 && selected < group.items.length;
+            checkbox.indeterminate = selected > 0 && selected < groupItems.length;
             checkbox.onchange = () => {
               if (!permissionDraft || checkbox.disabled) return;
-              group.items.forEach(([id]) => {
+              groupItems.forEach(([id]) => {
                 permissionDraft.permissions = permissionDraft.permissions.filter(
                   (permission) => permission !== id,
                 );
@@ -873,14 +876,14 @@
               `<div class="modal-head"><div class="modal-title">确认权限调整</div><button class="icon-btn close" data-close>×</button></div><div class="modal-body"><div class="permission-summary"><div class="permission-summary-item"><label>目标角色 / 当前配置</label><strong>${template.name} / ${permissionVersions[template.name][0].id}</strong></div><div class="permission-summary-item"><label>影响岗位 / 在职员工</label><strong>${template.jobs.join("、")} / ${employeeCount} 人</strong></div>${diffRows}<div class="permission-summary-item"><label>变更原因</label><strong>${reason}</strong></div></div><div class="role-note" style="margin-top:var(--space-4)">保存后新配置立即生效，并追加只读变更日志；新请求立即按新权限校验。</div></div><div class="modal-foot"><button class="btn" data-close>取消</button><button class="btn btn-primary" id="confirmRoleTemplateSave">确认并生效</button></div>`,
             );
             $("#confirmRoleTemplateSave").onclick = () => {
-              commitPermissionVersion(
+              if (!commitPermissionVersion(
                 template,
                 permissionDraft.permissions,
                 permissionDraft.operations,
                 permissionDraft.fields,
                 permissionDraft.attachments,
                 reason,
-              );
+              )) return;
               closeOverlay();
               renderPage();
               toast("权限配置已生效，变更日志已记录");

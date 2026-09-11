@@ -1193,11 +1193,7 @@
       }
       function pruneProjectStaffScores(project) {
         if (!project?.satisfaction?.staffScores) return;
-        const current = new Set([
-          ...(project.lecturers || []),
-          ...(project.assistantLecturers || []),
-          ...(project.teachingAssistants || []),
-        ]);
+        const current = new Set(projectSatisfactionStaffNames(project));
         Object.keys(project.satisfaction.staffScores).forEach((name) => {
           if (!current.has(name)) delete project.satisfaction.staffScores[name];
         });
@@ -2463,7 +2459,7 @@
           errors.push("项目满意度：范围为 1-100 分");
         const staffScores = {};
         if (isTraining) {
-          projectCurrentStaffNames(project).forEach((name, index) => {
+          projectSatisfactionStaffNames(project).forEach((name, index) => {
             const raw = $(`#sat-staff-${index}`)?.value.trim() ?? "";
             const score = Number(raw);
             if (raw === "" || !Number.isFinite(score))
@@ -2502,7 +2498,7 @@
             `${projectScore}分`,
           );
         if (isTraining) {
-          projectCurrentStaffNames(project).forEach((name) => {
+          projectSatisfactionStaffNames(project).forEach((name) => {
             const prev = before.staffScores?.[name];
             const next = staffScores[name];
             if (prev !== next)

@@ -28,6 +28,10 @@ try {
     const targetRelative = path.relative(projectRoot, state.targetPath);
     const entryRelative = path.relative(projectRoot, state.entryPath);
 
+    if (artifact.toString("utf8") !== state.html) {
+      drift.push("Artifact content differs from the current source/build output.");
+    }
+
     if (manifest.sourceDigest !== state.sourceDigest) {
       drift.push(
         `Source digest changed: built ${manifest.sourceDigest}, current ${state.sourceDigest}`,

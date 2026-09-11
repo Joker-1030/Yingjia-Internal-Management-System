@@ -87,7 +87,9 @@
         { code: "YJ028", name: "东北总监", dept: "东北区域运营中心", job: "区域总监", role: "区域总监", scope: "东北区域", status: "在职" },
         { code: "YJ029", name: "沈阳原PM", dept: "东北区域运营中心", job: "项目经理", role: "PM", scope: "沈阳", status: "停用" },
       );
+      employees.push({ code: "YJ030", name: "支撑专员", dept: "咨询产品部", job: "方案顾问", role: "商机支撑", status: "在职" });
       const employeeProfiles = {
+        YJ030: ["13900000030", "support@yingjia.example", "2026-08-01", "YJ020"],
         YJ001: ["13900000001", "liuzong@yingjia.example", "2021-03-01", "YJ001"],
         YJ002: ["13900000002", "wangjing@yingjia.example", "2021-06-15", "YJ001"],
         YJ003: ["13900000003", "zhaolei@yingjia.example", "2022-02-18", "YJ002"],
@@ -286,11 +288,14 @@
         department.sort = department.sort || (index + 1) * 10;
         department.updatedAt = department.updatedAt || "2026-08-17 09:30";
       });
-      const businessSystemRoles = ["总裁", "市场副总", "区域总监", "PM", "HR/人事"];
+      const businessSystemRoles = ["总裁", "市场副总", "区域总监", "PM", "HR/人事", "商机支撑"];
       employees.forEach((employee) => {
         employee.roles = businessSystemRoles.includes(employee.role)
           ? [employee.role]
           : [];
+        // Explicit multi-role Demo fixtures; the PM login and support login are separate.
+        if (["YJ005", "YJ006", "YJ010", "YJ012"].includes(employee.code))
+          employee.roles.push("商机支撑");
         employee.manualRoles = [...employee.roles];
         employee.departments = employee.dept === "系统内置账号" ? [] : [employee.dept];
         employee.automaticRoleSources = {};

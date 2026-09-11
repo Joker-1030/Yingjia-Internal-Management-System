@@ -4701,3 +4701,99 @@
           grid-template-columns: minmax(0, 1fr);
         }
       }
+
+      /* M01 business overview only. Content growth belongs to the scroll body. */
+      .workbench { display: grid; gap: 16px; min-width: 0; }
+      .workbench .workbench-card { display: flex; flex-direction: column; min-width: 0; min-height: 0; overflow: hidden; margin: 0; }
+      .workbench .workbench-people,
+      .workbench .workbench-tasks { height: 264px; }
+      .workbench .workbench-projects,
+      .workbench .workbench-todos { height: 352px; }
+      .workbench .workbench-card > .panel-head { flex: 0 0 auto; min-height: 51px; padding: 14px 20px; }
+      .workbench-updated { color: var(--muted); font-size: 12px; white-space: nowrap; }
+      .workbench .workbench-split { display: grid; grid-template-columns: 180px minmax(0, 1fr); gap: 24px; flex: 1 1 0; min-height: 0; overflow: hidden; padding: 16px 20px; }
+      .workbench .workbench-values { display: flex; flex-direction: column; justify-content: center; gap: 22px; min-width: 0; padding-right: 24px; border-right: 1px solid var(--color-divider); }
+      .workbench .workbench-values:only-child { grid-column: 1 / -1; border-right: 0; }
+      .workbench-value { display: grid; gap: 5px; min-width: 0; }
+      .workbench-value > span { color: var(--muted); font-size: 12px; }
+      .workbench-value > strong { font-size: 30px; line-height: 1.15; font-weight: 600; letter-spacing: -.6px; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+      .workbench-value small { font-size: 12px; font-weight: 400; color: var(--muted); margin-left: 6px; }
+      .workbench-empty-note { font-size: 12px; color: var(--muted); }
+      .workbench .workbench-breakdown,
+      .workbench .workbench-project-detail,
+      .workbench .workbench-scroll { min-height: 0; min-width: 0; overflow: auto; overscroll-behavior: contain; scrollbar-gutter: stable; }
+      .workbench [tabindex="0"]:focus-visible { outline: 2px solid var(--brand); outline-offset: -2px; }
+      .workbench .workbench-breakdown table { width: 100%; min-width: 0; table-layout: fixed; border-collapse: separate; border-spacing: 0; font-size: 13px; }
+      .workbench .workbench-breakdown th,
+      .workbench .workbench-breakdown td { padding: 11px 12px; white-space: normal; overflow-wrap: anywhere; vertical-align: middle; }
+      .workbench .workbench-breakdown th { position: sticky; top: 0; z-index: 1; background: #f7f9fb; font-size: 12px; font-weight: 500; color: var(--muted); }
+      .workbench .workbench-breakdown th:first-child { width: 52%; }
+      .workbench .workbench-breakdown td:not(:first-child),
+      .workbench .workbench-breakdown th:not(:first-child) { text-align: right; font-variant-numeric: tabular-nums; }
+      .workbench .workbench-progress { display: grid; gap: 7px; justify-items: end; }
+      .workbench .workbench-progress strong { font-weight: 500; }
+      .workbench .workbench-progress progress { appearance: none; border: 0; border-radius: 4px; overflow: hidden; width: 100%; max-width: 140px; height: 5px; background: #edf1f5; accent-color: #658aa9; }
+      .workbench progress::-webkit-progress-bar { background: #edf1f5; border-radius: 4px; }
+      .workbench progress::-webkit-progress-value { background: #658aa9; border-radius: 4px; }
+      .workbench progress::-moz-progress-bar { background: #658aa9; border-radius: 4px; }
+      .workbench-bottom { display: grid; grid-template-columns: minmax(0, 1.18fr) minmax(0, 1fr); gap: 16px; min-width: 0; }
+      .workbench-bottom > :only-child { grid-column: 1 / -1; }
+      .workbench .workbench-scroll { flex: 1 1 0; padding: 16px 20px; }
+      .workbench .workbench-project-body { display: flex; flex-direction: column; flex: 1 1 0; min-height: 0; padding: 14px 20px 18px; gap: 12px; overflow: hidden; }
+      .workbench .workbench-analysis-controls { display: flex; flex-wrap: wrap; gap: 10px; flex: 0 0 auto; }
+      .workbench .workbench-analysis-controls label { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--muted); min-width: 0; }
+      .workbench .workbench-analysis-controls select { width: auto; min-width: 102px; max-width: 100%; height: 32px; padding: 4px 26px 4px 10px; font-size: 12px; background-color: #f8fafc; }
+      .workbench .workbench-project-visualization { display: flex; flex-direction: column; flex: 1 1 0; min-height: 0; }
+      .workbench .workbench-project-chart { display: grid; grid-template-columns: 180px minmax(0, 1fr); gap: 16px; flex: 1 1 0; min-height: 0; align-items: center; }
+      .workbench .workbench-donut { position: relative; width: 180px; height: 180px; }
+      .workbench .workbench-chart-svg,
+      .workbench .workbench-chart-svg svg { display: block; width: 100%; height: 100%; }
+      .workbench .workbench-donut-center { position: absolute; inset: 28px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 7px; text-align: center; color: var(--muted); font-size: 11px; }
+      .workbench .workbench-donut-center strong { color: var(--color-text-primary); font-size: 32px; font-weight: 600; font-variant-numeric: tabular-nums; line-height: 1.1; letter-spacing: -.5px; }
+      .workbench .workbench-money strong { font-size: 17px; overflow-wrap: anywhere; max-width: 125px; }
+      .workbench .workbench-donut-center small { font-size: 10px; }
+      .workbench .workbench-project-detail { align-self: stretch; }
+      .workbench .workbench-legend-head,
+      .workbench .workbench-stage-legend li { display: grid; grid-template-columns: minmax(66px, 1fr) auto 44px; gap: 8px; align-items: center; padding: 10px 0; }
+      .workbench .workbench-legend-head { position: sticky; top: 0; z-index: 1; background: var(--color-surface); color: var(--muted); font-size: 11px; border-bottom: 1px solid var(--color-divider); }
+      .workbench .workbench-stage-legend { list-style: none; padding: 0; margin: 0; font-size: 12px; }
+      .workbench .workbench-stage-legend li { border-bottom: 1px solid #f0f3f6; }
+      .workbench .workbench-group-name { display: flex; align-items: center; gap: 7px; }
+      .workbench .workbench-group-name i { width: 7px; height: 7px; border-radius: 2px; flex: 0 0 auto; }
+      .workbench .workbench-stage-legend strong { text-align: right; font-weight: 500; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+      .workbench .workbench-share,
+      .workbench .workbench-legend-head span:not(:first-child) { text-align: right; color: var(--muted); font-variant-numeric: tabular-nums; }
+      .workbench .dashboard-list .list-row { flex: 0 0 auto; }
+      .workbench .list-main { min-width: 0; }
+      .workbench .list-title,
+      .workbench .list-sub { white-space: normal; overflow-wrap: anywhere; }
+      .workbench .list-row > .tag { flex-shrink: 0; }
+      @media (max-width: 1200px) {
+        .workbench-bottom { grid-template-columns: minmax(0, 1fr); }
+        .workbench .workbench-project-chart { grid-template-columns: 200px minmax(0, 1fr); gap: 24px; }
+      }
+      @media (max-width: 600px) {
+        .workbench .workbench-people,
+        .workbench .workbench-tasks { height: 300px; }
+        .workbench .workbench-card > .panel-head { padding: 12px; gap: 8px; }
+        .workbench .workbench-split { grid-template-columns: 92px minmax(0, 1fr); gap: 10px; padding: 12px; }
+        .workbench .workbench-values { padding-right: 10px; gap: 28px; }
+        .workbench-value > span { font-size: 11px; }
+        .workbench-value > strong { font-size: 25px; }
+        .workbench .workbench-breakdown th,
+        .workbench .workbench-breakdown td { padding: 9px 4px; font-size: 11px; }
+        .workbench .workbench-breakdown th:first-child { width: 46%; }
+        .workbench-updated { font-size: 10px; }
+        .workbench .workbench-project-body { padding: 12px; }
+        .workbench .workbench-analysis-controls { gap: 6px; }
+        .workbench .workbench-analysis-controls label { width: 100%; justify-content: space-between; }
+        .workbench .workbench-project-chart { grid-template-columns: 100px minmax(0, 1fr); gap: 8px; }
+        .workbench .workbench-donut { width: 100px; height: 100px; }
+        .workbench .workbench-donut-center { inset: 15px; gap: 3px; font-size: 9px; }
+        .workbench .workbench-donut-center strong { font-size: 23px; }
+        .workbench .workbench-money strong { font-size: 11px; }
+        .workbench .workbench-legend-head,
+        .workbench .workbench-stage-legend li { grid-template-columns: minmax(40px, 1fr) minmax(0, 1.15fr) 34px; gap: 4px; font-size: 10px; }
+        .workbench .workbench-group-name { gap: 4px; }
+        .workbench .workbench-scroll { padding: 12px; }
+      }

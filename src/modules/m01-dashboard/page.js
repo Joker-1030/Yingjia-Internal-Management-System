@@ -343,85 +343,203 @@
           .join("")}</div></section>`;
       }
 
+      // M01 consumes current responsibility; it does not widen source-page access.
+      function dashboardManagedRegions() {
+        const employee = employees.find((item) => item.code === currentUser?.employeeCode);
+        if (!employee || employee.status !== "在职") return [];
+        const ids = new Set(departmentsManagedBy(employee.code)
+          .filter((department) => department.type === "region")
+          .map((department) => department.regionId));
+        return regionsData.filter((region) => ids.has(region.id));
+      }
+
+      function dashboardBusinessRows() {
+        if (currentScopeType() !== "regions")
+          return { companies: scopedCustomers(), people: scopedContacts(), rows: scopedTasks() };
+        const regions = dashboardManagedRegions();
+        const inRegion = (company) => company && regions.some((region) =>
+          regionsMatch(customerRegionScope(company), regionScopeName(region)));
+        const companies = hasDataObject("客户单位")
+          ? customers.filter((company) => !company.archived && inRegion(company)) : [];
+        const visibleCompanyNames = new Set(companies.map((company) => company.name));
+        const people = hasDataObject("关键人")
+          ? contacts.filter((person) => contactIsActive(person) && visibleCompanyNames.has(person.company)) : [];
+        const rows = hasDataObject("维系任务") ? tasks.filter((task) => {
+          const company = customers.find((item) => item.name === task.company);
+          const person = contacts.find((item) => item.name === task.person && item.company === task.company);
+          return company && !company.archived && inRegion(company) && (!person || contactIsActive(person));
+        }) : [];
+        return { companies, people, rows };
+      }
+
+      function dashboardProjectSummary() {
+        if (!hasPermission("projects")) return null;
+        normalizeAllProjectLifecycles();
+        const regions = currentUser.role === "director" ? dashboardManagedRegions() : [];
+        const visible = projects.filter((project) => {
+          if (!projectCustomerFacts(project)) return false;
+          if (currentUser.role === "director" && !currentUser.fullAccess)
+            return regions.some((region) => regionsMatch(projectRegionScope(project), regionScopeName(region)));
+          return projectIsVisibleToCurrentUser(project);
+        });
+        if (visible.some((project) => !PROJECT_STAGES.includes(project.stage))) return null;
+        return { projects: visible, total: visible.length, stages: PROJECT_STAGES.map((stage) => ({
+          stage, count: visible.filter((project) => project.stage === stage).length,
+        })) };
+      }
+
+      let dashboardProjectDimension = "stage";
+      let dashboardProjectMeasure = "count";
+      let dashboardProjectTypeFilter = "";
+
+      function dashboardProjectAnalysis(summary, dimension = dashboardProjectDimension, measure = dashboardProjectMeasure, typeFilter = dashboardProjectTypeFilter) {
+        if (!["", ...PROJECT_TYPES].includes(typeFilter)) return null;
+        if (!summary || !["stage", "type"].includes(dimension) || !["count", "amount"].includes(measure)) return null;
+        const selected = summary.projects.filter((project) => !typeFilter || project.type === typeFilter);
+        const labels = dimension === "stage" ? PROJECT_STAGES : PROJECT_TYPES;
+        if (selected.some((project) => !labels.includes(project[dimension]))) return null;
+        const values = selected.map((project) => {
+          if (measure === "count") return 1;
+          if (project.amount == null || String(project.amount).trim() === "") return NaN;
+          const amount = Number(project.amount);
+          return Number.isFinite(amount) && amount >= 0 && Number.isSafeInteger(Math.round(amount * 100)) ? Math.round(amount * 100) : NaN;
+        });
+        const total = values.reduce((sum, value) => sum + value, 0);
+        if (!Number.isSafeInteger(total)) return null;
+        return { total, measure, projectCount: selected.length, groups: labels.map((label) => {
+          const value = values.reduce((sum, amount, index) => sum + (selected[index][dimension] === label ? amount : 0), 0);
+          return { label, value, share: total ? value / total * 100 : null };
+        }) };
+      }
+
+      function dashboardProjectChart(summary) {
+        const analysis = dashboardProjectAnalysis(summary);
+        if (!analysis) return '<div class="empty">项目数据暂不可用</div>';
+        const money = analysis.measure === "amount";
+        const format = (value) => money ? formatProjectMoney(value / 100) : String(value);
+        const colors = ["#7596b5", "#366895", "#68a6a0", "#457c68", "#c3ccd6", "#b69b89"];
+        // Render a disposable SVG snapshot; no hidden selection, drilldown or canvas lifecycle.
+        const chart = echarts.init(null, null, { renderer: "svg", ssr: true, width: 220, height: 220 });
+        let svg;
+        try {
+          chart.setOption({
+            animation: false,
+            color: colors,
+            series: [{
+              type: "pie", radius: ["76%", "94%"], center: ["50%", "50%"],
+              silent: true, selectedMode: false, stillShowZeroSum: false,
+              label: { show: false }, labelLine: { show: false },
+              emphasis: { disabled: true },
+              itemStyle: { borderRadius: 4, borderWidth: 3, borderColor: "#ffffff" },
+              data: analysis.total ? analysis.groups.map((item) => ({ name: item.label, value: item.value })) : [],
+              emptyCircleStyle: { color: "#edf1f5", borderWidth: 0 },
+            }],
+          });
+          svg = chart.renderToSVGString();
+        } finally { chart.dispose(); }
+        return `<div class="workbench-project-chart"><div class="workbench-donut"><div class="workbench-chart-svg" aria-hidden="true">${svg}</div><div class="workbench-donut-center${money ? " workbench-money" : ""}"><span>${money ? "项目金额合计" : "项目总数（个）"}</span><strong data-dashboard-value="projects">${format(analysis.total)}</strong>${money ? "<small>含税，元</small>" : ""}${analysis.projectCount ? "" : "<small>暂无项目</small>"}</div></div><div class="workbench-project-detail" tabindex="0" role="region" aria-label="项目分组明细"><div class="workbench-legend-head"><span>${dashboardProjectDimension === "type" ? "类型" : "阶段"}</span><span>${money ? "金额（含税，元）" : "数量（个）"}</span><span>占比</span></div><ul class="workbench-stage-legend">${analysis.groups.map((item, index) => `<li><span class="workbench-group-name"><i aria-hidden="true" style="background:${colors[index]}"></i>${escapeDashboardHtml(item.label)}</span><strong>${format(item.value)}</strong><span class="workbench-share">${dashboardPercent(item.share)}</span></li>`).join("")}</ul></div></div>`;
+      }
+
+      function dashboardProjectControls() {
+        const select = (key, value, label, options) => '<label>' + label + '<select class="input" aria-label="' + label + '" data-workbench-project="' + key + '">' + options.map(([id, name]) => '<option value="' + id + '"' + (value === id ? ' selected' : '') + '>' + name + '</option>').join('') + '</select></label>';
+        return '<div class="workbench-analysis-controls">' + select('typeFilter', dashboardProjectTypeFilter, '项目类型', [['','全部'], ...PROJECT_TYPES.map((type) => [type, type])]) + select('dimension', dashboardProjectDimension, '分析维度', [['stage','项目阶段'],['type','项目类型']]) + select('measure', dashboardProjectMeasure, '统计指标', [['count','项目数量'],['amount','项目金额（含税，元）']]) + '</div>';
+      }
+
+      function handleWorkbenchProjectChange(target) {
+        if (!currentUser || currentPage !== "dashboard" || !canAccessPage("dashboard") || !hasPermission("projects")) return;
+        if (target.dataset.workbenchProject === "dimension" && ["stage", "type"].includes(target.value)) dashboardProjectDimension = target.value;
+        else if (target.dataset.workbenchProject === "measure" && ["count", "amount"].includes(target.value)) dashboardProjectMeasure = target.value;
+        else if (target.dataset.workbenchProject === "typeFilter" && ["", ...PROJECT_TYPES].includes(target.value)) dashboardProjectTypeFilter = target.value;
+        else return;
+        const host = document.querySelector("#workbenchProjectVisualization");
+        if (host) host.innerHTML = dashboardProjectChart(dashboardProjectSummary());
+      }
+      document.addEventListener("change", (event) => {
+        if (event.target?.matches?.("[data-workbench-project]")) handleWorkbenchProjectChange(event.target);
+      });
+
+      function dashboardCoverageGroups(companies, people) {
+        const group = (label, selected) => {
+          const names = new Set(selected.map((company) => company.name));
+          const contactsInGroup = people.filter((person) => names.has(person.company));
+          return { label, people: contactsInGroup.length, rate: dashboardCoverageRate(selected, contactsInGroup) };
+        };
+        if (currentUser.role === "director") return employees
+          .filter((employee) => employee.status === "在职" && employeeHasRole(employee, "PM"))
+          .slice().sort((a, b) => a.name.localeCompare(b.name, "zh-CN") || a.code.localeCompare(b.code))
+          .map((employee) => ({ employee, selected: companies.filter((company) => company.level !== "省公司" && customerOwnerName(company) === employee.name) }))
+          .filter((item) => item.selected.length)
+          .map((item) => group(item.employee.name, item.selected));
+        if (!["president", "vp", "admin"].includes(currentUser.role)) return [];
+        return organizationDepartments.filter((department) => department.type === "region" && department.status === "启用")
+          .slice().sort((a, b) => a.sort - b.sort || a.name.localeCompare(b.name, "zh-CN") || String(a.id).localeCompare(String(b.id)))
+          .map((department) => regionsData.find((region) => region.id === department.regionId)).filter(Boolean)
+          .map((region) => group(regionScopeName(region), companies.filter((company) => regionsMatch(customerRegionScope(company), regionScopeName(region)))));
+      }
+
+      function dashboardCoverageTable(companies, people) {
+        if (currentUser.role === "pm") {
+          const covered = new Set(people.map((person) => person.company));
+          const uncovered = companies.filter((company) => !covered.has(company.name));
+          const emptyText = companies.length ? "当前客户公司均已覆盖" : "暂无客户公司";
+          return `<div class="workbench-breakdown" tabindex="0" role="region" aria-label="未覆盖客户公司"><table><thead><tr><th>未覆盖客户公司</th></tr></thead><tbody>${uncovered.map((company) => `<tr><td>${escapeDashboardHtml(company.name)}</td></tr>`).join("")}</tbody></table>${uncovered.length ? "" : `<div class="empty">${emptyText}</div>`}</div>`;
+        }
+        if (!["president", "vp", "director", "admin"].includes(currentUser.role)) return "";
+        const groups = dashboardCoverageGroups(companies, people);
+        return '<div class="workbench-breakdown" tabindex="0" role="region" aria-label="关键人覆盖明细"><table><thead><tr><th>' + (currentUser.role === "director" ? 'PM' : '区域运营中心') + '</th><th>关键人</th><th>覆盖率</th></tr></thead><tbody>' + groups.map((item) => '<tr><td>' + escapeDashboardHtml(item.label) + '</td><td>' + item.people + '</td><td>' + dashboardPercent(item.rate) + '</td></tr>').join('') + '</tbody></table>' + (groups.length ? '' : '<div class="empty">暂无PM客户覆盖数据</div>') + '</div>';
+      }
+
+      function dashboardCampaignProgress(rows) {
+        return campaigns.filter((campaign) => ["专项维系", "关键人覆盖 KPI"].includes(campaign.category) && rows.some((task) => task.campaignId === campaign.id))
+          .map((campaign) => {
+            const valid = rows.filter((task) => task.campaignId === campaign.id && ["pending", "paused", "overdue", "expired", "done"].includes(task.status));
+            const done = valid.filter((task) => task.status === "done").length;
+            return { name: campaign.name, state: taskThemeStatus(campaign), done, total: valid.length, rate: valid.length ? done / valid.length * 100 : null };
+          });
+      }
+
+      function dashboardCampaignTable(rows) {
+        const progress = dashboardCampaignProgress(rows);
+        return '<div class="workbench-breakdown" tabindex="0" role="region" aria-label="专项任务进度"><table><thead><tr><th>专项任务</th><th>状态</th><th>完成进度</th></tr></thead><tbody>' + progress.map((item) => '<tr><td>' + escapeDashboardHtml(item.name) + '</td><td>' + escapeDashboardHtml(item.state) + '</td><td><div class="workbench-progress"><strong>' + dashboardPercent(item.rate) + '</strong><progress max="100" value="' + (item.rate || 0) + '" aria-label="' + escapeDashboardHtml(item.name) + '完成进度"></progress></div></td></tr>').join('') + '</tbody></table>' + (progress.length ? '' : '<div class="empty">暂无专项任务</div>') + '</div>';
+      }
+
+      function dashboardOverviewValue(label, value, key, suffix = "") {
+        return `<div class="workbench-value"><span>${label}</span><strong data-dashboard-value="${key}">${value}${suffix ? `<small>${suffix}</small>` : ""}</strong></div>`;
+      }
+
+      function dashboardOverviewTodos() {
+        // Keep existing collection/ordering; this task only simplifies presentation.
+        const items = dashboardTodoItems().filter((item) =>
+          item.projectId ? hasPermission("projects") : hasPermission("tasks"));
+        return items.map((item) => {
+          if (item.projectId) {
+            const project = projectById(item.projectId);
+            return { ...item, title: project?.name || item.title, detail: item.title, command: "查看" };
+          }
+          const task = tasks.find((row) => row.id === item.id);
+          return task ? { ...item, title: `${task.company} · ${task.person}`,
+            detail: `${task.title} · ${taskStatusName(task.status, task)} · 截止 ${task.due}` } : item;
+        });
+      }
+
       function renderDashboard() {
+        if (!currentUser || !canAccessPage("dashboard") || ["hr", "support"].includes(currentUser.role)) return "";
         if (currentUser.role === "admin" && adminDashboardView === "system")
           return renderAdminDashboard();
-        const companies = scopedCustomers();
-        const people = scopedContacts();
-        const rows = scopedTasks();
-        const numbers = dashboardTaskNumbers(rows);
+        const { companies, people, rows } = dashboardBusinessRows();
         const coverage = dashboardCoverageRate(companies, people);
-        const health = dashboardHealthRate(people, rows);
-        const currentMonth = DEMO_TODAY.slice(0, 7);
-        const selectedPeriod = dashboardPeriodMeta();
-        const selectedPeriodRows = dashboardDuePeriodRows(rows);
-        const selectedPeriodNumbers = dashboardTaskNumbers(selectedPeriodRows);
-        const completedThisMonth = rows.filter(
-          (task) =>
-            task.status === "done" &&
-            taskBusinessMonth(task, "done") === currentMonth,
-        ).length;
-        const pending = rows.filter((task) => executionStatusGroup(task.status) === "pending").length;
-        const overdue = rows.filter((task) => task.status === "overdue").length;
-        const activeCampaigns = campaigns.filter(
-          (campaign) =>
-            campaign.startDate <= DEMO_TODAY &&
-            campaign.endDate >= DEMO_TODAY &&
-            rows.some(
-              (task) =>
-                task.campaignId === campaign.id && task.status !== "cancelled",
-            ),
-        ).length;
-        const careTodos = rows.filter(
-          (task) =>
-            ["生日关怀", "节假日关怀"].includes(task.type) &&
-            !["done", "cancelled", "expired"].includes(task.status),
-        ).length;
-        const campaignTodos = rows.filter(
-          (task) =>
-            task.type === "专项维系" &&
-            !["done", "cancelled", "expired"].includes(task.status),
-        ).length;
-        const coverageKpiTodos = rows.filter(
-          (task) =>
-            task.type === "关键人覆盖 KPI" &&
-            !["done", "cancelled", "expired"].includes(task.status),
-        ).length;
-        const todoItems = dashboardTodoItems();
-        const projectReminderItems = projectReminderSummaryItemsForCurrentUser();
-        const dynamicItems = dashboardDynamicItems();
-        const isPm = currentUser.role === "pm";
-        const title = isPm
-          ? "今日行动工作台"
-          : currentUser.role === "director"
-            ? `${currentUser.region}监管工作台`
-            : currentUser.role === "vp"
-              ? "全国市场执行驾驶舱"
-              : "全国经营驾驶舱";
-        const description = isPm
-          ? `${currentUser.name}，优先处理逾期和临近到期事项，统计范围为${assignedCitiesForCurrentUser().join("、") || "未配置地市"}。`
-          : `${currentUser.name}，以下统计均由当前权限范围内的客户、关键人、任务和维系记录实时聚合。`;
-        const metrics = isPm
-          ? `${dashboardMetric("当前逾期", overdue, "不含暂停及已过期", "red", "tasks", { "task-view": "mine", "task-group": "overdue" })}${dashboardMetric("今日到期", rows.filter((task) => task.status === "pending" && task.due === DEMO_TODAY).length, "今日必须处理", "orange", "tasks", { "task-view": "mine", "task-group": "today" })}${dashboardMetric("未来 7 天", rows.filter((task) => task.status === "pending" && task.due > DEMO_TODAY && task.due <= addDays(DEMO_TODAY, 7)).length, "按截止日期计算", "yellow", "tasks", { "task-view": "mine", "task-group": "next7" })}${dashboardMetric("生日 / 节日", careTodos, "未结束关怀任务", "green", "tasks", { "task-view": "mine", "task-type": "care" })}${dashboardMetric("专项维系", campaignTodos, "本人待执行项", "blue", "tasks", { "task-view": "mine", "task-type": "专项维系" })}${dashboardMetric("覆盖 KPI", coverageKpiTodos, "系统按覆盖率判定", "orange", "tasks", { "task-view": "mine", "task-type": "关键人覆盖 KPI" })}${dashboardMetric("本月已完成", completedThisMonth, "按实际完成月统计", "", "tasks", { "task-view": "mine", "task-group": "done", "task-month": currentMonth, "task-event": "done" })}`
-          : `${dashboardMetric("客户单位", companies.length, "当前正常状态", "", "operations")}${dashboardMetric("有效关键人", people.length, "当前有效任职", "blue", "operations")}${dashboardMetric("关键人覆盖率", dashboardPercent(coverage), "全部关键人当前快照", "blue", "operations", { coverage: "none" })}${dashboardMetric("维系健康率", dashboardPercent(health), "常规、生日、节假日风险", "", "tasks", { "task-view": "mine", "task-group": "risk" })}${dashboardMetric(`${selectedPeriod.label}总完成率`, dashboardPercent(selectedPeriodNumbers.rate), `${selectedPeriodNumbers.done}/${selectedPeriodNumbers.total} 条已到期维系任务`, "orange", "tasks", { "task-view": "mine", "task-group": "period-done", "task-due-start": selectedPeriod.start, "task-due-end": selectedPeriod.end })}${dashboardMetric(`${selectedPeriod.label}按期完成率`, dashboardPercent(selectedPeriodNumbers.onTimeRate), `${selectedPeriodNumbers.onTimeDone}/${selectedPeriodNumbers.total} 条已到期维系任务`, "blue", "tasks", { "task-view": "mine", "task-group": "on-time", "task-due-start": selectedPeriod.start, "task-due-end": selectedPeriod.end })}${dashboardMetric("当前逾期", overdue, "不含暂停风险及已过期", "red", "tasks", { "task-view": "mine", "task-group": "overdue" })}${dashboardMetric("进行中专项", activeCampaigns, "专项维系 + 覆盖 KPI", "yellow", "tasks", { "task-view": "summary" })}`;
-        const primary = isPm
-          ? `<div class="dashboard-primary-grid">${dashboardPmActionGroups(rows)}<section class="panel dashboard-todo-panel"><div class="panel-head"><div class="panel-title">我的待办</div><span class="tag red dashboard-panel-count">${todoItems.length}</span><div class="spacer"></div><button class="btn" type="button" data-dashboard-nav="tasks" data-task-view="mine">全部任务</button></div><div class="panel-body list dashboard-list">${dashboardList(todoItems, "当前没有待处理事项")}</div></section></div>`
-          : `<div class="dashboard-primary-grid">${dashboardScopeTable()}<section class="panel dashboard-todo-panel"><div class="panel-head"><div class="panel-title">待办</div><span class="tag red dashboard-panel-count">${todoItems.length}</span></div><div class="panel-body list dashboard-list">${dashboardList(todoItems, "当前没有需要本人处理的事项")}</div></section></div>`;
-        const secondaryLeft = isPm
-          ? dashboardScopeTable()
-          : `${dashboardPmTable()}<section class="panel" style="margin-top:var(--space-4)"><div class="panel-head"><div class="panel-title">近六个月执行趋势</div><div class="panel-sub">按实际完成月与首次逾期月统计</div><div class="spacer"></div><span class="tag green">完成事件</span><span class="tag yellow">首次逾期事件</span></div><div class="panel-body">${dashboardTrendHtml(rows)}</div></section>`;
-        const projectReminderPanel = hasPermission("projects")
-          ? `<section class="panel dashboard-project-reminder-panel"><div class="panel-head"><div><div class="panel-title">项目提醒</div><div class="panel-sub">监督与待回款只读提醒不进入我的待办</div></div><div class="spacer"></div><button class="btn" type="button" data-dashboard-nav="projects">项目管理</button></div><div class="panel-body list dashboard-list">${dashboardList(projectReminderItems, "当前没有项目提醒")}</div></section>`
-          : "";
-        const secondaryRight = `<div class="dashboard-side-stack">${projectReminderPanel}<section class="panel dashboard-dynamic-panel"><div class="panel-head"><div class="panel-title">重点动态</div><span class="tag blue dashboard-panel-count">${dynamicItems.length}</span><div class="spacer"></div><button class="btn" type="button" data-action="notification-center">消息中心</button></div><div class="panel-body list dashboard-list">${dashboardList(dynamicItems, "当前没有重点动态")}</div></section></div>`;
-        return (
-          pageHead(
-            title,
-            description,
-            `${currentUser.role === "admin" ? '<button class="btn" type="button" data-admin-dashboard-view="system">系统运行</button>' : ""}<button class="btn" type="button" data-dashboard-nav="operations">客户经营</button><button class="btn btn-primary" type="button" data-dashboard-nav="tasks" data-task-view="${isPm ? "mine" : "summary"}">${isPm ? "处理任务" : "查看执行"}</button>`,
-          ) +
-          `<div class="metrics dashboard-metrics">${metrics}</div>${primary}<div class="dashboard-secondary-grid">${secondaryLeft}${secondaryRight}</div>`
-        );
+        const regular = rows.filter((task) => task.type === "常规维系");
+        const pending = regular.filter((task) => ["pending", "paused"].includes(task.status)).length;
+        const overdue = regular.filter((task) => task.status === "overdue").length;
+        const canSeePeople = hasDataObject("客户单位") && hasDataObject("关键人");
+        const canSeeTasks = hasPermission("tasks") && hasDataObject("维系任务");
+        const peopleCard = canSeePeople ? `<section class="panel workbench-card workbench-people"><div class="panel-head"><div class="panel-title" id="workbenchPeopleTitle">关键人概况</div><div class="spacer"></div><span class="workbench-updated">更新于 ${escapeDashboardHtml(DEMO_TODAY)}</span></div><div class="workbench-split" role="region" aria-labelledby="workbenchPeopleTitle"><div class="workbench-values">${dashboardOverviewValue("有效关键人", people.length, "people", "人")}${dashboardOverviewValue("关键人覆盖率", dashboardPercent(coverage), "coverage")}${coverage == null ? '<div class="workbench-empty-note">暂无客户单位</div>' : ""}</div>${dashboardCoverageTable(companies, people)}</div></section>` : "";
+        const taskCard = canSeeTasks ? `<section class="panel workbench-card workbench-tasks"><div class="panel-head"><div class="panel-title" id="workbenchTasksTitle">任务概况</div></div><div class="workbench-split" role="region" aria-labelledby="workbenchTasksTitle"><div class="workbench-values">${dashboardOverviewValue("常规任务待完成", pending, "pending", "项")}${dashboardOverviewValue("常规任务逾期", overdue, "overdue", "项")}</div>${dashboardCampaignTable(rows)}</div></section>` : "";
+        const projectCard = hasPermission("projects") ? `<section class="panel workbench-card workbench-projects"><div class="panel-head"><div class="panel-title" id="workbenchProjectsTitle">项目概况</div></div><div class="workbench-project-body" role="region" aria-labelledby="workbenchProjectsTitle">${dashboardProjectControls()}<div class="workbench-project-visualization" id="workbenchProjectVisualization">${dashboardProjectChart(dashboardProjectSummary())}</div></div></section>` : "";
+        const todoCard = `<section class="panel workbench-card workbench-todos"><div class="panel-head"><div class="panel-title" id="workbenchTodosTitle">我的待办</div></div><div class="workbench-scroll list dashboard-list" tabindex="0" role="region" aria-labelledby="workbenchTodosTitle">${dashboardList(dashboardOverviewTodos(), "当前没有需要本人处理的事项")}</div></section>`;
+        return pageHead("工作台", "查看关键人、任务与项目概况，安排待办事项。",
+          currentUser.role === "admin" ? '<button class="btn" type="button" data-admin-dashboard-view="system">系统运行</button>' : "") +
+          `<div class="workbench">${peopleCard}${taskCard}<div class="workbench-bottom">${projectCard}${todoCard}</div></div>`;
       }
 
       function renderAdminDashboard() {
@@ -450,7 +568,7 @@
         return (
           pageHead(
             "系统运行工作台",
-            "账号、导入、通知与平台作业数据统一汇总，可切换全国客户经营视图。",
+            "查看账号、数据导入与通知运行情况。",
             '<button class="btn" type="button" data-dashboard-nav="employees">组织与员工</button><button class="btn" type="button" data-dashboard-nav="imports">数据导入</button><button class="btn btn-primary" type="button" data-admin-dashboard-view="business">全国客户经营</button>',
           ) +
           `<div class="role-note">当前为系统运行视图；admin 同时拥有公司全局客户、关键人、维系、项目和配置操作权限，业务操作均保留“系统管理员”真实身份。</div><div class="metrics dashboard-metrics">${dashboardMetric("在职账号", activeEmployees.length, "来自员工测试数据", "", "employees")}${dashboardMetric("停用账号", employees.filter((employee) => employee.status !== "在职").length, "按员工状态统计", "red", "employees", { "employee-status": "停用" })}${dashboardMetric("任务调度", `${platformJobs.filter((job) => job.status === "成功").length}/${platformJobs.length}`, "最近一次执行结果", "blue", "dashboard")}${dashboardMetric("待重试作业", retryJobs.length, "需要运维复核", "yellow", "dashboard")}${dashboardMetric("本月导入批次", monthlyImports.length, `${currentMonth} 创建`, "", "imports")}${dashboardMetric("当前待处理错误行", failedImports.reduce((sum, batch) => sum + batch.errors, 0), "仅未完成批次", "red", "imports")}</div><div class="dashboard-primary-grid"><section class="panel dashboard-todo-panel"><div class="panel-head"><div class="panel-title">运维待办</div><span class="tag red dashboard-panel-count">${adminTodos.length}</span></div><div class="panel-body list dashboard-list">${dashboardList(adminTodos, "当前没有运维待办")}</div></section><section class="panel dashboard-dynamic-panel"><div class="panel-head"><div class="panel-title">系统动态</div><span class="tag blue dashboard-panel-count">${adminDynamics.length}</span></div><div class="panel-body list dashboard-list">${dashboardList(adminDynamics, "当前没有系统动态")}</div></section></div><div class="dashboard-secondary-grid"><section class="panel"><div class="panel-head"><div class="panel-title">系统作业状态</div><div class="panel-sub">最近一次执行</div></div><div class="table-wrap"><table><thead><tr><th>作业</th><th>最近执行</th><th>耗时</th><th>结果</th></tr></thead><tbody>${platformJobs.map((job) => `<tr><td><strong>${job.name}</strong></td><td>${job.lastRun}</td><td>${job.duration}</td><td><span class="tag ${job.status === "成功" ? "green" : "yellow"}">${job.status}</span></td></tr>`).join("")}</tbody></table></div></section><section class="panel"><div class="panel-head"><div class="panel-title">最近导入</div><div class="spacer"></div><button class="btn" type="button" data-dashboard-nav="imports">全部批次</button></div><div class="panel-body list dashboard-list">${dashboardList(importBatches.map((batch) => ({ icon: "导", title: batch.file, detail: `${batch.scope} · 可导入 ${batch.valid} 行 · 错误 ${batch.errors} 行`, tone: batch.errors && !["全部成功", "部分成功"].includes(batch.status) ? "red" : "green", action: "import-detail", id: batch.id })), "暂无导入批次")}</div></section></div>`

@@ -1,5 +1,9 @@
       const accounts = [
         {
+          username: "support", phone: "13900000030", password: "123456",
+          name: "支撑专员", role: "support", roleName: "商机支撑", region: "本人被指派方案支撑",
+        },
+        {
           username: "president",
           phone: "13900000001",
           password: "123456",

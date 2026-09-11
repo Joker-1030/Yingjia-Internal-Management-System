@@ -537,11 +537,10 @@
           materials.some((material) => material.category === category),
         );
       }
-      function projectCurrentStaffNames(project) {
+      function projectSatisfactionStaffNames(project) {
         return [
           ...(project?.lecturers || []),
           ...(project?.assistantLecturers || []),
-          ...(project?.teachingAssistants || []),
         ];
       }
       function validProjectScore(value) {
@@ -554,7 +553,7 @@
         if (!satisfaction || !validProjectScore(satisfaction.projectScore)) return false;
         if (project.type === "AI软件项目") return true;
         if (!(project.lecturers || []).length) return false;
-        return projectCurrentStaffNames(project).every((name) =>
+        return projectSatisfactionStaffNames(project).every((name) =>
           validProjectScore(satisfaction.staffScores?.[name]),
         );
       }
@@ -1220,7 +1219,7 @@
           '<div class="project-page project-list-page">' +
           pageHead(
             "项目管理",
-            "按当前账号数据范围查看项目列表与筛选，结果不返回数据范围之外的项目。",
+            "查看项目进展，跟进执行与交付。",
             createActions,
           ) +
           `<section class="panel project-list-panel">${projectListTabs}${toolbar}${table}</section>` +
@@ -1334,13 +1333,11 @@
         const satisfaction = projectSatisfaction(project);
         const isTraining = project.type === "培训项目";
         const editSatisfaction = canEditProjectSatisfaction(project);
-        const staffNames = isTraining ? projectCurrentStaffNames(project) : [];
+        const staffNames = isTraining ? projectSatisfactionStaffNames(project) : [];
         const staffLabel = (name) =>
           project.lecturers.includes(name)
             ? "主讲师满意度"
-            : project.assistantLecturers.includes(name)
-              ? "辅讲师满意度"
-              : "项目助教满意度";
+            : "辅讲师满意度";
         if (editSatisfaction) {
           const staffInputs = staffNames
             .map((name, index) => {
@@ -1589,7 +1586,7 @@
           '<div class="project-page project-detail-page">' +
           pageHead(
             "项目详情",
-            "",
+            "查看项目资料与执行进展。",
             detailActions,
           ) +
           `<section class="panel project-detail-panel"><div class="detail-hero project-detail-hero"><div class="avatar">项</div><div class="project-detail-identity"><div class="detail-name">${escapeHtml(project.name)}</div></div><div class="spacer"></div>${projectStageTag(project.stage)}</div><div class="tabs detail-tabs">${tabs
@@ -1733,7 +1730,7 @@
           '<div class="project-page project-config-page">' +
           pageHead(
             "采购包管理",
-            "查看采购包编号、名称、状态、有效期、创建与编辑时间及课程方向。",
+            "查看采购包与课程配置。",
             actions,
           ) +
           `<section class="panel project-config-panel">${filters}<div class="table-wrap project-config-table-wrap"><table class="project-config-table project-package-table" data-paged-table="m11-packages"><thead><tr><th>采购包编号</th><th>采购包名称</th><th>状态</th><th>有效期</th><th>创建时间</th><th>最近编辑时间</th><th>课程方向</th><th>操作</th></tr></thead><tbody>${rows || '<tr data-empty-row id="projectPackageDefaultEmpty"><td colspan="8"><div class="empty">暂无采购包</div></td></tr>'}<tr data-filter-empty id="projectPackageFilterEmpty" style="display:none"><td colspan="8"><div class="empty">未找到符合条件的采购包，请调整条件或重置筛选</div></td></tr></tbody></table></div>${tablePagination("m11-packages")}</section>` +
@@ -2165,7 +2162,7 @@
           '<div class="project-page project-form-page">' +
           pageHead(
             title,
-            "",
+            editing ? "更新项目信息。" : "填写项目信息，建立项目档案。",
           ) +
           `<section class="panel project-form-panel"><form id="projectForm" class="project-form"><div class="panel-body project-form-body">${formBody}</div><div class="panel-foot project-form-footer"><button class="btn" type="button" data-project-cancel>取消</button><button class="btn btn-primary" type="submit" id="pfSubmit">${submitLabel}</button></div></form></section>` +
           "</div>"
@@ -2229,7 +2226,7 @@
           '<div class="project-page project-config-page">' +
           pageHead(
             "平台公司管理",
-            "查看平台公司编号、名称、统一社会信用代码、管理费比例、合作课酬与状态。",
+            "查看平台公司资料与合作信息。",
             actions,
           ) +
           `<section class="panel project-config-panel">${filters}<div class="table-wrap project-config-table-wrap"><table class="project-config-table project-company-table" style="min-width:1120px" data-paged-table="m11-platform-companies"><thead><tr><th>平台公司编号</th><th>平台公司名称</th><th>统一社会信用代码</th><th>管理费比例</th><th>合作课酬</th><th>状态</th><th>操作</th></tr></thead><tbody>${rows || '<tr data-empty-row id="platformCompanyDefaultEmpty"><td colspan="7"><div class="empty">暂无平台公司</div></td></tr>'}<tr data-filter-empty id="platformCompanyFilterEmpty" style="display:none"><td colspan="7"><div class="empty">未找到符合条件的平台公司，请调整条件或重置筛选</div></td></tr></tbody></table></div>${tablePagination("m11-platform-companies")}</section>` +

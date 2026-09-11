@@ -20,7 +20,8 @@
     "data/notifications.js"
   ],
   "sourceFiles": [
-    "modules/m01-dashboard/page.js"
+    "modules/m01-dashboard/page.js",
+    "modules/m01-dashboard/echarts.common-6.0.0.min.js"
   ],
   "eventRouterSource": "modules/_app-shell/events.js"
 }

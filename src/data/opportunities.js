@@ -31,14 +31,13 @@
           supports: [
             {
               id: "ZC-001",
-              assignee: "刘经理",
+              assignee: "支撑专员",
               deadline: "2026-09-01 10:00",
               status: "待响应",
               content: "协助核对方案范围",
               delivery: "",
-              overdue: true,
               histories: [
-                { time: "2026-08-31 09:20", action: "发起请求", operator: "陈经理", owner: "陈经理", assignee: "刘经理" },
+                { time: "2026-08-31 09:20", action: "发起请求", operator: "陈经理", owner: "陈经理", assignee: "支撑专员" },
               ],
             },
           ],
@@ -75,16 +74,14 @@
           supports: [
             {
               id: "ZC-002",
-              assignee: "陈经理",
+              assignee: "支撑专员",
               deadline: "2026-09-02 12:00",
-              status: "支撑中",
+              status: "进行中",
               content: "协助形成课程方案",
-              delivery: "已提交课程框架",
-              overdue: false,
+              delivery: "",
               histories: [
-                { time: "2026-08-29 10:10", action: "发起请求", operator: "赵磊", owner: "赵磊", assignee: "陈经理" },
-                { time: "2026-08-29 10:35", action: "确认接收", operator: "陈经理", owner: "赵磊", assignee: "陈经理" },
-                { time: "2026-08-30 15:00", action: "提交过程内容", operator: "陈经理", owner: "赵磊", assignee: "陈经理" },
+                { time: "2026-08-29 10:10", action: "发起请求", operator: "赵磊", owner: "赵磊", assignee: "支撑专员" },
+                { time: "2026-08-29 10:35", action: "确认接收", operator: "支撑专员", owner: "赵磊", assignee: "支撑专员" },
               ],
             },
             {
@@ -94,7 +91,6 @@
               status: "已交付",
               content: "复核客户需求",
               delivery: "需求复核说明.pdf",
-              overdue: false,
               histories: [
                 { time: "2026-08-29 10:10", action: "发起请求", operator: "赵磊", owner: "赵磊", assignee: "周经理" },
                 { time: "2026-08-29 11:00", action: "确认接收", operator: "周经理", owner: "赵磊", assignee: "周经理" },
@@ -105,10 +101,9 @@
               id: "ZC-004",
               assignee: "徐经理",
               deadline: "2026-09-03 12:00",
-              status: "已响应",
+              status: "进行中",
               content: "补充同类项目实施建议",
               delivery: "",
-              overdue: false,
               histories: [
                 { time: "2026-08-29 10:10", action: "发起请求", operator: "赵磊", owner: "赵磊", assignee: "徐经理" },
                 { time: "2026-08-30 09:15", action: "确认接收", operator: "徐经理", owner: "赵磊", assignee: "徐经理" },
@@ -121,7 +116,6 @@
               status: "已关闭",
               content: "复核课程交付范围",
               delivery: "课程范围复核意见.docx",
-              overdue: false,
               histories: [
                 { time: "2026-08-29 10:10", action: "发起请求", operator: "赵磊", owner: "赵磊", assignee: "吴经理" },
                 { time: "2026-08-29 14:00", action: "确认接收", operator: "吴经理", owner: "赵磊", assignee: "吴经理" },
@@ -253,6 +247,14 @@
         },
       ];
       opportunities.forEach((item) => {
+        // Demo requests use the existing stable employee identity, not a grandfathered role.
+        item.supports.forEach((support) => {
+          if (["已交付", "已关闭"].includes(support.status)) {
+            support.delivery = support.id === "ZC-003" ? "客户需求复核结果" : "课程交付范围复核意见";
+            support.deliveryFile = { name: "支撑文件.pdf", url: "data:application/pdf;base64,JVBERi0xLjQKMSAwIG9iago8PCAvVHlwZSAvQ2F0YWxvZyAvUGFnZXMgMiAwIFIgPj4KZW5kb2JqCjIgMCBvYmoKPDwgL1R5cGUgL1BhZ2VzIC9LaWRzIFszIDAgUl0gL0NvdW50IDEgPj4KZW5kb2JqCjMgMCBvYmoKPDwgL1R5cGUgL1BhZ2UgL1BhcmVudCAyIDAgUiAvTWVkaWFCb3ggWzAgMCAzMDAgMjAwXSAvUmVzb3VyY2VzIDw8IC9Gb250IDw8IC9GMSA0IDAgUiA+PiA+PiAvQ29udGVudHMgNSAwIFIgPj4KZW5kb2JqCjQgMCBvYmoKPDwgL1R5cGUgL0ZvbnQgL1N1YnR5cGUgL1R5cGUxIC9CYXNlRm9udCAvSGVsdmV0aWNhID4+CmVuZG9iago1IDAgb2JqCjw8IC9MZW5ndGggNTkgPj4Kc3RyZWFtCkJUIC9GMSAxMiBUZiAzMCAxNDAgVGQgKFNvbHV0aW9uIHN1cHBvcnQgZGVsaXZlcmFibGUpIFRqIEVUCmVuZHN0cmVhbQplbmRvYmoKeHJlZgowIDYKMDAwMDAwMDAwMCA2NTUzNSBmIAowMDAwMDAwMDA5IDAwMDAwIG4gCjAwMDAwMDAwNTggMDAwMDAgbiAKMDAwMDAwMDExNSAwMDAwMCBuIAowMDAwMDAwMjQxIDAwMDAwIG4gCjAwMDAwMDAzMTEgMDAwMDAgbiAKdHJhaWxlcgo8PCAvU2l6ZSA2IC9Sb290IDEgMCBSID4+CnN0YXJ0eHJlZgo0MjAKJSVFT0Y=" };
+          }
+          support.assigneeCode = employees.find((employee) => employee.name === support.assignee)?.code;
+        });
         item.updatedAt = item.updatedAt || item.stageChangedAt;
         item.editHistories = item.editHistories || [];
       });

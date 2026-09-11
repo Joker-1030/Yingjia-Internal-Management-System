@@ -159,6 +159,7 @@
         director: "区域总监",
         pm: "PM",
         hr: "HR/人事",
+        support: "商机支撑",
         admin: "系统管理员",
       };
       const currentRoleTemplateNames = () => [
@@ -178,7 +179,12 @@
             !currentUser.fullAccess &&
             currentRoleTemplateNames().includes("PM"),
         );
+      const isAdminOnlyProjectConfigPage = (page) =>
+        ["packages", "platform-companies"].includes(page);
+      const isProjectConfigAdmin = () =>
+        Boolean(currentUser?.username === "admin" && currentUser?.role === "admin" && currentUser?.fullAccess);
       const hasPermission = (permission) =>
+        (!isAdminOnlyProjectConfigPage(permission) || isProjectConfigAdmin()) &&
         currentRoleTemplates().some((template) =>
           template.permissions.includes(permission),
         );
@@ -207,27 +213,23 @@
         if (page === "project-detail") return hasPermission("projects");
         if (page === "project-create") return hasPermission("projects");
         if (page === "project-edit") return hasPermission("projects");
-        if (page === "opportunity-detail") return hasPermission("opportunities");
+        if (page === "opportunity-detail") return hasPermission("opportunities") || salesCanViewSupportOpportunity(opportunities.find((item) => item.id === selectedOpportunityId));
         if (page === "opportunity-create") return hasPermission("opportunities");
         if (page === "sales-supports") {
           if (!hasPermission("sales-supports")) return false;
           if (currentUser?.fullAccess) return true;
-          return opportunities.some((opportunity) =>
-            opportunity.supports.some(
-              (support) =>
-                support.assignee === currentUser?.name &&
-                support.status !== "已关闭",
-            ),
-          );
+          return salesCurrentSupportEmployee() !== null;
         }
         return hasPermission(page);
       };
       const hasOperationPermission = (operation) =>
         Boolean(
-          currentUser?.fullAccess ||
+          (operation !== "opportunities.support" || currentUser?.fullAccess || salesCurrentSupportEmployee() !== null) &&
+          (!isAdminOnlyProjectConfigPage(operation.split(".")[0]) || isProjectConfigAdmin()) &&
+          (currentUser?.fullAccess ||
             currentRoleTemplateNames().some((roleName) =>
               roleOperationPermissions?.[roleName]?.includes(operation),
-            ),
+            )),
         );
       const hasFieldPermission = (permission) =>
         Boolean(
@@ -311,6 +313,7 @@
         区域总监: "director",
         PM: "pm",
         "HR/人事": "hr",
+        商机支撑: "support",
         系统管理员: "admin",
       };
       function calculatedEmployeeScope(employee) {
@@ -349,6 +352,7 @@
           accounts.push(account);
         }
         if (!account) return null;
+        account.employeeCode = employee.code;
         account.phone = employee.phone;
         const effectiveRoles = employee.role === "系统管理员"
           ? ["系统管理员"]
@@ -360,6 +364,7 @@
           "区域总监",
           "PM",
           "HR/人事",
+          "商机支撑",
         ].find((roleName) => effectiveRoles.includes(roleName));
         account.roles = effectiveRoles;
         account.role = employeeRoleAccountMap[primaryEffectiveRole];

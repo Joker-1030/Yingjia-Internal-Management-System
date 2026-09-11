@@ -111,6 +111,17 @@ function expandSource(filePath, stack, includedFiles) {
   );
 }
 
+// Live-reload servers search raw HTML for document end tags, including those
+// inside JS strings. Escape only embedded script text; JS still evaluates \/ as /.
+export function protectInlineDocumentTags(html) {
+  return html.replace(
+    /(<script(?:\s[^>]*)?>)([\s\S]*?)(<\/script\s*>)/gi,
+    (_match, open, script, close) => open + script.replace(
+      /<\/(body|head|html)(?=[\s>])/gi, "<\\/$1",
+    ) + close,
+  );
+}
+
 function validateHtml(html, entryRelative) {
   const errors = [];
   if (!/^<!doctype html>/i.test(html.trimStart())) {
@@ -154,7 +165,7 @@ export function inspectPrototypeSource() {
   }
   const modules = readModuleManifests();
   const includedFiles = new Set();
-  const html = expandSource(entryPath, [], includedFiles);
+  const html = protectInlineDocumentTags(expandSource(entryPath, [], includedFiles));
   validateHtml(html, path.relative(projectRoot, entryPath));
 
   const sourceFiles = listSourceFiles(sourceRoot)

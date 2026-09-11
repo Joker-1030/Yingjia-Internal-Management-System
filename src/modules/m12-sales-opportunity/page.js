@@ -183,11 +183,67 @@
 
       function salesSupportCandidates() {
         return employees.filter(
-          (employee) =>
+          (employee, index, all) =>
             employee.status === "在职" &&
+            employee.accountStatus !== "停用" &&
             employee.role !== "系统管理员" &&
-            employeeHasRole(employee, "PM"),
+            employeeRoleNames(employee).includes("商机支撑") &&
+            all.findIndex((other) => other.code === employee.code) === index,
         );
+      }
+
+      function salesCurrentSupportEmployee() {
+        return salesSupportCandidates().find((employee) =>
+          employee.code === currentUser?.employeeCode,
+        ) || null;
+      }
+
+      function salesCanViewSupportOpportunity(item) {
+        const employee = salesCurrentSupportEmployee();
+        return Boolean(employee && hasPermission("sales-supports") &&
+          item?.supports.some((support) => support.assigneeCode === employee.code));
+      }
+
+      function salesCanViewSupportFile(item, support) {
+        return Boolean(opportunities.includes(item) && item?.supports.includes(support) &&
+          (salesVisibleOpportunities().includes(item) ||
+           (salesCanViewSupportOpportunity(item) && support.assigneeCode === salesCurrentSupportEmployee()?.code)));
+      }
+
+      function salesSupportDeliveryFiles(support) {
+        return support?.deliveryFiles || (support?.deliveryFile ? [support.deliveryFile] : []);
+      }
+
+      function supportDeliveryAction(item, support) {
+        return salesCanViewSupportFile(item, support) && (support.delivery || salesSupportDeliveryFiles(support).length)
+          ? `<button class="link" type="button" data-support-delivery="${support.id}" data-support-opportunity="${item.id}">查看交付</button>` : "";
+      }
+
+      function supportFileHtml(item, support) {
+        return salesSupportDeliveryFiles(support).map((file, index) => {
+          const attrs = `data-support-opportunity="${item.id}" data-support-id="${support.id}" data-support-file-index="${index}"`;
+          const view = hasAttachmentPermission("attachment_view")
+            ? `<button class="link" type="button" data-support-file="view" ${attrs}>${escapeHtml(file.name)}</button>`
+            : escapeHtml(file.name);
+          const download = hasAttachmentPermission("attachment_download")
+            ? ` <button class="link" type="button" data-support-file="download" ${attrs}>下载</button>` : "";
+          return `<div style="overflow-wrap:anywhere">${view}${download}</div>`;
+        }).join("");
+      }
+
+      function salesCanHandleSupport(support) {
+        if (currentUser?.fullAccess) return true;
+        const employee = salesCurrentSupportEmployee();
+        return Boolean(employee && employee.code === support?.assigneeCode &&
+          hasPermission("sales-supports") && hasOperationPermission("opportunities.support"));
+      }
+
+      function salesCanRunSupportAction(item, support, action) {
+        if (!item?.supports.includes(support)) return false;
+        if (["close", "supplement"].includes(action))
+          return support.status === "已交付" && salesCanProgress(item);
+        const expected = { respond: "待响应", deliver: "进行中" }[action];
+        return Boolean(expected && support.status === expected && salesCanHandleSupport(support));
       }
 
       function salesMoney(value) {
@@ -344,7 +400,7 @@
         return (
           pageHead(
             "销售仪表盘",
-            "所选周期目标与当前商机快照分开统计。",
+            "查看销售目标完成情况与商机进展。",
             `<button class="btn" data-sales-page="opportunities">商机列表</button>${canAccessPage("sales-supports") ? `<button class="btn" data-sales-page="sales-supports">${currentUser?.fullAccess ? "方案支撑管理" : "我的方案支撑"}</button>` : ""}<button class="btn btn-primary" data-sales-page="sales-targets">${salesIsRole("PM") && !currentUser?.fullAccess && !salesRoleNames().some((role) => ["总裁", "市场副总", "区域总监"].includes(role)) ? "我的销售指标" : "销售指标"}</button>`,
           ) +
           `<section class="panel sales-filter-panel">${salesPeriodFilter()}</section>` +
@@ -455,7 +511,7 @@
         return (
           pageHead(
             "销售指标",
-            "按自然月维护商机数量目标，调整后保留版本。",
+            "查看月度商机目标与分配情况。",
             '<button class="btn" data-sales-page="sales-dashboard">返回仪表盘</button>',
           ) +
           `<section class="panel sales-filter-panel"><div class="toolbar filter-toolbar sales-period-toolbar">${filterField(
@@ -502,7 +558,7 @@
         return (
           pageHead(
             "我的销售指标",
-            "仅展示本人月度商机数量目标、完成结果和本人目标调整历史。",
+            "查看我的月度商机目标与完成情况。",
             '<button class="btn" data-sales-page="sales-dashboard">返回仪表盘</button>',
           ) +
           `<section class="panel sales-filter-panel"><div class="toolbar filter-toolbar sales-period-toolbar">${filterField(
@@ -515,27 +571,80 @@
         );
       }
 
+      function salesSupportDeadlineTime(support) {
+        const value = String(support.deadline || "").replace(" ", "T");
+        if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2})?$/.test(value)) return NaN;
+        const normalized = value.length === 16 ? value + ":00" : value;
+        const time = Date.parse(normalized + "+08:00");
+        return Number.isFinite(time) && new Date(time + 8 * 3600000).toISOString().slice(0, 19) === normalized ? time : NaN;
+      }
+
+      function salesSupportRemainingText(support, now = Date.now()) {
+        if (!["待响应", "进行中"].includes(support.status)) return "—";
+        const deadline = salesSupportDeadlineTime(support);
+        if (!Number.isFinite(deadline)) return "—";
+        const remaining = deadline - Math.floor(now / 1000) * 1000;
+        if (remaining === 0) return "已到截止时间";
+        const hours = Math.floor(Math.abs(remaining) / 3600000);
+        const duration = hours === 0 ? "不足1小时" : `${hours >= 24 ? Math.floor(hours / 24) + "天" : ""}${hours % 24}小时`;
+        return (remaining > 0 ? "剩余" : "已超时") + duration;
+      }
+
+      function salesVisibleSupportRequests() {
+        if (!canAccessPage("sales-supports")) return [];
+        const employeeCode = salesCurrentSupportEmployee()?.code;
+        return opportunities.flatMap((opportunity) => opportunity.supports
+          .filter((support) => currentUser?.fullAccess || support.assigneeCode === employeeCode)
+          .map((support) => ({ opportunity, support })));
+      }
+
+      function salesSupportMatchesFilters({ opportunity, support }) {
+        const filter = appliedSupportFilters;
+        const validDeadline = Number.isFinite(salesSupportDeadlineTime(support));
+        const day = String(support.deadline || "").slice(0, 10);
+        return (!filter.name || opportunity.name.toLowerCase().includes(filter.name.toLowerCase())) &&
+          (!filter.customer || opportunity.customer === filter.customer) &&
+          (!filter.status || support.status === filter.status) &&
+          (!filter.deadlineFrom || (validDeadline && day >= filter.deadlineFrom)) &&
+          (!filter.deadlineTo || (validDeadline && day <= filter.deadlineTo));
+      }
+
+      function salesCompareSupportRequests(left, right) {
+        const group = (support) => !Number.isFinite(salesSupportDeadlineTime(support)) ? 2 : ["待响应", "进行中"].includes(support.status) ? 0 : 1;
+        const leftGroup = group(left.support), rightGroup = group(right.support);
+        return leftGroup - rightGroup || (leftGroup === 0 ? salesSupportDeadlineTime(left.support) - salesSupportDeadlineTime(right.support) : 0);
+      }
+
+      function salesSupportFiltersHtml(requests) {
+        const filter = appliedSupportFilters;
+        const options = (values, selected) => values.map((value) => `<option value="${escapeHtml(value)}" ${value === selected ? "selected" : ""}>${escapeHtml(value)}</option>`).join("");
+        return `<div class="toolbar filter-toolbar sales-opportunity-filters">${filterField("商机名称",
+          `<input class="input" id="supportNameFilter" value="${escapeHtml(filter.name)}" placeholder="请输入商机名称">`)}${filterField("客户单位",
+          `<select class="input" id="supportCustomerFilter"><option value="">全部客户</option>${options([...new Set(requests.map(({ opportunity }) => opportunity.customer))], filter.customer)}</select>`)}${filterField("状态",
+          `<select class="input" id="supportStatusFilter"><option value="">全部状态</option>${options(["待响应", "进行中", "已交付", "已关闭"], filter.status)}</select>`)}${filterField("交付截止日期",
+          `<span class="date-range"><input class="input" id="supportDeadlineFromFilter" type="date" value="${escapeHtml(filter.deadlineFrom)}"><span>至</span><input class="input" id="supportDeadlineToFilter" type="date" value="${escapeHtml(filter.deadlineTo)}"></span>`)}${filterActions(
+          '<button class="btn btn-primary" id="applySupportFilters" type="button">筛选</button><button class="btn" id="resetSupportFilters" type="button">重置</button>')}</div>`;
+      }
+
       function renderSalesSupports() {
+        if (!canAccessPage("sales-supports")) return "";
         const isAdminManagement = Boolean(currentUser?.fullAccess);
-        const requests = opportunities.flatMap((opportunity) =>
-          opportunity.supports
-            .filter((support) => currentUser?.fullAccess || support.assignee === currentUser?.name)
-            .map((support) => ({ opportunity, support })),
-        );
-        const rows = requests
+        const requests = salesVisibleSupportRequests();
+        const now = Date.now();
+        const rows = requests.filter(salesSupportMatchesFilters).sort(salesCompareSupportRequests)
           .map(({ opportunity, support }) =>
-            `<tr data-page-row><td>${support.id}</td><td>${opportunity.id}</td><td>${opportunity.name}</td><td>${opportunity.customer}</td><td>${support.content}</td><td>${support.deadline}</td><td>${salesStageTag(support.status)}</td><td>${support.overdue ? '<span class="tag red">已超时</span>' : "—"}</td><td>${support.delivery || "—"}</td><td>${supportHistoryHtml(support)}</td><td>${supportStatusAction(opportunity, support).replaceAll("data-support-id", `data-support-opportunity=\"${opportunity.id}\" data-support-id`)}</td></tr>`,
+            `<tr data-page-row><td>${support.id}</td><td>${opportunity.id}</td><td>${opportunity.name}</td><td>${opportunity.customer}</td><td>${support.content}</td><td>${support.deadline}</td><td data-support-remaining="${support.id}">${salesSupportRemainingText(support, now)}</td><td>${salesStageTag(support.status)}</td><td><button class="link" data-opportunity-open="${opportunity.id}" data-opportunity-context="support" data-opportunity-support="${support.id}">商机详情</button> ${supportDeliveryAction(opportunity, support)} ${supportStatusAction(opportunity, support).replaceAll("data-support-id", `data-support-opportunity=\"${opportunity.id}\" data-support-id`)}</td></tr>`,
           )
           .join("");
         return (
           pageHead(
             isAdminManagement ? "方案支撑管理" : "我的方案支撑",
             isAdminManagement
-              ? "查看公司全部方案支撑请求，并以系统管理员真实身份代操作。"
-              : "仅展示本人被指派请求及完成支撑所需信息。",
+              ? "查看方案支撑需求，跟进协作进展。"
+              : "处理方案支撑请求，提交支撑成果。",
             hasPermission("opportunities") ? '<button class="btn" data-sales-page="opportunities">商机列表</button>' : "",
           ) +
-          `<section class="panel"><div class="table-wrap"><table style="min-width:1660px" data-paged-table="m12-supports"><thead><tr><th>请求编号</th><th>商机编号</th><th>商机名称</th><th>客户单位</th><th>支撑需求</th><th>回应时限</th><th>状态</th><th>首次回应超时</th><th>交付内容</th><th>操作历史</th><th>操作</th></tr></thead><tbody>${rows || '<tr data-empty-row><td colspan="11"><div class="empty">当前没有方案支撑请求</div></td></tr>'}</tbody></table></div>${tablePagination("m12-supports")}</section>`
+          `<section class="panel">${salesSupportFiltersHtml(requests)}<div class="table-wrap"><table style="min-width:1420px" data-paged-table="m12-supports"><thead><tr><th>请求编号</th><th>商机编号</th><th>商机名称</th><th>客户单位</th><th>支撑需求</th><th>交付截止时间</th><th>剩余时间</th><th>状态</th><th>操作</th></tr></thead><tbody>${rows || '<tr data-empty-row><td colspan="9"><div class="empty">当前没有方案支撑请求</div></td></tr>'}</tbody></table></div>${tablePagination("m12-supports")}</section>`
         );
       }
 
@@ -621,7 +730,7 @@
         return (
           pageHead(
             "商机列表",
-            "按当前账号数据范围查看和推进商机。",
+            "查看商机信息，跟进销售进展。",
             `${salesCanCreate() ? '<button class="btn btn-primary" data-sales-page="opportunity-create">新建商机</button>' : ""}`,
           ) +
           tableHtml
@@ -639,15 +748,20 @@
       }
 
       function opportunitySelected() {
-        return salesVisibleOpportunities().find((item) => item.id === selectedOpportunityId);
+        return opportunities.find((item) => item.id === selectedOpportunityId &&
+          (salesVisibleOpportunities().includes(item) || salesCanViewSupportOpportunity(item)));
       }
 
-      function opportunityOverviewHtml(item) {
+      function isSupportOpportunityDetail(item) {
+        return opportunityDetailContext === "support" || !salesVisibleOpportunities().includes(item);
+      }
+
+      function opportunityOverviewHtml(item, supportContext = false) {
         const fields = [
           salesField("商机编号", item.id),
           salesField("商机类型", item.type),
           salesField("客户单位", item.customer),
-          salesField("客户编号", item.customerCode),
+          supportContext ? "" : salesField("客户编号", item.customerCode),
           salesField("所属集团", item.group),
           salesField("行业", item.industry),
           salesField("业务责任区域", item.region),
@@ -659,8 +773,8 @@
           item.stage === "中选" ? salesField("预计签约金额（含税，元）", salesMoney(item.expectedContractAmount)) : "",
           salesField("商机关键人", item.keyPeople.join("、") || "—", "full"),
           salesField("商机需求描述", item.requirement, "full"),
-          salesField("创建信息", `${item.createdDate} · ${item.createdBy}`),
-          salesField("最近更新时间", item.updatedAt),
+          supportContext ? "" : salesField("创建信息", `${item.createdDate} · ${item.createdBy}`),
+          supportContext ? "" : salesField("最近更新时间", item.updatedAt),
         ];
         return `<div class="detail-grid sales-detail-grid">${fields.join("")}</div>`;
       }
@@ -680,44 +794,31 @@
       }
 
       function supportStatusAction(item, support) {
-        const canHandle = support.assignee === currentUser?.name || currentUser?.fullAccess;
+        const canHandle = salesCanHandleSupport(support);
         const canOwnerClose = salesCanProgress(item) && support.status === "已交付";
         if (canOwnerClose)
           return `<button class="link" type="button" data-support-action="close" data-support-id="${support.id}">确认接收</button> <button class="link" type="button" data-support-action="supplement" data-support-id="${support.id}">要求补充</button>`;
-        if (!canHandle) return "查看";
-        const next = { 待响应: "respond", 已响应: "work", 支撑中: "deliver" }[support.status];
-        const text = { respond: "确认接收", work: "提交过程内容", deliver: "提交交付" }[next];
+        if (!canHandle) return "";
+        const next = { 待响应: "respond", 进行中: "deliver" }[support.status];
+        const text = { respond: "确认接收", deliver: "提交支撑文件" }[next];
         return next
           ? `<button class="link" type="button" data-support-action="${next}" data-support-id="${support.id}">${text}</button>`
-          : "查看";
-      }
-
-      function supportHistoryHtml(support) {
-        const records = support.histories || [];
-        return records.length
-          ? `<div class="support-history-list">${records
-              .slice()
-              .reverse()
-              .map(
-                (record) =>
-                  `<div><strong>${record.action}</strong><span>${record.time} · 操作人 ${record.operator}</span><span>当时负责人 ${record.owner} · 支撑人员 ${record.assignee}</span></div>`,
-              )
-              .join("")}</div>`
-          : "—";
+          : "";
       }
 
       function opportunitySupportsHtml(item) {
         const rows = item.supports
+          .filter((support) => salesVisibleOpportunities().includes(item) || support.assigneeCode === salesCurrentSupportEmployee()?.code)
           .map(
             (support) =>
-              `<tr><td>${support.id}</td><td>${support.assignee}</td><td>${support.deadline}</td><td>${support.content}</td><td>${salesStageTag(support.status)}</td><td>${support.overdue ? '<span class="tag red">已超时</span>' : "—"}</td><td>${support.delivery || "—"}</td><td>${supportHistoryHtml(support)}</td><td>${supportStatusAction(item, support)}</td></tr>`,
+              `<tr><td>${support.id}</td><td>${support.assignee}</td><td>${support.deadline}</td><td>${support.content}</td><td>${salesStageTag(support.status)}</td><td>${supportDeliveryAction(item, support)} ${supportStatusAction(item, support)}</td></tr>`,
           )
           .join("");
         const action =
           salesCanProgress(item) && item.stage !== "落选"
             ? '<div class="sales-tab-toolbar"><button class="btn btn-primary" type="button" data-sales-support-add>发起支撑</button></div>'
             : "";
-        return `${action}<div class="table-wrap"><table style="min-width:1420px"><thead><tr><th>请求编号</th><th>支撑人员</th><th>回应时限</th><th>支撑需求</th><th>状态</th><th>首次回应超时</th><th>交付说明/附件</th><th>操作历史</th><th>操作</th></tr></thead><tbody>${rows || '<tr><td colspan="9"><div class="empty">暂无方案支撑请求</div></td></tr>'}</tbody></table></div>`;
+        return `${action}<div class="table-wrap"><table style="min-width:1180px"><thead><tr><th>请求编号</th><th>支撑人员</th><th>交付截止时间</th><th>支撑需求</th><th>状态</th><th>操作</th></tr></thead><tbody>${rows || '<tr><td colspan="6"><div class="empty">暂无方案支撑请求</div></td></tr>'}</tbody></table></div>`;
       }
 
       function opportunityHistoryHtml(item) {
@@ -737,6 +838,17 @@
         const item = opportunitySelected();
         if (!item)
           return forbiddenPage("商机详情", "当前账号无权查看该商机，或商机不存在。");
+        if (isSupportOpportunityDetail(item)) {
+          const support = item.supports.find((request) => request.id === selectedOpportunitySupportId);
+          const receiveButton = support && salesCanRunSupportAction(item, support, "respond")
+            ? `<button class="btn btn-primary" data-support-action="respond" data-support-opportunity="${item.id}" data-support-id="${support.id}">确认接收</button>`
+            : "";
+          return pageHead(
+            item.name,
+            "查看商机背景与需求。",
+            '<button class="btn" id="backToOpportunities">返回我的方案支撑</button>' + receiveButton,
+          ) + `<section class="panel sales-detail-panel"><div class="sales-detail-identity"><div><span class="list-sub">当前阶段</span><div class="sales-detail-stage">${salesStageTag(item.stage)}</div></div><div><span class="list-sub">负责人</span><strong>${item.owner}</strong></div></div><div class="panel-body sales-detail-body">${opportunityOverviewHtml(item, true)}</div></section>`;
+        }
         const tabs = [
           ["overview", "基本信息"],
           ["followup", "跟进记录"],
@@ -753,7 +865,7 @@
         return (
           pageHead(
             item.name,
-            "",
+            "查看商机信息、跟进记录与方案支撑。",
             `<button class="btn" id="backToOpportunities">返回列表</button>${canOperate ? '<button class="btn" data-sales-edit>编辑</button>' : ""}${salesCanReassign(item) && item.stage !== "落选" ? '<button class="btn" data-sales-reassign>改派负责人</button>' : ""}${canOperate ? '<button class="btn btn-primary" data-sales-stage-open>推进阶段</button>' : ""}`,
           ) +
           `<section class="panel sales-detail-panel"><div class="sales-detail-identity"><div><span class="list-sub">当前阶段</span><div class="sales-detail-stage">${salesStageTag(item.stage)}</div></div><div><span class="list-sub">负责人</span><strong>${item.owner}</strong></div><div><span class="list-sub">下次跟进日期</span><strong>${item.nextFollowDate || "—"}</strong></div></div><div class="tabs detail-tabs">${tabs
@@ -773,7 +885,7 @@
         const options = salesSupportCandidates()
           .map(
             (employee) =>
-              `<label class="multi-select-option" data-sales-support-option><input type="checkbox" data-sales-support-person value="${escapeHtml(employee.name)}"><span>${escapeHtml(employee.name)}</span></label>`,
+              `<label class="multi-select-option" data-sales-support-option><input type="checkbox" data-sales-support-person value="${escapeHtml(employee.code)}"><span>${escapeHtml(employee.name)}</span></label>`,
           )
           .join("");
         return (
@@ -837,10 +949,10 @@
           salesFormField("salesCreateSupport", "同时创建方案支撑", '<select class="input" id="salesCreateSupport"><option value="否">否</option><option value="是">是</option></select>', true),
           `<div class="form-group" id="salesSupportPeopleGroup" hidden><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>支撑人员</label>${salesSupportPeoplePickerHtml("salesSupportPeoplePicker")}<div class="field-error" id="err-salesSupportPeople"></div></div>`,
           '<div class="form-group full" id="salesSupportRequirementGroup" hidden><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>支撑需求</label><textarea class="input" id="salesSupportRequirement" rows="3" maxlength="500"></textarea><div class="field-error" id="err-salesSupportRequirement"></div></div>',
-          `<div class="form-group" id="salesSupportDeadlineGroup" hidden><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>回应时限</label><input class="input" id="salesSupportDeadline" type="datetime-local" value="${addDays(DEMO_TODAY, 2)}T12:00"><div class="field-error" id="err-salesSupportDeadline"></div></div>`,
+          `<div class="form-group" id="salesSupportDeadlineGroup" hidden><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>交付截止时间</label><input class="input" id="salesSupportDeadline" type="datetime-local" value=""><div class="field-error" id="err-salesSupportDeadline"></div></div>`,
         ].join("");
         return (
-          pageHead("新建商机", "保存后生成永久商机编号和首条阶段记录。") +
+          pageHead("新建商机", "填写客户与需求信息，建立商机档案。") +
           `<section class="panel sales-form-panel"><form id="opportunityCreateForm"><div class="panel-body sales-form-grid">${formFields}</div><div class="panel-foot sales-form-footer"><button class="btn" type="button" id="cancelOpportunityCreate">取消</button><button class="btn btn-primary" type="submit">保存商机</button></div></form></section>`
         );
       }

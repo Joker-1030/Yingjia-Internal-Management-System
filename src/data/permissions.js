@@ -137,7 +137,6 @@
             "projects",
             "packages",
             "platform-companies",
-            "sales-supports",
             "sales-dashboard",
             "opportunities",
             "sales-targets",
@@ -150,6 +149,14 @@
           scopeSource: "公司组织",
           objects: ["内部组织", "员工账号"],
           permissions: ["employees"],
+        },
+        {
+          name: "商机支撑",
+          jobs: [],
+          scopeType: "assigned-supports",
+          scopeSource: "方案支撑指派关系",
+          objects: ["方案支撑请求"],
+          permissions: ["sales-supports"],
         },
         {
           name: "系统管理员",
@@ -192,6 +199,7 @@
           regions: "员工所属区域",
           cities: "负责地市",
           organization: "公司组织",
+          "assigned-supports": "本人被指派方案支撑",
         }[template?.scopeType];
       }
 
@@ -281,13 +289,14 @@
           "imports.view", "imports.upload", "imports.confirm", "imports.download",
           "projects.view", "projects.create", "projects.edit", "packages.view", "platform-companies.view",
           "sales.view", "opportunities.view", "opportunities.create",
-          "opportunities.progress", "opportunities.support",
+          "opportunities.progress",
         ],
         "HR/人事": [
           "employees.view", "employees.view_changes", "employees.create_department",
           "employees.set_supervisor", "employees.create_employee", "employees.edit_employee",
           "employees.change_employee", "employees.suspend_employee", "employees.restore_employee",
         ],
+        商机支撑: ["opportunities.support"],
         系统管理员: operationPermissionCatalog.filter((item) => item[0] !== "regions.handover").map((item) => item[0]),
       };
       const fieldPermissionCatalog = [
@@ -306,6 +315,7 @@
         区域总监: ["customer_base_view", "contact_sensitive_view", "record_view", "record_edit"],
         PM: ["customer_base_view", "customer_base_edit", "contact_sensitive_view", "record_view", "record_edit"],
         "HR/人事": ["employee_sensitive_view", "employee_sensitive_edit"],
+        商机支撑: [],
         系统管理员: fieldPermissionCatalog.map((item) => item[0]),
       };
       const attachmentPermissionCatalog = [
@@ -320,6 +330,7 @@
         区域总监: ["attachment_view", "attachment_download", "attachment_upload", "attachment_delete"],
         PM: ["attachment_view", "attachment_download", "attachment_upload", "attachment_delete"],
         "HR/人事": ["attachment_view", "attachment_upload"],
+        商机支撑: ["attachment_view", "attachment_download", "attachment_upload"],
         系统管理员: attachmentPermissionCatalog.map((item) => item[0]),
       };
       const permissionRoleCodes = {
@@ -328,11 +339,19 @@
         区域总监: "REGIONAL_DIRECTOR",
         PM: "PM",
         "HR/人事": "HR",
+        商机支撑: "OPPORTUNITY_SUPPORT",
         系统管理员: "ADMIN",
       };
       const permissionVersions = Object.fromEntries(
-        systemRoleTemplates.map((template, index) => {
+        systemRoleTemplates.map((template, position) => {
+          const index = template.name === "系统管理员" ? 5 : position;
           const code = permissionRoleCodes[template.name];
+          if (template.name === "商机支撑") return [template.name, [{
+            id: `PERM-${code}-000001`, type: "初始化", operator: "系统管理员",
+            time: "2026-09-11 09:00", reason: "建立商机支撑角色权限",
+            permissions: [...template.permissions], operations: [...roleOperationPermissions[template.name]],
+            fields: [], attachments: [...roleAttachmentPermissions[template.name]],
+          }]];
           const isAdmin = template.name === "系统管理员";
           const receivesM11ReadonlyConfig = ["总裁", "市场副总"].includes(
             template.name,

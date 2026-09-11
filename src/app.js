@@ -1,3 +1,4 @@
+/* @include "modules/m01-dashboard/echarts.common-6.0.0.min.js" */
 /* @include "data/accounts.js" */
 /* @include "data/customers.js" */
 /* @include "data/contacts.js" */

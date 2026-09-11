@@ -37,9 +37,14 @@
       }
 
       function selectedSalesSupportPeople(picker) {
-        return [...(picker?.querySelectorAll("input[data-sales-support-person]:checked") || [])]
+        return [...new Set([...(picker?.querySelectorAll("input[data-sales-support-person]:checked") || [])]
           .map((input) => input.value)
-          .filter(Boolean);
+          .filter(Boolean))];
+      }
+
+      function validSalesSupportSelection(codes) {
+        const eligible = new Set(salesSupportCandidates().map((employee) => employee.code));
+        return codes.length > 0 && codes.every((code) => eligible.has(code));
       }
 
       function renderSalesSupportSelected(picker) {
@@ -47,8 +52,10 @@
         if (!selectedContainer) return;
         selectedContainer.innerHTML = selectedSalesSupportPeople(picker)
           .map(
-            (name) =>
-              `<span class="sales-support-selected-item"><span>${escapeHtml(name)}</span><button class="sales-support-selected-remove" type="button" data-sales-support-remove="${escapeHtml(name)}" title="移除${escapeHtml(name)}" aria-label="移除${escapeHtml(name)}">×</button></span>`,
+            (code) => {
+              const name = employees.find((employee) => employee.code === code)?.name || "";
+              return `<span class="sales-support-selected-item"><span>${escapeHtml(name)}</span><button class="sales-support-selected-remove" type="button" data-sales-support-remove="${escapeHtml(code)}" title="移除${escapeHtml(name)}" aria-label="移除${escapeHtml(name)}">×</button></span>`;
+            },
           )
           .join("");
       }
@@ -306,7 +313,7 @@
             return;
           }
           const ownerMatch = salesOwnerMatchForCustomer(selectedCustomer);
-          facts.textContent = `${selectedCustomer.group} · ${selectedCustomer.industry} · ${customerRegionScope(selectedCustomer)}${selectedCustomer.city ? ` · ${selectedCustomer.city}` : ""}`;
+          facts.textContent = `${selectedCustomer.industry} · ${selectedCustomer.group} · ${customerRegionLabel(selectedCustomer)} · ${adminArea(selectedCustomer)}`;
           owner.textContent = ownerMatch.ok
             ? `${ownerMatch.owner.name} · ${ownerMatch.role}`
             : ownerMatch.message;
@@ -324,6 +331,7 @@
         $("#cancelOpportunityCreate").onclick = () => salesNavigate("opportunities");
         form.onsubmit = (event) => {
           event.preventDefault();
+          if (!salesCanCreate()) return toast("当前账号没有创建商机权限。");
           const required = [
             ["salesName", "请填写商机名称"],
             ["salesType", "请选择商机类型"],
@@ -353,11 +361,15 @@
             setSalesFormError("salesFirstFollow", "首次跟进日期不得早于下一业务日");
             valid = false;
           }
-          const supportPeople = selectedSalesSupportPeople(supportPicker);
+          const supportPeople = createSupport.value === "是" ? selectedSalesSupportPeople(supportPicker) : [];
           if (createSupport.value === "是") {
             setSalesFormError("salesSupportPeople", supportPeople.length ? "" : "请选择至少一名支撑人员");
             setSalesFormError("salesSupportRequirement", $("#salesSupportRequirement").value.trim() ? "" : "请填写支撑需求");
-            setSalesFormError("salesSupportDeadline", $("#salesSupportDeadline").value ? "" : "请选择回应时限");
+            setSalesFormError("salesSupportDeadline", $("#salesSupportDeadline").value ? "" : "请选择交付截止时间");
+            if (supportPeople.length && !validSalesSupportSelection(supportPeople)) {
+              setSalesFormError("salesSupportPeople", "支撑人员已不符合当前候选条件，请重新选择");
+              valid = false;
+            }
             if (!supportPeople.length || !$("#salesSupportRequirement").value.trim() || !$("#salesSupportDeadline").value) valid = false;
           }
           const selectedCustomer = salesVisibleCustomers().find(
@@ -430,17 +442,19 @@
             histories: [{ time: salesNow(), from: "—", to: "商机录入", operator: currentUser.name }],
             reassignments: [],
             followUps: [],
-            supports: supportPeople.map((name, index) => ({
+            supports: supportPeople.map((code, index) => ({
               id: `ZC-${String(opportunities.flatMap((row) => row.supports).length + index + 1).padStart(3, "0")}`,
-              assignee: name,
+              assigneeCode: code,
+              assignee: employees.find((employee) => employee.code === code).name,
               deadline: $("#salesSupportDeadline").value.replace("T", " "),
               status: "待响应",
               content: $("#salesSupportRequirement").value.trim(),
               delivery: "",
-              overdue: false,
             })),
           };
           opportunities.unshift(item);
+          opportunityDetailContext = "sales";
+          selectedOpportunitySupportId = null;
           selectedOpportunityId = item.id;
           opportunityDetailTab = "overview";
           salesNavigate("opportunity-detail");
@@ -615,11 +629,12 @@
       }
 
       function openSalesSupportModal(item) {
+        if (!salesCanProgress(item)) return toast("当前无法执行该支撑操作");
         const formHtml = [
           '<div class="modal-head"><div class="modal-title">发起方案支撑</div><button class="icon-btn close" data-close title="关闭">×</button></div>',
           '<form id="salesSupportForm"><div class="modal-body">',
           `<div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>支撑人员</label>${salesSupportPeoplePickerHtml("supportPeoplePicker")}</div>`,
-          `<div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>回应时限</label><input class="input" id="supportDeadline" type="datetime-local" value="${addDays(DEMO_TODAY, 2)}T12:00"></div>`,
+          `<div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>交付截止时间</label><input class="input" id="supportDeadline" type="datetime-local" value=""></div>`,
           '<div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>支撑需求</label><textarea class="input" id="supportContent" rows="3"></textarea></div>',
           '</div><div class="modal-foot"><button class="btn" type="button" data-close>取消</button><button class="btn btn-primary" type="submit">发起支撑</button></div></form>',
         ].join("");
@@ -634,22 +649,25 @@
           const deadline = $("#supportDeadline").value;
           const content = $("#supportContent").value.trim();
           if (!people.length || !deadline || !content) return toast("请填写全部必填支撑信息");
-          people.forEach((name, index) =>
+          if (!salesCanProgress(item)) return toast("当前无法执行该支撑操作");
+          if (!validSalesSupportSelection(people)) return toast("支撑人员已不符合当前候选条件，请重新选择");
+          const requestCount = opportunities.flatMap((row) => row.supports).length;
+          people.forEach((code, index) =>
             item.supports.push({
-              id: `ZC-${String(opportunities.flatMap((row) => row.supports).length + index + 1).padStart(3, "0")}`,
-              assignee: name,
+              id: `ZC-${String(requestCount + index + 1).padStart(3, "0")}`,
+              assigneeCode: code,
+              assignee: employees.find((employee) => employee.code === code).name,
               deadline: deadline.replace("T", " "),
               status: "待响应",
               content,
               delivery: "",
-              overdue: false,
               histories: [
                 {
                   time: salesNow(),
                   action: "发起请求",
                   operator: currentUser.name,
                   owner: item.owner,
-                  assignee: name,
+                  assignee: employees.find((employee) => employee.code === code).name,
                 },
               ],
             }),
@@ -662,10 +680,10 @@
       }
 
       function handleSupportAction(item, support, action) {
+        if (!salesCanRunSupportAction(item, support, action)) return toast("当前无法执行该支撑操作");
         const actionLabel = {
           respond: "确认接收",
-          work: "提交过程内容",
-          deliver: "提交交付",
+          deliver: "提交支撑文件",
           close: "确认接收交付",
           supplement: "要求补充",
         }[action];
@@ -679,13 +697,28 @@
             assignee: support.assignee,
           });
         };
-        if (action === "respond") support.status = "已响应";
-        if (action === "work") {
-          support.status = "支撑中";
-          support.delivery = support.delivery || "已提交过程内容";
+        if (action === "respond") {
+          const actor = currentUser;
+          const assigneeCode = support.assigneeCode;
+          openModal(
+            `<div class="modal-head"><div class="modal-title">确认接收支撑需求</div><button class="icon-btn close" data-close title="关闭">×</button></div><form id="supportReceiptForm"><div class="modal-body"><div class="form-group"><label class="form-label">商机名称</label><div>${escapeHtml(item.name)}</div></div><div class="form-group"><label class="form-label">支撑需求</label><div style="white-space:pre-wrap;overflow-wrap:anywhere">${escapeHtml(support.content)}</div></div><div class="form-group"><label class="form-label">交付截止时间</label><div>${escapeHtml(support.deadline)}</div></div><p>确认后，该支撑需求将进入进行中。</p></div><div class="modal-foot"><button class="btn" type="button" data-close>取消</button><button class="btn btn-primary" type="submit">确认接收</button></div></form>`,
+          );
+          const form = $("#supportReceiptForm");
+          form.onsubmit = (event) => {
+            event.preventDefault();
+            if (form !== $("#supportReceiptForm") || currentUser !== actor || support.assigneeCode !== assigneeCode || !opportunities.includes(item) || !salesCanRunSupportAction(item, support, "respond"))
+              return toast("当前无法执行该支撑操作");
+            support.status = "进行中";
+            recordHistory();
+            item.updatedAt = salesNow();
+            closeOverlay();
+            renderPage();
+            toast("已接收，支撑需求已进入进行中。");
+          };
+          return;
         }
         if (action === "close") support.status = "已关闭";
-        if (action === "supplement") support.status = "支撑中";
+        if (action === "supplement") support.status = "进行中";
         if (action !== "deliver") {
           recordHistory();
           item.updatedAt = salesNow();
@@ -693,13 +726,35 @@
           toast("方案支撑状态已更新");
           return;
         }
+        if (!hasAttachmentPermission("attachment_upload")) return toast("当前无法执行该支撑操作");
         openModal(
-          `<div class="modal-head"><div class="modal-title">提交方案支撑交付</div><button class="icon-btn close" data-close title="关闭">×</button></div><form id="supportDeliveryForm"><div class="modal-body"><div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>交付说明或附件名称</label><textarea class="input" id="supportDelivery" rows="3"></textarea></div></div><div class="modal-foot"><button class="btn" type="button" data-close>取消</button><button class="btn btn-primary" type="submit">提交交付</button></div></form>`,
+          `<div class="modal-head"><div class="modal-title">提交支撑文件</div><button class="icon-btn close" data-close title="关闭">×</button></div><form id="supportDeliveryForm"><div class="modal-body"><div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>文件说明</label><textarea class="input" id="supportDelivery" rows="3"></textarea></div><div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>文件附件</label><input class="input" id="supportDeliveryFile" type="file" multiple accept=".jpg,.jpeg,.png,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx"></div></div><div class="modal-foot"><button class="btn" type="button" data-close>取消</button><button class="btn btn-primary" type="submit">提交支撑文件</button></div></form>`,
         );
-        $("#supportDeliveryForm").onsubmit = (event) => {
+        const deliveryForm = $("#supportDeliveryForm");
+        const deliveryActor = currentUser;
+        const deliveryAssignee = support.assigneeCode;
+        deliveryForm.onsubmit = (event) => {
           event.preventDefault();
+          if (deliveryForm !== $("#supportDeliveryForm") || currentUser !== deliveryActor || support.assigneeCode !== deliveryAssignee || !opportunities.includes(item) || !salesCanRunSupportAction(item, support, "deliver")) return toast("当前无法执行该支撑操作");
           const delivery = $("#supportDelivery").value.trim();
-          if (!delivery) return toast("请填写交付说明或附件名称");
+          if (!delivery) return toast("请填写文件说明");
+          if (!hasAttachmentPermission("attachment_upload")) return toast("当前无法执行该支撑操作");
+          const files = Array.from($("#supportDeliveryFile").files || []);
+          if (!files.length) return toast("请至少上传一个支撑文件");
+          const error = validateAttachmentFiles(files, true);
+          if (error) return toast(error);
+          if (files.some((file) => !file.size || file.name.length > 200)) return toast("附件为空或文件名过长，请重新选择");
+          const deliveryFiles = [];
+          try {
+            for (const file of files) deliveryFiles.push({ name: file.name, url: URL.createObjectURL(file) });
+          } catch {
+            deliveryFiles.forEach((file) => URL.revokeObjectURL(file.url));
+            return toast("文件上传失败，请重新选择");
+          }
+          support.deliveries ||= [];
+          support.deliveries.push({ description: delivery, files: deliveryFiles, operator: currentUser.name, time: salesNow() });
+          support.deliveryFiles = deliveryFiles;
+          delete support.deliveryFile;
           support.delivery = delivery;
           support.status = "已交付";
           recordHistory();
@@ -708,6 +763,41 @@
           renderPage();
           toast("方案支撑已交付");
         };
+      }
+
+      function openSupportDeliveryDetail(item, support) {
+        if (!salesCanViewSupportFile(item, support) || !(support.delivery || salesSupportDeliveryFiles(support).length))
+          return toast("当前无法执行该支撑操作");
+        openModal(`<div class="modal-head"><div class="modal-title">交付详情</div><button class="icon-btn close" data-close title="关闭">×</button></div><div class="modal-body"><div class="form-group"><label class="form-label">文件说明</label><div style="white-space:pre-wrap;overflow-wrap:anywhere">${escapeHtml(support.delivery || "—")}</div></div><div class="form-group"><label class="form-label">文件附件</label>${supportFileHtml(item, support)}</div></div><div class="modal-foot"><button class="btn" type="button" data-close>关闭</button></div>`);
+        bindSalesSupportFileEvents();
+      }
+
+      function bindSalesSupportFileEvents() {
+        document.querySelectorAll("[data-support-file]").forEach((button) => {
+          const item = opportunities.find((row) => row.id === button.dataset.supportOpportunity);
+          const support = item?.supports.find((row) => row.id === button.dataset.supportId);
+          const index = Number(button.dataset.supportFileIndex);
+          const file = salesSupportDeliveryFiles(support)[index];
+          button.onclick = () => openSalesSupportFile(item, support, button.dataset.supportFile, index, file);
+        });
+      }
+
+      function openSalesSupportFile(item, support, action, index = 0, expectedFile) {
+        const permission = action === "download" ? "attachment_download" : "attachment_view";
+        if (!["view", "download"].includes(action) || !salesCanViewSupportFile(item, support) ||
+            !hasAttachmentPermission(permission) || !Number.isInteger(index) || index < 0)
+          return toast("当前无法执行该支撑操作");
+        const file = salesSupportDeliveryFiles(support)[index];
+        if (!file?.url || (expectedFile && file !== expectedFile)) return toast("当前无法执行该支撑操作");
+        if (!file.url.startsWith("blob:") && !file.url.startsWith("data:application/pdf;base64,"))
+          return toast("当前无法执行该支撑操作");
+        const link = document.createElement("a");
+        link.href = file.url.startsWith("data:")
+          ? URL.createObjectURL(new Blob([Uint8Array.from(atob(file.url.split(",")[1]), (char) => char.charCodeAt(0))], { type: "application/pdf" }))
+          : file.url;
+        if (action === "download") link.download = file.name;
+        else { link.target = "_blank"; link.rel = "noopener"; }
+        link.click();
       }
 
       function openSalesReassignModal(item) {
@@ -833,6 +923,48 @@
         };
       }
 
+      function bindSalesSupportFilters() {
+        const apply = $("#applySupportFilters");
+        if (apply) apply.onclick = () => {
+          const next = {
+            name: $("#supportNameFilter").value.trim(),
+            customer: $("#supportCustomerFilter").value,
+            status: $("#supportStatusFilter").value,
+            deadlineFrom: $("#supportDeadlineFromFilter").value,
+            deadlineTo: $("#supportDeadlineToFilter").value,
+          };
+          if (next.deadlineFrom && next.deadlineTo && next.deadlineFrom > next.deadlineTo)
+            return toast("开始日期不能晚于结束日期");
+          appliedSupportFilters = next;
+          const state = unifiedTablePaginationStates["m12-supports"];
+          if (state) state.page = 1;
+          renderPage();
+        };
+        const reset = $("#resetSupportFilters");
+        if (reset) reset.onclick = () => {
+          appliedSupportFilters = { name: "", customer: "", status: "", deadlineFrom: "", deadlineTo: "" };
+          const state = unifiedTablePaginationStates["m12-supports"];
+          if (state) state.page = 1;
+          renderPage();
+        };
+        clearInterval(supportRemainingTimer);
+        supportRemainingTimer = null;
+        if (currentPage !== "sales-supports" || !canAccessPage("sales-supports")) return;
+        supportRemainingTimer = setInterval(() => {
+          if (currentPage !== "sales-supports" || !canAccessPage("sales-supports")) {
+            clearInterval(supportRemainingTimer);
+            supportRemainingTimer = null;
+            return;
+          }
+          const requests = new Map(salesVisibleSupportRequests().map(({ support }) => [support.id, support]));
+          const now = Date.now();
+          document.querySelectorAll("[data-support-remaining]").forEach((cell) => {
+            const support = requests.get(cell.dataset.supportRemaining);
+            cell.textContent = support ? salesSupportRemainingText(support, now) : "—";
+          });
+        }, 60000);
+      }
+
       function bindSalesEvents() {
         document.querySelectorAll("[data-sales-page]").forEach((button) => {
           button.onclick = () => salesNavigate(button.dataset.salesPage);
@@ -840,6 +972,7 @@
         bindSalesPeriod();
         bindSalesTargetMonth();
         bindOpportunityFilters();
+        bindSalesSupportFilters();
         document.querySelectorAll("[data-sales-trend]").forEach((button) => {
           button.onclick = () => {
             salesTrendMode = button.dataset.salesTrend;
@@ -848,6 +981,8 @@
         });
         document.querySelectorAll("[data-opportunity-open]").forEach((button) => {
           button.onclick = () => {
+            opportunityDetailContext = button.dataset.opportunityContext === "support" ? "support" : "sales";
+            selectedOpportunitySupportId = opportunityDetailContext === "support" ? button.dataset.opportunitySupport || null : null;
             selectedOpportunityId = button.dataset.opportunityOpen;
             opportunityDetailTab = "overview";
             salesNavigate("opportunity-detail");
@@ -860,7 +995,10 @@
           };
         });
         const back = $("#backToOpportunities");
-        if (back) back.onclick = () => salesNavigate("opportunities");
+        if (back) back.onclick = () => {
+          const item = opportunitySelected();
+          salesNavigate(item && isSupportOpportunityDetail(item) ? "sales-supports" : "opportunities");
+        };
         bindOpportunityCreateForm();
         const selected = opportunitySelected();
         const edit = $("[data-sales-edit]");
@@ -873,6 +1011,13 @@
         if (support && selected) support.onclick = () => openSalesSupportModal(selected);
         const reassign = $("[data-sales-reassign]");
         if (reassign && selected) reassign.onclick = () => openSalesReassignModal(selected);
+        document.querySelectorAll("[data-support-delivery]").forEach((button) => {
+          button.onclick = () => {
+            const item = opportunities.find((row) => row.id === button.dataset.supportOpportunity);
+            const support = item?.supports.find((row) => row.id === button.dataset.supportDelivery);
+            openSupportDeliveryDetail(item, support);
+          };
+        });
         document.querySelectorAll("[data-support-action]").forEach((button) => {
           button.onclick = () => {
             const opportunity = button.dataset.supportOpportunity

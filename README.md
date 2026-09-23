@@ -16,6 +16,24 @@
 | 仍在形成中的需求 | Local Workspace 的 `docs/requirement-discussions/`（不是 Current Product Rule） |
 | 历史文件与恢复方式 | Local Workspace 的 `archive/`（GitHub 镜像不包含历史资料） |
 
+## 研发 / 测试 Codex 读取说明
+
+研发和测试使用 Codex 开始任务前，请先阅读 [`docs/CODEX_READING_GUIDE.md`](docs/CODEX_READING_GUIDE.md)。该说明定义项目目录用途、Current PRD 读取顺序、代码与 Demo 的证据边界、测试依据和 GitHub 同步边界。
+
+最小读取顺序：
+
+```text
+README.md
+→ docs/PROJECT_OVERVIEW.md
+→ docs/CODEX_READING_GUIDE.md
+→ prd-workspace/current/PRD.md
+→ 涉及模块的 Current Module PRD
+→ Acceptance / Decision / User Flow
+→ src/ 实现
+```
+
+Current PRD 是当前产品事实来源。代码、Demo、测试结果和历史文件不能自行产生新的产品规则。未定义行为、正式来源冲突和未确认的新产品行为，分别标记 `PRODUCT DEFINITION GAP`、`SOURCE CONFLICT` 和 `PRODUCT CONFIRMATION REQUIRED`。
+
 日常工作只需要使用上表入口。尚未正式进入 Current PRD、仍在推进或等待确认的内容属于 Active Requirement Discussion，不是历史，也不能覆盖 Current Product。旧 PRD、旧 Demo、阶段报告、已完成 Task/Result、已结束讨论和快照统一保存在 `archive/`。
 
 ## 需求状态与研发边界

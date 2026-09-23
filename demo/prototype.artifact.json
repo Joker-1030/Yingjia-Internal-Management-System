@@ -1,11 +1,11 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-09-11T09:27:50.432Z",
+  "generatedAt": "2026-09-23T03:19:05.735Z",
   "generator": "scripts/build-prototype.mjs",
   "buildCommand": "node scripts/build-prototype.mjs",
   "sourceRoot": "src",
   "entry": "src/prototype.html",
-  "sourceDigest": "59ce14bcb18e52a6c9e387979d3ce929c4889c0f5771fc150ea57b8248019025",
+  "sourceDigest": "5654b85d3b0cb36488c430a575b9f360926f65ab45c71290b057cfc2382d5285",
   "sourceFiles": [
     {
       "path": "src/app.js",
@@ -29,8 +29,8 @@
     },
     {
       "path": "src/data/campaigns.js",
-      "sha256": "77a4d6a3ab59f46a64d2a319e364eee4148b446a051523c1d80c541ec6879d96",
-      "bytes": 8073
+      "sha256": "5a563fff91f5d5c18cac593e18e886f6f1c754375276a890d81bede80ea41cf4",
+      "bytes": 5429
     },
     {
       "path": "src/data/contacts.js",
@@ -39,8 +39,8 @@
     },
     {
       "path": "src/data/customer-organization.js",
-      "sha256": "1765b7fca86547309e0e265525bef323ef47ffb84648be719711bd9484cf71f3",
-      "bytes": 70765
+      "sha256": "6a6bdcfccbb03e779130863effa0d535a6b0d13c45a98b35570d5a785078eac7",
+      "bytes": 76600
     },
     {
       "path": "src/data/customer-settings.js",
@@ -144,8 +144,8 @@
     },
     {
       "path": "src/modules/_app-shell/events.js",
-      "sha256": "4436241d947298f714fee575062495bcee1909a28e8478481e4f5af7c1fe6295",
-      "bytes": 72446
+      "sha256": "8e087c3f1f8cacd0771c5fc7ce9eefaf350b3d2e2daabd95ac1d1d1d110b1f24",
+      "bytes": 75819
     },
     {
       "path": "src/modules/_app-shell/notifications.js",
@@ -199,8 +199,8 @@
     },
     {
       "path": "src/modules/m02-customer-operations/details.js",
-      "sha256": "d5032d9c970b5fa498ab9cf93848b43dacdee0ca26fe7e7bea62f386f85312b5",
-      "bytes": 73774
+      "sha256": "1b2b38a8f9e8df4428d77542c27e33eded60cfbec06c1e7b73d055e2fab0b835",
+      "bytes": 74135
     },
     {
       "path": "src/modules/m02-customer-operations/module.json",
@@ -229,8 +229,8 @@
     },
     {
       "path": "src/modules/m03-maintenance/details.js",
-      "sha256": "5a62da3d06021f4db7be448ae73d0d021eaa9ab906ff9f94b16cfed1965ac638",
-      "bytes": 52670
+      "sha256": "dd84286d3649a956872d9ee67f5c1d7f8e5fa7234eb2901c6c67106c6a7508c8",
+      "bytes": 55666
     },
     {
       "path": "src/modules/m03-maintenance/module.json",
@@ -239,8 +239,8 @@
     },
     {
       "path": "src/modules/m03-maintenance/page.js",
-      "sha256": "0267c3e87d762c9c92163a54e85943266868c990e95aa2e1cade0800a9371eaa",
-      "bytes": 44167
+      "sha256": "7c46c95b4efa7a9520d3570cc8df1bcec0d44db38fd1928e96665773d44b0a9e",
+      "bytes": 44074
     },
     {
       "path": "src/modules/m03-maintenance/task-actions.js",
@@ -264,7 +264,7 @@
     },
     {
       "path": "src/modules/m04-approvals/presentation.js",
-      "sha256": "8aa58e93f756c4f0f4d3e2d1b000fe831fa0ef3497844bda9e3781545803e24c",
+      "sha256": "603e7ee8bc36ce92a595a74a4391fae7b5c6a3ef77f38ab64c777313b912f4b4",
       "bytes": 3849
     },
     {
@@ -334,8 +334,8 @@
     },
     {
       "path": "src/modules/m09-customer-settings/interactions.js",
-      "sha256": "8024af96081eea840d768f491de0cbb6d0ae47f8b1385996c395eff0af640a5d",
-      "bytes": 34350
+      "sha256": "7b36cc82007b05310c52051c0f700e48ffcdae2ba050884b3881e2e668de0c2d",
+      "bytes": 80452
     },
     {
       "path": "src/modules/m09-customer-settings/module.json",
@@ -344,8 +344,8 @@
     },
     {
       "path": "src/modules/m09-customer-settings/page.js",
-      "sha256": "37b9c240e01aa2ae0c89a6394f4dabb184d6a6715907b8e074c33953aa19dff4",
-      "bytes": 43929
+      "sha256": "49a7e4038c3444d85e2d1e6a3c3d03ce6841dac5b022b9619ed0494ec5da0d4a",
+      "bytes": 51055
     },
     {
       "path": "src/modules/m10-imports/interactions.js",
@@ -399,8 +399,8 @@
     },
     {
       "path": "src/styles/prototype.css",
-      "sha256": "ccf0a7f232d6bf6bfcae1fb5d15ca73f4bbc98d7acbd0cab4b1d73c9e60f1116",
-      "bytes": 147328
+      "sha256": "3910446a709fb1bab12334802a6097d71207e80446a79a558932061a8291d79c",
+      "bytes": 150829
     }
   ],
   "artifactInputs": [
@@ -472,8 +472,8 @@
   ],
   "artifact": {
     "path": "demo/prototype.html",
-    "sha256": "b4862a9b6fd56600cb9e0dbf9e34adff88f4a98a6063369f5e0676dd5ac5ea47",
-    "bytes": 2356420
+    "sha256": "5d2acf3bbaa36e37ec2d9ba44799e00a28d2aa6b133d42ef2359a6ace581a7e7",
+    "bytes": 2422977
   },
   "legacyBridge": false,
   "architecture": "lightweight-modular",

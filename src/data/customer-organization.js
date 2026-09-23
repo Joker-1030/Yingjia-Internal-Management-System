@@ -180,6 +180,127 @@
           person.title = position.name;
         }
       });
+      // M09 atomic catalogs: legacy relation-shaped fixtures remain available to
+      // older consumers, while current organization/KPI flows use these stable atoms.
+      const departmentAtomByName = new Map();
+      const customerDepartmentAtoms = [];
+      customerDepartments
+        .filter((item) => !item.archived)
+        .forEach((item, index) => {
+          const key = String(item.name || "").trim().toLowerCase();
+          if (!departmentAtomByName.has(key)) {
+            const atom = {
+              id: `DEPT-ATOM-${String(customerDepartmentAtoms.length + 1).padStart(4, "0")}`,
+              name: item.name,
+              code: `CDEPT${String(customerDepartmentAtoms.length + 1).padStart(8, "0")}`,
+              duty: item.duty || "",
+              status: item.status || "正常",
+              sort: item.sort || (index + 1) * 10,
+              updatedAt: item.updatedAt || "2026-08-17 09:30",
+            };
+            departmentAtomByName.set(key, atom);
+            customerDepartmentAtoms.push(atom);
+          }
+        });
+      const customerDepartmentRelations = customerDepartments
+        .filter((item) => !item.archived)
+        .map((item, index) => {
+          const atom = departmentAtomByName.get(String(item.name || "").trim().toLowerCase());
+          const parent = customerDepartments.find(
+            (candidate) =>
+              !candidate.archived &&
+              candidate.company === item.company &&
+              candidate.name === item.parent,
+          );
+          return {
+            id: `DEPT-REL-${String(index + 1).padStart(4, "0")}`,
+            departmentAtomId: atom.id,
+            company: item.company,
+            group: item.group,
+            parentDepartmentRelationId: parent
+              ? `DEPT-REL-${String(customerDepartments.indexOf(parent) + 1).padStart(4, "0")}`
+              : "",
+            parent: item.parent,
+            sort: item.sort || 100,
+            path: item.parent && !["无", "—"].includes(item.parent)
+              ? `${item.parent} / ${item.name}`
+              : item.name,
+            status: item.status || "正常",
+            updatedAt: item.updatedAt || "2026-08-17 09:30",
+          };
+        });
+      const positionAtomByName = new Map();
+      const customerPositionAtoms = [];
+      contactPositionCatalog
+        .filter((item) => item.status !== "已停用")
+        .forEach((item, index) => {
+          const key = String(item.name || "").trim().toLowerCase();
+          if (!positionAtomByName.has(key)) {
+            const atom = {
+              id: `POS-ATOM-${String(customerPositionAtoms.length + 1).padStart(4, "0")}`,
+              name: item.name,
+              code: `POS${String(customerPositionAtoms.length + 1).padStart(8, "0")}`,
+              sort: item.sort || (index + 1) * 10,
+              status: item.status || "正常",
+              updatedAt: item.updatedAt || "2026-08-17 09:30",
+            };
+            positionAtomByName.set(key, atom);
+            customerPositionAtoms.push(atom);
+          }
+          item.positionAtomId = positionAtomByName.get(key).id;
+        });
+      const customerPositionRelations = [];
+      const positionRelationKeys = new Set();
+      contactPositionCatalog.forEach((item) => {
+        const atom = positionAtomByName.get(String(item.name || "").trim().toLowerCase());
+        const department = customerDepartments.find(
+          (candidate) => candidate.id === item.departmentId,
+        );
+        const departmentAtom = departmentAtomByName.get(
+          String(department?.name || "").trim().toLowerCase(),
+        );
+        if (!atom || !departmentAtom) return;
+        const key = `${atom.id}:${departmentAtom.id}`;
+        if (positionRelationKeys.has(key)) return;
+        positionRelationKeys.add(key);
+        customerPositionRelations.push({
+          id: `POS-REL-${String(customerPositionRelations.length + 1).padStart(4, "0")}`,
+          positionAtomId: atom.id,
+          departmentAtomId: departmentAtom.id,
+          status: atom.status || item.status || "正常",
+        });
+      });
+      const departmentAtomForId = (id) =>
+        customerDepartmentAtoms.find((item) => item.id === id);
+      const positionAtomForId = (id) =>
+        customerPositionAtoms.find((item) => item.id === id);
+      const departmentRelationsForCompany = (companyName) =>
+        customerDepartmentRelations.filter((item) => item.company === companyName);
+      const positionRelationsForDepartment = (departmentRelationId) => {
+        const departmentRelation = customerDepartmentRelations.find(
+          (item) => item.id === departmentRelationId,
+        );
+        return customerPositionRelations.filter(
+          (item) => item.departmentAtomId === departmentRelation?.departmentAtomId,
+        );
+      };
+      contacts.forEach((person) => {
+        const department = customerDepartments.find(
+          (item) => item.company === person.company && item.name === person.department,
+        );
+        const departmentRelation = customerDepartmentRelations.find(
+          (item) => item.company === person.company && item.departmentAtomId === departmentAtomByName.get(String(person.department || "").trim().toLowerCase())?.id,
+        );
+        const positionAtom = positionAtomByName.get(String(person.positionName || person.title || "").trim().toLowerCase());
+        person.departmentAtomId = departmentRelation?.departmentAtomId || "";
+        person.departmentRelationId = departmentRelation?.id || "";
+        person.positionAtomId = positionAtom?.id || "";
+        const positionRelation = customerPositionRelations.find(
+          (item) => item.departmentAtomId === person.departmentAtomId && item.positionAtomId === person.positionAtomId,
+        );
+        person.positionRelationId = positionRelation?.id || "";
+      });
+
       const customerGroupNames = [
         "中国移动",
         "中国联通",

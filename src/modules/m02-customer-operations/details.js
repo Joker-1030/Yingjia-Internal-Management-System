@@ -161,7 +161,7 @@
             if (!hasPermission("settings"))
               return toast("当前账号无客户基础配置访问权限");
             currentPage = "settings";
-            settingsSection = "tree";
+            settingsSection = "groups";
             if (kind && id) {
               clearCustomerOrgInternalContext();
               selectedCustomerOrgNode = `${kind}:${id}`;
@@ -171,10 +171,8 @@
             renderNav();
             renderPage();
           },
-          "add-department-template": () => openDepartmentTemplateForm(),
-          "edit-department-template": () =>
-            openDepartmentTemplateForm(Number(id)),
-          "stop-department-template": () => stopDepartmentTemplate(Number(id)),
+          "edit-department-relation": () =>
+            openCustomerDepartmentRelationForm(Number(id), kind),
           "add-contact": () => openContactForm(null, Number(id)),
           "edit-contact": () => openContactForm(Number(id)),
           transfer: () => openTransfer(Number(id)),
@@ -221,9 +219,16 @@
                     "edit-rule": () => openRuleForm(Number(id)),
           "toggle-rule": () => toggleRule(Number(id)),
           "sync-holidays": syncHolidayCalendar,
-          "add-contact-position": () => openContactPositionForm(),
-          "edit-contact-position": () => openContactPositionForm(String(id)),
-          "toggle-contact-position": () => toggleContactPosition(String(id)),
+          "edit-position-relation": () =>
+            openCustomerPositionRelationForm(String(id), kind),
+          "add-department-atom": () => openDepartmentAtomForm(),
+          "edit-department-atom": () => openDepartmentAtomForm(String(id)),
+          "toggle-department-atom": () => toggleDepartmentAtom(String(id)),
+          "associate-department-companies": () => openDepartmentCompanyAssociation(String(id)),
+          "add-position-atom": () => openPositionAtomForm(),
+          "edit-position-atom": () => openPositionAtomForm(String(id)),
+          "toggle-position-atom": () => togglePositionAtom(String(id)),
+          "associate-position-departments": () => openPositionDepartmentAssociation(String(id)),
           "add-industry": () => openIndustryForm(),
           "edit-industry": () => openIndustryForm(Number(id)),
           "toggle-industry": () => toggleIndustry(Number(id)),

@@ -178,19 +178,17 @@
         const reached = coverageRows.filter(
           (item) => item.status === "已达标",
         ).length;
-        const targetLabel = isCoverage
-          ? c.coverageDimension === "部门覆盖"
-            ? `部门：${c.targetDepartment}`
-            : `${c.positionSource || "标准岗位"}：${c.targetPosition}`
-          : "—";
         const targetValue = (values, fallback = "全部") =>
           values?.length ? values.join("、") : fallback;
-        const rangeDetails = isCoverage
-          ? `<div class="detail-item"><label>目标集团</label><div>${targetValue(c.targets?.groups)}</div></div><div class="detail-item"><label>业务责任层级</label><div>${targetValue(c.targets?.companyLevels)}</div></div><div class="detail-item"><label>业务责任区域</label><div>${targetValue(c.targets?.regions)}</div></div><div class="detail-item"><label>覆盖维度</label><div>${c.coverageDimension}</div></div><div class="detail-item"><label>${c.coverageDimension === "部门覆盖" ? "目标部门" : "目标岗位"}</label><div>${targetLabel.replace(/^部门：|^标准岗位：/, "")}</div></div><div class="detail-item"><label>目标覆盖率</label><div>${c.targetCoverageRate}%</div></div>`
+        const targetLabel = isCoverage
+          ? `公司：${c.targetCompany || "全部公司"} · 部门：${c.targetDepartment || "全部部门"} · 岗位：${c.targetPosition || "全部岗位"} · 职级：${targetValue(c.targets?.levels, "全部职级")}`
+          : "—";
+        let rangeDetails = isCoverage
+          ? `<div class="detail-item"><label>目标行业</label><div>${targetValue(c.targets?.industries, "全部行业")}</div></div><div class="detail-item"><label>目标集团</label><div>${targetValue(c.targets?.groups, "全部集团")}</div></div><div class="detail-item"><label>业务责任层级</label><div>${targetValue(c.targets?.companyLevels, "全部业务责任层级")}</div></div><div class="detail-item"><label>目标公司</label><div>${c.targetCompany || "全部公司"}</div></div><div class="detail-item"><label>目标部门</label><div>${c.targetDepartment || "全部部门"}</div></div><div class="detail-item"><label>目标岗位</label><div>${c.targetPosition || "全部岗位"}</div></div><div class="detail-item"><label>关键人职级</label><div>${targetValue(c.targets?.levels, "全部职级")}</div></div><div class="detail-item"><label>目标覆盖率</label><div>${c.targetCoverageRate}%</div></div>`
           : `<div class="detail-item"><label>目标行业</label><div>${targetValue(c.targets?.industries)}</div></div><div class="detail-item"><label>目标集团</label><div>${targetValue(c.targets?.groups)}</div></div><div class="detail-item"><label>目标区域</label><div>${targetValue(c.targets?.regions)}</div></div><div class="detail-item"><label>关键人职级</label><div>${targetValue(c.targets?.levels, "全部职级")}</div></div><div class="detail-item"><label>关键决策人</label><div>${c.decisionFilter || "全部"}</div></div><div class="detail-item"><label>关键人岗位</label><div>${c.targetPosition || "不限"}</div></div>`;
         const detailContent = `<div class="detail-grid"><div class="detail-item"><label>任务编号</label><div>${c.code || theme?.code || "待生成"}</div></div><div class="detail-item"><label>任务类型</label><div>${c.category}</div></div><div class="detail-item"><label>开始时间</label><div>${c.startDate}</div></div><div class="detail-item"><label>结束时间</label><div>${c.endDate}</div></div><div class="detail-item"><label>创建时间</label><div>${escapeHtml(c.createdAt || "—")}</div></div><div class="detail-item"><label>更新时间</label><div>${c.updatedAt || "-"}</div></div><div class="detail-item"><label>发布人</label><div>${c.owner}</div></div>${rangeDetails}${isCoverage ? "" : `<div class="detail-item full"><label>任务标题模板</label><div>${c.taskTitleTemplate || "{{专项标题}} - {{关键人姓名}}"}</div></div><div class="detail-item"><label>逾期补完成</label><div>${c.allowLateCompletion ? `允许，最晚至 ${c.lateCompletionEndDate}` : "不允许"}</div></div>`}<div class="detail-item full"><label>执行说明</label><div>${c.description || "按发布条件完成专项要求"}</div></div></div>`;
         const dashboardContent = isCoverage
-          ? `<div class="role-note"><strong>${c.coverageDimension} · ${targetLabel}</strong></div><div class="metrics compact-metrics" style="grid-template-columns:repeat(4,1fr)">${metric("应覆盖单位", denominator, "")}${metric("已覆盖单位", numerator, `未覆盖 ${Math.max(denominator - numerator, 0)}`, "blue")}${metric("当前覆盖率", `${coverageRate}%`, `目标 ${c.targetCoverageRate}%`, coverageRate >= c.targetCoverageRate ? "green" : "red")}${metric("达标责任人", `${reached}/${coverageRows.length}`, `未达标 ${coverageRows.length - reached}`, "yellow")}</div><div class="table-wrap"><table><thead><tr><th>区域 / 责任人</th><th>应覆盖</th><th>已覆盖</th><th>未覆盖</th><th>当前覆盖率</th><th>目标覆盖率</th><th>差额</th><th>操作</th></tr></thead><tbody>${coverageRows.map((row) => `<tr><td>${row.region}<div class="list-sub">${row.owner}</div></td><td>${row.denominator}</td><td>${row.numerator}</td><td>${Math.max(row.denominator - row.numerator, 0)}</td><td><strong>${row.currentRate}%</strong></td><td>${row.targetRate}%</td><td>${Math.max(row.required - row.numerator, 0)} 家</td><td><button class="link" type="button" data-coverage-row="${row.owner}">查看客户单位</button></td></tr>`).join("") || '<tr><td colspan="8">当前范围没有可考核单位</td></tr>'}</tbody></table></div>`
+          ? `<div class="role-note"><strong>七项组合 · ${targetLabel}</strong></div><div class="metrics compact-metrics" style="grid-template-columns:repeat(4,1fr)">${metric("应覆盖单位", denominator, "")}${metric("已覆盖单位", numerator, `未覆盖 ${Math.max(denominator - numerator, 0)}`, "blue")}${metric("当前覆盖率", `${coverageRate}%`, `目标 ${c.targetCoverageRate}%`, coverageRate >= c.targetCoverageRate ? "green" : "red")}${metric("达标责任人", `${reached}/${coverageRows.length}`, `未达标 ${coverageRows.length - reached}`, "yellow")}</div><div class="table-wrap"><table><thead><tr><th>区域 / 责任人</th><th>应覆盖</th><th>已覆盖</th><th>未覆盖</th><th>当前覆盖率</th><th>目标覆盖率</th><th>差额</th><th>操作</th></tr></thead><tbody>${coverageRows.map((row) => `<tr><td>${row.region}<div class="list-sub">${row.owner}</div></td><td>${row.denominator}</td><td>${row.numerator}</td><td>${Math.max(row.denominator - row.numerator, 0)}</td><td><strong>${row.currentRate}%</strong></td><td>${row.targetRate}%</td><td>${Math.max(row.required - row.numerator, 0)} 家</td><td><button class="link" type="button" data-coverage-row="${row.owner}">查看客户单位</button></td></tr>`).join("") || '<tr><td colspan="8">当前范围没有可考核单位</td></tr>'}</tbody></table></div>`
           : `<div class="metrics compact-metrics" style="grid-template-columns:repeat(4,1fr)">${metric("有效总数", local.total, "当前有效执行项")}${metric("总完成率", local.total ? Math.round((local.done / local.total) * 100) + "%" : "--", `${local.done}/${local.total}`)}${metric("按期完成率", local.total ? Math.round((local.onTimeDone / local.total) * 100) + "%" : "--", `${local.onTimeDone}/${local.total}`, "blue")}${metric("逾期补录", local.lateEntryDone, "", "yellow")}${metric("逾期补完成", local.lateCompletionDone, "不计入按期", "red")}${metric("已过期未完成", local.expired, "", "red")}</div>`;
         const executionContent = isCoverage
           ? `${taskExecutionHeader("refresh-campaign-data", c.id)}<div class="table-wrap"><table><thead><tr><th>执行人</th><th>分子 / 分母</th><th>目标需覆盖数</th><th>当前 / 目标覆盖率</th><th>首次达标时间</th><th>状态</th></tr></thead><tbody>${coverageRows.map((row) => `<tr><td><strong>${row.owner}</strong><div class="list-sub">${row.region}</div></td><td>${row.numerator} / ${row.denominator}</td><td>${row.required}</td><td>${row.currentRate}% / ${row.targetRate}%</td><td>${row.firstReachedAt}</td><td><span class="tag ${row.status === "已达标" ? "green" : "yellow"}">${row.status}</span></td></tr>`).join("")}</tbody></table></div><div class="role-note">达标后完成；有效期内未达标将恢复待办。</div>`
@@ -234,7 +232,7 @@
           return toast("当前账号无发布或编辑专项权限");
         const c = campaigns.find((x) => x.id === id);
         openModal(
-          `<div class="modal-head"><div class="modal-title">${c ? "编辑专项" : "发布专项"}</div><button class="icon-btn close" data-close>×</button></div><form id="campaignForm"><div class="modal-body"><div class="form-grid"><div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>专项分类</label><select class="input" id="camCategory" ${c ? "disabled" : ""} required><option ${c?.category !== "关键人覆盖 KPI" ? "selected" : ""}>专项维系</option><option ${c?.category === "关键人覆盖 KPI" ? "selected" : ""}>关键人覆盖 KPI</option></select><div class="list-sub">创建后不可修改</div></div><div class="form-group"><label class="form-label">任务编号</label><input class="input" value="${c?.code || "发布后自动生成"}" disabled></div><div class="form-group full"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>专项标题</label><input class="input" id="camName" minlength="2" maxlength="100" value="${c?.name || "AI数字员工产品专项推广"}" required></div><div class="section-title" style="grid-column:1/-1;margin:4px 0 0">目标条件</div><div class="form-group" data-maintenance-field><label class="form-label">目标行业</label><select class="input" id="camIndustry"><option value="">全部行业</option>${industries
+          `<div class="modal-head"><div class="modal-title">${c ? "编辑专项" : "发布专项"}</div><button class="icon-btn close" data-close>×</button></div><form id="campaignForm"><div class="modal-body"><div class="form-grid"><div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>专项分类</label><select class="input" id="camCategory" ${c ? "disabled" : ""} required><option ${c?.category !== "关键人覆盖 KPI" ? "selected" : ""}>专项维系</option><option ${c?.category === "关键人覆盖 KPI" ? "selected" : ""}>关键人覆盖 KPI</option></select><div class="list-sub">创建后不可修改</div></div><div class="form-group"><label class="form-label">任务编号</label><input class="input" value="${c?.code || "发布后自动生成"}" disabled></div><div class="form-group full"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>专项标题</label><input class="input" id="camName" minlength="2" maxlength="100" value="${c?.name || "AI数字员工产品专项推广"}" required></div><div class="section-title" style="grid-column:1/-1;margin:4px 0 0">目标条件</div><div class="form-group"><label class="form-label">目标行业</label><select class="input" id="camIndustry"><option value="">全部行业</option>${industries
             .filter((x) => x.enabled)
             .map(
               (x) =>
@@ -242,13 +240,13 @@
             )
             .join(
               "",
-            )}</select></div><div class="form-group"><label class="form-label"><span id="camGroupRequired"></span>目标集团</label><select class="input" id="camGroup"><option value="">全部集团</option>${customerGroupNames.map((x) => `<option ${c?.targets?.groups?.includes(x) ? "selected" : ""}>${x}</option>`).join("")}</select></div><div class="form-group"><label class="form-label">目标区域</label><select class="input" id="camRegion"><option value="">全部区域</option>${regionsData.map((x) => `<option ${c?.targets?.regions?.includes(x.name) ? "selected" : ""}>${x.name}</option>`).join("")}</select></div><div class="form-group" data-maintenance-field><label class="form-label">关键人职级</label><select class="input" id="camLevel"><option>全部职级</option><option ${c?.targets?.levels?.includes("一级") ? "selected" : ""}>一级</option><option ${c?.targets?.levels?.includes("二级") ? "selected" : ""}>二级</option><option ${c?.targets?.levels?.includes("三级") ? "selected" : ""}>三级</option><option ${c?.targets?.levels?.includes("四级") ? "selected" : ""}>四级</option></select></div><div class="form-group" data-maintenance-field><label class="form-label">关键决策人</label><select class="input" id="camDecision"><option ${c?.decisionFilter === "全部" ? "selected" : ""}>全部</option><option ${c?.decisionFilter === "仅关键决策人" ? "selected" : ""}>仅关键决策人</option><option ${c?.decisionFilter === "排除关键决策人" ? "selected" : ""}>排除关键决策人</option></select></div><div class="form-group" data-maintenance-field><label class="form-label">关键人岗位</label><select class="input" id="camMaintenancePosition"><option value="">不限</option>${contactPositionCatalog.filter((item) => item.status === "正常").map((item) => `<option ${c?.targetPosition === item.name ? "selected" : ""}>${item.name}</option>`).join("")}</select><div class="list-sub">仅可选择标准岗位</div></div><div class="form-group" data-maintenance-field><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>任务标题模板</label><input class="input" id="camTaskTemplate" maxlength="100" value="${c?.taskTitleTemplate || "{{专项标题}} - {{关键人姓名}}"}"><div class="list-sub">支持关键人姓名、客户单位、专项标题占位符</div></div><div class="form-group" data-kpi-field><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>目标公司层级</label><select class="input" id="camCompanyLevel"><option ${c?.targets?.companyLevels?.includes("省公司") ? "selected" : ""}>省公司</option><option ${c?.targets?.companyLevels?.includes("市公司") ? "selected" : ""}>市公司</option><option ${c?.targets?.companyLevels?.includes("区县公司") ? "selected" : ""}>区县公司</option></select></div><div class="form-group" data-kpi-field><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>覆盖维度</label><select class="input" id="camCoverageDimension"><option value="">请选择</option><option ${c?.coverageDimension === "部门覆盖" ? "selected" : ""}>部门覆盖</option><option ${c?.coverageDimension === "岗位覆盖" ? "selected" : ""}>岗位覆盖</option></select></div><div class="form-group" data-kpi-field id="camDepartmentGroup"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>目标部门</label><select class="input" id="camTargetDepartment" data-initial-value="${c?.targetDepartmentId || ""}"><option value="">请先选择集团</option></select></div><select class="hidden" id="camPositionSource" aria-hidden="true"><option value="标准岗位" selected>标准岗位</option></select><div class="form-group" data-kpi-field id="camTargetPositionGroup"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>目标岗位</label><select class="input" id="camTargetPositionStandard" data-initial-value="${c?.targetPositionId || ""}"><option value="">请先选择集团与公司层级</option></select></div><div class="form-group" data-kpi-field><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>目标覆盖率</label><input class="input" id="camTargetRate" type="number" min="0.1" max="100" step="0.1" value="${c?.targetCoverageRate || 100}" required><div class="list-sub">按每名责任人分别达标，保留 1 位小数</div></div><div class="section-title" style="grid-column:1/-1;margin:4px 0 0">有效期与规则</div><div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>开始日期</label><input class="input" id="camStart" type="date" value="${c?.startDate || "2026-08-20"}" required></div><div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>结束日期</label><input class="input" id="camEnd" type="date" value="${c?.endDate || "2026-09-30"}" required></div><div class="form-group" data-maintenance-field><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>逾期后允许补完成</label><select class="input" id="camAllowLate"><option value="false" ${!c?.allowLateCompletion ? "selected" : ""}>不允许</option><option value="true" ${c?.allowLateCompletion ? "selected" : ""}>允许</option></select></div><div class="form-group" data-maintenance-field id="camLateEndGroup"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>补完成截止日期</label><input class="input" id="camLateEnd" type="date" value="${c?.lateCompletionEndDate || ""}"><div class="list-sub">必须晚于专项结束日期</div></div><div class="form-group full"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>执行说明</label><textarea class="input" id="camDesc" minlength="5" maxlength="2000" required>${c?.description || "面向目标关键人完成专项要求，并按时提交执行结果。"}</textarea></div></div></div><div class="modal-foot"><button class="btn" type="button" data-close>取消</button><button class="btn btn-primary" type="submit">${c ? "保存" : "确认发布"}</button></div></form>`,
+            )}</select></div><div class="form-group"><label class="form-label"><span id="camGroupRequired"></span>目标集团</label><select class="input" id="camGroup" data-initial-value="${c?.targets?.groups?.[0] || ""}"><option value="">全部集团</option>${customerGroupNames.map((x) => `<option ${c?.targets?.groups?.includes(x) ? "selected" : ""}>${x}</option>`).join("")}</select></div><div class="form-group" data-maintenance-field><label class="form-label">目标区域</label><select class="input" id="camRegion"><option value="">全部区域</option>${regionsData.map((x) => `<option ${c?.targets?.regions?.includes(x.name) ? "selected" : ""}>${x.name}</option>`).join("")}</select></div><div class="form-group" data-maintenance-field><label class="form-label">关键人职级</label><select class="input" id="camLevel"><option>全部职级</option><option ${c?.targets?.levels?.includes("一级") ? "selected" : ""}>一级</option><option ${c?.targets?.levels?.includes("二级") ? "selected" : ""}>二级</option><option ${c?.targets?.levels?.includes("三级") ? "selected" : ""}>三级</option><option ${c?.targets?.levels?.includes("四级") ? "selected" : ""}>四级</option></select></div><div class="form-group" data-maintenance-field><label class="form-label">关键决策人</label><select class="input" id="camDecision"><option ${c?.decisionFilter === "全部" ? "selected" : ""}>全部</option><option ${c?.decisionFilter === "仅关键决策人" ? "selected" : ""}>仅关键决策人</option><option ${c?.decisionFilter === "排除关键决策人" ? "selected" : ""}>排除关键决策人</option></select></div><div class="form-group" data-maintenance-field><label class="form-label">关键人岗位</label><select class="input" id="camMaintenancePosition"><option value="">不限</option>${contactPositionCatalog.filter((item) => item.status === "正常").map((item) => `<option ${c?.targetPosition === item.name ? "selected" : ""}>${item.name}</option>`).join("")}</select><div class="list-sub">仅可选择标准岗位</div></div><div class="form-group" data-maintenance-field><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>任务标题模板</label><input class="input" id="camTaskTemplate" maxlength="100" value="${c?.taskTitleTemplate || "{{专项标题}} - {{关键人姓名}}"}"><div class="list-sub">支持关键人姓名、客户单位、专项标题占位符</div></div><div class="form-group" data-kpi-field><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>业务责任层级</label><select class="input" id="camCompanyLevel"><option value="">全部业务责任层级</option><option ${c?.targets?.companyLevels?.includes("省公司") ? "selected" : ""}>省公司</option><option ${c?.targets?.companyLevels?.includes("市公司") ? "selected" : ""}>市公司</option><option ${c?.targets?.companyLevels?.includes("区县公司") ? "selected" : ""}>区县公司</option></select></div><div class="form-group" data-kpi-field id="camTargetCompanyGroup"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>目标公司</label><select class="input" id="camTargetCompany" data-initial-value="${c?.targetCompany || ""}"><option value="">全部公司</option></select></div><div class="form-group" data-kpi-field id="camDepartmentGroup"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>目标部门</label><select class="input" id="camTargetDepartment" data-initial-value="${c?.targetDepartmentId || ""}"><option value="">全部部门</option></select></div><select class="hidden" id="camPositionSource" aria-hidden="true"><option value="标准岗位" selected>标准岗位</option></select><div class="form-group" data-kpi-field id="camTargetPositionGroup"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>目标岗位</label><select class="input" id="camTargetPositionStandard" data-initial-value="${c?.targetPositionId || ""}"><option value="">全部岗位</option></select></div><div class="form-group" data-kpi-field><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>关键人职级</label><select class="input" id="camKpiLevel"><option value="">全部职级</option><option ${c?.targets?.levels?.includes("一级") ? "selected" : ""}>一级</option><option ${c?.targets?.levels?.includes("二级") ? "selected" : ""}>二级</option><option ${c?.targets?.levels?.includes("三级") ? "selected" : ""}>三级</option><option ${c?.targets?.levels?.includes("四级") ? "selected" : ""}>四级</option></select></div><div class="form-group" data-kpi-field><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>目标覆盖率</label><input class="input" id="camTargetRate" type="number" min="0.1" max="100" step="0.1" value="${c?.targetCoverageRate || 100}" required><div class="list-sub">按每名责任人分别达标，保留 1 位小数</div></div><div class="section-title" style="grid-column:1/-1;margin:4px 0 0">有效期与规则</div><div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>开始日期</label><input class="input" id="camStart" type="date" value="${c?.startDate || "2026-08-20"}" required></div><div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>结束日期</label><input class="input" id="camEnd" type="date" value="${c?.endDate || "2026-09-30"}" required></div><div class="form-group" data-maintenance-field><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>逾期后允许补完成</label><select class="input" id="camAllowLate"><option value="false" ${!c?.allowLateCompletion ? "selected" : ""}>不允许</option><option value="true" ${c?.allowLateCompletion ? "selected" : ""}>允许</option></select></div><div class="form-group" data-maintenance-field id="camLateEndGroup"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>补完成截止日期</label><input class="input" id="camLateEnd" type="date" value="${c?.lateCompletionEndDate || ""}"><div class="list-sub">必须晚于专项结束日期</div></div><div class="form-group full"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>执行说明</label><textarea class="input" id="camDesc" minlength="5" maxlength="2000" required>${c?.description || "面向目标关键人完成专项要求，并按时提交执行结果。"}</textarea></div></div></div><div class="modal-foot"><button class="btn" type="button" data-close>取消</button><button class="btn btn-primary" type="submit">${c ? "保存" : "确认发布"}</button></div></form>`,
         );
         const campaignCategory = () => c?.category || $("#camCategory").value;
         const selectedCampaignPosition = () => {
           const source = $("#camPositionSource").value;
           if (source === "标准岗位") {
-            const position = contactPositionCatalog.find(
+            const position = customerPositionAtoms.find(
               (item) => item.id === $("#camTargetPositionStandard").value,
             );
             return {
@@ -289,16 +287,19 @@
             return { category, people, owners, companies: [], coverageRows: [] };
           }
           const companyLevel = $("#camCompanyLevel").value;
-          const dimension = $("#camCoverageDimension").value;
-          const targetDepartment = customerDepartments.find(
+          const targetCompany = $("#camTargetCompany").value;
+          const targetPersonLevel = $("#camKpiLevel").value;
+          const targetDepartment = customerDepartmentAtoms.find(
             (item) => String(item.id) === $("#camTargetDepartment").value,
           );
           const targetPosition = selectedCampaignPosition();
           const companies = customers.filter(
             (company) =>
-              company.group === group &&
-              company.level === companyLevel &&
-              (!region || regionsMatch(company.region, region)),
+              (!industry || company.industry === industry) &&
+              (!group || company.group === group) &&
+              (!companyLevel || company.level === companyLevel) &&
+              (!targetCompany || company.name === targetCompany) &&
+              !company.archived,
           );
           const targetRate = Number($("#camTargetRate").value || 0);
           const ownerGroups = companies.reduce((groups, company) => {
@@ -314,14 +315,12 @@
                   (person) =>
                     contactIsActive(person) &&
                     person.company === company.name &&
-                    (dimension === "部门覆盖"
-                      ? person.department === targetDepartment?.name
-                      : targetPosition.source === "标准岗位"
-                        ? person.positionSource === "standard" &&
-                          person.positionId === targetPosition.id
-                        : person.positionSource === "custom" &&
-                          normalizePositionText(person.positionName).toLowerCase() ===
-                            targetPosition.name.toLowerCase()),
+                    (!targetPersonLevel || person.level === targetPersonLevel) &&
+                    (!targetDepartment ||
+                      person.departmentAtomId === targetDepartment.id) &&
+                    (!targetPosition.id ||
+                      (targetPosition.source === "标准岗位" &&
+                        person.positionAtomId === targetPosition.id)),
                 ),
               );
               const denominator = ownerCompanies.length;
@@ -362,55 +361,111 @@
           if (!allowed) $("#camLateEnd").value = "";
         };
         const refreshCampaignTargetCandidates = () => {
+          const isCoverage = campaignCategory() === "关键人覆盖 KPI";
+          const industry = $("#camIndustry").value;
+          const groupSelect = $("#camGroup");
+          const currentGroup = groupSelect.value || groupSelect.dataset.initialValue || "";
+          const availableGroups = customerGroupNames.filter(
+            (item) =>
+              (!industry || customerGroupIndustries[item] === industry) &&
+              (!isCoverage ||
+                customers.some(
+                  (company) =>
+                    !company.archived &&
+                    company.group === item &&
+                    (!industry || company.industry === industry),
+                )),
+          );
+          const selectedGroup = availableGroups.includes(currentGroup) ? currentGroup : "";
+          groupSelect.innerHTML = '<option value="">全部集团</option>' + availableGroups.map((item) => `<option ${item === selectedGroup ? "selected" : ""}>${item}</option>`).join("");
+          groupSelect.dataset.initialValue = "";
           const group = $("#camGroup").value;
           const companyLevel = $("#camCompanyLevel").value;
+          const companySelect = $("#camTargetCompany");
+          const previousCompany =
+            companySelect.value || companySelect.dataset.initialValue || "";
+          const companies = customers.filter(
+            (item) =>
+              !item.archived &&
+              (!industry || item.industry === industry) &&
+              (!group || item.group === group) &&
+              (!companyLevel || item.level === companyLevel),
+          );
+          const selectedCompany = companies.some(
+            (item) => item.name === previousCompany,
+          )
+            ? previousCompany
+            : "";
+          companySelect.innerHTML = `<option value="">全部公司</option>${companies
+            .map(
+              (item) =>
+                `<option ${item.name === selectedCompany ? "selected" : ""}>${item.name}</option>`,
+            )
+            .join("")}`;
+          companySelect.dataset.initialValue = "";
+
+          const eligibleCompanyNames = new Set(
+            selectedCompany
+              ? [selectedCompany]
+              : companies.map((item) => item.name),
+          );
+
           const departmentSelect = $("#camTargetDepartment");
           const previousDepartment =
             departmentSelect.value ||
             departmentSelect.dataset.initialValue ||
             String(
-              customerDepartments.find(
-                (item) =>
-                  item.group === group && item.name === c?.targetDepartment,
+              customerDepartmentAtoms.find(
+                (item) => item.name === c?.targetDepartment,
               )?.id || "",
             );
-          const departments = customerDepartments.filter(
-            (item) => !item.archived && item.group === group,
+          const departments = customerDepartmentAtoms.filter(
+            (item) =>
+              item.status === "正常" &&
+              customerDepartmentRelations.some(
+                (relation) =>
+                  relation.departmentAtomId === item.id &&
+                  eligibleCompanyNames.has(relation.company) &&
+                  relation.status === "正常",
+              ),
           );
-          departmentSelect.innerHTML = group
-            ? `<option value="">请选择${group}部门</option>${departments
-                .map(
-                  (item) =>
-                    `<option value="${item.id}" ${String(item.id) === previousDepartment ? "selected" : ""}>${customerDepartmentPath(item)} · ${item.code}</option>`,
-                )
-                .join("")}`
-            : '<option value="">请先选择集团</option>';
+          departmentSelect.innerHTML = `<option value="">全部部门</option>${departments
+            .map(
+              (item) =>
+                `<option value="${item.id}" ${String(item.id) === previousDepartment ? "selected" : ""}>${item.name} · ${item.code}</option>`,
+            )
+            .join("")}`;
           departmentSelect.dataset.initialValue = "";
+          const selectedDepartment = departmentSelect.value;
+          const eligibleDepartmentIds = new Set(
+            selectedDepartment
+              ? [selectedDepartment]
+              : departments.map((item) => String(item.id)),
+          );
 
           const standardSelect = $("#camTargetPositionStandard");
           const previousPosition =
             standardSelect.value ||
             standardSelect.dataset.initialValue ||
-            c?.targetPositionId ||
-            contactPositionCatalog.find(
-              (item) =>
-                item.group === group && item.name === c?.targetPosition,
-            )?.id ||
+            (customerPositionAtoms.some((item) => item.id === c?.targetPositionId) ? c?.targetPositionId : "") ||
+            customerPositionAtoms.find((item) => item.name === c?.targetPosition)?.id ||
             "";
-          const positions = contactPositionCatalog.filter(
+          const positions = customerPositionAtoms.filter(
             (item) =>
               item.status === "正常" &&
-              item.group === group &&
-              item.levels.includes(companyLevel),
+              customerPositionRelations.some(
+                (relation) =>
+                  relation.positionAtomId === item.id &&
+                  eligibleDepartmentIds.has(String(relation.departmentAtomId)) &&
+                  relation.status === "正常",
+              ),
           );
-          standardSelect.innerHTML = group
-            ? `<option value="">请选择${group}${companyLevel}标准岗位</option>${positions
-                .map(
-                  (item) =>
-                    `<option value="${item.id}" ${item.id === previousPosition ? "selected" : ""}>${item.name} · ${item.code}</option>`,
-                )
-                .join("")}`
-            : '<option value="">请先选择集团与公司层级</option>';
+          standardSelect.innerHTML = `<option value="">全部岗位</option>${positions
+            .map(
+              (item) =>
+                `<option value="${item.id}" ${item.id === previousPosition ? "selected" : ""}>${item.name} · ${item.code}</option>`,
+            )
+            .join("")}`;
           standardSelect.dataset.initialValue = "";
           standardSelect.classList.remove("hidden");
         };
@@ -419,30 +474,23 @@
           document.querySelectorAll("[data-maintenance-field]").forEach(
             (element) => element.classList.toggle("hidden", isCoverage),
           );
+          const industryField = $("#camIndustry")?.closest(".form-group");
+          if (industryField) industryField.classList.remove("hidden");
+          $("#camIndustry").required = false;
           document.querySelectorAll("[data-kpi-field]").forEach(
             (element) => element.classList.toggle("hidden", !isCoverage),
           );
-          $("#camGroup").required = isCoverage;
+          $("#camGroup").required = false;
           $("#camGroupRequired").innerHTML = isCoverage
             ? '<span class="required-marker" aria-hidden="true">*</span>'
             : "";
-          const departmentCoverage =
-            $("#camCoverageDimension").value === "部门覆盖";
-          $("#camDepartmentGroup").classList.toggle(
-            "hidden",
-            !isCoverage || !departmentCoverage,
-          );
-          $("#camTargetPositionGroup").classList.toggle(
-            "hidden",
-            !isCoverage || departmentCoverage,
-          );
+          $("#camDepartmentGroup").classList.toggle("hidden", !isCoverage);
+          $("#camTargetPositionGroup").classList.toggle("hidden", !isCoverage);
           refreshCampaignTargetCandidates();
-          $("#camTargetDepartment").required = isCoverage && departmentCoverage;
-          $("#camTargetPositionStandard").required =
-            isCoverage &&
-            !departmentCoverage &&
-            $("#camPositionSource").value === "标准岗位";
-          $("#camCoverageDimension").required = isCoverage;
+          $("#camTargetCompany").required = false;
+          $("#camTargetDepartment").required = false;
+          $("#camTargetPositionStandard").required = false;
+          $("#camKpiLevel").required = false;
           $("#camTaskTemplate").required = !isCoverage;
           refreshLateCompletionFields();
 
@@ -457,10 +505,11 @@
           "#camDecision",
           "#camMaintenancePosition",
           "#camCompanyLevel",
-          "#camCoverageDimension",
+          "#camTargetCompany",
           "#camTargetDepartment",
           "#camPositionSource",
           "#camTargetPositionStandard",
+          "#camKpiLevel",
           "#camTargetRate",
         ].forEach((selector) => {
           const element = $(selector);
@@ -496,9 +545,8 @@
             lateCompletionEndDate <= endDate
           )
             return toast("补完成截止日期必须晚于专项结束日期");
-          const coverageDimension = $("#camCoverageDimension").value;
           const targetDepartmentId = $("#camTargetDepartment").value;
-          const targetDepartmentRecord = customerDepartments.find(
+          const targetDepartmentRecord = customerDepartmentAtoms.find(
             (item) => String(item.id) === targetDepartmentId,
           );
           const targetDepartment = targetDepartmentRecord?.name || "";
@@ -506,14 +554,9 @@
           const targetPosition = isCoverage
             ? selectedPosition.name
             : $("#camMaintenancePosition").value.trim();
+          const targetCompany = isCoverage ? $("#camTargetCompany").value : "";
+          const targetPersonLevel = isCoverage ? $("#camKpiLevel").value : "";
           const targetCoverageRate = Number($("#camTargetRate").value || 0);
-          if (isCoverage && !group) return toast("覆盖 KPI 必须选择一个集团公司");
-          if (isCoverage && !coverageDimension)
-            return toast("请选择部门覆盖或岗位覆盖");
-          if (isCoverage && coverageDimension === "部门覆盖" && !targetDepartment)
-            return toast("请选择目标部门");
-          if (isCoverage && coverageDimension === "岗位覆盖" && !targetPosition)
-            return toast("请选择目标标准岗位");
           if (
             isCoverage &&
             (!Number.isFinite(targetCoverageRate) ||
@@ -542,7 +585,15 @@
             return toast(`任务标题模板不支持 {{${unknownToken[1]}} 占位符`);
           const companyLevel = $("#camCompanyLevel").value;
           const scope = isCoverage
-            ? [group, companyLevel, region || "全部行政范围", coverageDimension].join(" · ")
+            ? [
+                industry || "全部行业",
+                group || "全部集团",
+                companyLevel || "全部业务责任层级",
+                targetCompany || "全部公司",
+                targetDepartment || "全部部门",
+                targetPosition || "全部岗位",
+                targetPersonLevel || "全部职级",
+              ].join(" · ")
             : [
                 industry || "全部行业",
                 group || "全部集团",
@@ -552,9 +603,15 @@
           const targets = {
             industries: industry ? [industry] : [],
             groups: group ? [group] : [],
-            regions: region ? [region] : [],
-            levels: level === "全部职级" ? [] : [level],
-            companyLevels: isCoverage ? [companyLevel] : [],
+            regions: !isCoverage && region ? [region] : [],
+            levels: isCoverage
+              ? targetPersonLevel
+                ? [targetPersonLevel]
+                : []
+              : level === "全部职级"
+                ? []
+                : [level],
+            companyLevels: isCoverage && companyLevel ? [companyLevel] : [],
           };
           const period = `${startDate.slice(5).replace("-", "/")} 至 ${endDate.slice(5).replace("-", "/")}`;
           const commonData = {
@@ -570,31 +627,16 @@
             lateCompletionEndDate,
             decisionFilter: $("#camDecision").value,
             taskTitleTemplate,
-            coverageDimension: isCoverage ? coverageDimension : "",
-            targetDepartment:
-              isCoverage && coverageDimension === "部门覆盖"
-                ? targetDepartment
-                : "",
-            targetDepartmentId:
-              isCoverage && coverageDimension === "部门覆盖"
-                ? targetDepartmentId
-                : "",
-            targetPosition:
-              isCoverage && coverageDimension === "岗位覆盖"
-                ? targetPosition
-                : !isCoverage
-                  ? targetPosition
-                  : "",
+            targetCompany,
+            targetCompanyId: isCoverage
+              ? customers.find((item) => item.name === targetCompany)?.id || ""
+              : "",
+            targetDepartment: isCoverage ? targetDepartment : "",
+            targetDepartmentId: isCoverage ? targetDepartmentId : "",
+            targetPosition: isCoverage ? targetPosition : !isCoverage ? targetPosition : "",
             positionSource:
-              isCoverage && coverageDimension === "岗位覆盖"
-                ? positionSource
-                : "",
-            targetPositionId:
-              isCoverage &&
-              coverageDimension === "岗位覆盖" &&
-              positionSource === "标准岗位"
-                ? selectedPosition.id
-                : "",
+              isCoverage && selectedPosition.id ? selectedPosition.source : "",
+            targetPositionId: isCoverage ? selectedPosition.id : "",
             targetCoverageRate: isCoverage ? targetCoverageRate : 0,
             updatedAt: recordCreatedAt(),
           };
@@ -674,8 +716,8 @@
               ? newCampaign.coverageExecutions.map((row) => ({
                   type: category,
                   title: `${newCampaign.name} - ${row.owner}`,
-                  person: `${coverageDimension}待办`,
-                  company: `${group}${companyLevel}`,
+                  person: "公司 + 职级 + 部门 + 岗位覆盖 KPI 待办",
+                  company: targetCompany || "全部目标公司",
                   pm: row.owner,
                   region: row.region,
                   level: companyLevel,

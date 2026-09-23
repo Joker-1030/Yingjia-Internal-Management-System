@@ -2,7 +2,7 @@
         ({
           常规维系: { tone: "blue", note: "按职级周期自动续期" },
           专项维系: { tone: "blue", note: "公司统一发布" },
-          "关键人覆盖 KPI": { tone: "blue", note: "按目标部门或岗位覆盖率自动判定" },
+          "关键人覆盖 KPI": { tone: "blue", note: "按七项目标条件的覆盖率自动判定" },
           生日关怀: { tone: "blue", note: "按生日月日自动生成" },
           节假日关怀: { tone: "blue", note: "按年度节假日日历自动生成" },
         })[type] || { tone: "blue", note: "" };

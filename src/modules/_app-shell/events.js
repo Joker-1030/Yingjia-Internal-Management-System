@@ -603,7 +603,7 @@
             };
         };
 
-        if (settingsSection === "tree") {
+        if (["tree", "companies"].includes(settingsSection)) {
           const selectedValues = (selector) =>
             new Set(
               [...document.querySelectorAll(`${selector} input:checked`)].map(
@@ -811,6 +811,69 @@
                 if (event.key === "Enter")
                   applyCustomerOrgInternalFilters();
               };
+          });
+        }
+
+        if (settingsSection === "groups") {
+          const applyGroupFilters = () => {
+            const name = $("#groupConfigName")?.value.trim() || "";
+            const number = $("#groupConfigNumber")?.value.trim() || "";
+            const industry = $("#groupConfigIndustry")?.value || "";
+            const creditCode = $("#groupConfigCreditCode")?.value.trim() || "";
+            const status = $("#groupConfigStatus")?.value || "";
+            document.querySelectorAll("#groupConfigBody [data-config-row]").forEach((row) => {
+              const matched =
+                (!name || (row.dataset.name || "").includes(name)) &&
+                (!number || (row.dataset.number || "").includes(number)) &&
+                (!industry || row.dataset.industry === industry) &&
+                (!creditCode || (row.dataset.creditCode || "").includes(creditCode)) &&
+                (!status || row.dataset.status === status);
+              row.classList.toggle("hidden", !matched);
+            });
+            refreshUnifiedTablePagination("m09-groups", true);
+          };
+          $("#applyGroupConfigFilters")?.addEventListener("click", applyGroupFilters);
+          $("#resetGroupConfigFilters")?.addEventListener("click", () => {
+            ["#groupConfigName", "#groupConfigNumber", "#groupConfigCreditCode"].forEach((selector) => {
+              const input = $(selector);
+              if (input) input.value = "";
+            });
+            ["#groupConfigIndustry", "#groupConfigStatus"].forEach((selector) => {
+              const input = $(selector);
+              if (input) input.value = "";
+            });
+            applyGroupFilters();
+          });
+          ["#groupConfigName", "#groupConfigNumber", "#groupConfigCreditCode"].forEach((selector) => {
+            const input = $(selector);
+            if (input)
+              input.onkeydown = (event) => {
+                if (event.key === "Enter") applyGroupFilters();
+              };
+          });
+        }
+
+        if (settingsSection === "departments" || settingsSection === "positions") {
+          const prefix = settingsSection === "departments" ? "department" : "position";
+          const applyAtomFilters = () => {
+            const name = $(`#${prefix}AtomNameFilter`)?.value.trim() || "";
+            const code = $(`#${prefix}AtomCodeFilter`)?.value.trim() || "";
+            const status = $(`#${prefix}AtomStatusFilter`)?.value || "";
+            document.querySelectorAll(`#${prefix}AtomBody [data-atom-row]`).forEach((row) => {
+              row.classList.toggle("hidden", Boolean(
+                (name && !String(row.dataset.name || "").includes(name)) ||
+                (code && !String(row.dataset.code || "").includes(code)) ||
+                (status && row.dataset.status !== status),
+              ));
+            });
+          };
+          $(`#apply${prefix[0].toUpperCase() + prefix.slice(1)}AtomFilters`)?.addEventListener("click", applyAtomFilters);
+          $(`#reset${prefix[0].toUpperCase() + prefix.slice(1)}AtomFilters`)?.addEventListener("click", () => {
+            [`#${prefix}AtomNameFilter`, `#${prefix}AtomCodeFilter`, `#${prefix}AtomStatusFilter`].forEach((selector) => {
+              const input = $(selector);
+              if (input) input.value = "";
+            });
+            applyAtomFilters();
           });
         }
 

@@ -520,9 +520,7 @@
           const isCoverage = task.type === "关键人覆盖 KPI";
           const campaign = campaigns.find((item) => item.id === task.campaignId);
           const targetLabel = isCoverage
-            ? campaign?.coverageDimension === "部门覆盖"
-              ? `待补齐目标部门：${campaign.targetDepartment || "目标部门"}`
-              : `待补齐目标岗位：${campaign?.targetPosition || "目标岗位"}`
+            ? `待补齐目标部门：${campaign.targetDepartment || "目标部门"} · 岗位：${campaign?.targetPosition || "目标岗位"}`
             : task.person;
           const customerLabel = isCoverage
             ? `共 ${task.coverageDenominator || 0} 个客户`

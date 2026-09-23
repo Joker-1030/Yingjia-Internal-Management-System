@@ -476,20 +476,99 @@
         };
       }
 
+      function openDepartmentAssociationDetails(atomId) {
+        const atom = customerDepartmentAtoms.find((item) => item.id === atomId);
+        if (!atom) return toast("部门原子不存在");
+        const canUnlink = hasOperationPermission("settings.edit");
+        const relations = customerDepartmentRelations
+          .filter((item) => item.departmentAtomId === atomId)
+          .sort(
+            (left, right) =>
+              (left.group || "").localeCompare(right.group || "", "zh-CN") ||
+              left.company.localeCompare(right.company, "zh-CN"),
+          );
+        const rows = relations
+          .map(
+            (relation) =>
+              `<tr><td><strong>${relation.company}</strong><div class="list-sub">${relation.group || "未分组"}</div></td><td>${relation.path || atom.name}</td><td>${relation.parent && !["无", "—"].includes(relation.parent) ? relation.parent : "公司直属"}</td><td>${relation.sort}</td><td>${canUnlink ? `<button class="link association-remove" type="button" data-unlink-department-relation="${relation.id}">解除关联</button>` : "—"}</td></tr>`,
+          )
+          .join("");
+        openModal(`<div class="modal-head"><div class="modal-title">“${atom.name}”的关联详情</div><button class="icon-btn close" data-close>×</button></div><div class="modal-body"><div class="table-wrap"><table><thead><tr><th>客户公司</th><th>关系路径</th><th>上级部门</th><th>排序</th><th>操作</th></tr></thead><tbody id="departmentAssociationDetailBody">${rows || '<tr><td colspan="5"><div class="empty">暂无关联客户公司</div></td></tr>'}</tbody></table></div></div><div class="modal-foot"><button class="btn" type="button" data-close>关闭</button></div>`);
+        const body = $("#departmentAssociationDetailBody");
+        if (!body || !canUnlink) return;
+        body.onclick = (event) => {
+          const button = event.target.closest("[data-unlink-department-relation]");
+          if (!button) return;
+          confirmDepartmentRelationUnlink(atomId, button.dataset.unlinkDepartmentRelation);
+        };
+      }
+
+      function confirmDepartmentRelationUnlink(atomId, relationId) {
+        if (!hasOperationPermission("settings.edit")) return toast("当前角色仅可查看客户基础配置");
+        const atom = customerDepartmentAtoms.find((item) => item.id === atomId);
+        const relation = customerDepartmentRelations.find(
+          (item) => item.id === relationId && item.departmentAtomId === atomId,
+        );
+        if (!atom || !relation) return toast("部门关联关系不存在");
+        openModal(`<div class="modal-head"><div class="modal-title">确认解除关联</div><button class="icon-btn close" data-close>×</button></div><div class="modal-body"><div class="role-note">解除“${atom.name}”与“${relation.company}”的关联？</div></div><div class="modal-foot"><button class="btn" type="button" id="cancelDepartmentRelationUnlink">取消</button><button class="btn btn-danger" type="button" id="confirmDepartmentRelationUnlink">解除关联</button></div>`);
+        $("#cancelDepartmentRelationUnlink").onclick = () =>
+          openDepartmentAssociationDetails(atomId);
+        $("#confirmDepartmentRelationUnlink").onclick = () => {
+          const current = customerDepartmentRelations.find(
+            (item) => item.id === relationId && item.departmentAtomId === atomId,
+          );
+          if (!current) {
+            openDepartmentAssociationDetails(atomId);
+            return toast("部门关联关系不存在");
+          }
+          const people = contacts.filter(
+            (person) =>
+              contactIsActive(person) &&
+              person.company === current.company &&
+              (person.departmentAtomId === atomId || person.department === atom.name),
+          );
+          if (people.length) {
+            openDepartmentAssociationDetails(atomId);
+            return toast(`${current.company}：该部门仍有 ${people.length} 名关键人，不能解除关联`);
+          }
+          const childRelations = customerDepartmentRelations.filter(
+            (item) => item.parentDepartmentRelationId === current.id,
+          );
+          if (childRelations.length) {
+            openDepartmentAssociationDetails(atomId);
+            return toast(`${current.company}：仍有 ${childRelations.length} 个下级部门，不能解除关联`);
+          }
+          const legacyDepartmentIds = new Set(
+            customerDepartments
+              .filter(
+                (item) => item.company === current.company && item.name === atom.name,
+              )
+              .map((item) => item.id),
+          );
+          const relationIndex = customerDepartmentRelations.indexOf(current);
+          if (relationIndex >= 0) customerDepartmentRelations.splice(relationIndex, 1);
+          for (let index = customerDepartments.length - 1; index >= 0; index -= 1) {
+            if (legacyDepartmentIds.has(customerDepartments[index].id))
+              customerDepartments.splice(index, 1);
+          }
+          for (let index = contactPositionCatalog.length - 1; index >= 0; index -= 1) {
+            if (legacyDepartmentIds.has(contactPositionCatalog[index].departmentId))
+              contactPositionCatalog.splice(index, 1);
+          }
+          renderPage();
+          openDepartmentAssociationDetails(atomId);
+          toast(`${current.company}：已解除关联`);
+        };
+      }
+
       function openDepartmentCompanyAssociation(atomId) {
         if (!hasOperationPermission("settings.edit")) return toast("当前角色仅可查看客户基础配置");
         const atom = customerDepartmentAtoms.find((item) => item.id === atomId);
         if (!atom) return toast("部门原子不存在");
         const companies = customers.filter((item) => !item.archived);
         const existing = new Map(customerDepartmentRelations.filter((item) => item.departmentAtomId === atomId).map((item) => [item.company, item]));
-        const selectedCompanies = new Set(existing.keys());
-        const removedCompanies = new Set();
-        const drafts = new Map(
-          companies.map((company) => {
-            const relation = existing.get(company.name);
-            return [company.name, { parentAtomId: relation?.parentDepartmentRelationId ? customerDepartmentRelations.find((item) => item.id === relation.parentDepartmentRelationId)?.departmentAtomId || "" : "", sort: relation?.sort || 100 }];
-          }),
-        );
+        const selectedCompanies = new Set();
+        const drafts = new Map();
         const captureDrafts = () => {
           document.querySelectorAll("[data-assoc-company-row]").forEach((row) => {
             const company = companies.find((item) => String(item.id) === row.dataset.assocCompanyRow);
@@ -504,11 +583,16 @@
           const optionsBox = document.querySelector("#departmentCompanyOptions");
           if (!input || !optionsBox) return;
           const search = input.value.trim().toLowerCase();
-          const options = companies.filter((company) => !selectedCompanies.has(company.name) && `${company.name}${company.group || ""}`.toLowerCase().includes(search));
+          const options = companies.filter(
+            (company) =>
+              !existing.has(company.name) &&
+              !selectedCompanies.has(company.name) &&
+              `${company.name}${company.group || ""}`.toLowerCase().includes(search),
+          );
           optionsBox.innerHTML = options.length
             ? options.map((company) => `<button class="association-option" type="button" data-assoc-company-option="${company.id}"><strong>${company.name}</strong><span>${company.group || "未分组"}</span></button>`).join("")
             : '<div class="association-option-empty">未找到符合条件的公司</div>';
-          optionsBox.hidden = !options.length;
+          optionsBox.hidden = false;
         };
         const renderPendingCompanies = () => {
           captureDrafts();
@@ -518,20 +602,19 @@
           container.innerHTML = pending.length
             ? pending
                 .map((company) => {
-                  const relation = existing.get(company.name);
                   const companyRelations = customerDepartmentRelations.filter((item) => item.company === company.name);
-                  const byId = new Map(companyRelations.map((item) => [item.id, item]));
                   const parents = companyRelations
-                    .filter((item) => item.departmentAtomId !== atomId && (!relation || !departmentRelationDescendsFrom(item.id, relation.id, byId)))
+                    .filter((item) => item.departmentAtomId !== atomId)
                     .sort((a, b) => a.sort - b.sort || a.path.localeCompare(b.path, "zh-CN"));
                   const draft = drafts.get(company.name) || { parentAtomId: "", sort: 100 };
-                  return `<article class="association-pending-card" data-assoc-company-row="${company.id}"><div class="association-pending-head"><div><strong>${company.name}</strong><div class="list-sub">${company.group || "未分组"}</div></div>${relation ? '<button class="link association-remove" type="button" data-unlink-assoc-company="' + company.id + '">解除关联</button>' : '<button class="link association-remove" type="button" data-remove-assoc-company="' + company.id + '">取消选择</button>'}</div><div class="association-pending-fields"><label class="form-group"><span class="form-label">上级部门</span><select class="input" data-assoc-parent><option value="">公司直属</option>${parents.map((parent) => `<option value="${parent.departmentAtomId}" ${draft.parentAtomId === parent.departmentAtomId ? "selected" : ""}>${parent.path}</option>`).join("")}</select></label><label class="form-group"><span class="form-label">排序</span><input class="input" type="number" min="1" max="9999" data-assoc-sort value="${draft.sort || 100}"></label></div></article>`;
+                  return `<article class="association-pending-card" data-assoc-company-row="${company.id}"><div class="association-pending-head"><div><strong>${company.name}</strong><div class="list-sub">${company.group || "未分组"}</div></div><button class="link association-remove" type="button" data-remove-assoc-company="${company.id}">取消选择</button></div><div class="association-pending-fields"><label class="form-group"><span class="form-label">上级部门</span><select class="input" data-assoc-parent><option value="">公司直属</option>${parents.map((parent) => `<option value="${parent.departmentAtomId}" ${draft.parentAtomId === parent.departmentAtomId ? "selected" : ""}>${parent.path}</option>`).join("")}</select></label><label class="form-group"><span class="form-label">排序</span><input class="input" type="number" min="1" max="9999" data-assoc-sort value="${draft.sort || 100}"></label></div></article>`;
                 })
                 .join("")
-            : '<div class="association-empty"><strong>暂无待配置公司</strong><span>先在上方搜索并选择公司，再为每家公司设置上级部门和排序。</span></div>';
+            : '<div class="association-empty"><strong>暂未选择公司</strong></div>';
           renderCompanyOptions();
         };
-        openModal(`<div class="modal-head"><div class="modal-title">关联“${atom.name}”到客户公司</div><button class="icon-btn close" data-close>×</button></div><form id="departmentCompanyAssociationForm"><div class="modal-body"><section class="association-picker"><div class="association-section-head"><div><div class="section-title">选择客户公司</div><div class="list-sub">在一个输入框内模糊搜索并多选公司，已选公司会移动到下方待配置区。</div></div></div><div class="association-picker-fields"><div class="form-group association-combobox"><label class="form-label" for="departmentCompanySearch">搜索并选择公司</label><input class="input" id="departmentCompanySearch" type="search" autocomplete="off" placeholder="输入公司名称或集团名称"><div class="association-options" id="departmentCompanyOptions" role="listbox" hidden></div></div></div></section><section class="association-pending"><div class="association-section-head"><div><div class="section-title">待配置公司</div><div class="list-sub">每家公司单独设置上级部门和排序；已有关联可解除，解除前需确认该部门无有效关键人。</div></div></div><div class="association-pending-list" id="departmentCompanyPendingList"></div></section></div><div class="modal-foot"><button class="btn" type="button" data-close>取消</button><button class="btn btn-primary" type="submit">保存关联变更</button></div></form>`);
+        openModal(`<div class="modal-head"><div class="modal-title">关联“${atom.name}”到客户公司</div><button class="icon-btn close" data-close>×</button></div><form id="departmentCompanyAssociationForm"><div class="modal-body association-modal-body"><div class="association-layout"><section class="association-picker"><div class="association-section-head"><div class="section-title">可选客户公司</div></div><div class="association-picker-fields"><div class="form-group association-combobox"><label class="form-label" for="departmentCompanySearch">搜索公司</label><input class="input" id="departmentCompanySearch" type="search" autocomplete="off" placeholder="输入公司名称或集团名称"><div class="association-options" id="departmentCompanyOptions" role="listbox" hidden></div></div></div></section><section class="association-pending"><div class="association-section-head"><div class="section-title">本次待配置公司</div></div><div class="association-pending-list" id="departmentCompanyPendingList"></div></section></div></div><div class="modal-foot"><button class="btn" type="button" data-close>取消</button><button class="btn btn-primary" type="submit">保存关联</button></div></form>`);
+        $("#modalLayer .modal")?.classList.add("association-modal");
         renderPendingCompanies();
         $("#departmentCompanySearch").oninput = renderCompanyOptions;
         $("#departmentCompanySearch").onfocus = renderCompanyOptions;
@@ -543,23 +626,11 @@
           if (!company) return toast("请选择要添加的客户公司");
           captureDrafts();
           selectedCompanies.add(company.name);
-          removedCompanies.delete(company.name);
           drafts.set(company.name, { parentAtomId: "", sort: 100 });
           $("#departmentCompanySearch").value = "";
           renderPendingCompanies();
         };
         $("#departmentCompanyPendingList").onclick = (event) => {
-          const unlinkButton = event.target.closest("[data-unlink-assoc-company]");
-          if (unlinkButton) {
-            captureDrafts();
-            const company = companies.find((item) => String(item.id) === unlinkButton.dataset.unlinkAssocCompany);
-            if (!company) return;
-            selectedCompanies.delete(company.name);
-            drafts.delete(company.name);
-            removedCompanies.add(company.name);
-            renderPendingCompanies();
-            return;
-          }
           const button = event.target.closest("[data-remove-assoc-company]");
           if (!button) return;
           captureDrafts();
@@ -574,63 +645,25 @@
           captureDrafts();
           const successes = [];
           const failures = [];
-          removedCompanies.forEach((companyName) => {
-            const company = customers.find((item) => item.name === companyName);
-            const relation = existing.get(companyName);
-            if (!company || !relation) return failures.push(`${companyName}：部门关系不存在`);
-            const relationAtom = departmentAtomForId(relation.departmentAtomId);
-            const people = contacts.filter(
-              (person) =>
-                contactIsActive(person) &&
-                person.company === companyName &&
-                (person.departmentAtomId === atomId || person.department === relationAtom?.name),
-            );
-            if (people.length) return failures.push(`${companyName}：该部门仍有 ${people.length} 名关键人，不能解除关联`);
-            const childRelations = customerDepartmentRelations.filter(
-              (item) => item.parentDepartmentRelationId === relation.id,
-            );
-            if (childRelations.length) return failures.push(`${companyName}：仍有 ${childRelations.length} 个下级部门，不能解除关联`);
-            const legacyDepartmentIds = new Set(
-              customerDepartments
-                .filter((item) => item.company === companyName && item.name === relationAtom?.name)
-                .map((item) => item.id),
-            );
-            const relationIndex = customerDepartmentRelations.indexOf(relation);
-            if (relationIndex >= 0) customerDepartmentRelations.splice(relationIndex, 1);
-            for (let index = customerDepartments.length - 1; index >= 0; index -= 1) {
-              if (legacyDepartmentIds.has(customerDepartments[index].id)) customerDepartments.splice(index, 1);
-            }
-            for (let index = contactPositionCatalog.length - 1; index >= 0; index -= 1) {
-              if (legacyDepartmentIds.has(contactPositionCatalog[index].departmentId)) contactPositionCatalog.splice(index, 1);
-            }
-            successes.push(`${companyName}：已解除关联`);
-          });
           selectedCompanies.forEach((companyName) => {
             const company = customers.find((item) => item.name === companyName);
             const draft = drafts.get(companyName) || {};
             const parentAtomId = draft.parentAtomId || "";
             const sort = Number(draft.sort || 0);
-            const relation = existing.get(company?.name);
-            const companyRelations = customerDepartmentRelations.filter((item) => item.company === company?.name);
-            const byId = new Map(companyRelations.map((item) => [item.id, item]));
+            const relation = customerDepartmentRelations.find(
+              (item) =>
+                item.departmentAtomId === atomId && item.company === company?.name,
+            );
             const parent = customerDepartmentRelations.find((item) => item.company === company?.name && item.departmentAtomId === parentAtomId);
             if (!company) return failures.push(`${companyName}：客户公司不存在`);
             if (!Number.isInteger(sort) || sort < 1) return failures.push(`${companyName}：排序须为正整数`);
             if (parentAtomId && !parent) return failures.push(`${companyName}：上级部门不属于当前公司`);
-            if (relation && parent && (parent.id === relation.id || departmentRelationDescendsFrom(parent.id, relation.id, byId))) return failures.push(`${companyName}：不能将部门调整到自己或自己的子部门下面`);
-            if (relation) {
-              relation.parentDepartmentRelationId = parent?.id || "";
-              relation.parent = parent?.path?.split(" / ").pop() || "无";
-              relation.sort = sort;
-              relation.path = parent ? `${parent.path} / ${atom.name}` : atom.name;
-              successes.push(`${company.name}：已更新关系`);
-            } else {
-              const nextRelationNumber = customerDepartmentRelations.reduce((max, item) => Math.max(max, Number(String(item.id).replace("DEPT-REL-", "")) || 0), 0) + 1;
-              const newRelation = { id: `DEPT-REL-${String(nextRelationNumber).padStart(4, "0")}`, departmentAtomId: atom.id, company: company.name, group: company.group, parentDepartmentRelationId: parent?.id || "", parent: parent?.path?.split(" / ").pop() || "无", sort, path: parent ? `${parent.path} / ${atom.name}` : atom.name, status: atom.status, updatedAt: recordCreatedAt() };
-              customerDepartmentRelations.push(newRelation);
-              customerDepartments.push({ id: 3000 + customerDepartments.length, group: company.group, company: company.name, name: atom.name, parent: newRelation.parent, duty: atom.duty, code: atom.code, sort, status: atom.status, updatedAt: newRelation.updatedAt });
-              successes.push(`${company.name}：已新增关系`);
-            }
+            if (relation) return failures.push(`${company.name}：已存在`);
+            const nextRelationNumber = customerDepartmentRelations.reduce((max, item) => Math.max(max, Number(String(item.id).replace("DEPT-REL-", "")) || 0), 0) + 1;
+            const newRelation = { id: `DEPT-REL-${String(nextRelationNumber).padStart(4, "0")}`, departmentAtomId: atom.id, company: company.name, group: company.group, parentDepartmentRelationId: parent?.id || "", parent: parent?.path?.split(" / ").pop() || "无", sort, path: parent ? `${parent.path} / ${atom.name}` : atom.name, status: atom.status, updatedAt: recordCreatedAt() };
+            customerDepartmentRelations.push(newRelation);
+            customerDepartments.push({ id: 3000 + customerDepartments.length, group: company.group, company: company.name, name: atom.name, parent: newRelation.parent, duty: atom.duty, code: atom.code, sort, status: atom.status, updatedAt: newRelation.updatedAt });
+            successes.push(`${company.name}：已新增关系`);
           });
           closeOverlay();
           renderPage();
@@ -778,6 +811,103 @@
         };
       }
 
+      function openPositionAssociationDetails(atomId) {
+        const atom = customerPositionAtoms.find((item) => item.id === atomId);
+        if (!atom) return toast("岗位原子不存在");
+        const canUnlink = hasOperationPermission("settings.edit");
+        const relations = customerPositionRelations
+          .filter((item) => item.positionAtomId === atomId)
+          .map((relation) => ({
+            relation,
+            department: customerDepartmentAtoms.find(
+              (item) => item.id === relation.departmentAtomId,
+            ),
+          }))
+          .filter((item) => item.department)
+          .sort((left, right) =>
+            left.department.name.localeCompare(right.department.name, "zh-CN"),
+          );
+        const rows = relations
+          .map(
+            ({ relation, department }) =>
+              `<tr><td><strong>${department.name}</strong></td><td>${department.code}</td><td>${department.duty || "—"}</td><td>${canUnlink ? `<button class="link association-remove" type="button" data-unlink-position-relation="${relation.id}">解除关联</button>` : "—"}</td></tr>`,
+          )
+          .join("");
+        openModal(`<div class="modal-head"><div class="modal-title">“${atom.name}”的关联详情</div><button class="icon-btn close" data-close>×</button></div><div class="modal-body"><div class="table-wrap"><table><thead><tr><th>部门名称</th><th>部门编码</th><th>部门说明</th><th>操作</th></tr></thead><tbody id="positionAssociationDetailBody">${rows || '<tr><td colspan="4"><div class="empty">暂无关联部门</div></td></tr>'}</tbody></table></div></div><div class="modal-foot"><button class="btn" type="button" data-close>关闭</button></div>`);
+        const body = $("#positionAssociationDetailBody");
+        if (!body || !canUnlink) return;
+        body.onclick = (event) => {
+          const button = event.target.closest("[data-unlink-position-relation]");
+          if (!button) return;
+          confirmPositionRelationUnlink(atomId, button.dataset.unlinkPositionRelation);
+        };
+      }
+
+      function confirmPositionRelationUnlink(atomId, relationId) {
+        if (!hasOperationPermission("settings.edit")) return toast("当前角色仅可查看客户基础配置");
+        const atom = customerPositionAtoms.find((item) => item.id === atomId);
+        const relation = customerPositionRelations.find(
+          (item) => item.id === relationId && item.positionAtomId === atomId,
+        );
+        const department = customerDepartmentAtoms.find(
+          (item) => item.id === relation?.departmentAtomId,
+        );
+        if (!atom || !relation || !department) return toast("岗位关联关系不存在");
+        openModal(`<div class="modal-head"><div class="modal-title">确认解除关联</div><button class="icon-btn close" data-close>×</button></div><div class="modal-body"><div class="role-note">解除“${atom.name}”与“${department.name}”的关联？</div></div><div class="modal-foot"><button class="btn" type="button" id="cancelPositionRelationUnlink">取消</button><button class="btn btn-danger" type="button" id="confirmPositionRelationUnlink">解除关联</button></div>`);
+        $("#cancelPositionRelationUnlink").onclick = () =>
+          openPositionAssociationDetails(atomId);
+        $("#confirmPositionRelationUnlink").onclick = () => {
+          const current = customerPositionRelations.find(
+            (item) => item.id === relationId && item.positionAtomId === atomId,
+          );
+          if (!current) {
+            openPositionAssociationDetails(atomId);
+            return toast("岗位关联关系不存在");
+          }
+          const people = contacts.filter(
+            (person) =>
+              contactIsActive(person) &&
+              (person.positionRelationId === current.id ||
+                (person.positionAtomId === atomId &&
+                  person.departmentAtomId === current.departmentAtomId) ||
+                (person.positionName === atom.name &&
+                  person.department === department.name)),
+          );
+          if (people.length) {
+            openPositionAssociationDetails(atomId);
+            return toast(`${department.name}：该岗位仍有 ${people.length} 名关键人，不能解除关联`);
+          }
+          const legacyDepartmentIds = new Set(
+            customerDepartmentRelations
+              .filter(
+                (departmentRelation) =>
+                  departmentRelation.departmentAtomId === current.departmentAtomId,
+              )
+              .map((departmentRelation) =>
+                customerDepartments.find(
+                  (item) =>
+                    item.company === departmentRelation.company &&
+                    item.name === department.name,
+                )?.id,
+              )
+              .filter(Boolean),
+          );
+          const relationIndex = customerPositionRelations.indexOf(current);
+          if (relationIndex >= 0) customerPositionRelations.splice(relationIndex, 1);
+          for (let index = contactPositionCatalog.length - 1; index >= 0; index -= 1) {
+            const position = contactPositionCatalog[index];
+            if (
+              position.positionAtomId === atomId &&
+              legacyDepartmentIds.has(position.departmentId)
+            )
+              contactPositionCatalog.splice(index, 1);
+          }
+          renderPage();
+          openPositionAssociationDetails(atomId);
+          toast(`${department.name}：已解除关联`);
+        };
+      }
+
       function openPositionDepartmentAssociation(atomId) {
         if (!hasOperationPermission("settings.edit")) return toast("当前角色仅可查看客户基础配置");
         const atom = customerPositionAtoms.find((item) => item.id === atomId);
@@ -786,18 +916,24 @@
           .filter((item) => item.status === "正常")
           .sort((a, b) => a.name.localeCompare(b.name, "zh-CN"));
         const existing = new Set(customerPositionRelations.filter((item) => item.positionAtomId === atomId).map((item) => item.departmentAtomId));
-        const selectedDepartments = new Set(existing);
-        const removedDepartments = new Set();
+        const selectedDepartments = new Set();
         const renderDepartmentOptions = () => {
           const input = document.querySelector("#positionDepartmentSearch");
           const optionsBox = document.querySelector("#positionDepartmentOptions");
           if (!input || !optionsBox) return;
           const search = input.value.trim().toLowerCase();
-          const options = departments.filter((department) => !selectedDepartments.has(department.id) && `${department.name}${department.code}${department.duty || ""}`.toLowerCase().includes(search));
+          const options = departments.filter(
+            (department) =>
+              !existing.has(department.id) &&
+              !selectedDepartments.has(department.id) &&
+              `${department.name}${department.code}${department.duty || ""}`
+                .toLowerCase()
+                .includes(search),
+          );
           optionsBox.innerHTML = options.length
             ? options.map((department) => `<button class="association-option" type="button" data-assoc-department-option="${department.id}"><strong>${department.name}</strong><span>${department.code}${department.duty ? ` · ${department.duty}` : ""}</span></button>`).join("")
             : '<div class="association-option-empty">未找到符合条件的部门</div>';
-          optionsBox.hidden = !options.length;
+          optionsBox.hidden = false;
         };
         const renderPendingDepartments = () => {
           const container = document.querySelector("#positionDepartmentPendingList");
@@ -805,12 +941,13 @@
           const pending = departments.filter((department) => selectedDepartments.has(department.id));
           container.innerHTML = pending.length
             ? pending
-                .map((department) => `<article class="association-pending-card" data-assoc-department-row="${department.id}"><div class="association-pending-head"><div><strong>${department.name}</strong><div class="list-sub">${department.code}</div></div>${existing.has(department.id) ? '<button class="link association-remove" type="button" data-unlink-assoc-department="' + department.id + '">解除关联</button>' : '<button class="link association-remove" type="button" data-remove-assoc-department="' + department.id + '">取消选择</button>'}</div></article>`)
+                .map((department) => `<article class="association-pending-card" data-assoc-department-row="${department.id}"><div class="association-pending-head"><div><strong>${department.name}</strong><div class="list-sub">${department.code}</div></div><button class="link association-remove" type="button" data-remove-assoc-department="${department.id}">取消选择</button></div></article>`)
                 .join("")
-            : '<div class="association-empty"><strong>暂无待配置部门</strong><span>先在上方搜索并选择部门，再保存岗位关联。</span></div>';
+            : '<div class="association-empty"><strong>暂未选择部门</strong></div>';
           renderDepartmentOptions();
         };
-        openModal(`<div class="modal-head"><div class="modal-title">关联“${atom.name}”到部门</div><button class="icon-btn close" data-close>×</button></div><form id="positionDepartmentAssociationForm"><div class="modal-body"><section class="association-picker"><div class="association-section-head"><div><div class="section-title">选择部门</div><div class="list-sub">在一个输入框内从全局部门列表模糊搜索并多选，已选部门会移动到下方待配置区。</div></div></div><div class="association-picker-fields"><div class="form-group association-combobox"><label class="form-label" for="positionDepartmentSearch">搜索并选择部门</label><input class="input" id="positionDepartmentSearch" type="search" autocomplete="off" placeholder="输入部门名称、编码或说明"><div class="association-options" id="positionDepartmentOptions" role="listbox" hidden></div></div></div></section><section class="association-pending"><div class="association-section-head"><div><div class="section-title">待配置部门</div><div class="list-sub">岗位关系挂在部门原子下；已有关联可解除，解除前需确认该岗位无有效关键人。</div></div></div><div class="association-pending-list" id="positionDepartmentPendingList"></div></section></div><div class="modal-foot"><button class="btn" type="button" data-close>取消</button><button class="btn btn-primary" type="submit">保存关联变更</button></div></form>`);
+        openModal(`<div class="modal-head"><div class="modal-title">关联“${atom.name}”到部门</div><button class="icon-btn close" data-close>×</button></div><form id="positionDepartmentAssociationForm"><div class="modal-body association-modal-body"><div class="association-layout"><section class="association-picker"><div class="association-section-head"><div class="section-title">可选部门</div></div><div class="association-picker-fields"><div class="form-group association-combobox"><label class="form-label" for="positionDepartmentSearch">搜索部门</label><input class="input" id="positionDepartmentSearch" type="search" autocomplete="off" placeholder="输入部门名称、编码或说明"><div class="association-options" id="positionDepartmentOptions" role="listbox" hidden></div></div></div></section><section class="association-pending"><div class="association-section-head"><div class="section-title">本次已选部门</div></div><div class="association-pending-list" id="positionDepartmentPendingList"></div></section></div></div><div class="modal-foot"><button class="btn" type="button" data-close>取消</button><button class="btn btn-primary" type="submit">保存关联</button></div></form>`);
+        $("#modalLayer .modal")?.classList.add("association-modal");
         renderPendingDepartments();
         $("#positionDepartmentSearch").oninput = renderDepartmentOptions;
         $("#positionDepartmentSearch").onfocus = renderDepartmentOptions;
@@ -820,19 +957,10 @@
           const departmentAtomId = option.dataset.assocDepartmentOption;
           if (!departments.some((department) => department.id === departmentAtomId)) return toast("请选择要添加的部门");
           selectedDepartments.add(departmentAtomId);
-          removedDepartments.delete(departmentAtomId);
           $("#positionDepartmentSearch").value = "";
           renderPendingDepartments();
         };
         $("#positionDepartmentPendingList").onclick = (event) => {
-          const unlinkButton = event.target.closest("[data-unlink-assoc-department]");
-          if (unlinkButton) {
-            const departmentAtomId = unlinkButton.dataset.unlinkAssocDepartment;
-            selectedDepartments.delete(departmentAtomId);
-            removedDepartments.add(departmentAtomId);
-            renderPendingDepartments();
-            return;
-          }
           const button = event.target.closest("[data-remove-assoc-department]");
           if (!button) return;
           selectedDepartments.delete(button.dataset.removeAssocDepartment);
@@ -842,39 +970,6 @@
           event.preventDefault();
           const successes = [];
           const failures = [];
-          removedDepartments.forEach((departmentAtomId) => {
-            const department = customerDepartmentAtoms.find((item) => item.id === departmentAtomId);
-            const current = customerPositionRelations.find(
-              (item) => item.positionAtomId === atomId && item.departmentAtomId === departmentAtomId,
-            );
-            if (!department || !current) return failures.push(`${departmentAtomId}：岗位关系不存在`);
-            const people = contacts.filter(
-              (person) =>
-                contactIsActive(person) &&
-                (person.positionRelationId === current.id ||
-                  (person.positionAtomId === atomId && person.departmentAtomId === departmentAtomId) ||
-                  (person.positionName === atom.name && person.department === department.name)),
-            );
-            if (people.length) return failures.push(`${department.name}：该岗位仍有 ${people.length} 名关键人，不能解除关联`);
-            const legacyDepartmentIds = new Set(
-              customerDepartmentRelations
-                .filter((relation) => relation.departmentAtomId === departmentAtomId)
-                .map((relation) => {
-                  const relationAtom = departmentAtomForId(relation.departmentAtomId);
-                  return customerDepartments.find(
-                    (item) => item.company === relation.company && item.name === relationAtom?.name,
-                  )?.id;
-                })
-                .filter(Boolean),
-            );
-            const relationIndex = customerPositionRelations.indexOf(current);
-            if (relationIndex >= 0) customerPositionRelations.splice(relationIndex, 1);
-            for (let index = contactPositionCatalog.length - 1; index >= 0; index -= 1) {
-              const position = contactPositionCatalog[index];
-              if (position.positionAtomId === atomId && legacyDepartmentIds.has(position.departmentId)) contactPositionCatalog.splice(index, 1);
-            }
-            successes.push(`${department.name}：已解除关联`);
-          });
           selectedDepartments.forEach((departmentAtomId) => {
             const department = customerDepartmentAtoms.find((item) => item.id === departmentAtomId);
             if (!department || department.status !== "正常") return failures.push(`${departmentAtomId}：部门不存在或已停用`);

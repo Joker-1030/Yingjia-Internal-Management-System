@@ -2695,15 +2695,30 @@
       .multi-select-option:hover {
         background: var(--soft);
       }
+      .association-modal {
+        width: min(960px, 94vw);
+      }
+      .association-modal-body {
+        overflow: hidden;
+      }
+      .association-layout {
+        display: grid;
+        grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+        gap: var(--space-4);
+        height: min(500px, calc(88vh - 180px));
+      }
       .association-picker,
       .association-pending {
+        display: flex;
+        min-width: 0;
+        min-height: 0;
+        flex-direction: column;
         padding: var(--space-4);
         border: 1px solid var(--color-divider);
         border-radius: var(--radius-control);
         background: var(--color-surface-secondary);
       }
       .association-pending {
-        margin-top: var(--space-4);
         background: var(--color-surface);
       }
       .association-section-head {
@@ -2719,6 +2734,8 @@
       }
       .association-picker-fields {
         display: grid;
+        min-height: 0;
+        flex: 1;
         grid-template-columns: minmax(0, 1fr);
         margin-top: var(--space-4);
       }
@@ -2727,21 +2744,19 @@
         margin-bottom: 0;
       }
       .association-combobox {
-        position: relative;
+        display: flex;
+        min-height: 0;
+        flex-direction: column;
       }
       .association-options {
-        position: absolute;
-        z-index: 20;
-        top: calc(100% + var(--space-1));
-        right: 0;
-        left: 0;
-        max-height: 240px;
+        min-height: 0;
+        flex: 1;
         overflow-y: auto;
+        margin-top: var(--space-2);
         padding: var(--space-1);
         border: 1px solid var(--color-border-hover);
         border-radius: var(--radius-control);
         background: var(--color-surface);
-        box-shadow: var(--shadow-floating);
       }
       .association-option {
         display: grid;
@@ -2770,8 +2785,12 @@
       }
       .association-pending-list {
         display: grid;
+        min-height: 0;
+        flex: 1;
+        align-content: start;
         gap: var(--space-3);
         margin-top: var(--space-4);
+        overflow-y: auto;
       }
       .association-pending-card {
         padding: var(--space-4);
@@ -2798,6 +2817,8 @@
       }
       .association-empty {
         display: grid;
+        min-height: 120px;
+        align-content: center;
         gap: var(--space-1);
         padding: var(--space-5) var(--space-3);
         color: var(--color-text-secondary);
@@ -3750,6 +3771,21 @@
       }
 
       @media (max-width: 760px) {
+        .association-modal {
+          width: min(620px, 92vw);
+        }
+        .association-modal-body {
+          overflow-y: auto;
+        }
+        .association-layout {
+          grid-template-columns: minmax(0, 1fr);
+          height: auto;
+        }
+        .association-options,
+        .association-pending-list {
+          max-height: 240px;
+          flex: none;
+        }
         .page-head {
           gap: var(--space-3);
           margin-bottom: var(--space-5);

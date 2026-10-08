@@ -530,7 +530,9 @@
         const group = (label, selected) => {
           const names = new Set(selected.map((company) => company.name));
           const contactsInGroup = people.filter((person) => names.has(person.company));
-          return { label, people: contactsInGroup.length, rate: dashboardCoverageRate(selected, contactsInGroup) };
+          const levelCounts = Object.fromEntries(Object.keys(contactLevelLabels).map((level) =>
+            [level, contactsInGroup.filter((person) => person.level === level).length]));
+          return { label, people: contactsInGroup.length, levelCounts, rate: dashboardCoverageRate(selected, contactsInGroup) };
         };
         if (currentUser.role === "director") return employees
           .filter((employee) => employee.status === "在职" && employeeHasRole(employee, "PM"))
@@ -556,7 +558,9 @@
         }
         if (!["president", "vp", "director", "admin"].includes(currentUser.role)) return "";
         const groups = dashboardCoverageGroups(companies, people);
-        return '<div class="workbench-breakdown" id="workbenchCoverageList" tabindex="0" role="region" aria-label="关键人覆盖明细"><table><thead><tr><th>' + (currentUser.role === "director" ? 'PM' : '区域运营中心') + '</th><th>关键人' + dashboardFieldHelp('groupPeople', '关键人') + '</th>' + dashboardSortHeader('coverage', '覆盖率', dashboardCoverageOrder) + '</tr></thead><tbody>' + groups.map((item) => '<tr><td>' + escapeDashboardHtml(item.label) + '</td><td>' + item.people + '</td><td>' + dashboardPercent(item.rate) + '</td></tr>').join('') + '</tbody></table>' + (groups.length ? '' : '<div class="empty">暂无PM客户覆盖数据</div>') + '</div>';
+        const levels = ["president", "vp"].includes(currentUser.role) ? Object.keys(contactLevelLabels) : [];
+        const levelHeaders = levels.map((level) => '<th>' + escapeDashboardHtml(level) + '</th>').join('');
+        return '<div class="workbench-breakdown' + (levels.length ? ' workbench-level-breakdown' : '') + '" id="workbenchCoverageList" tabindex="0" role="region" aria-label="关键人覆盖明细"><table><thead><tr><th>' + (currentUser.role === "director" ? 'PM' : '区域运营中心') + '</th><th>关键人' + dashboardFieldHelp('groupPeople', '关键人') + '</th>' + levelHeaders + dashboardSortHeader('coverage', '覆盖率', dashboardCoverageOrder) + '</tr></thead><tbody>' + groups.map((item) => '<tr><td>' + escapeDashboardHtml(item.label) + '</td><td>' + item.people + '</td>' + levels.map((level) => '<td>' + item.levelCounts[level] + '</td>').join('') + '<td>' + dashboardPercent(item.rate) + '</td></tr>').join('') + '</tbody></table>' + (groups.length ? '' : '<div class="empty">暂无PM客户覆盖数据</div>') + '</div>';
       }
 
       function dashboardCampaignProgress(rows) {

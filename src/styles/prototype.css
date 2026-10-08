@@ -4879,6 +4879,10 @@
       .workbench .workbench-breakdown td { padding: 11px 12px; white-space: normal; overflow-wrap: anywhere; vertical-align: middle; }
       .workbench .workbench-breakdown th { position: sticky; top: 0; z-index: 1; background: #f7f9fb; font-size: 12px; font-weight: 500; color: var(--muted); }
       .workbench .workbench-breakdown th:first-child { width: 52%; }
+      .workbench .workbench-level-breakdown table { min-width: 740px; table-layout: auto; }
+      .workbench .workbench-breakdown.workbench-level-breakdown th:first-child { width: auto; min-width: 150px; }
+      .workbench .workbench-level-breakdown th,
+      .workbench .workbench-level-breakdown td { white-space: nowrap; }
       .workbench .workbench-breakdown td:not(:first-child),
       .workbench .workbench-breakdown th:not(:first-child) { text-align: right; font-variant-numeric: tabular-nums; }
       .workbench-sort { display: inline-flex; align-items: center; justify-content: flex-end; gap: 4px; padding: 2px 0; border: 0; background: transparent; color: inherit; font: inherit; cursor: pointer; text-align: right; }

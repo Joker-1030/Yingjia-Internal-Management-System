@@ -1,10 +1,16 @@
       function saveLevelConfig(level) {
         if (!hasOperationPermission("settings.edit"))
           return toast("\u5f53\u524d\u89d2\u8272\u4ec5\u53ef\u67e5\u770b\u5ba2\u6237\u57fa\u7840\u914d\u7f6e");
-        const cycle = Number(document.getElementById("lc-" + level)?.value) || maintenanceConfig.cycles[level] || 30;
+        if (!Object.hasOwn(contactLevelLabels, level)) return toast("请选择有效职级");
+        const cycle = Number(document.getElementById("lc-" + level)?.value);
+        if (!Number.isInteger(cycle) || cycle < 1 || cycle > 365)
+          return toast("常规维系周期须为 1-365 个自然日");
         const title = document.getElementById("lt-" + level)?.value?.trim() || maintenanceConfig.titles[level] || "";
         const requirement = document.getElementById("lr-" + level)?.value?.trim() || maintenanceConfig.requirements[level] || "";
         const reminderDays = [...document.querySelectorAll("[data-reminder-day]")].filter((input) => input.id.startsWith("rd-" + level + "-") && input.checked).map((input) => Number(input.value));
+        if (!reminderDays.length) return toast("请至少选择一个提醒节点");
+        if (reminderDays.some((day) => ![0, 1, 2, 3, 5, 7, 10, 15, 30].includes(day) || day > cycle))
+          return toast("提醒节点须为有效选项且不能超过维系周期");
         openModal(`<div class="modal-head"><div class="modal-title">\u786e\u5b9a\u4fee\u6539 ${level}\uff1f</div><button class="icon-btn close" data-close>\u00d7</button></div><div class="modal-body"><div class="role-note danger-note"><strong>\u4fee\u6539\u540e\u5df2\u5b58\u5728\u4efb\u52a1\u4e0d\u53d7\u5f71\u54cd\uff0c\u65b0\u4efb\u52a1\u5c06\u6309\u4fee\u6539\u540e\u7684\u89c4\u5219\u8ba1\u7b97\u3002</strong></div></div><div class="modal-foot"><button class="btn" data-close>\u53d6\u6d88</button><button class="btn btn-primary" id="confirmLevelSave">\u786e\u5b9a\u4fee\u6539</button></div>`);
         $("#confirmLevelSave").onclick = () => {
           maintenanceConfig.cycles[level] = cycle;
@@ -41,12 +47,12 @@
 
 
       function ruleLevelValues(rule) {
-        if (!rule) return ["一级", "二级", "三级", "四级"];
+        if (!rule) return Object.keys(contactLevelLabels);
         if (rule.levels === "全部职级")
-          return ["一级", "二级", "三级", "四级"];
+          return Object.keys(contactLevelLabels);
         return String(rule.levels || "")
           .split(/[、,，]/)
-          .filter((value) => ["一级", "二级", "三级", "四级"].includes(value));
+          .filter((value) => Object.keys(contactLevelLabels).includes(value));
       }
 
       function ruleHolidayNames(rule) {
@@ -64,7 +70,7 @@
         const selectedLevels = new Set(ruleLevelValues(r));
         const selectedHolidayIds = new Set(r?.holidayIds || []);
         openModal(
-          `<div class="modal-head"><div class="modal-title">编辑自动任务规则</div><button class="icon-btn close" data-close>×</button></div><form id="ruleForm"><div class="modal-body"><div class="section-title">触发来源</div><div class="form-grid"><div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>规则类型</label><select class="input" id="ruleType" disabled><option value="birthday" ${r?.type !== "holiday" ? "selected" : ""}>生日关怀</option><option value="holiday" ${r?.type === "holiday" ? "selected" : ""}>节假日关怀</option></select></div><div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>规则名称</label><input class="input" id="ruleName" minlength="2" maxlength="100" value="${r?.name || ""}" required></div><div class="form-group full" id="ruleHolidayGroup"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>关联节假日 <span class="panel-sub">可多选</span></label><select class="input" id="ruleHolidaySelect"><option value="">从下拉中选择节假日添加…</option>${holidayCalendar.holidays.filter((holiday) => !selectedHolidayIds.has(holiday.id)).map((holiday) => `<option value="${holiday.id}">${holiday.name} · ${holiday.year} · ${holiday.startDate} 至 ${holiday.endDate}</option>`).join("")}</select><div id="ruleHolidayTags" style="margin-top:var(--space-2);display:flex;flex-wrap:wrap;gap:var(--space-2)"></div></div></div><div class="section-title">目标与时点</div><div class="form-grid"><div class="form-group full"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>适用职级</label><div class="checkbox-grid">${["一级", "二级", "三级", "四级"].map((level) => `<label class="check-row"><input type="checkbox" data-rule-level value="${level}" ${selectedLevels.has(level) ? "checked" : ""}><span>${level}</span></label>`).join("")}</div></div><div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>提前生成（天）</label><input class="input" id="ruleLead" type="number" min="0" max="60" value="${r?.lead ?? 7}" required></div><div class="form-group"><div class="form-label">截止时间</div><div>${r.type === "birthday" ? "生日当天" : "法定假期最后一天"} 23:59:59</div></div><div class="form-group full"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>站内提醒节点 <span class="panel-sub">至少选择 1 项</span></label><div class="choice-grid" id="ruleReminderChoices"></div></div></div><div class="section-title">任务内容</div><div class="form-grid"><div class="form-group full"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>任务标题模板</label><input class="input" id="ruleTitle" minlength="2" maxlength="100" value="${r?.title || "【{{事件名称}}关怀】{{关键人姓名}}"}" required></div><div class="form-group full"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>执行要求</label><textarea class="input" id="ruleContent" minlength="5" maxlength="1000" required>${r?.content || "完成客户关怀并记录沟通结果。"}</textarea></div></div></div><div class="modal-foot"><button class="btn" type="button" data-close>取消</button><button class="btn btn-primary" type="submit">保存并启用</button></div></form>`,
+          `<div class="modal-head"><div class="modal-title">编辑自动任务规则</div><button class="icon-btn close" data-close>×</button></div><form id="ruleForm"><div class="modal-body"><div class="section-title">触发来源</div><div class="form-grid"><div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>规则类型</label><select class="input" id="ruleType" disabled><option value="birthday" ${r?.type !== "holiday" ? "selected" : ""}>生日关怀</option><option value="holiday" ${r?.type === "holiday" ? "selected" : ""}>节假日关怀</option></select></div><div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>规则名称</label><input class="input" id="ruleName" minlength="2" maxlength="100" value="${r?.name || ""}" required></div><div class="form-group full" id="ruleHolidayGroup"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>关联节假日 <span class="panel-sub">可多选</span></label><select class="input" id="ruleHolidaySelect"><option value="">从下拉中选择节假日添加…</option>${holidayCalendar.holidays.filter((holiday) => !selectedHolidayIds.has(holiday.id)).map((holiday) => `<option value="${holiday.id}">${holiday.name} · ${holiday.year} · ${holiday.startDate} 至 ${holiday.endDate}</option>`).join("")}</select><div id="ruleHolidayTags" style="margin-top:var(--space-2);display:flex;flex-wrap:wrap;gap:var(--space-2)"></div></div></div><div class="section-title">目标与时点</div><div class="form-grid"><div class="form-group full"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>适用职级</label><div class="checkbox-grid">${Object.keys(contactLevelLabels).map((level) => `<label class="check-row"><input type="checkbox" data-rule-level value="${level}" ${selectedLevels.has(level) ? "checked" : ""}><span>${level}</span></label>`).join("")}</div></div><div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>提前生成（天）</label><input class="input" id="ruleLead" type="number" min="0" max="60" value="${r?.lead ?? 7}" required></div><div class="form-group"><div class="form-label">截止时间</div><div>${r.type === "birthday" ? "生日当天" : "法定假期最后一天"} 23:59:59</div></div><div class="form-group full"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>站内提醒节点 <span class="panel-sub">至少选择 1 项</span></label><div class="choice-grid" id="ruleReminderChoices"></div></div></div><div class="section-title">任务内容</div><div class="form-grid"><div class="form-group full"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>任务标题模板</label><input class="input" id="ruleTitle" minlength="2" maxlength="100" value="${r?.title || "【{{事件名称}}关怀】{{关键人姓名}}"}" required></div><div class="form-group full"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>执行要求</label><textarea class="input" id="ruleContent" minlength="5" maxlength="1000" required>${r?.content || "完成客户关怀并记录沟通结果。"}</textarea></div></div></div><div class="modal-foot"><button class="btn" type="button" data-close>取消</button><button class="btn btn-primary" type="submit">保存并启用</button></div></form>`,
         );
         const refresh = () => {
           const birthday = $("#ruleType").value === "birthday";
@@ -171,6 +177,8 @@
           )
             return toast("规则名称已存在");
           if (!levels.length) return toast("请至少选择一个适用职级");
+          if (levels.some((level) => !Object.hasOwn(contactLevelLabels, level)))
+            return toast("请选择有效职级");
           if (type === "holiday" && !holidayIds.length)
             return toast("节假日规则必须选择至少一个关联节假日");
           if (!Number.isInteger(lead) || lead < 0 || lead > 60)
@@ -226,7 +234,7 @@
           const data = {
             type,
             name,
-            levels: levels.length === 4 ? "全部职级" : levels.join("、"),
+            levels: levels.length === Object.keys(contactLevelLabels).length ? "全部职级" : levels.join("、"),
             lead,
             dueBefore: 0,
             reminders: [...new Set(reminders.map(Number))]

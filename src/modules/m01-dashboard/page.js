@@ -1,3 +1,23 @@
+      // M01 §4.4.1: native hints stay readable outside scrolling cards.
+      function dashboardFieldHelp(key, label) {
+        const descriptions = {
+          "people": "当前可见范围内，状态正常、当前任职有效，且所属客户和集团均正常的关键人数。",
+          "coverage": "至少有 1 名有效关键人的正常客户单位数 ÷ 正常客户单位总数 × 100%。同一客户有多名关键人也只计 1 家；无正常客户时显示 --。",
+          "groupPeople": "本行区域或 PM 当前负责客户中的有效关键人数；关键人正常、当前任职有效，且所属客户和集团均正常。",
+          "groupCoverage": "本行至少有 1 名有效关键人的正常客户单位数 ÷ 本行正常客户单位总数 × 100%。无正常客户时显示 --；总体按客户数重新汇总，不平均各行百分比。",
+          "uncovered": "本人当前负责范围内，有效关键人数为 0 的正常客户公司。",
+          "pending": "当前可见范围内，处于待执行或暂停中的常规维系任务执行记录数。",
+          "overdue": "当前可见范围内，处于当前逾期的常规维系任务执行记录数；暂停中的任务不计入。",
+          "campaign": "本专项当前可见的已完成有效执行项数 ÷ 全部有效执行项数 × 100%。包含未到期和已过期未完成项，排除已取消、已关闭项；无有效执行项时显示 --。覆盖 KPI 按责任人执行项计数。",
+          "projectCount": "当前筛选后有权查看的项目数量，包含已取消和已中止项目。",
+          "projectAmount": "当前筛选后有权查看的项目已保存含税金额之和，包含已取消和已中止项目；不代表实际收入或应收金额。",
+          "projectShare": "本组项目数量或含税金额 ÷ 当前筛选后同一批项目的对应合计 × 100%。合计为 0 时显示 --；百分比保留 1 位小数。"
+        };
+        const description = descriptions[key];
+        if (!description) return "";
+        return `<span class="workbench-help" tabindex="0" role="img" title="${escapeDashboardHtml(description)}" aria-label="${escapeDashboardHtml(label + '说明：' + description)}">?</span>`;
+      }
+
       function dashboardMetric(label, value, foot, tone) {
         return `<div class="metric dashboard-metric ${tone || ""}"><span class="metric-label">${label}</span><span class="metric-value">${value}</span><span class="metric-foot">${foot}</span></div>`;
       }
@@ -439,7 +459,7 @@
           });
           svg = chart.renderToSVGString();
         } finally { chart.dispose(); }
-        return `<div class="workbench-project-chart"><div class="workbench-donut"><div class="workbench-chart-svg" aria-hidden="true">${svg}</div><div class="workbench-donut-center${money ? " workbench-money" : ""}"><span>${money ? "项目金额合计" : "项目总数（个）"}</span><strong data-dashboard-value="projects">${format(analysis.total)}</strong>${money ? "<small>含税，元</small>" : ""}${analysis.projectCount ? "" : "<small>暂无项目</small>"}</div></div><div class="workbench-project-detail" tabindex="0" role="region" aria-label="项目分组明细"><div class="workbench-legend-head"><span>${dashboardProjectDimension === "type" ? "类型" : "阶段"}</span><span>${money ? "金额（含税，元）" : "数量（个）"}</span><span>占比</span></div><ul class="workbench-stage-legend">${analysis.groups.map((item, index) => `<li><span class="workbench-group-name"><i aria-hidden="true" style="background:${colors[index]}"></i>${escapeDashboardHtml(item.label)}</span><strong>${format(item.value)}</strong><span class="workbench-share">${dashboardPercent(item.share)}</span></li>`).join("")}</ul></div></div>`;
+        return `<div class="workbench-project-chart"><div class="workbench-donut"><div class="workbench-chart-svg" aria-hidden="true">${svg}</div><div class="workbench-donut-center${money ? " workbench-money" : ""}"><span>${money ? "项目金额合计" : "项目总数（个）"}${dashboardFieldHelp(money ? "projectAmount" : "projectCount", money ? "项目金额合计" : "项目总数")}</span><strong data-dashboard-value="projects">${format(analysis.total)}</strong>${money ? "<small>含税，元</small>" : ""}${analysis.projectCount ? "" : "<small>暂无项目</small>"}</div></div><div class="workbench-project-detail" tabindex="0" role="region" aria-label="项目分组明细"><div class="workbench-legend-head"><span>${dashboardProjectDimension === "type" ? "类型" : "阶段"}</span><span>${money ? "金额（含税，元）" : "数量（个）"}</span><span>占比${dashboardFieldHelp("projectShare", "占比")}</span></div><ul class="workbench-stage-legend">${analysis.groups.map((item, index) => `<li><span class="workbench-group-name"><i aria-hidden="true" style="background:${colors[index]}"></i>${escapeDashboardHtml(item.label)}</span><strong>${format(item.value)}</strong><span class="workbench-share">${dashboardPercent(item.share)}</span></li>`).join("")}</ul></div></div>`;
       }
 
       function dashboardProjectControls() {
@@ -481,7 +501,7 @@
 
       function dashboardSortHeader(key, label, order) {
         const ascending = order === "asc";
-        return `<th aria-sort="${ascending ? "ascending" : "descending"}"><button class="workbench-sort" type="button" data-workbench-sort="${key}" aria-label="${label}，当前${ascending ? "低到高" : "高到低"}，点击切换${ascending ? "高到低" : "低到高"}">${label}<span aria-hidden="true">${ascending ? "↑" : "↓"}</span></button></th>`;
+        return `<th aria-sort="${ascending ? "ascending" : "descending"}"><button class="workbench-sort" type="button" data-workbench-sort="${key}" aria-label="${label}，当前${ascending ? "低到高" : "高到低"}，点击切换${ascending ? "高到低" : "低到高"}">${label}<span aria-hidden="true">${ascending ? "↑" : "↓"}</span></button>${dashboardFieldHelp(key === "coverage" ? "groupCoverage" : "campaign", label)}</th>`;
       }
 
       function handleWorkbenchSort(target) {
@@ -532,11 +552,11 @@
           const covered = new Set(people.map((person) => person.company));
           const uncovered = companies.filter((company) => !covered.has(company.name));
           const emptyText = companies.length ? "当前客户公司均已覆盖" : "暂无客户公司";
-          return `<div class="workbench-breakdown" tabindex="0" role="region" aria-label="未覆盖客户公司"><table><thead><tr><th>未覆盖客户公司</th></tr></thead><tbody>${uncovered.map((company) => `<tr><td>${escapeDashboardHtml(company.name)}</td></tr>`).join("")}</tbody></table>${uncovered.length ? "" : `<div class="empty">${emptyText}</div>`}</div>`;
+          return `<div class="workbench-breakdown" tabindex="0" role="region" aria-label="未覆盖客户公司"><table><thead><tr><th>未覆盖客户公司${dashboardFieldHelp("uncovered", "未覆盖客户公司")}</th></tr></thead><tbody>${uncovered.map((company) => `<tr><td>${escapeDashboardHtml(company.name)}</td></tr>`).join("")}</tbody></table>${uncovered.length ? "" : `<div class="empty">${emptyText}</div>`}</div>`;
         }
         if (!["president", "vp", "director", "admin"].includes(currentUser.role)) return "";
         const groups = dashboardCoverageGroups(companies, people);
-        return '<div class="workbench-breakdown" id="workbenchCoverageList" tabindex="0" role="region" aria-label="关键人覆盖明细"><table><thead><tr><th>' + (currentUser.role === "director" ? 'PM' : '区域运营中心') + '</th><th>关键人</th>' + dashboardSortHeader('coverage', '覆盖率', dashboardCoverageOrder) + '</tr></thead><tbody>' + groups.map((item) => '<tr><td>' + escapeDashboardHtml(item.label) + '</td><td>' + item.people + '</td><td>' + dashboardPercent(item.rate) + '</td></tr>').join('') + '</tbody></table>' + (groups.length ? '' : '<div class="empty">暂无PM客户覆盖数据</div>') + '</div>';
+        return '<div class="workbench-breakdown" id="workbenchCoverageList" tabindex="0" role="region" aria-label="关键人覆盖明细"><table><thead><tr><th>' + (currentUser.role === "director" ? 'PM' : '区域运营中心') + '</th><th>关键人' + dashboardFieldHelp('groupPeople', '关键人') + '</th>' + dashboardSortHeader('coverage', '覆盖率', dashboardCoverageOrder) + '</tr></thead><tbody>' + groups.map((item) => '<tr><td>' + escapeDashboardHtml(item.label) + '</td><td>' + item.people + '</td><td>' + dashboardPercent(item.rate) + '</td></tr>').join('') + '</tbody></table>' + (groups.length ? '' : '<div class="empty">暂无PM客户覆盖数据</div>') + '</div>';
       }
 
       function dashboardCampaignProgress(rows) {
@@ -554,7 +574,7 @@
       }
 
       function dashboardOverviewValue(label, value, key, suffix = "") {
-        return `<div class="workbench-value"><span>${label}</span><strong data-dashboard-value="${key}">${value}${suffix ? `<small>${suffix}</small>` : ""}</strong></div>`;
+        return `<div class="workbench-value"><span>${label}${dashboardFieldHelp(key, label)}</span><strong data-dashboard-value="${key}">${value}${suffix ? `<small>${suffix}</small>` : ""}</strong></div>`;
       }
 
       function dashboardOverviewTodos() {

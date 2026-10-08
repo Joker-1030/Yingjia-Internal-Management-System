@@ -533,9 +533,10 @@
         二级: "二级",
         三级: "三级",
         四级: "四级",
+        其他: "其他",
       };
       const contactLevelOptions = (selectedLevel = "") =>
-        ["一级", "二级", "三级", "四级"]
+        Object.keys(contactLevelLabels)
           .map(
             (level) =>
               `<option value="${level}" ${level === selectedLevel ? "selected" : ""}>${contactLevelLabels[level]}</option>`,

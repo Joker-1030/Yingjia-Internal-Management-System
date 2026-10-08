@@ -533,7 +533,7 @@
 
       function taskThemeRuleDetails(type, themeValue, theme) {
         if (type === "常规维系") {
-          return `<div class="detail-grid"><div class="detail-item"><label>任务编号</label><div>${theme?.code || "待生成"}</div></div><div class="detail-item"><label>任务类型</label><div>${type}</div></div><div class="detail-item"><label>开始时间</label><div>长期</div></div><div class="detail-item"><label>结束时间</label><div>-</div></div><div class="detail-item"><label>更新时间</label><div>${theme?.updatedAt || "-"}</div></div><div class="detail-item"><label>适用职级</label><div>一级、二级、三级、四级</div></div><div class="detail-item full"><label>业务责任范围</label><div>省级、市级、区县级业务责任客户</div></div></div>`;
+          return `<div class="detail-grid"><div class="detail-item"><label>任务编号</label><div>${theme?.code || "待生成"}</div></div><div class="detail-item"><label>任务类型</label><div>${type}</div></div><div class="detail-item"><label>开始时间</label><div>长期</div></div><div class="detail-item"><label>结束时间</label><div>-</div></div><div class="detail-item"><label>更新时间</label><div>${theme?.updatedAt || "-"}</div></div><div class="detail-item"><label>适用职级</label><div>一级、二级、三级、四级、其他</div></div><div class="detail-item full"><label>业务责任范围</label><div>省级、市级、区县级业务责任客户</div></div></div>`;
         }
         const isBirthday = type === "生日关怀";
         const rule = ruleData.find(

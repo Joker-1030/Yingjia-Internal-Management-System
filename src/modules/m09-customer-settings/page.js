@@ -686,7 +686,7 @@
         let actions = "";
         if (settingsSection === "maintenance") {
           const maintenanceRows = [
-            ["\u4e00\u7ea7", "blue"], ["\u4e8c\u7ea7", "blue"], ["\u4e09\u7ea7", "blue"], ["\u56db\u7ea7", "blue"],
+            ["\u4e00\u7ea7", "blue"], ["\u4e8c\u7ea7", "blue"], ["\u4e09\u7ea7", "blue"], ["\u56db\u7ea7", "blue"], ["其他", "blue"],
           ].map((item) => {
             const lv = item[0];
             const cyc = maintenanceConfig.cycles[lv] || 30;

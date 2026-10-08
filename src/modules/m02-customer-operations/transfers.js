@@ -183,6 +183,8 @@
 
         $("#transferForm").onsubmit = (event) => {
           event.preventDefault();
+          if (!Object.hasOwn(contactLevelLabels, $("#tfLevel").value))
+            return toast("请选择有效职级");
           const same = $("#tfChangeMode").value === "same";
           const target = resolveTarget();
           if (!target)

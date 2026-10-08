@@ -4882,6 +4882,24 @@
       .workbench .workbench-breakdown td:not(:first-child),
       .workbench .workbench-breakdown th:not(:first-child) { text-align: right; font-variant-numeric: tabular-nums; }
       .workbench-sort { display: inline-flex; align-items: center; justify-content: flex-end; gap: 4px; padding: 2px 0; border: 0; background: transparent; color: inherit; font: inherit; cursor: pointer; text-align: right; }
+      .workbench-help {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        vertical-align: middle;
+        width: 15px;
+        height: 15px;
+        margin-left: 4px;
+        border: 1px solid #a4afbc;
+        border-radius: 50%;
+        color: #738195;
+        background: transparent;
+        font: 500 11px/1 Arial, sans-serif;
+        cursor: help;
+        flex-shrink: 0;
+      }
+      .workbench-help:hover,
+      .workbench-help:focus-visible { color: var(--brand); border-color: var(--brand); }
       .workbench-sort:hover { color: var(--brand); }
       .workbench-sort:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; border-radius: 3px; }
       .workbench .workbench-progress { display: grid; gap: 7px; justify-items: end; }

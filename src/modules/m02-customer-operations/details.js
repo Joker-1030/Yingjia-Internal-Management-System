@@ -954,14 +954,23 @@
           };
           if (person) Object.assign(person, data);
           else {
+            const directorCityCreation = currentUser?.role === "director" && company.level !== "省公司";
+            const cityPm = directorCityCreation ? currentCityPmForContact(company) : null;
             const created = {
               id: Date.now(),
               code: nextBusinessCode("KP"),
               ...data,
             };
+            if (directorCityCreation) {
+              // Refresh only this customer's owner projection from current city responsibility.
+              company.owner = cityPm?.name || "待分配";
+              company.pm = cityPm?.name || "";
+              created.pm = cityPm?.name || "";
+            }
             contacts.push(created);
             company.contacts += 1;
-            ensureRegularTask(created, DEMO_TODAY, true);
+            if (!directorCityCreation || cityPm) ensureRegularTask(created, DEMO_TODAY, true);
+            queueDirectorContactCreatedNotice(created, company);
           }
           closeOverlay();
           renderPage();

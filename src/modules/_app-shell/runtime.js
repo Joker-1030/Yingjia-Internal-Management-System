@@ -622,13 +622,17 @@
       ) =>
         Boolean(
           company &&
+            !company.archived &&
+            hasDataObject("客户单位") &&
+            hasDataObject("关键人") &&
             hasOperationPermission(operation) &&
             (currentUser?.fullAccess ||
               (currentUser?.role === "pm" &&
                 company.level !== "省公司" &&
                 companyIsVisible(company)) ||
               (currentUser?.role === "director" &&
-                company.level === "省公司" &&
+                (operation === "customers.create_contact" || company.level === "省公司") &&
+                companyInCurrentManagedRegion(company) &&
                 companyIsVisible(company))),
         );
       const canMaintainContact = (person) =>
@@ -673,14 +677,21 @@
         const p = (x) => String(x).padStart(2, "0");
         return `${n.getFullYear()}-${p(n.getMonth() + 1)}-${p(n.getDate())} ${p(n.getHours())}:${p(n.getMinutes())}`;
       };
+      function companyInCurrentManagedRegion(company) {
+        const employee = employees.find((item) => item.code === currentUser?.employeeCode);
+        if (!employee || employee.status !== "在职") return false;
+        const region = regionForCompany(company);
+        return Boolean(region && departmentsManagedBy(employee.code).some(
+          (department) => department.type === "region" && department.regionId === region.id,
+        ));
+      }
       const companyIsVisible = (c) => {
         if (!c || c.archived || !roleCanSeeBusiness()) return false;
         if (currentScopeType() === "cities")
           return (
             Boolean(c.city) && assignedCitiesForCurrentUser().includes(c.city)
           );
-        if (currentScopeType() === "regions")
-          return regionsMatch(customerRegionScope(c), currentUser.region);
+        if (currentScopeType() === "regions") return companyInCurrentManagedRegion(c);
         return ["company", "market"].includes(currentScopeType());
       };
       const contactIsActive = (p) => {

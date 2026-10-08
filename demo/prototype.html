@@ -10964,13 +10964,17 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
       ) =>
         Boolean(
           company &&
+            !company.archived &&
+            hasDataObject("客户单位") &&
+            hasDataObject("关键人") &&
             hasOperationPermission(operation) &&
             (currentUser?.fullAccess ||
               (currentUser?.role === "pm" &&
                 company.level !== "省公司" &&
                 companyIsVisible(company)) ||
               (currentUser?.role === "director" &&
-                company.level === "省公司" &&
+                (operation === "customers.create_contact" || company.level === "省公司") &&
+                companyInCurrentManagedRegion(company) &&
                 companyIsVisible(company))),
         );
       const canMaintainContact = (person) =>
@@ -11015,14 +11019,21 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
         const p = (x) => String(x).padStart(2, "0");
         return `${n.getFullYear()}-${p(n.getMonth() + 1)}-${p(n.getDate())} ${p(n.getHours())}:${p(n.getMinutes())}`;
       };
+      function companyInCurrentManagedRegion(company) {
+        const employee = employees.find((item) => item.code === currentUser?.employeeCode);
+        if (!employee || employee.status !== "在职") return false;
+        const region = regionForCompany(company);
+        return Boolean(region && departmentsManagedBy(employee.code).some(
+          (department) => department.type === "region" && department.regionId === region.id,
+        ));
+      }
       const companyIsVisible = (c) => {
         if (!c || c.archived || !roleCanSeeBusiness()) return false;
         if (currentScopeType() === "cities")
           return (
             Boolean(c.city) && assignedCitiesForCurrentUser().includes(c.city)
           );
-        if (currentScopeType() === "regions")
-          return regionsMatch(customerRegionScope(c), currentUser.region);
+        if (currentScopeType() === "regions") return companyInCurrentManagedRegion(c);
         return ["company", "market"].includes(currentScopeType());
       };
       const contactIsActive = (p) => {
@@ -19005,14 +19016,23 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
           };
           if (person) Object.assign(person, data);
           else {
+            const directorCityCreation = currentUser?.role === "director" && company.level !== "省公司";
+            const cityPm = directorCityCreation ? currentCityPmForContact(company) : null;
             const created = {
               id: Date.now(),
               code: nextBusinessCode("KP"),
               ...data,
             };
+            if (directorCityCreation) {
+              // Refresh only this customer's owner projection from current city responsibility.
+              company.owner = cityPm?.name || "待分配";
+              company.pm = cityPm?.name || "";
+              created.pm = cityPm?.name || "";
+            }
             contacts.push(created);
             company.contacts += 1;
-            ensureRegularTask(created, DEMO_TODAY, true);
+            if (!directorCityCreation || cityPm) ensureRegularTask(created, DEMO_TODAY, true);
+            queueDirectorContactCreatedNotice(created, company);
           }
           closeOverlay();
           renderPage();
@@ -33786,7 +33806,50 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
                 openApprovalDecision(Number(b.dataset.reject), false)),
           );
       }
+      const pendingContactCreationNotices = new Map();
+      function currentCityPmForContact(company) {
+        const owner = cityOwners.find((item) =>
+          item.province === company?.province && item.city === company?.city);
+        return regionPmEmployees(regionForCompany(company)).find((employee) => employee.name === owner?.pm);
+      }
+      function queueDirectorContactCreatedNotice(person, company) {
+        if (currentUser?.role !== "director" || company.level === "省公司") return;
+        const recipient = currentCityPmForContact(company);
+        if (!recipient) return;
+        const id = `contact-created:${person.id}`;
+        if (notificationMessages.some((message) => message.id === id) || pendingContactCreationNotices.has(id)) return;
+        pendingContactCreationNotices.set(id, {
+          id, contactId: person.id, recipientEmployeeCode: recipient.code,
+          roles: ["pm"], users: [recipient.name], category: "客户变动",
+          title: `【关键人】${person.name}已新增`,
+          content: `关键人：${person.name}；客户公司：${company.name}；新增人：${currentUser.name}；时间：${person.createdAt}`,
+          date: person.createdAt, read: false,
+        });
+        dispatchContactCreationNotices();
+      }
+      function dispatchContactCreationNotices() {
+        for (const [id, message] of pendingContactCreationNotices) {
+          try {
+            if (!notificationMessages.some((item) => item.id === id)) notificationMessages.push(message);
+            pendingContactCreationNotices.delete(id);
+          } catch (error) {
+            // Retain this event for retry without undoing the saved contact.
+          }
+        }
+      }
+      function notificationBelongsToCurrentUser(message) {
+        if (!currentUser) return false;
+        if (message.recipientEmployeeCode)
+          return message.recipientEmployeeCode === currentUser.employeeCode;
+        return message.roles.includes(currentUser.role) &&
+          (!message.users?.length || message.users.includes(currentUser.name));
+      }
+      function contactCreationNoticeTarget(message) {
+        if (!message?.contactId || !notificationBelongsToCurrentUser(message) || !canAccessPage("operations")) return null;
+        return scopedContacts().find((person) => person.id === message.contactId) || null;
+      }
       function currentNotifications() {
+        dispatchContactCreationNotices();
         try {
           dispatchProjectReminderNotifications();
         } catch (error) {
@@ -33794,10 +33857,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
         }
         return notificationMessages
           .filter(
-            (message) =>
-              currentUser &&
-              message.roles.includes(currentUser.role) &&
-              (!message.users?.length || message.users.includes(currentUser.name)),
+            notificationBelongsToCurrentUser,
           )
           .sort((left, right) => String(right.date).localeCompare(String(left.date)));
       }
@@ -33814,7 +33874,14 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
         const content = escapeNotificationHtml(message.content);
         const category = escapeNotificationHtml(message.category);
         const date = escapeNotificationHtml(message.date);
-        return `<button type="button" class="notice-item ${message.read ? "read" : ""}" data-notice-id="${escapeNotificationHtml(message.id)}" data-notice-category="${category}" data-notice-read="${message.read ? "read" : "unread"}" title="${title}\n${content}\n${date}"><span class="notice-unread"></span><span><span class="notice-title">${category} · ${title}</span><span class="notice-content">${content}</span><span class="notice-date">${date} · ${message.read ? "已读" : "未读"}</span></span></button>`;
+        const contactAction = message.contactId
+          ? contactCreationNoticeTarget(message)
+            ? '<span class="link" style="display:block;text-align:right">查看详情</span>'
+            : contacts.some((person) => person.id === message.contactId && contactIsActive(person))
+              ? ""
+              : '<span class="notice-content">该内容已失效</span>'
+          : "";
+        return `<button type="button" class="notice-item ${message.read ? "read" : ""}" data-notice-id="${escapeNotificationHtml(message.id)}" data-notice-category="${category}" data-notice-read="${message.read ? "read" : "unread"}" title="${title}\n${content}\n${date}"><span class="notice-unread"></span><span><span class="notice-title">${category} · ${title}</span><span class="notice-content">${content}</span><span class="notice-date">${date} · ${message.read ? "已读" : "未读"}</span>${contactAction}</span></button>`;
       }
       function notificationFailureHtml() {
         return currentProjectReminderFailures().length
@@ -33851,6 +33918,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
         const message = notificationMessages.find(
           (item) => String(item.id) === String(id),
         );
+        if (message && !notificationBelongsToCurrentUser(message)) return null;
         if (message) message.read = true;
         refreshNoticeIndicator();
         return message || null;
@@ -33878,6 +33946,20 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
       }
       function selectNotification(id, fallback) {
         const message = markNoticeRead(id);
+        if (!message) return;
+        if (message.contactId) {
+          const person = contactCreationNoticeTarget(message);
+          if (!person) return toast("对象不可用或无权访问");
+          closeNoticePanel();
+          closeAllOverlays();
+          currentPage = "operations";
+          window.history.replaceState(null, "", "#operations");
+          renderNav();
+          renderPage();
+          selectedPersonDetailTab = "employment";
+          renderPersonDetail(person, true);
+          return;
+        }
         if (openProjectReminderMessage(message)) return;
         fallback();
       }

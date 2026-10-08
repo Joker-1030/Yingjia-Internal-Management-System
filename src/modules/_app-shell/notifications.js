@@ -1,4 +1,47 @@
+      const pendingContactCreationNotices = new Map();
+      function currentCityPmForContact(company) {
+        const owner = cityOwners.find((item) =>
+          item.province === company?.province && item.city === company?.city);
+        return regionPmEmployees(regionForCompany(company)).find((employee) => employee.name === owner?.pm);
+      }
+      function queueDirectorContactCreatedNotice(person, company) {
+        if (currentUser?.role !== "director" || company.level === "省公司") return;
+        const recipient = currentCityPmForContact(company);
+        if (!recipient) return;
+        const id = `contact-created:${person.id}`;
+        if (notificationMessages.some((message) => message.id === id) || pendingContactCreationNotices.has(id)) return;
+        pendingContactCreationNotices.set(id, {
+          id, contactId: person.id, recipientEmployeeCode: recipient.code,
+          roles: ["pm"], users: [recipient.name], category: "客户变动",
+          title: `【关键人】${person.name}已新增`,
+          content: `关键人：${person.name}；客户公司：${company.name}；新增人：${currentUser.name}；时间：${person.createdAt}`,
+          date: person.createdAt, read: false,
+        });
+        dispatchContactCreationNotices();
+      }
+      function dispatchContactCreationNotices() {
+        for (const [id, message] of pendingContactCreationNotices) {
+          try {
+            if (!notificationMessages.some((item) => item.id === id)) notificationMessages.push(message);
+            pendingContactCreationNotices.delete(id);
+          } catch (error) {
+            // Retain this event for retry without undoing the saved contact.
+          }
+        }
+      }
+      function notificationBelongsToCurrentUser(message) {
+        if (!currentUser) return false;
+        if (message.recipientEmployeeCode)
+          return message.recipientEmployeeCode === currentUser.employeeCode;
+        return message.roles.includes(currentUser.role) &&
+          (!message.users?.length || message.users.includes(currentUser.name));
+      }
+      function contactCreationNoticeTarget(message) {
+        if (!message?.contactId || !notificationBelongsToCurrentUser(message) || !canAccessPage("operations")) return null;
+        return scopedContacts().find((person) => person.id === message.contactId) || null;
+      }
       function currentNotifications() {
+        dispatchContactCreationNotices();
         try {
           dispatchProjectReminderNotifications();
         } catch (error) {
@@ -6,10 +49,7 @@
         }
         return notificationMessages
           .filter(
-            (message) =>
-              currentUser &&
-              message.roles.includes(currentUser.role) &&
-              (!message.users?.length || message.users.includes(currentUser.name)),
+            notificationBelongsToCurrentUser,
           )
           .sort((left, right) => String(right.date).localeCompare(String(left.date)));
       }
@@ -26,7 +66,14 @@
         const content = escapeNotificationHtml(message.content);
         const category = escapeNotificationHtml(message.category);
         const date = escapeNotificationHtml(message.date);
-        return `<button type="button" class="notice-item ${message.read ? "read" : ""}" data-notice-id="${escapeNotificationHtml(message.id)}" data-notice-category="${category}" data-notice-read="${message.read ? "read" : "unread"}" title="${title}\n${content}\n${date}"><span class="notice-unread"></span><span><span class="notice-title">${category} · ${title}</span><span class="notice-content">${content}</span><span class="notice-date">${date} · ${message.read ? "已读" : "未读"}</span></span></button>`;
+        const contactAction = message.contactId
+          ? contactCreationNoticeTarget(message)
+            ? '<span class="link" style="display:block;text-align:right">查看详情</span>'
+            : contacts.some((person) => person.id === message.contactId && contactIsActive(person))
+              ? ""
+              : '<span class="notice-content">该内容已失效</span>'
+          : "";
+        return `<button type="button" class="notice-item ${message.read ? "read" : ""}" data-notice-id="${escapeNotificationHtml(message.id)}" data-notice-category="${category}" data-notice-read="${message.read ? "read" : "unread"}" title="${title}\n${content}\n${date}"><span class="notice-unread"></span><span><span class="notice-title">${category} · ${title}</span><span class="notice-content">${content}</span><span class="notice-date">${date} · ${message.read ? "已读" : "未读"}</span>${contactAction}</span></button>`;
       }
       function notificationFailureHtml() {
         return currentProjectReminderFailures().length
@@ -63,6 +110,7 @@
         const message = notificationMessages.find(
           (item) => String(item.id) === String(id),
         );
+        if (message && !notificationBelongsToCurrentUser(message)) return null;
         if (message) message.read = true;
         refreshNoticeIndicator();
         return message || null;
@@ -90,6 +138,20 @@
       }
       function selectNotification(id, fallback) {
         const message = markNoticeRead(id);
+        if (!message) return;
+        if (message.contactId) {
+          const person = contactCreationNoticeTarget(message);
+          if (!person) return toast("对象不可用或无权访问");
+          closeNoticePanel();
+          closeAllOverlays();
+          currentPage = "operations";
+          window.history.replaceState(null, "", "#operations");
+          renderNav();
+          renderPage();
+          selectedPersonDetailTab = "employment";
+          renderPersonDetail(person, true);
+          return;
+        }
         if (openProjectReminderMessage(message)) return;
         fallback();
       }

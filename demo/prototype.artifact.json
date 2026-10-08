@@ -1,11 +1,11 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-10-08T08:29:57.739Z",
+  "generatedAt": "2026-10-08T08:58:51.816Z",
   "generator": "scripts/build-prototype.mjs",
   "buildCommand": "node scripts/build-prototype.mjs",
   "sourceRoot": "src",
   "entry": "src/prototype.html",
-  "sourceDigest": "5cfbf3ee2ddb6c45be59cba9623027f928794fa02262699b00b3f82b36b176ca",
+  "sourceDigest": "43e02f3cc1d155b91cffb6305712786f6426effbaa678ec4956f9008fc13ad9a",
   "sourceFiles": [
     {
       "path": "src/app.js",
@@ -149,8 +149,8 @@
     },
     {
       "path": "src/modules/_app-shell/notifications.js",
-      "sha256": "dbfc25ed45348e64bbdd0de56dabf041bb550f6e3d1934df84291b982ff8a715",
-      "bytes": 10757
+      "sha256": "f8645b4d75061f671333b7b7f6b845c5646c3008d84509288a3d85e3908e4778",
+      "bytes": 14027
     },
     {
       "path": "src/modules/_app-shell/overlays.js",
@@ -159,8 +159,8 @@
     },
     {
       "path": "src/modules/_app-shell/runtime.js",
-      "sha256": "8a4095beb5916e168a41acb5944b7d73bf1f5a7173f47ad3df4bed236425a91c",
-      "bytes": 61623
+      "sha256": "04bec759177a9fcacefd966d7391b3eff21f4af42c26b31a9d1b8a930f079e6e",
+      "bytes": 62268
     },
     {
       "path": "src/modules/_app-shell/state.js",
@@ -199,8 +199,8 @@
     },
     {
       "path": "src/modules/m02-customer-operations/details.js",
-      "sha256": "fec5c8ace5f05760e62c957ff561dc5fcd514025d1d2eab5bd8774d7776c2aa3",
-      "bytes": 76094
+      "sha256": "ee567f237ac19a2b632c860754922f26d4bc8d3096dbddc1be02c15801936cff",
+      "bytes": 76699
     },
     {
       "path": "src/modules/m02-customer-operations/module.json",
@@ -472,8 +472,8 @@
   ],
   "artifact": {
     "path": "demo/prototype.html",
-    "sha256": "db8d2fbb5ba83bc9c8fccce80f8eb2011c027a1a3aa52aa3a374255daafbf2bb",
-    "bytes": 2436457
+    "sha256": "62110e3ab8d4f720a16dbcf5110362bb2bb7981b8ee2a1100c6e28929f4c38ed",
+    "bytes": 2440977
   },
   "legacyBridge": false,
   "architecture": "lightweight-modular",

@@ -11,6 +11,10 @@
           "campaign": "本专项当前可见的已完成有效执行项数 ÷ 全部有效执行项数 × 100%。包含未到期和已过期未完成项，排除已取消、已关闭项；无有效执行项时显示 --。覆盖 KPI 按责任人执行项计数。",
           "projectCount": "当前筛选后有权查看的项目数量，包含已取消和已中止项目。",
           "projectAmount": "当前筛选后有权查看的项目已保存含税金额之和，包含已取消和已中止项目；不代表实际收入或应收金额。",
+          "projectSettlementAmount": "当前筛选后有权查看的项目结账金额之和；已中止且涉及结算取填写的应结算金额，无结算记录不参与求和。不代表实收金额。",
+          "projectSettlementShare": "本组项目结账金额 ÷ 当前筛选后同一批项目的结账金额合计 × 100%。中止无结算记录不参与求和；本组无结算或合计为 0 时显示 --，百分比保留 1 位小数。",
+          "projectAmountShare": "本组项目金额 ÷ 当前筛选后同一批项目的项目金额合计 × 100%。合计为 0 时显示 --；百分比保留 1 位小数。",
+          "projectCountShare": "本组项目数量 ÷ 当前筛选后同一批项目的项目总数 × 100%。合计为 0 时显示 --；百分比保留 1 位小数。",
           "projectShare": "本组项目数量或含税金额 ÷ 当前筛选后同一批项目的对应合计 × 100%。合计为 0 时显示 --；百分比保留 1 位小数。"
         };
         const description = descriptions[key];
@@ -411,28 +415,27 @@
       let dashboardProjectMeasure = "count";
       let dashboardProjectFilter = "";
 
+      function dashboardProjectMeasureOptions() {
+        const options = [["count", "项目数量"], ["amount", "项目金额（含税，元）"]];
+        if (["president", "vp", "director", "pm"].includes(currentUser?.role))
+          options.push(["settlement", "项目结账金额（含税，元）"]);
+        return options;
+      }
+
       function dashboardProjectAnalysis(summary, dimension = dashboardProjectDimension, measure = dashboardProjectMeasure, filter = dashboardProjectFilter) {
-        if (!summary || !["stage", "type"].includes(dimension) || !["count", "amount"].includes(measure)) return null;
+        if (!summary || !["stage", "type"].includes(dimension) || !["count", "amount", "settlement"].includes(measure)) return null;
         const filterField = dimension === "stage" ? "type" : "stage";
         const filterValues = dimension === "stage" ? PROJECT_TYPES : PROJECT_STAGES;
         if (!["", ...filterValues].includes(filter)) return null;
         const selected = summary.projects.filter((project) => !filter || project[filterField] === filter);
         const labels = dimension === "stage" ? PROJECT_STAGES : PROJECT_TYPES;
         if (selected.some((project) => !labels.includes(project[dimension]))) return null;
-        const values = selected.map((project) => {
-          if (measure === "count") return 1;
-          if (project.amount == null || String(project.amount).trim() === "") return NaN;
-          const amount = Number(project.amount);
-          return Number.isFinite(amount) && amount >= 0 && Number.isSafeInteger(Math.round(amount * 100)) ? Math.round(amount * 100) : NaN;
-        });
-        const total = values.reduce((sum, value) => sum + value, 0);
-        if (!Number.isSafeInteger(total)) return null;
         const moneySum = (rows, getValue, allowNoSettlement = false) => {
           if (!rows.length) return 0;
           const amounts = rows.map(project => {
             if (allowNoSettlement && project.stage === "已中止" && !project.terminationInvolvesSettlement) return null;
             const value = getValue(project);
-            if (value == null || String(value).trim() === "") return NaN;
+            if (!["number", "string"].includes(typeof value) || String(value).trim() === "") return NaN;
             const cents = Math.round(Number(value) * 100);
             return Number(value) >= 0 && Number.isSafeInteger(cents) ? cents : NaN;
           }).filter(value => value !== null);
@@ -440,10 +443,15 @@
           const sum = amounts.reduce((a,b) => a + b, 0);
           return Number.isSafeInteger(sum) ? sum : NaN;
         };
+        const measureValue = rows => measure === "count" ? rows.length
+          : measure === "settlement" ? moneySum(rows, projectListSettlementAmount, true)
+          : moneySum(rows, project => project.amount);
+        const total = measureValue(selected);
+        if (total !== null && !Number.isSafeInteger(total)) return null;
         return { total, measure, projectCount: selected.length, groups: labels.map((label) => {
-          const value = values.reduce((sum, amount, index) => sum + (selected[index][dimension] === label ? amount : 0), 0);
           const rows = selected.filter(project => project[dimension] === label);
-          return { label, value, share: total ? value / total * 100 : null,
+          const value = measureValue(rows);
+          return { label, value, share: total > 0 && value !== null ? value / total * 100 : null,
             projectAmount: moneySum(rows, project => project.amount),
             settlementAmount: moneySum(rows, projectListSettlementAmount, true),
           };
@@ -453,8 +461,14 @@
       function dashboardProjectChart(summary) {
         const analysis = dashboardProjectAnalysis(summary);
         if (!analysis) return '<div class="empty">项目数据暂不可用</div>';
-        const money = analysis.measure === "amount";
-        const format = (value) => money ? formatProjectMoney(value / 100) : String(value);
+        const money = analysis.measure !== "count";
+        const settlement = analysis.measure === "settlement";
+        const singleMetric = ["president", "vp", "director", "pm"].includes(currentUser?.role);
+        const amountLabel = settlement ? "项目结账金额" : "项目金额";
+        const totalLabel = money ? amountLabel + "合计" : "项目总数（个）";
+        const helpKey = settlement ? "projectSettlementAmount" : money ? "projectAmount" : "projectCount";
+        const shareKey = settlement ? "projectSettlementShare" : money ? "projectAmountShare" : singleMetric ? "projectCountShare" : "projectShare";
+        const format = (value) => value === null ? "—" : money ? formatProjectMoney(value / 100) : String(value);
         const formatAmount = value => value === null ? "—" : Number.isFinite(value) ? formatProjectMoney(value / 100) : "不可用";
         const colors = ["#7596b5", "#366895", "#68a6a0", "#457c68", "#c3ccd6", "#b69b89"];
         // Render a disposable SVG snapshot; no hidden selection, drilldown or canvas lifecycle.
@@ -470,20 +484,29 @@
               label: { show: false }, labelLine: { show: false },
               emphasis: { disabled: true },
               itemStyle: { borderRadius: 4, borderWidth: 3, borderColor: "#ffffff" },
-              data: analysis.total ? analysis.groups.map((item) => ({ name: item.label, value: item.value })) : [],
+              data: analysis.total ? analysis.groups.map((item, index) => ({ name: item.label, value: item.value, itemStyle: { color: colors[index] } })).filter(item => item.value !== null) : [],
               emptyCircleStyle: { color: "#edf1f5", borderWidth: 0 },
             }],
           });
           svg = chart.renderToSVGString();
         } finally { chart.dispose(); }
-        return `<div class="workbench-project-chart"><div class="workbench-donut"><div class="workbench-chart-svg" aria-hidden="true">${svg}</div><div class="workbench-donut-center${money ? " workbench-money" : ""}"><span>${money ? "项目金额合计" : "项目总数（个）"}${dashboardFieldHelp(money ? "projectAmount" : "projectCount", money ? "项目金额合计" : "项目总数")}</span><strong data-dashboard-value="projects">${format(analysis.total)}</strong>${money ? "<small>含税，元</small>" : ""}${analysis.projectCount ? "" : "<small>暂无项目</small>"}</div></div><div class="workbench-project-detail workbench-project-amounts${money ? ' workbench-project-money-columns' : ''}" tabindex="0" role="region" aria-label="项目分组明细"><div class="workbench-legend-head"><span>${dashboardProjectDimension === "type" ? "类型" : "阶段"}</span>${money ? '' : '<span>数量（个）</span>'}<span>项目金额<br>（含税，元）</span><span>结账金额<br>（含税，元）</span><span>占比${dashboardFieldHelp("projectShare", "占比")}</span></div><ul class="workbench-stage-legend">${analysis.groups.map((item, index) => `<li><span class="workbench-group-name"><i aria-hidden="true" style="background:${colors[index]}"></i>${escapeDashboardHtml(item.label)}</span>${money ? '' : `<strong>${item.value}</strong>`}<strong>${formatAmount(item.projectAmount)}</strong><strong>${formatAmount(item.settlementAmount)}</strong><span class="workbench-share">${dashboardPercent(item.share)}</span></li>`).join("")}</ul></div></div>`;
+        const columns = singleMetric
+          ? money ? `<span>${amountLabel}<br>（含税，元）</span>` : '<span>数量（个）</span>'
+          : `${money ? '' : '<span>数量（个）</span>'}<span>项目金额<br>（含税，元）</span><span>结账金额<br>（含税，元）</span>`;
+        const rows = analysis.groups.map((item, index) => {
+          const amounts = singleMetric ? `<strong>${format(item.value)}</strong>`
+            : `${money ? '' : `<strong>${item.value}</strong>`}<strong>${formatAmount(item.projectAmount)}</strong><strong>${formatAmount(item.settlementAmount)}</strong>`;
+          return `<li><span class="workbench-group-name"><i aria-hidden="true" style="background:${colors[index]}"></i>${escapeDashboardHtml(item.label)}</span>${amounts}<span class="workbench-share">${dashboardPercent(item.share)}</span></li>`;
+        }).join("");
+        const detailClass = singleMetric ? "" : ` workbench-project-amounts${money ? ' workbench-project-money-columns' : ''}`;
+        return `<div class="workbench-project-chart"><div class="workbench-donut"><div class="workbench-chart-svg" aria-hidden="true">${svg}</div><div class="workbench-donut-center${money ? " workbench-money" : ""}"><span>${totalLabel}${dashboardFieldHelp(helpKey, totalLabel)}</span><strong data-dashboard-value="projects">${format(analysis.total)}</strong>${money ? "<small>含税，元</small>" : ""}${analysis.projectCount ? "" : "<small>暂无项目</small>"}</div></div><div class="workbench-project-detail${detailClass}" tabindex="0" role="region" aria-label="项目分组明细"><div class="workbench-legend-head"><span>${dashboardProjectDimension === "type" ? "类型" : "阶段"}</span>${columns}<span>占比${dashboardFieldHelp(shareKey, "占比")}</span></div><ul class="workbench-stage-legend">${rows}</ul></div></div>`;
       }
 
       function dashboardProjectControls() {
         const select = (key, value, label, options) => '<label>' + label + '<select class="input" aria-label="' + label + '" data-workbench-project="' + key + '">' + options.map(([id, name]) => '<option value="' + id + '"' + (value === id ? ' selected' : '') + '>' + name + '</option>').join('') + '</select></label>';
         const byStage = dashboardProjectDimension === "stage";
         const filterOptions = [['', byStage ? '全部类型' : '全部阶段'], ...(byStage ? PROJECT_TYPES : PROJECT_STAGES).map((value) => [value, value])];
-        return '<div class="workbench-analysis-controls" id="workbenchProjectControls">' + select('dimension', dashboardProjectDimension, '分析方式', [['stage','按项目阶段'],['type','按项目类型']]) + select('filter', dashboardProjectFilter, byStage ? '项目类型' : '项目阶段', filterOptions) + select('measure', dashboardProjectMeasure, '统计指标', [['count','项目数量'],['amount','项目金额（含税，元）']]) + '</div>';
+        return '<div class="workbench-analysis-controls" id="workbenchProjectControls">' + select('dimension', dashboardProjectDimension, '分析方式', [['stage','按项目阶段'],['type','按项目类型']]) + select('filter', dashboardProjectFilter, byStage ? '项目类型' : '项目阶段', filterOptions) + select('measure', dashboardProjectMeasure, '统计指标', dashboardProjectMeasureOptions()) + '</div>';
       }
 
       function handleWorkbenchProjectChange(target) {
@@ -496,7 +519,7 @@
             if (controls) controls.outerHTML = dashboardProjectControls();
           }
         }
-        else if (target.dataset.workbenchProject === "measure" && ["count", "amount"].includes(target.value)) dashboardProjectMeasure = target.value;
+        else if (target.dataset.workbenchProject === "measure" && dashboardProjectMeasureOptions().some(([value]) => value === target.value)) dashboardProjectMeasure = target.value;
         else if (target.dataset.workbenchProject === "filter" && ["", ...(dashboardProjectDimension === "stage" ? PROJECT_TYPES : PROJECT_STAGES)].includes(target.value)) dashboardProjectFilter = target.value;
         else return;
         const host = document.querySelector("#workbenchProjectVisualization");
@@ -598,10 +621,6 @@
         return `<div class="workbench-value"><span>${label}${dashboardFieldHelp(key, label)}</span><strong data-dashboard-value="${key}">${value}${suffix ? `<small>${suffix}</small>` : ""}</strong></div>`;
       }
 
-      function dashboardPeopleLevels(people) {
-        if (!["director", "pm"].includes(currentUser.role)) return "";
-        return `<div class="workbench-level-totals" aria-label="各职级关键人数">${Object.keys(contactLevelLabels).map(level => `<div><span>${level}</span><strong>${people.filter(person => person.level === level).length}<small>人</small></strong></div>`).join('')}</div>`;
-      }
       function dashboardOverviewTodos() {
         const items = dashboardTodoItems().filter((item) =>
           item.projectId ? hasPermission("projects") : hasPermission("tasks"));
@@ -651,6 +670,7 @@
       });
       function renderDashboard() {
         if (!currentUser || !canAccessPage("dashboard") || ["hr", "support"].includes(currentUser.role)) return "";
+        if (!dashboardProjectMeasureOptions().some(([value]) => value === dashboardProjectMeasure)) dashboardProjectMeasure = "amount";
         const sortOwner = `${currentUser.employeeCode || currentUser.phone || currentUser.name}:${currentUser.role}`;
         if (lastRenderedPage !== "dashboard" || dashboardSortOwner !== sortOwner) {
           dashboardCoverageOrder = "asc";
@@ -668,7 +688,7 @@
         const overdue = regular.filter((task) => task.status === "overdue").length;
         const canSeePeople = hasDataObject("客户单位") && hasDataObject("关键人");
         const canSeeTasks = hasPermission("tasks") && hasDataObject("维系任务");
-        const peopleCard = canSeePeople ? `<section class="panel workbench-card workbench-people"><div class="panel-head"><div class="panel-title" id="workbenchPeopleTitle">关键人概况</div><div class="spacer"></div><span class="workbench-updated">更新于 ${escapeDashboardHtml(DEMO_TODAY)}</span></div><div class="workbench-split" role="region" aria-labelledby="workbenchPeopleTitle"><div class="workbench-values${["director", "pm"].includes(currentUser.role) ? ' workbench-values-levels' : ''}">${dashboardOverviewValue("有效关键人", people.length, "people", "人")}${dashboardOverviewValue("关键人覆盖率", dashboardPercent(coverage), "coverage")}${dashboardPeopleLevels(people)}${coverage == null ? '<div class="workbench-empty-note">暂无客户单位</div>' : ""}</div>${dashboardCoverageTable(companies, people)}</div></section>` : "";
+        const peopleCard = canSeePeople ? `<section class="panel workbench-card workbench-people"><div class="panel-head"><div class="panel-title" id="workbenchPeopleTitle">关键人概况</div><div class="spacer"></div><span class="workbench-updated">更新于 ${escapeDashboardHtml(DEMO_TODAY)}</span></div><div class="workbench-split" role="region" aria-labelledby="workbenchPeopleTitle"><div class="workbench-values">${dashboardOverviewValue("有效关键人", people.length, "people", "人")}${dashboardOverviewValue("关键人覆盖率", dashboardPercent(coverage), "coverage")}${coverage == null ? '<div class="workbench-empty-note">暂无客户单位</div>' : ""}</div>${dashboardCoverageTable(companies, people)}</div></section>` : "";
         const taskCard = canSeeTasks ? `<section class="panel workbench-card workbench-tasks"><div class="panel-head"><div class="panel-title" id="workbenchTasksTitle">任务概况</div></div><div class="workbench-split" role="region" aria-labelledby="workbenchTasksTitle"><div class="workbench-values">${dashboardOverviewValue("常规任务待完成", pending, "pending", "项")}${dashboardOverviewValue("常规任务逾期", overdue, "overdue", "项")}</div>${dashboardCampaignTable(rows)}</div></section>` : "";
         const projectCard = hasPermission("projects") ? `<section class="panel workbench-card workbench-projects"><div class="panel-head"><div class="panel-title" id="workbenchProjectsTitle">项目概况</div></div><div class="workbench-project-body" role="region" aria-labelledby="workbenchProjectsTitle">${dashboardProjectControls()}<div class="workbench-project-visualization" id="workbenchProjectVisualization">${dashboardProjectChart(dashboardProjectSummary())}</div></div></section>` : "";
         const todoCard = `<section class="panel workbench-card workbench-todos"><div class="panel-head"><div class="panel-title" id="workbenchTodosTitle">我的待办</div></div>${dashboardTodosBody()}</section>`;

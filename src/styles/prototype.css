@@ -4995,12 +4995,5 @@
       .workbench .workbench-todo-controls .form-label { margin: 0; white-space: nowrap; }
       .workbench .workbench-todo-controls .input { min-width: 0; width: 100%; height: 32px; }
       .workbench .workbench-todo-pagination { display: flex; align-items: center; justify-content: center; gap: 12px; padding: 8px 12px; flex: none; font-size: 12px; }
-      .workbench .workbench-values-levels { gap: 8px; }
-      .workbench .workbench-values-levels .workbench-value > strong { font-size: 25px; }
-      .workbench-level-totals { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 5px 10px; font-size: 11px; }
-      .workbench-level-totals > div { display: flex; justify-content: space-between; gap: 4px; white-space: nowrap; }
-      .workbench-level-totals strong { font-variant-numeric: tabular-nums; font-weight: 500; }
-      .workbench-level-totals small { font-weight: 400; margin-left: 2px; color: var(--muted); }
       #satisfactionFiles { margin-top: 16px; }
       #satisfactionFileInput { max-width: 100%; margin: 8px 0; }
-      @media (max-width: 600px) { .workbench-level-totals { grid-template-columns: 1fr; } }

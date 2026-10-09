@@ -3939,6 +3939,18 @@
         flex: none;
         white-space: nowrap;
       }
+      .form-label.project-opportunity-label,
+      .detail-item label.project-opportunity-label {
+        color: var(--text);
+        font-weight: 600;
+      }
+      .project-opportunity-note {
+        display: inline-block;
+        margin-left: 8px;
+        color: var(--muted);
+        font-size: var(--font-size-caption);
+        font-weight: 400;
+      }
       .project-table-wrap {
         scrollbar-color: var(--color-border-hover) transparent;
       }
@@ -3953,8 +3965,8 @@
       .project-table td:nth-child(2),
       .project-table th:nth-child(4),
       .project-table td:nth-child(4),
-      .project-table th:nth-child(12),
-      .project-table td:nth-child(12) {
+      .project-table th:nth-child(13),
+      .project-table td:nth-child(13) {
         white-space: normal;
       }
       .project-table th:nth-child(1) {
@@ -3970,7 +3982,7 @@
       .project-table th:nth-child(8) {
         min-width: 146px;
       }
-      .project-table th:nth-child(12) {
+      .project-table th:nth-child(13) {
         min-width: 164px;
       }
       .project-list-panel .empty {
@@ -4981,6 +4993,25 @@
         .workbench .workbench-group-name { gap: 4px; }
         .workbench .workbench-scroll { padding: 12px; }
       }
+
+      /* M01: keep amount columns and large queues inside existing cards. */
+      .workbench .workbench-project-amounts .workbench-legend-head,
+      .workbench .workbench-project-amounts .workbench-stage-legend li { grid-template-columns: 80px 56px minmax(112px, 1fr) minmax(112px, 1fr) 54px; min-width: 460px; gap: 10px; }
+      .workbench .workbench-project-money-columns .workbench-legend-head,
+      .workbench .workbench-project-money-columns .workbench-stage-legend li { grid-template-columns: 80px minmax(112px, 1fr) minmax(112px, 1fr) 54px; min-width: 394px; }
+      .workbench .workbench-todo-controls { display: flex; align-items: center; gap: 8px; padding: 8px 20px; flex: none; }
+      .workbench .workbench-todo-controls .form-label { margin: 0; white-space: nowrap; }
+      .workbench .workbench-todo-controls .input { min-width: 0; width: 100%; height: 32px; }
+      .workbench .workbench-todo-pagination { display: flex; align-items: center; justify-content: center; gap: 12px; padding: 8px 12px; flex: none; font-size: 12px; }
+      .workbench .workbench-values-levels { gap: 8px; }
+      .workbench .workbench-values-levels .workbench-value > strong { font-size: 25px; }
+      .workbench-level-totals { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 5px 10px; font-size: 11px; }
+      .workbench-level-totals > div { display: flex; justify-content: space-between; gap: 4px; white-space: nowrap; }
+      .workbench-level-totals strong { font-variant-numeric: tabular-nums; font-weight: 500; }
+      .workbench-level-totals small { font-weight: 400; margin-left: 2px; color: var(--muted); }
+      #satisfactionFiles { margin-top: 16px; }
+      #satisfactionFileInput { max-width: 100%; margin: 8px 0; }
+      @media (max-width: 600px) { .workbench-level-totals { grid-template-columns: 1fr; } }
     </style>
   </head>
   <body>
@@ -12395,7 +12426,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
       }
 
       function dashboardTodoItems() {
-        const rows = scopedTasks();
+        const rows = hasPermission("tasks") && hasDataObject("维系任务") ? scopedTasks() : [];
         const canOwnTaskTodo = ["pm", "director"].includes(currentUser.role);
         const taskItems = (canOwnTaskTodo ? rows : [])
           .filter(
@@ -12403,16 +12434,6 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
               task.pm === currentUser.name &&
               ["overdue", "pending"].includes(task.status),
           )
-          .sort((a, b) => {
-            const priority = (task) =>
-              ["overdue", "expired"].includes(task.status)
-                ? 0
-                : task.due === DEMO_TODAY
-                  ? 1
-                  : 2;
-            return priority(a) - priority(b) || a.due.localeCompare(b.due);
-          })
-          .slice(0, currentUser.role === "pm" ? 5 : 3)
           .map((task) => ({
             icon: "任",
             title: taskStatusName(task.status, task),
@@ -12420,14 +12441,23 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
             tone: ["overdue", "expired"].includes(task.status) ? "red" : "yellow",
             action: "task-detail",
             id: task.id,
+            category: task.type === "常规维系" ? "regular" : ["生日关怀", "节假日关怀"].includes(task.type) ? "seasonal" : "campaign",
+            due: task.due ? task.due.length === 10 ? task.due + " 23:59" : task.due : "",
+            overdue: task.status === "overdue",
+            createdAt: task.createdAt || "",
+            sortId: String(task.id),
             command: currentUser.role === "pm" && task.status !== "expired" ? "处理" : "查看",
           }));
-        const projectItems = projectActionTodoItemsForCurrentUser();
+        const projectItems = projectActionTodoItemsForCurrentUser().map(item => ({
+          ...item, category: "project", due: "", overdue: false,
+          createdAt: item.createdAt || "", sortId: item.projectId,
+        }));
         const items =
           currentUser.role === "pm"
             ? [...projectItems, ...taskItems]
             : [...projectItems, ...taskItems];
-        return items;
+        const timeCompare = (a, b) => a ? b ? a.localeCompare(b) : -1 : b ? 1 : 0;
+        return items.sort((a,b) => Number(b.overdue) - Number(a.overdue) || timeCompare(a.due,b.due) || timeCompare(a.createdAt,b.createdAt) || a.sortId.localeCompare(b.sortId, "en", { numeric: true }) || a.title.localeCompare(b.title, "zh-CN"));
       }
 
       function dashboardDynamicItems() {
@@ -12587,9 +12617,26 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
         });
         const total = values.reduce((sum, value) => sum + value, 0);
         if (!Number.isSafeInteger(total)) return null;
+        const moneySum = (rows, getValue, allowNoSettlement = false) => {
+          if (!rows.length) return 0;
+          const amounts = rows.map(project => {
+            if (allowNoSettlement && project.stage === "已中止" && !project.terminationInvolvesSettlement) return null;
+            const value = getValue(project);
+            if (value == null || String(value).trim() === "") return NaN;
+            const cents = Math.round(Number(value) * 100);
+            return Number(value) >= 0 && Number.isSafeInteger(cents) ? cents : NaN;
+          }).filter(value => value !== null);
+          if (!amounts.length) return null;
+          const sum = amounts.reduce((a,b) => a + b, 0);
+          return Number.isSafeInteger(sum) ? sum : NaN;
+        };
         return { total, measure, projectCount: selected.length, groups: labels.map((label) => {
           const value = values.reduce((sum, amount, index) => sum + (selected[index][dimension] === label ? amount : 0), 0);
-          return { label, value, share: total ? value / total * 100 : null };
+          const rows = selected.filter(project => project[dimension] === label);
+          return { label, value, share: total ? value / total * 100 : null,
+            projectAmount: moneySum(rows, project => project.amount),
+            settlementAmount: moneySum(rows, projectListSettlementAmount, true),
+          };
         }) };
       }
 
@@ -12598,6 +12645,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
         if (!analysis) return '<div class="empty">项目数据暂不可用</div>';
         const money = analysis.measure === "amount";
         const format = (value) => money ? formatProjectMoney(value / 100) : String(value);
+        const formatAmount = value => value === null ? "—" : Number.isFinite(value) ? formatProjectMoney(value / 100) : "不可用";
         const colors = ["#7596b5", "#366895", "#68a6a0", "#457c68", "#c3ccd6", "#b69b89"];
         // Render a disposable SVG snapshot; no hidden selection, drilldown or canvas lifecycle.
         const chart = echarts.init(null, null, { renderer: "svg", ssr: true, width: 220, height: 220 });
@@ -12618,7 +12666,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
           });
           svg = chart.renderToSVGString();
         } finally { chart.dispose(); }
-        return `<div class="workbench-project-chart"><div class="workbench-donut"><div class="workbench-chart-svg" aria-hidden="true">${svg}</div><div class="workbench-donut-center${money ? " workbench-money" : ""}"><span>${money ? "项目金额合计" : "项目总数（个）"}${dashboardFieldHelp(money ? "projectAmount" : "projectCount", money ? "项目金额合计" : "项目总数")}</span><strong data-dashboard-value="projects">${format(analysis.total)}</strong>${money ? "<small>含税，元</small>" : ""}${analysis.projectCount ? "" : "<small>暂无项目</small>"}</div></div><div class="workbench-project-detail" tabindex="0" role="region" aria-label="项目分组明细"><div class="workbench-legend-head"><span>${dashboardProjectDimension === "type" ? "类型" : "阶段"}</span><span>${money ? "金额（含税，元）" : "数量（个）"}</span><span>占比${dashboardFieldHelp("projectShare", "占比")}</span></div><ul class="workbench-stage-legend">${analysis.groups.map((item, index) => `<li><span class="workbench-group-name"><i aria-hidden="true" style="background:${colors[index]}"></i>${escapeDashboardHtml(item.label)}</span><strong>${format(item.value)}</strong><span class="workbench-share">${dashboardPercent(item.share)}</span></li>`).join("")}</ul></div></div>`;
+        return `<div class="workbench-project-chart"><div class="workbench-donut"><div class="workbench-chart-svg" aria-hidden="true">${svg}</div><div class="workbench-donut-center${money ? " workbench-money" : ""}"><span>${money ? "项目金额合计" : "项目总数（个）"}${dashboardFieldHelp(money ? "projectAmount" : "projectCount", money ? "项目金额合计" : "项目总数")}</span><strong data-dashboard-value="projects">${format(analysis.total)}</strong>${money ? "<small>含税，元</small>" : ""}${analysis.projectCount ? "" : "<small>暂无项目</small>"}</div></div><div class="workbench-project-detail workbench-project-amounts${money ? ' workbench-project-money-columns' : ''}" tabindex="0" role="region" aria-label="项目分组明细"><div class="workbench-legend-head"><span>${dashboardProjectDimension === "type" ? "类型" : "阶段"}</span>${money ? '' : '<span>数量（个）</span>'}<span>项目金额<br>（含税，元）</span><span>结账金额<br>（含税，元）</span><span>占比${dashboardFieldHelp("projectShare", "占比")}</span></div><ul class="workbench-stage-legend">${analysis.groups.map((item, index) => `<li><span class="workbench-group-name"><i aria-hidden="true" style="background:${colors[index]}"></i>${escapeDashboardHtml(item.label)}</span>${money ? '' : `<strong>${item.value}</strong>`}<strong>${formatAmount(item.projectAmount)}</strong><strong>${formatAmount(item.settlementAmount)}</strong><span class="workbench-share">${dashboardPercent(item.share)}</span></li>`).join("")}</ul></div></div>`;
       }
 
       function dashboardProjectControls() {
@@ -12717,7 +12765,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
         }
         if (!["president", "vp", "director", "admin"].includes(currentUser.role)) return "";
         const groups = dashboardCoverageGroups(companies, people);
-        const levels = ["president", "vp"].includes(currentUser.role) ? Object.keys(contactLevelLabels) : [];
+        const levels = ["president", "vp", "director"].includes(currentUser.role) ? Object.keys(contactLevelLabels) : [];
         const levelHeaders = levels.map((level) => '<th>' + escapeDashboardHtml(level) + '</th>').join('');
         return '<div class="workbench-breakdown' + (levels.length ? ' workbench-level-breakdown' : '') + '" id="workbenchCoverageList" tabindex="0" role="region" aria-label="关键人覆盖明细"><table><thead><tr><th>' + (currentUser.role === "director" ? 'PM' : '区域运营中心') + '</th><th>关键人' + dashboardFieldHelp('groupPeople', '关键人') + '</th>' + levelHeaders + dashboardSortHeader('coverage', '覆盖率', dashboardCoverageOrder) + '</tr></thead><tbody>' + groups.map((item) => '<tr><td>' + escapeDashboardHtml(item.label) + '</td><td>' + item.people + '</td>' + levels.map((level) => '<td>' + item.levelCounts[level] + '</td>').join('') + '<td>' + dashboardPercent(item.rate) + '</td></tr>').join('') + '</tbody></table>' + (groups.length ? '' : '<div class="empty">暂无PM客户覆盖数据</div>') + '</div>';
       }
@@ -12740,8 +12788,11 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
         return `<div class="workbench-value"><span>${label}${dashboardFieldHelp(key, label)}</span><strong data-dashboard-value="${key}">${value}${suffix ? `<small>${suffix}</small>` : ""}</strong></div>`;
       }
 
+      function dashboardPeopleLevels(people) {
+        if (!["director", "pm"].includes(currentUser.role)) return "";
+        return `<div class="workbench-level-totals" aria-label="各职级关键人数">${Object.keys(contactLevelLabels).map(level => `<div><span>${level}</span><strong>${people.filter(person => person.level === level).length}<small>人</small></strong></div>`).join('')}</div>`;
+      }
       function dashboardOverviewTodos() {
-        // Keep existing collection/ordering; this task only simplifies presentation.
         const items = dashboardTodoItems().filter((item) =>
           item.projectId ? hasPermission("projects") : hasPermission("tasks"));
         return items.map((item) => {
@@ -12751,16 +12802,51 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
           }
           const task = tasks.find((row) => row.id === item.id);
           return task ? { ...item, title: `${task.company} · ${task.person}`,
-            detail: `${task.title} · ${taskStatusName(task.status, task)} · 截止 ${task.due}` } : item;
+            detail: `${task.title} · ${taskStatusName(task.status, task)}${task.due ? ` · 截止 ${task.due}` : ""}` } : item;
         });
       }
 
+      const WORKBENCH_TODO_CATEGORIES = [["all", "全部"], ["regular", "常规维系"], ["seasonal", "生日/节假日"], ["campaign", "专项"], ["project", "项目"]];
+      let dashboardTodoCategory = "all";
+      let dashboardTodoPage = 1;
+      function dashboardTodoPageData() {
+        const all = dashboardOverviewTodos();
+        const selected = all.filter(item => dashboardTodoCategory === "all" || item.category === dashboardTodoCategory);
+        const pageCount = Math.max(1, Math.ceil(selected.length / 10));
+        dashboardTodoPage = Math.min(pageCount, Math.max(1, dashboardTodoPage));
+        return { counts: Object.fromEntries(WORKBENCH_TODO_CATEGORIES.map(([key]) => [key, key === "all" ? all.length : all.filter(item => item.category === key).length])), pageCount, items: selected.slice((dashboardTodoPage - 1) * 10, dashboardTodoPage * 10) };
+      }
+      function dashboardTodosBody() {
+        const data = dashboardTodoPageData();
+        return `<div class="workbench-todo-controls"><label class="form-label" for="workbenchTodoCategory">待办类别</label><select class="input" id="workbenchTodoCategory">${WORKBENCH_TODO_CATEGORIES.map(([key,label]) => `<option value="${key}" ${key === dashboardTodoCategory ? 'selected' : ''}>${label}（${data.counts[key]}）</option>`).join('')}</select></div><div class="workbench-scroll list dashboard-list" tabindex="0" role="region" aria-labelledby="workbenchTodosTitle">${dashboardList(data.items, "当前没有需要本人处理的事项")}</div>${data.pageCount > 1 ? `<div class="workbench-todo-pagination"><button class="btn" type="button" data-workbench-todo-page="prev" ${dashboardTodoPage === 1 ? 'disabled' : ''}>上一页</button><span>${dashboardTodoPage} / ${data.pageCount} 页</span><button class="btn" type="button" data-workbench-todo-page="next" ${dashboardTodoPage === data.pageCount ? 'disabled' : ''}>下一页</button></div>` : ''}`;
+      }
+      function handleWorkbenchTodoAction(category, direction) {
+        if (!currentUser || currentPage !== "dashboard" || !canAccessPage("dashboard") || ["hr", "support"].includes(currentUser.role) || (currentUser.role === "admin" && adminDashboardView === "system")) return;
+        if (category != null) {
+          if (!WORKBENCH_TODO_CATEGORIES.some(([key]) => key === category)) return;
+          dashboardTodoCategory = category; dashboardTodoPage = 1;
+        } else {
+          if (!["prev", "next"].includes(direction)) return;
+          dashboardTodoPageData();
+          dashboardTodoPage += direction === "next" ? 1 : -1;
+        }
+        renderPage();
+      }
+      document.addEventListener("change", event => {
+        if (event.target?.id === "workbenchTodoCategory") handleWorkbenchTodoAction(event.target.value);
+      });
+      document.addEventListener("click", event => {
+        const target = event.target?.closest?.("[data-workbench-todo-page]");
+        if (target) handleWorkbenchTodoAction(null, target.dataset.workbenchTodoPage);
+      });
       function renderDashboard() {
         if (!currentUser || !canAccessPage("dashboard") || ["hr", "support"].includes(currentUser.role)) return "";
         const sortOwner = `${currentUser.employeeCode || currentUser.phone || currentUser.name}:${currentUser.role}`;
         if (lastRenderedPage !== "dashboard" || dashboardSortOwner !== sortOwner) {
           dashboardCoverageOrder = "asc";
           dashboardCampaignOrder = "asc";
+          dashboardTodoCategory = "all";
+          dashboardTodoPage = 1;
           dashboardSortOwner = sortOwner;
         }
         if (currentUser.role === "admin" && adminDashboardView === "system")
@@ -12772,10 +12858,10 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
         const overdue = regular.filter((task) => task.status === "overdue").length;
         const canSeePeople = hasDataObject("客户单位") && hasDataObject("关键人");
         const canSeeTasks = hasPermission("tasks") && hasDataObject("维系任务");
-        const peopleCard = canSeePeople ? `<section class="panel workbench-card workbench-people"><div class="panel-head"><div class="panel-title" id="workbenchPeopleTitle">关键人概况</div><div class="spacer"></div><span class="workbench-updated">更新于 ${escapeDashboardHtml(DEMO_TODAY)}</span></div><div class="workbench-split" role="region" aria-labelledby="workbenchPeopleTitle"><div class="workbench-values">${dashboardOverviewValue("有效关键人", people.length, "people", "人")}${dashboardOverviewValue("关键人覆盖率", dashboardPercent(coverage), "coverage")}${coverage == null ? '<div class="workbench-empty-note">暂无客户单位</div>' : ""}</div>${dashboardCoverageTable(companies, people)}</div></section>` : "";
+        const peopleCard = canSeePeople ? `<section class="panel workbench-card workbench-people"><div class="panel-head"><div class="panel-title" id="workbenchPeopleTitle">关键人概况</div><div class="spacer"></div><span class="workbench-updated">更新于 ${escapeDashboardHtml(DEMO_TODAY)}</span></div><div class="workbench-split" role="region" aria-labelledby="workbenchPeopleTitle"><div class="workbench-values${["director", "pm"].includes(currentUser.role) ? ' workbench-values-levels' : ''}">${dashboardOverviewValue("有效关键人", people.length, "people", "人")}${dashboardOverviewValue("关键人覆盖率", dashboardPercent(coverage), "coverage")}${dashboardPeopleLevels(people)}${coverage == null ? '<div class="workbench-empty-note">暂无客户单位</div>' : ""}</div>${dashboardCoverageTable(companies, people)}</div></section>` : "";
         const taskCard = canSeeTasks ? `<section class="panel workbench-card workbench-tasks"><div class="panel-head"><div class="panel-title" id="workbenchTasksTitle">任务概况</div></div><div class="workbench-split" role="region" aria-labelledby="workbenchTasksTitle"><div class="workbench-values">${dashboardOverviewValue("常规任务待完成", pending, "pending", "项")}${dashboardOverviewValue("常规任务逾期", overdue, "overdue", "项")}</div>${dashboardCampaignTable(rows)}</div></section>` : "";
         const projectCard = hasPermission("projects") ? `<section class="panel workbench-card workbench-projects"><div class="panel-head"><div class="panel-title" id="workbenchProjectsTitle">项目概况</div></div><div class="workbench-project-body" role="region" aria-labelledby="workbenchProjectsTitle">${dashboardProjectControls()}<div class="workbench-project-visualization" id="workbenchProjectVisualization">${dashboardProjectChart(dashboardProjectSummary())}</div></div></section>` : "";
-        const todoCard = `<section class="panel workbench-card workbench-todos"><div class="panel-head"><div class="panel-title" id="workbenchTodosTitle">我的待办</div></div><div class="workbench-scroll list dashboard-list" tabindex="0" role="region" aria-labelledby="workbenchTodosTitle">${dashboardList(dashboardOverviewTodos(), "当前没有需要本人处理的事项")}</div></section>`;
+        const todoCard = `<section class="panel workbench-card workbench-todos"><div class="panel-head"><div class="panel-title" id="workbenchTodosTitle">我的待办</div></div>${dashboardTodosBody()}</section>`;
         return pageHead("工作台", "查看关键人、任务与项目概况，安排待办事项。",
           currentUser.role === "admin" ? '<button class="btn" type="button" data-admin-dashboard-view="system">系统运行</button>' : "") +
           `<div class="workbench">${peopleCard}${taskCard}<div class="workbench-bottom">${projectCard}${todoCard}</div></div>`;
@@ -15039,7 +15125,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
         if (currentUser.fullAccess || ["president", "vp"].includes(currentUser.role))
           return true;
         if (currentUser.role === "director")
-          return regionsMatch(projectRegionScope(project), currentUser.region);
+          return companyInCurrentManagedRegion(facts);
         if (currentUser.role === "pm")
           return projectCurrentOwner(project) === currentUser.name;
         return false;
@@ -15420,6 +15506,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
       function projectSatisfactionComplete(project) {
         const satisfaction = projectSatisfaction(project);
         if (!satisfaction || !validProjectScore(satisfaction.projectScore)) return false;
+        if (project.stage !== "已完成" && !projectSatisfactionAttachments(project).some(file => satisfaction.attachmentIds?.includes(file.id))) return false;
         if (project.type === "AI软件项目") return true;
         if (!(project.lecturers || []).length) return false;
         return projectSatisfactionStaffNames(project).every((name) =>
@@ -15894,6 +15981,11 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
         if (matches.length !== 1) return "";
         return cityMatches[0].pm;
       }
+      function projectListSettlementAmount(project) {
+        return project.stage === "已中止"
+          ? project.terminationInvolvesSettlement ? project.terminationSettlementAmount : null
+          : project.settlementAmount;
+      }
       function formatProjectMoney(value) {
         if (value === null || value === undefined) return "—";
         return Number(value).toLocaleString("zh-CN", {
@@ -15922,7 +16014,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
           .join(" ");
       }
       function projectEmptyState(message) {
-        return `<tr data-empty-row><td colspan="13"><div class="empty"><div class="empty-icon">○</div><strong>暂无项目</strong><p class="panel-sub">${message}</p></div></td></tr>`;
+        return `<tr data-empty-row><td colspan="14"><div class="empty"><div class="empty-icon">○</div><strong>暂无项目</strong><p class="panel-sub">${message}</p></div></td></tr>`;
       }
       function projectRowHtml(project) {
         const customerName = projectCustomerFacts(project)?.name || "—";
@@ -15946,7 +16038,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
           `<td>${projectName}</td>` +
           `<td>${project.type}</td><td>${customerNameText}</td><td>${areaText}</td><td>${ownerText}</td>` +
           `<td>${project.startTime}</td><td>${project.endTime}</td>` +
-          `<td>${project.days}</td><td>¥${formatProjectMoney(project.amount)}</td>` +
+          `<td>${project.days}</td><td>¥${formatProjectMoney(project.amount)}</td><td>${formatProjectMoney(projectListSettlementAmount(project))}</td>` +
           `<td>${projectStageTag(project.stage)}</td>` +
           `<td>${projectTodoTags(project.todos)}</td>` +
           `<td><button class="link" type="button" data-project-open="${projectId}">详情</button></td></tr>`
@@ -16059,6 +16151,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
           "结束时间",
           "项目确认天数",
           "项目金额（含税，元）",
+          "结账金额（含税，元）",
           "主阶段",
           "并行待办标识",
           "当前可用操作",
@@ -16070,7 +16163,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
           : projectEmptyState("当前账号数据范围内没有可查看的项目。");
         const filteredEmpty =
           '<tr data-filter-empty style="display:none">' +
-          '<td colspan="13"><div class="empty">未找到符合条件的项目，请调整筛选条件或重置。</div></td></tr>';
+          '<td colspan="14"><div class="empty">未找到符合条件的项目，请调整筛选条件或重置。</div></td></tr>';
         const table =
           '<div class="table-wrap project-table-wrap"><table class="project-table" data-paged-table="m11-projects">' +
           `<thead><tr>${headerCells}</tr></thead>` +
@@ -16104,6 +16197,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
           ["项目编号", project.id],
           ["项目类型", project.type],
           ["所属商机编号", project.opportunityId || "—"],
+          ...(project.type === "AI软件项目" ? [["实际交付时间", project.actualDeliveryTime || "—"]] : []),
           ["客户编号", facts?.customerCode || "—"],
           ["客户公司", facts?.name || "—"],
           ["地区", projectArea(project)],
@@ -16180,7 +16274,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
         return `<div class="project-detail-section"><div class="section-title">项目基本信息</div><div class="detail-grid">${items
           .map(
             ([label, value, formula]) =>
-              `<div class="detail-item"><label${formula ? ' class="project-money-label"' : ""}>${escapeHtml(label)}${formula ? `<span class="project-money-formula">${escapeHtml(formula)}</span>` : ""}</label><div>${escapeHtml(value)}</div></div>`,
+              `<div class="detail-item"><label${label === "所属商机编号" ? ' class="project-opportunity-label"' : formula ? ' class="project-money-label"' : ""}>${escapeHtml(label)}${label === "所属商机编号" && !project.opportunityId ? '<span class="project-opportunity-note">暂不填写</span>' : ""}${formula ? `<span class="project-money-formula">${escapeHtml(formula)}</span>` : ""}</label><div>${escapeHtml(value)}</div></div>`,
           )
           .join("")}</div></div>`;
       }
@@ -16197,6 +16291,19 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
               `<div class="detail-item"><label>${escapeHtml(label)}</label><div>${escapeHtml(value)}</div></div>`,
           )
           .join("")}</div></div>`;
+      }
+      const SATISFACTION_EXTENSIONS = [".jpg", ".jpeg", ".png", ".pdf", ".doc", ".docx", ".xls", ".xlsx"];
+      function projectSatisfactionAttachments(project) {
+        return Array.isArray(project?.satisfactionAttachments) ? project.satisfactionAttachments : [];
+      }
+      function projectSatisfactionFilesHtml(project) {
+        const canView = canViewProjectMaterials();
+        const editable = canEditProjectSatisfaction(project) && projectIsVisibleToCurrentUser(project);
+        const files = canView ? projectSatisfactionAttachments(project) : [];
+        return `<div class="section-title">满意度附件${editable ? ' <span class="required-marker">*</span>' : ''}</div>` +
+          (canView ? files.map(file => `<div class="material-file"><div class="material-file-main">${hasAttachmentPermission("attachment_download") ? `<button type="button" class="link" data-satisfaction-download="${escapeHtml(file.id)}">${escapeHtml(file.name)}</button>` : `<span>${escapeHtml(file.name)}</span>`}<span class="list-sub">${formatFileSize(file.size)}</span></div>${editable && canDeleteProjectMaterials() ? `<button class="link" type="button" data-satisfaction-delete="${escapeHtml(file.id)}">删除</button>` : ''}</div>`).join('') || '<div class="panel-sub">暂无附件</div>' : '<div class="panel-sub">—</div>') +
+          (editable && canUploadProjectMaterials() ? `<label class="form-label" for="satisfactionFileInput">上传满意度附件（至少一份）</label><input id="satisfactionFileInput" type="file" multiple accept="${SATISFACTION_EXTENSIONS.join(',')}"><div class="list-sub">图片不超过20MB，最多100份；PDF、Word、Excel不超过100MB，最多20份。</div>` : '') +
+          '<div class="field-error" id="satisfactionFileErrors" role="status"></div>';
       }
       function projectSatisfactionHtml(project) {
         const satisfaction = projectSatisfaction(project);
@@ -16219,6 +16326,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
             `<div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>项目满意度</label><input class="input" type="number" min="1" max="100" step="0.01" id="satProjectScore" value="${satisfaction?.projectScore ?? ""}"></div>` +
             staffInputs +
             `</div>` +
+            `<div id="satisfactionFiles">${projectSatisfactionFilesHtml(project)}</div>` +
             `<div class="field-error" id="satErrors"></div>` +
             '<div class="project-satisfaction-actions"><button class="btn btn-primary" type="button" data-satisfaction-save>保存满意度</button></div>'
           );
@@ -16233,13 +16341,13 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
             : []),
         ];
         if (rows.every(([, value]) => value === "—"))
-          return '<div class="empty">暂无满意度评分</div>';
+          return `<div class="empty">暂无满意度评分</div><div id="satisfactionFiles">${projectSatisfactionFilesHtml(project)}</div>`;
         return `<div class="table-wrap"><table><thead><tr><th>满意度对象</th><th>评分</th></tr></thead><tbody>${rows
           .map(
             ([label, value]) =>
               `<tr><td>${escapeHtml(label)}</td><td>${escapeHtml(value)}</td></tr>`,
           )
-          .join("")}</tbody></table></div>`;
+          .join("")}</tbody></table></div><div id="satisfactionFiles">${projectSatisfactionFilesHtml(project)}</div>`;
       }
       function projectMaterialsTab(project) {
         const categories = projectMaterialCategories(project);
@@ -16487,16 +16595,21 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
       function configStatusTag(status) {
         return `<span class="tag ${status === "正常" ? "green" : ""}">${status}</span>`;
       }
+      function projectPackageStatus(pkg) {
+        if (pkg && pkg.status !== "已到期" && pkg.validTo && pkg.validTo < DEMO_TODAY)
+          pkg.status = "已到期";
+        return pkg?.status || "";
+      }
       function isProjectPackageValid(pkg) {
         return (
-          pkg.status === "正常" &&
+          projectPackageStatus(pkg) === "正常" &&
           pkg.validFrom <= DEMO_TODAY &&
           pkg.validTo >= DEMO_TODAY
         );
       }
       function scopedProjectPackages() {
         if (!currentUser || !hasOperationPermission("packages.view")) return [];
-        if (hasOperationPermission("packages.manage")) return projectPackages;
+        if (hasOperationPermission("packages.manage")) { projectPackages.forEach(projectPackageStatus); return projectPackages; }
         return projectPackages.filter(isProjectPackageValid);
       }
       function scopedPlatformCompanies() {
@@ -16507,6 +16620,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
         return platformCompanies.filter((company) => company.status === "正常");
       }
       function projectPackageDetailHtml(pkg) {
+        projectPackageStatus(pkg);
         const directionRows = pkg.directions
           .map((direction) => {
             const rate = projectDirectionTaxRate(direction);
@@ -16557,7 +16671,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
           (canManage
             ? filterField(
                 "状态",
-                '<select class="input" id="projectPackageStatusFilter"><option value="">全部状态</option><option value="正常">正常</option><option value="停用">停用</option></select>',
+                '<select class="input" id="projectPackageStatusFilter"><option value="">全部状态</option><option value="正常">正常</option><option value="停用">停用</option><option value="已到期">已到期</option></select>',
               )
             : "") +
           filterField(
@@ -16588,7 +16702,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
             const packageStatus = escapeHtml(pkg.status);
             const createdAt = escapeHtml(pkg.createdAt || "");
             const lastEditedAt = escapeHtml(pkg.lastEditedAt || "");
-            const manageOps = canManage
+            const manageOps = canManage && projectPackageStatus(pkg) !== "已到期"
               ? `<button class="link" data-config-action="edit-package" data-config-id="${pkg.id}">编辑</button><button class="link" data-config-action="${pkg.status === "正常" ? "stop-package" : "restore-package"}" data-config-id="${pkg.id}">${pkg.status === "正常" ? "停用" : "恢复"}</button>`
               : "";
             const ops = `<span class="project-config-actions"><button class="link" data-config-action="view-package" data-config-id="${pkg.id}">详情</button>${manageOps}</span>`;
@@ -16617,7 +16731,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
         return [];
       }
       function projectCreatableCustomers() {
-        if (!currentUser) return [];
+        if (!currentUser || !hasOperationPermission("projects.create")) return [];
         if (currentUser.fullAccess)
           return customers.filter((customer) => !customer.archived);
         if (currentUser.role === "pm") {
@@ -16633,8 +16747,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
           return customers.filter(
             (customer) =>
               !customer.archived &&
-              customer.level === "省公司" &&
-              regionsMatch(customerRegionScope(customer), currentUser.region),
+              companyInCurrentManagedRegion(customer),
           );
         }
         return [];
@@ -16727,6 +16840,9 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
           `<div class="multi-select-menu hidden" data-instructor-menu><input class="input" type="search" data-instructor-search placeholder="搜索${escapeHtml(roleLabel)}" aria-label="搜索${escapeHtml(roleLabel)}"><div data-instructor-options>${optionHtml}</div></div>` +
           `</div><div class="instructor-selected-list" data-instructor-selected aria-live="polite">${selectedHtml}</div></div>`
         );
+      }
+      function projectOpportunityFieldHtml(project) {
+        return `<div class="form-group"><label class="form-label project-opportunity-label" for="pfOpportunity">所属商机编号${!project?.opportunityId ? '<span class="project-opportunity-note" id="pfOpportunityHint">暂不填写</span>' : ""}</label><input class="input" id="pfOpportunity" value="${escapeHtml(project?.opportunityId || "—")}" readonly${!project?.opportunityId ? ' aria-describedby="pfOpportunityHint"' : ""}></div>`;
       }
       function projectFormHtml(project) {
         const editing = Boolean(project);
@@ -16851,7 +16967,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
             true,
           ) +
           `<div class="form-group"><label class="form-label">客户编号</label><div class="input" id="pfCustomerCode">${project ? project.customerSnapshot?.customerCode || "—" : "—"}</div></div>` +
-          `<div class="form-group"><label class="form-label">所属商机编号</label><input class="input" value="—" disabled></div>` +
+          projectOpportunityFieldHtml(project) +
           `<div class="form-group"><label class="form-label">地区</label><div class="input" id="pfArea">${project ? projectArea(project) : "—"}</div></div>` +
           `<div class="form-group"><label class="form-label">项目负责人</label><div class="input" id="pfOwner">${project ? projectCurrentOwner(project) : "—"}</div></div>` +
           `</div>` +
@@ -16974,6 +17090,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
             true,
           ) +
           `<div class="form-group"><label class="form-label">项目类型</label><div class="input">${project.type}</div></div>` +
+          projectOpportunityFieldHtml(project) +
           `<div class="form-group"><label class="form-label">开始时间</label><div class="input">${project.startTime}</div></div>` +
           endField +
           (mode === "in-progress"
@@ -24191,7 +24308,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
         document
           .querySelectorAll("[data-project-confirm-delivery]")
           .forEach((button) => {
-            button.onclick = () => handleProjectConfirmDelivery();
+            button.onclick = () => openProjectDeliveryModal();
           });
         document.querySelectorAll("[data-project-cancel-open]").forEach((button) => {
           button.onclick = () => openProjectCancelModal();
@@ -24484,6 +24601,8 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
         const editing = packageId
           ? projectPackages.find((pkg) => pkg.id === packageId)
           : null;
+        if (packageId && (!editing || projectPackageStatus(editing) === "已到期")) return;
+        const account = currentUser;
         const title = editing ? "编辑采购包" : "新增采购包";
         const directionsHtml = (editing
           ? editing.directions
@@ -24532,6 +24651,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
         };
         $("#packageForm").onsubmit = (event) => {
           event.preventDefault();
+          if (currentUser !== account || !hasOperationPermission("packages.manage") || (editing && projectPackageStatus(editing) === "已到期")) return;
           const directions = [
             ...document.querySelectorAll(
               "#packageDirections .package-direction-row",
@@ -24648,7 +24768,8 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
         const isPackage = kind === "packages";
         const collection = isPackage ? projectPackages : platformCompanies;
         const item = collection.find((entry) => entry.id === id);
-        if (!item) return;
+        if (!item || (isPackage && projectPackageStatus(item) === "已到期")) return;
+        const account = currentUser;
         const label = isPackage ? "采购包" : "平台公司";
         const isStop = action === "stop";
         const title = isStop ? `确认停用${label}` : `确认恢复${label}`;
@@ -24665,6 +24786,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
             "</div>",
         );
         $("#confirmConfigStatus").onclick = () => {
+          if (currentUser !== account || !hasOperationPermission(`${kind}.manage`) || (isPackage && projectPackageStatus(item) === "已到期")) return;
           item.status = isStop ? "停用" : "正常";
           closeOverlay();
           renderPage();
@@ -26007,6 +26129,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
         toast("保存成功");
       }
       function handleProjectFormSubmit(editing, daysConfirmed = false) {
+        if (!editing && !hasOperationPermission("projects.create")) return;
         const project = editing ? projectById(selectedProjectId) : null;
         if (editing) {
           normalizeProjectLifecycle(project);
@@ -26339,11 +26462,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
         const mode = projectMaterialMaintenanceMode(context.project);
         return mode === "full" || mode === "completed-add";
       }
-      async function validateProjectMaterialFile(file, categoryName, project, excludeMaterialId) {
-        const category = projectMaterialCategories(project).find(
-          (item) => item.name === categoryName,
-        );
-        if (!category) return { ok: false, reason: "资料分类无效" };
+      async function validateProjectFile(file, category) {
         const name = file?.name || "";
         if (name.length < 1 || name.length > 200)
           return { ok: false, reason: "文件名长度需为 1-200 字" };
@@ -26373,14 +26492,23 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
         const header = await readFileHeader(file);
         if (!fileHeaderMatches(ext, header))
           return { ok: false, reason: "文件头与声明类型不匹配" };
+        return { ok: true, kind: extRule.kind };
+      }
+      async function validateProjectMaterialFile(file, categoryName, project, excludeMaterialId) {
+        const category = projectMaterialCategories(project).find(
+          (item) => item.name === categoryName,
+        );
+        if (!category) return { ok: false, reason: "资料分类无效" };
+        const check = await validateProjectFile(file, category);
+        if (!check.ok) return check;
         const countError = projectMaterialCountError(
           project,
           categoryName,
-          extRule.kind,
+          check.kind,
           excludeMaterialId,
         );
         if (countError) return { ok: false, reason: countError };
-        return { ok: true, kind: extRule.kind };
+        return { ok: true, kind: check.kind };
       }
       async function handleMaterialAdd(categoryName, files) {
         const project = projectById(selectedProjectId);
@@ -26584,11 +26712,105 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
         setProjectMaterialResults([{ name: file.name, ok: true }], context);
         renderPage();
       }
+      const satisfactionUploads = new Set();
+      const satisfactionFileBlobs = new Map();
+      let satisfactionFileSequence = 0;
+      function canMaintainSatisfactionFiles(context) {
+        if (!projectMaterialOperationContextIsCurrent(context)) return false;
+        normalizeProjectLifecycle(context.project);
+        return canAccessPage("project-detail") && projectIsVisibleToCurrentUser(context.project) && canEditProjectSatisfaction(context.project) && canUploadProjectMaterials();
+      }
+      function refreshSatisfactionFiles(project, errors = []) {
+        const host = $("#satisfactionFiles");
+        if (host) host.innerHTML = projectSatisfactionFilesHtml(project);
+        const errorHost = $("#satisfactionFileErrors");
+        if (errorHost) errorHost.textContent = errors.join("；");
+      }
+      async function handleSatisfactionUpload(files) {
+        const project = projectById(selectedProjectId);
+        if (!project || satisfactionUploads.has(project)) return;
+        const context = projectMaterialOperationContext(project);
+        if (!canMaintainSatisfactionFiles(context)) return;
+        satisfactionUploads.add(project);
+        const results = [];
+        try {
+          const checked = [];
+          for (const file of [...(files || [])]) {
+            let check = SATISFACTION_EXTENSIONS.includes(fileExtension(file.name || ""))
+              ? await validateProjectFile(file, { kinds: ["image", "document"] })
+              : { ok: false, reason: "仅支持图片、PDF、Word、Excel" };
+            if (!canMaintainSatisfactionFiles(context)) return;
+            checked.push({ file, check });
+          }
+          if (!canMaintainSatisfactionFiles(context)) return;
+          const event = createProjectHistoryEvent(project, "上传满意度附件");
+          let addedCount = 0;
+          for (const { file, check } of checked) {
+            if (!check.ok) { results.push(`${file.name}：${check.reason}`); continue; }
+            const current = projectSatisfactionAttachments(project);
+            const rule = PROJECT_FILE_KIND_RULES[check.kind];
+            if (current.filter(item => item.kind === check.kind).length >= rule.maxCount) {
+              results.push(`${file.name}：${rule.label}最多${rule.maxCount}份`); continue;
+            }
+            const attachment = { id: `SAT${++satisfactionFileSequence}`, name: file.name, size: file.size, kind: check.kind, addedBy: context.operatorName, addedAt: projectNow() };
+            project.satisfactionAttachments = [...current, attachment];
+            satisfactionFileBlobs.set(attachment.id, file);
+            addedCount += 1;
+          }
+          if (addedCount) appendProjectHistorySummary(event, `新增满意度附件：${addedCount}个文件`, "满意度");
+          const beforeStage = project.stage;
+          normalizeProjectLifecycle(project, event, projectNow());
+          if (beforeStage !== project.stage && project.stage === "已完成") project.completionPrerequisitesCompletedAt = projectNow();
+          commitProjectHistoryEvent(event);
+          if (project.stage !== beforeStage) renderPage();
+          refreshSatisfactionFiles(project, results);
+        } finally { satisfactionUploads.delete(project); }
+      }
+      function openSatisfactionFileDelete(fileId) {
+        const project = projectById(selectedProjectId);
+        if (!project) return;
+        const context = projectMaterialOperationContext(project);
+        if (!canMaintainSatisfactionFiles(context) || !canDeleteProjectMaterials() || !projectSatisfactionAttachments(project).some(file => file.id === fileId)) return;
+        openModal('<div class="modal-head"><div class="modal-title">确认删除文件</div><button class="icon-btn close" data-close>×</button></div><div class="modal-body">删除后不可恢复，确认删除？</div><div class="modal-foot"><button class="btn" data-close>取消</button><button class="btn btn-primary" id="confirmSatisfactionFileDelete">确认删除</button></div>');
+        $("#confirmSatisfactionFileDelete").onclick = () => {
+          if (!canMaintainSatisfactionFiles(context) || !canDeleteProjectMaterials()) return;
+          const file = projectSatisfactionAttachments(project).find(item => item.id === fileId);
+          if (!file) return;
+          project.satisfactionAttachments = projectSatisfactionAttachments(project).filter(item => item.id !== fileId);
+          satisfactionFileBlobs.delete(fileId);
+          const event = createProjectHistoryEvent(project, "删除满意度附件");
+          appendProjectHistorySummary(event, "删除满意度附件：1个文件", "满意度");
+          normalizeProjectLifecycle(project, event);
+          commitProjectHistoryEvent(event);
+          closeOverlay();
+          refreshSatisfactionFiles(project);
+        };
+      }
+      function downloadSatisfactionFile(fileId) {
+        const project = projectById(selectedProjectId);
+        if (!project || !canAccessPage("project-detail") || !projectIsVisibleToCurrentUser(project) || !canViewProjectMaterials() || !hasAttachmentPermission("attachment_download")) return;
+        const file = projectSatisfactionAttachments(project).find(item => item.id === fileId);
+        const blob = satisfactionFileBlobs.get(fileId);
+        if (!file || !blob) return;
+        const url = URL.createObjectURL(blob);
+        const anchor = document.createElement("a");
+        anchor.href = url; anchor.download = file.name; anchor.click();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+      }
+      document.addEventListener("change", event => {
+        if (event.target?.id === "satisfactionFileInput") handleSatisfactionUpload(event.target.files);
+      });
+      document.addEventListener("click", event => {
+        const remove = event.target?.closest?.("[data-satisfaction-delete]");
+        const download = event.target?.closest?.("[data-satisfaction-download]");
+        if (remove) openSatisfactionFileDelete(remove.dataset.satisfactionDelete);
+        else if (download) downloadSatisfactionFile(download.dataset.satisfactionDownload);
+      });
       function handleSatisfactionSave() {
         const project = projectById(selectedProjectId);
         if (!project) return;
         normalizeProjectLifecycle(project);
-        if (!canEditProjectSatisfaction(project)) return;
+        if (!canAccessPage("project-detail") || !projectIsVisibleToCurrentUser(project) || !canEditProjectSatisfaction(project) || satisfactionUploads.has(project)) return;
         const isTraining = project.type === "培训项目";
         const projectScoreRaw = $("#satProjectScore")?.value.trim() ?? "";
         const projectScore = Number(projectScoreRaw);
@@ -26609,6 +26831,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
             else staffScores[name] = score;
           });
         }
+        if (!projectSatisfactionAttachments(project).length) errors.push("请至少上传一份满意度附件");
         if (errors.length) {
           const el = $("#satErrors");
           if (el)
@@ -26651,9 +26874,13 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
               );
           });
         }
+        const attachmentIds = projectSatisfactionAttachments(project).map(file => file.id);
+        if (JSON.stringify(before.attachmentIds || []) !== JSON.stringify(attachmentIds))
+          appendProjectHistorySummary(historyEvent, `满意度附件：${attachmentIds.length}个文件`, "满意度");
         project.satisfaction = {
           projectScore,
           staffScores,
+          attachmentIds,
           updatedAt: operationTime,
         };
         pruneProjectStaffScores(project);
@@ -26667,23 +26894,44 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
         commitProjectHistoryEvent(historyEvent);
         renderPage();
       }
+      function openProjectDeliveryModal() {
+        const project = projectById(selectedProjectId);
+        if (!project) return;
+        normalizeProjectLifecycle(project);
+        if (!canAccessPage("project-detail") || !projectIsVisibleToCurrentUser(project) || !canConfirmProjectDelivery(project) || project.deliveryConfirmed) return;
+        const context = projectMaterialOperationContext(project);
+        openModal(`<div class="modal-head"><div class="modal-title">确认 AI 软件项目交付</div><button class="icon-btn close" data-close>×</button></div><div class="modal-body"><label class="form-label" for="projectActualDelivery"><span class="required-marker">*</span>实际交付时间</label><input class="input" id="projectActualDelivery" type="datetime-local" min="${project.startTime.replace(' ', 'T')}" max="${projectNow().slice(0,16).replace(' ', 'T')}" value=""><div class="field-error" id="err-actualDelivery"></div></div><div class="modal-foot"><button class="btn" data-close>取消</button><button class="btn btn-primary" id="confirmProjectDelivery">确认交付</button></div>`);
+        $("#confirmProjectDelivery").onclick = () => {
+          if (projectMaterialOperationContextIsCurrent(context)) handleProjectConfirmDelivery();
+        };
+      }
       function handleProjectConfirmDelivery() {
         const project = projectById(selectedProjectId);
         if (!project) return;
         normalizeProjectLifecycle(project);
-        if (!canConfirmProjectDelivery(project) || project.deliveryConfirmed)
+        if (!canAccessPage("project-detail") || !projectIsVisibleToCurrentUser(project) || !canConfirmProjectDelivery(project) || project.deliveryConfirmed)
           return;
         const operationTime = projectNow();
+        const actual = ($("#projectActualDelivery")?.value || "").replace("T", " ");
+        const value = projectMomentValue(actual);
+        const validDate = Number.isFinite(value) && new Date(value).toISOString().slice(0,16).replace("T", " ") === actual;
+        if (!/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/.test(actual) || !validDate || actual < project.startTime || actual > operationTime.slice(0,16)) {
+          $("#err-actualDelivery").textContent = "请填写项目开始至当前时间内的实际交付时间";
+          return;
+        }
         const historyEvent = createProjectHistoryEvent(
           project,
           "确认项目交付",
           { operator: currentUser.name, time: operationTime },
         );
+        project.actualDeliveryTime = actual;
+        appendProjectHistoryChange(historyEvent, "实际交付时间", "未填写", actual, "时间与金额");
         project.deliveryConfirmed = true;
         project.deliveryConfirmedBy = currentUser.name;
         project.deliveryConfirmedAt = operationTime;
         normalizeProjectLifecycle(project, historyEvent, operationTime);
         commitProjectHistoryEvent(historyEvent);
+        closeOverlay();
         renderPage();
       }
       function submitProjectCancel() {

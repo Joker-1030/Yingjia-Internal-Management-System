@@ -170,7 +170,7 @@
         if (currentUser.fullAccess || ["president", "vp"].includes(currentUser.role))
           return true;
         if (currentUser.role === "director")
-          return regionsMatch(projectRegionScope(project), currentUser.region);
+          return companyInCurrentManagedRegion(facts);
         if (currentUser.role === "pm")
           return projectCurrentOwner(project) === currentUser.name;
         return false;
@@ -551,6 +551,7 @@
       function projectSatisfactionComplete(project) {
         const satisfaction = projectSatisfaction(project);
         if (!satisfaction || !validProjectScore(satisfaction.projectScore)) return false;
+        if (project.stage !== "已完成" && !projectSatisfactionAttachments(project).some(file => satisfaction.attachmentIds?.includes(file.id))) return false;
         if (project.type === "AI软件项目") return true;
         if (!(project.lecturers || []).length) return false;
         return projectSatisfactionStaffNames(project).every((name) =>
@@ -1025,6 +1026,11 @@
         if (matches.length !== 1) return "";
         return cityMatches[0].pm;
       }
+      function projectListSettlementAmount(project) {
+        return project.stage === "已中止"
+          ? project.terminationInvolvesSettlement ? project.terminationSettlementAmount : null
+          : project.settlementAmount;
+      }
       function formatProjectMoney(value) {
         if (value === null || value === undefined) return "—";
         return Number(value).toLocaleString("zh-CN", {
@@ -1053,7 +1059,7 @@
           .join(" ");
       }
       function projectEmptyState(message) {
-        return `<tr data-empty-row><td colspan="13"><div class="empty"><div class="empty-icon">○</div><strong>暂无项目</strong><p class="panel-sub">${message}</p></div></td></tr>`;
+        return `<tr data-empty-row><td colspan="14"><div class="empty"><div class="empty-icon">○</div><strong>暂无项目</strong><p class="panel-sub">${message}</p></div></td></tr>`;
       }
       function projectRowHtml(project) {
         const customerName = projectCustomerFacts(project)?.name || "—";
@@ -1077,7 +1083,7 @@
           `<td>${projectName}</td>` +
           `<td>${project.type}</td><td>${customerNameText}</td><td>${areaText}</td><td>${ownerText}</td>` +
           `<td>${project.startTime}</td><td>${project.endTime}</td>` +
-          `<td>${project.days}</td><td>¥${formatProjectMoney(project.amount)}</td>` +
+          `<td>${project.days}</td><td>¥${formatProjectMoney(project.amount)}</td><td>${formatProjectMoney(projectListSettlementAmount(project))}</td>` +
           `<td>${projectStageTag(project.stage)}</td>` +
           `<td>${projectTodoTags(project.todos)}</td>` +
           `<td><button class="link" type="button" data-project-open="${projectId}">详情</button></td></tr>`
@@ -1190,6 +1196,7 @@
           "结束时间",
           "项目确认天数",
           "项目金额（含税，元）",
+          "结账金额（含税，元）",
           "主阶段",
           "并行待办标识",
           "当前可用操作",
@@ -1201,7 +1208,7 @@
           : projectEmptyState("当前账号数据范围内没有可查看的项目。");
         const filteredEmpty =
           '<tr data-filter-empty style="display:none">' +
-          '<td colspan="13"><div class="empty">未找到符合条件的项目，请调整筛选条件或重置。</div></td></tr>';
+          '<td colspan="14"><div class="empty">未找到符合条件的项目，请调整筛选条件或重置。</div></td></tr>';
         const table =
           '<div class="table-wrap project-table-wrap"><table class="project-table" data-paged-table="m11-projects">' +
           `<thead><tr>${headerCells}</tr></thead>` +
@@ -1235,6 +1242,7 @@
           ["项目编号", project.id],
           ["项目类型", project.type],
           ["所属商机编号", project.opportunityId || "—"],
+          ...(project.type === "AI软件项目" ? [["实际交付时间", project.actualDeliveryTime || "—"]] : []),
           ["客户编号", facts?.customerCode || "—"],
           ["客户公司", facts?.name || "—"],
           ["地区", projectArea(project)],
@@ -1311,7 +1319,7 @@
         return `<div class="project-detail-section"><div class="section-title">项目基本信息</div><div class="detail-grid">${items
           .map(
             ([label, value, formula]) =>
-              `<div class="detail-item"><label${formula ? ' class="project-money-label"' : ""}>${escapeHtml(label)}${formula ? `<span class="project-money-formula">${escapeHtml(formula)}</span>` : ""}</label><div>${escapeHtml(value)}</div></div>`,
+              `<div class="detail-item"><label${label === "所属商机编号" ? ' class="project-opportunity-label"' : formula ? ' class="project-money-label"' : ""}>${escapeHtml(label)}${label === "所属商机编号" && !project.opportunityId ? '<span class="project-opportunity-note">暂不填写</span>' : ""}${formula ? `<span class="project-money-formula">${escapeHtml(formula)}</span>` : ""}</label><div>${escapeHtml(value)}</div></div>`,
           )
           .join("")}</div></div>`;
       }
@@ -1328,6 +1336,19 @@
               `<div class="detail-item"><label>${escapeHtml(label)}</label><div>${escapeHtml(value)}</div></div>`,
           )
           .join("")}</div></div>`;
+      }
+      const SATISFACTION_EXTENSIONS = [".jpg", ".jpeg", ".png", ".pdf", ".doc", ".docx", ".xls", ".xlsx"];
+      function projectSatisfactionAttachments(project) {
+        return Array.isArray(project?.satisfactionAttachments) ? project.satisfactionAttachments : [];
+      }
+      function projectSatisfactionFilesHtml(project) {
+        const canView = canViewProjectMaterials();
+        const editable = canEditProjectSatisfaction(project) && projectIsVisibleToCurrentUser(project);
+        const files = canView ? projectSatisfactionAttachments(project) : [];
+        return `<div class="section-title">满意度附件${editable ? ' <span class="required-marker">*</span>' : ''}</div>` +
+          (canView ? files.map(file => `<div class="material-file"><div class="material-file-main">${hasAttachmentPermission("attachment_download") ? `<button type="button" class="link" data-satisfaction-download="${escapeHtml(file.id)}">${escapeHtml(file.name)}</button>` : `<span>${escapeHtml(file.name)}</span>`}<span class="list-sub">${formatFileSize(file.size)}</span></div>${editable && canDeleteProjectMaterials() ? `<button class="link" type="button" data-satisfaction-delete="${escapeHtml(file.id)}">删除</button>` : ''}</div>`).join('') || '<div class="panel-sub">暂无附件</div>' : '<div class="panel-sub">—</div>') +
+          (editable && canUploadProjectMaterials() ? `<label class="form-label" for="satisfactionFileInput">上传满意度附件（至少一份）</label><input id="satisfactionFileInput" type="file" multiple accept="${SATISFACTION_EXTENSIONS.join(',')}"><div class="list-sub">图片不超过20MB，最多100份；PDF、Word、Excel不超过100MB，最多20份。</div>` : '') +
+          '<div class="field-error" id="satisfactionFileErrors" role="status"></div>';
       }
       function projectSatisfactionHtml(project) {
         const satisfaction = projectSatisfaction(project);
@@ -1350,6 +1371,7 @@
             `<div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>项目满意度</label><input class="input" type="number" min="1" max="100" step="0.01" id="satProjectScore" value="${satisfaction?.projectScore ?? ""}"></div>` +
             staffInputs +
             `</div>` +
+            `<div id="satisfactionFiles">${projectSatisfactionFilesHtml(project)}</div>` +
             `<div class="field-error" id="satErrors"></div>` +
             '<div class="project-satisfaction-actions"><button class="btn btn-primary" type="button" data-satisfaction-save>保存满意度</button></div>'
           );
@@ -1364,13 +1386,13 @@
             : []),
         ];
         if (rows.every(([, value]) => value === "—"))
-          return '<div class="empty">暂无满意度评分</div>';
+          return `<div class="empty">暂无满意度评分</div><div id="satisfactionFiles">${projectSatisfactionFilesHtml(project)}</div>`;
         return `<div class="table-wrap"><table><thead><tr><th>满意度对象</th><th>评分</th></tr></thead><tbody>${rows
           .map(
             ([label, value]) =>
               `<tr><td>${escapeHtml(label)}</td><td>${escapeHtml(value)}</td></tr>`,
           )
-          .join("")}</tbody></table></div>`;
+          .join("")}</tbody></table></div><div id="satisfactionFiles">${projectSatisfactionFilesHtml(project)}</div>`;
       }
       function projectMaterialsTab(project) {
         const categories = projectMaterialCategories(project);
@@ -1618,16 +1640,21 @@
       function configStatusTag(status) {
         return `<span class="tag ${status === "正常" ? "green" : ""}">${status}</span>`;
       }
+      function projectPackageStatus(pkg) {
+        if (pkg && pkg.status !== "已到期" && pkg.validTo && pkg.validTo < DEMO_TODAY)
+          pkg.status = "已到期";
+        return pkg?.status || "";
+      }
       function isProjectPackageValid(pkg) {
         return (
-          pkg.status === "正常" &&
+          projectPackageStatus(pkg) === "正常" &&
           pkg.validFrom <= DEMO_TODAY &&
           pkg.validTo >= DEMO_TODAY
         );
       }
       function scopedProjectPackages() {
         if (!currentUser || !hasOperationPermission("packages.view")) return [];
-        if (hasOperationPermission("packages.manage")) return projectPackages;
+        if (hasOperationPermission("packages.manage")) { projectPackages.forEach(projectPackageStatus); return projectPackages; }
         return projectPackages.filter(isProjectPackageValid);
       }
       function scopedPlatformCompanies() {
@@ -1638,6 +1665,7 @@
         return platformCompanies.filter((company) => company.status === "正常");
       }
       function projectPackageDetailHtml(pkg) {
+        projectPackageStatus(pkg);
         const directionRows = pkg.directions
           .map((direction) => {
             const rate = projectDirectionTaxRate(direction);
@@ -1688,7 +1716,7 @@
           (canManage
             ? filterField(
                 "状态",
-                '<select class="input" id="projectPackageStatusFilter"><option value="">全部状态</option><option value="正常">正常</option><option value="停用">停用</option></select>',
+                '<select class="input" id="projectPackageStatusFilter"><option value="">全部状态</option><option value="正常">正常</option><option value="停用">停用</option><option value="已到期">已到期</option></select>',
               )
             : "") +
           filterField(
@@ -1719,7 +1747,7 @@
             const packageStatus = escapeHtml(pkg.status);
             const createdAt = escapeHtml(pkg.createdAt || "");
             const lastEditedAt = escapeHtml(pkg.lastEditedAt || "");
-            const manageOps = canManage
+            const manageOps = canManage && projectPackageStatus(pkg) !== "已到期"
               ? `<button class="link" data-config-action="edit-package" data-config-id="${pkg.id}">编辑</button><button class="link" data-config-action="${pkg.status === "正常" ? "stop-package" : "restore-package"}" data-config-id="${pkg.id}">${pkg.status === "正常" ? "停用" : "恢复"}</button>`
               : "";
             const ops = `<span class="project-config-actions"><button class="link" data-config-action="view-package" data-config-id="${pkg.id}">详情</button>${manageOps}</span>`;
@@ -1748,7 +1776,7 @@
         return [];
       }
       function projectCreatableCustomers() {
-        if (!currentUser) return [];
+        if (!currentUser || !hasOperationPermission("projects.create")) return [];
         if (currentUser.fullAccess)
           return customers.filter((customer) => !customer.archived);
         if (currentUser.role === "pm") {
@@ -1764,8 +1792,7 @@
           return customers.filter(
             (customer) =>
               !customer.archived &&
-              customer.level === "省公司" &&
-              regionsMatch(customerRegionScope(customer), currentUser.region),
+              companyInCurrentManagedRegion(customer),
           );
         }
         return [];
@@ -1858,6 +1885,9 @@
           `<div class="multi-select-menu hidden" data-instructor-menu><input class="input" type="search" data-instructor-search placeholder="搜索${escapeHtml(roleLabel)}" aria-label="搜索${escapeHtml(roleLabel)}"><div data-instructor-options>${optionHtml}</div></div>` +
           `</div><div class="instructor-selected-list" data-instructor-selected aria-live="polite">${selectedHtml}</div></div>`
         );
+      }
+      function projectOpportunityFieldHtml(project) {
+        return `<div class="form-group"><label class="form-label project-opportunity-label" for="pfOpportunity">所属商机编号${!project?.opportunityId ? '<span class="project-opportunity-note" id="pfOpportunityHint">暂不填写</span>' : ""}</label><input class="input" id="pfOpportunity" value="${escapeHtml(project?.opportunityId || "—")}" readonly${!project?.opportunityId ? ' aria-describedby="pfOpportunityHint"' : ""}></div>`;
       }
       function projectFormHtml(project) {
         const editing = Boolean(project);
@@ -1982,7 +2012,7 @@
             true,
           ) +
           `<div class="form-group"><label class="form-label">客户编号</label><div class="input" id="pfCustomerCode">${project ? project.customerSnapshot?.customerCode || "—" : "—"}</div></div>` +
-          `<div class="form-group"><label class="form-label">所属商机编号</label><input class="input" value="—" disabled></div>` +
+          projectOpportunityFieldHtml(project) +
           `<div class="form-group"><label class="form-label">地区</label><div class="input" id="pfArea">${project ? projectArea(project) : "—"}</div></div>` +
           `<div class="form-group"><label class="form-label">项目负责人</label><div class="input" id="pfOwner">${project ? projectCurrentOwner(project) : "—"}</div></div>` +
           `</div>` +
@@ -2105,6 +2135,7 @@
             true,
           ) +
           `<div class="form-group"><label class="form-label">项目类型</label><div class="input">${project.type}</div></div>` +
+          projectOpportunityFieldHtml(project) +
           `<div class="form-group"><label class="form-label">开始时间</label><div class="input">${project.startTime}</div></div>` +
           endField +
           (mode === "in-progress"

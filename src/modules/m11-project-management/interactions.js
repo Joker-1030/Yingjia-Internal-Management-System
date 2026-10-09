@@ -51,7 +51,7 @@
         document
           .querySelectorAll("[data-project-confirm-delivery]")
           .forEach((button) => {
-            button.onclick = () => handleProjectConfirmDelivery();
+            button.onclick = () => openProjectDeliveryModal();
           });
         document.querySelectorAll("[data-project-cancel-open]").forEach((button) => {
           button.onclick = () => openProjectCancelModal();
@@ -344,6 +344,8 @@
         const editing = packageId
           ? projectPackages.find((pkg) => pkg.id === packageId)
           : null;
+        if (packageId && (!editing || projectPackageStatus(editing) === "已到期")) return;
+        const account = currentUser;
         const title = editing ? "编辑采购包" : "新增采购包";
         const directionsHtml = (editing
           ? editing.directions
@@ -392,6 +394,7 @@
         };
         $("#packageForm").onsubmit = (event) => {
           event.preventDefault();
+          if (currentUser !== account || !hasOperationPermission("packages.manage") || (editing && projectPackageStatus(editing) === "已到期")) return;
           const directions = [
             ...document.querySelectorAll(
               "#packageDirections .package-direction-row",
@@ -508,7 +511,8 @@
         const isPackage = kind === "packages";
         const collection = isPackage ? projectPackages : platformCompanies;
         const item = collection.find((entry) => entry.id === id);
-        if (!item) return;
+        if (!item || (isPackage && projectPackageStatus(item) === "已到期")) return;
+        const account = currentUser;
         const label = isPackage ? "采购包" : "平台公司";
         const isStop = action === "stop";
         const title = isStop ? `确认停用${label}` : `确认恢复${label}`;
@@ -525,6 +529,7 @@
             "</div>",
         );
         $("#confirmConfigStatus").onclick = () => {
+          if (currentUser !== account || !hasOperationPermission(`${kind}.manage`) || (isPackage && projectPackageStatus(item) === "已到期")) return;
           item.status = isStop ? "停用" : "正常";
           closeOverlay();
           renderPage();
@@ -1867,6 +1872,7 @@
         toast("保存成功");
       }
       function handleProjectFormSubmit(editing, daysConfirmed = false) {
+        if (!editing && !hasOperationPermission("projects.create")) return;
         const project = editing ? projectById(selectedProjectId) : null;
         if (editing) {
           normalizeProjectLifecycle(project);
@@ -2199,11 +2205,7 @@
         const mode = projectMaterialMaintenanceMode(context.project);
         return mode === "full" || mode === "completed-add";
       }
-      async function validateProjectMaterialFile(file, categoryName, project, excludeMaterialId) {
-        const category = projectMaterialCategories(project).find(
-          (item) => item.name === categoryName,
-        );
-        if (!category) return { ok: false, reason: "资料分类无效" };
+      async function validateProjectFile(file, category) {
         const name = file?.name || "";
         if (name.length < 1 || name.length > 200)
           return { ok: false, reason: "文件名长度需为 1-200 字" };
@@ -2233,14 +2235,23 @@
         const header = await readFileHeader(file);
         if (!fileHeaderMatches(ext, header))
           return { ok: false, reason: "文件头与声明类型不匹配" };
+        return { ok: true, kind: extRule.kind };
+      }
+      async function validateProjectMaterialFile(file, categoryName, project, excludeMaterialId) {
+        const category = projectMaterialCategories(project).find(
+          (item) => item.name === categoryName,
+        );
+        if (!category) return { ok: false, reason: "资料分类无效" };
+        const check = await validateProjectFile(file, category);
+        if (!check.ok) return check;
         const countError = projectMaterialCountError(
           project,
           categoryName,
-          extRule.kind,
+          check.kind,
           excludeMaterialId,
         );
         if (countError) return { ok: false, reason: countError };
-        return { ok: true, kind: extRule.kind };
+        return { ok: true, kind: check.kind };
       }
       async function handleMaterialAdd(categoryName, files) {
         const project = projectById(selectedProjectId);
@@ -2444,11 +2455,105 @@
         setProjectMaterialResults([{ name: file.name, ok: true }], context);
         renderPage();
       }
+      const satisfactionUploads = new Set();
+      const satisfactionFileBlobs = new Map();
+      let satisfactionFileSequence = 0;
+      function canMaintainSatisfactionFiles(context) {
+        if (!projectMaterialOperationContextIsCurrent(context)) return false;
+        normalizeProjectLifecycle(context.project);
+        return canAccessPage("project-detail") && projectIsVisibleToCurrentUser(context.project) && canEditProjectSatisfaction(context.project) && canUploadProjectMaterials();
+      }
+      function refreshSatisfactionFiles(project, errors = []) {
+        const host = $("#satisfactionFiles");
+        if (host) host.innerHTML = projectSatisfactionFilesHtml(project);
+        const errorHost = $("#satisfactionFileErrors");
+        if (errorHost) errorHost.textContent = errors.join("；");
+      }
+      async function handleSatisfactionUpload(files) {
+        const project = projectById(selectedProjectId);
+        if (!project || satisfactionUploads.has(project)) return;
+        const context = projectMaterialOperationContext(project);
+        if (!canMaintainSatisfactionFiles(context)) return;
+        satisfactionUploads.add(project);
+        const results = [];
+        try {
+          const checked = [];
+          for (const file of [...(files || [])]) {
+            let check = SATISFACTION_EXTENSIONS.includes(fileExtension(file.name || ""))
+              ? await validateProjectFile(file, { kinds: ["image", "document"] })
+              : { ok: false, reason: "仅支持图片、PDF、Word、Excel" };
+            if (!canMaintainSatisfactionFiles(context)) return;
+            checked.push({ file, check });
+          }
+          if (!canMaintainSatisfactionFiles(context)) return;
+          const event = createProjectHistoryEvent(project, "上传满意度附件");
+          let addedCount = 0;
+          for (const { file, check } of checked) {
+            if (!check.ok) { results.push(`${file.name}：${check.reason}`); continue; }
+            const current = projectSatisfactionAttachments(project);
+            const rule = PROJECT_FILE_KIND_RULES[check.kind];
+            if (current.filter(item => item.kind === check.kind).length >= rule.maxCount) {
+              results.push(`${file.name}：${rule.label}最多${rule.maxCount}份`); continue;
+            }
+            const attachment = { id: `SAT${++satisfactionFileSequence}`, name: file.name, size: file.size, kind: check.kind, addedBy: context.operatorName, addedAt: projectNow() };
+            project.satisfactionAttachments = [...current, attachment];
+            satisfactionFileBlobs.set(attachment.id, file);
+            addedCount += 1;
+          }
+          if (addedCount) appendProjectHistorySummary(event, `新增满意度附件：${addedCount}个文件`, "满意度");
+          const beforeStage = project.stage;
+          normalizeProjectLifecycle(project, event, projectNow());
+          if (beforeStage !== project.stage && project.stage === "已完成") project.completionPrerequisitesCompletedAt = projectNow();
+          commitProjectHistoryEvent(event);
+          if (project.stage !== beforeStage) renderPage();
+          refreshSatisfactionFiles(project, results);
+        } finally { satisfactionUploads.delete(project); }
+      }
+      function openSatisfactionFileDelete(fileId) {
+        const project = projectById(selectedProjectId);
+        if (!project) return;
+        const context = projectMaterialOperationContext(project);
+        if (!canMaintainSatisfactionFiles(context) || !canDeleteProjectMaterials() || !projectSatisfactionAttachments(project).some(file => file.id === fileId)) return;
+        openModal('<div class="modal-head"><div class="modal-title">确认删除文件</div><button class="icon-btn close" data-close>×</button></div><div class="modal-body">删除后不可恢复，确认删除？</div><div class="modal-foot"><button class="btn" data-close>取消</button><button class="btn btn-primary" id="confirmSatisfactionFileDelete">确认删除</button></div>');
+        $("#confirmSatisfactionFileDelete").onclick = () => {
+          if (!canMaintainSatisfactionFiles(context) || !canDeleteProjectMaterials()) return;
+          const file = projectSatisfactionAttachments(project).find(item => item.id === fileId);
+          if (!file) return;
+          project.satisfactionAttachments = projectSatisfactionAttachments(project).filter(item => item.id !== fileId);
+          satisfactionFileBlobs.delete(fileId);
+          const event = createProjectHistoryEvent(project, "删除满意度附件");
+          appendProjectHistorySummary(event, "删除满意度附件：1个文件", "满意度");
+          normalizeProjectLifecycle(project, event);
+          commitProjectHistoryEvent(event);
+          closeOverlay();
+          refreshSatisfactionFiles(project);
+        };
+      }
+      function downloadSatisfactionFile(fileId) {
+        const project = projectById(selectedProjectId);
+        if (!project || !canAccessPage("project-detail") || !projectIsVisibleToCurrentUser(project) || !canViewProjectMaterials() || !hasAttachmentPermission("attachment_download")) return;
+        const file = projectSatisfactionAttachments(project).find(item => item.id === fileId);
+        const blob = satisfactionFileBlobs.get(fileId);
+        if (!file || !blob) return;
+        const url = URL.createObjectURL(blob);
+        const anchor = document.createElement("a");
+        anchor.href = url; anchor.download = file.name; anchor.click();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+      }
+      document.addEventListener("change", event => {
+        if (event.target?.id === "satisfactionFileInput") handleSatisfactionUpload(event.target.files);
+      });
+      document.addEventListener("click", event => {
+        const remove = event.target?.closest?.("[data-satisfaction-delete]");
+        const download = event.target?.closest?.("[data-satisfaction-download]");
+        if (remove) openSatisfactionFileDelete(remove.dataset.satisfactionDelete);
+        else if (download) downloadSatisfactionFile(download.dataset.satisfactionDownload);
+      });
       function handleSatisfactionSave() {
         const project = projectById(selectedProjectId);
         if (!project) return;
         normalizeProjectLifecycle(project);
-        if (!canEditProjectSatisfaction(project)) return;
+        if (!canAccessPage("project-detail") || !projectIsVisibleToCurrentUser(project) || !canEditProjectSatisfaction(project) || satisfactionUploads.has(project)) return;
         const isTraining = project.type === "培训项目";
         const projectScoreRaw = $("#satProjectScore")?.value.trim() ?? "";
         const projectScore = Number(projectScoreRaw);
@@ -2469,6 +2574,7 @@
             else staffScores[name] = score;
           });
         }
+        if (!projectSatisfactionAttachments(project).length) errors.push("请至少上传一份满意度附件");
         if (errors.length) {
           const el = $("#satErrors");
           if (el)
@@ -2511,9 +2617,13 @@
               );
           });
         }
+        const attachmentIds = projectSatisfactionAttachments(project).map(file => file.id);
+        if (JSON.stringify(before.attachmentIds || []) !== JSON.stringify(attachmentIds))
+          appendProjectHistorySummary(historyEvent, `满意度附件：${attachmentIds.length}个文件`, "满意度");
         project.satisfaction = {
           projectScore,
           staffScores,
+          attachmentIds,
           updatedAt: operationTime,
         };
         pruneProjectStaffScores(project);
@@ -2527,23 +2637,44 @@
         commitProjectHistoryEvent(historyEvent);
         renderPage();
       }
+      function openProjectDeliveryModal() {
+        const project = projectById(selectedProjectId);
+        if (!project) return;
+        normalizeProjectLifecycle(project);
+        if (!canAccessPage("project-detail") || !projectIsVisibleToCurrentUser(project) || !canConfirmProjectDelivery(project) || project.deliveryConfirmed) return;
+        const context = projectMaterialOperationContext(project);
+        openModal(`<div class="modal-head"><div class="modal-title">确认 AI 软件项目交付</div><button class="icon-btn close" data-close>×</button></div><div class="modal-body"><label class="form-label" for="projectActualDelivery"><span class="required-marker">*</span>实际交付时间</label><input class="input" id="projectActualDelivery" type="datetime-local" min="${project.startTime.replace(' ', 'T')}" max="${projectNow().slice(0,16).replace(' ', 'T')}" value=""><div class="field-error" id="err-actualDelivery"></div></div><div class="modal-foot"><button class="btn" data-close>取消</button><button class="btn btn-primary" id="confirmProjectDelivery">确认交付</button></div>`);
+        $("#confirmProjectDelivery").onclick = () => {
+          if (projectMaterialOperationContextIsCurrent(context)) handleProjectConfirmDelivery();
+        };
+      }
       function handleProjectConfirmDelivery() {
         const project = projectById(selectedProjectId);
         if (!project) return;
         normalizeProjectLifecycle(project);
-        if (!canConfirmProjectDelivery(project) || project.deliveryConfirmed)
+        if (!canAccessPage("project-detail") || !projectIsVisibleToCurrentUser(project) || !canConfirmProjectDelivery(project) || project.deliveryConfirmed)
           return;
         const operationTime = projectNow();
+        const actual = ($("#projectActualDelivery")?.value || "").replace("T", " ");
+        const value = projectMomentValue(actual);
+        const validDate = Number.isFinite(value) && new Date(value).toISOString().slice(0,16).replace("T", " ") === actual;
+        if (!/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/.test(actual) || !validDate || actual < project.startTime || actual > operationTime.slice(0,16)) {
+          $("#err-actualDelivery").textContent = "请填写项目开始至当前时间内的实际交付时间";
+          return;
+        }
         const historyEvent = createProjectHistoryEvent(
           project,
           "确认项目交付",
           { operator: currentUser.name, time: operationTime },
         );
+        project.actualDeliveryTime = actual;
+        appendProjectHistoryChange(historyEvent, "实际交付时间", "未填写", actual, "时间与金额");
         project.deliveryConfirmed = true;
         project.deliveryConfirmedBy = currentUser.name;
         project.deliveryConfirmedAt = operationTime;
         normalizeProjectLifecycle(project, historyEvent, operationTime);
         commitProjectHistoryEvent(historyEvent);
+        closeOverlay();
         renderPage();
       }
       function submitProjectCancel() {

@@ -1,11 +1,11 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-10-08T08:58:51.816Z",
+  "generatedAt": "2026-10-09T03:29:06.774Z",
   "generator": "scripts/build-prototype.mjs",
   "buildCommand": "node scripts/build-prototype.mjs",
   "sourceRoot": "src",
   "entry": "src/prototype.html",
-  "sourceDigest": "43e02f3cc1d155b91cffb6305712786f6426effbaa678ec4956f9008fc13ad9a",
+  "sourceDigest": "01b43cb6569d72e8f683cd12134e4414eb90712b944ae9534d1dd8803c84375a",
   "sourceFiles": [
     {
       "path": "src/app.js",
@@ -189,8 +189,8 @@
     },
     {
       "path": "src/modules/m01-dashboard/page.js",
-      "sha256": "94ab13ddd2a69d81740695ea2cd6579a2e65fb6451d09b63a7a2cf9351b342f1",
-      "bytes": 52204
+      "sha256": "81a41ad95dbd776bc34341e659da8d501a6bbe8a644ceefb88a7515a99e8c4dd",
+      "bytes": 57490
     },
     {
       "path": "src/modules/m02-customer-operations/customer-tree.js",
@@ -364,8 +364,8 @@
     },
     {
       "path": "src/modules/m11-project-management/interactions.js",
-      "sha256": "43cec2ea3fc450e34eabe45508197f1f8a1d6eb7b9822f2c303ea8ea4d152a48",
-      "bytes": 122722
+      "sha256": "e3a0b1adf81233bb0443dd5b5ea5d78ace0e35a7e0a31cc209fa9e078e65fb0b",
+      "bytes": 132301
     },
     {
       "path": "src/modules/m11-project-management/module.json",
@@ -374,8 +374,8 @@
     },
     {
       "path": "src/modules/m11-project-management/page.js",
-      "sha256": "4d8c3e819ed8184fbe1b9e2a653e5d01ca85c7b5f1dc1a7053fa480abdce6b23",
-      "bytes": 107154
+      "sha256": "69f3ae2a1c3ae6d6b959dd31d56d5f94d2548c5848e4a11044f4912b468ff2f6",
+      "bytes": 110838
     },
     {
       "path": "src/modules/m12-sales-opportunity/interactions.js",
@@ -399,8 +399,8 @@
     },
     {
       "path": "src/styles/prototype.css",
-      "sha256": "bcc251d3680277677892031b7b51d572fe8d52cb14c8ec454c8120686e9cbfe2",
-      "bytes": 152617
+      "sha256": "b3814b737b53d9f1d05b1935b98b208048bbe8370f1f1731940477eb7181112a",
+      "bytes": 154812
     }
   ],
   "artifactInputs": [
@@ -472,8 +472,8 @@
   ],
   "artifact": {
     "path": "demo/prototype.html",
-    "sha256": "62110e3ab8d4f720a16dbcf5110362bb2bb7981b8ee2a1100c6e28929f4c38ed",
-    "bytes": 2440977
+    "sha256": "b730384bfb4be137394cc856a45c036961d1d7d03e5e76b2793eb002ff5b14f5",
+    "bytes": 2461721
   },
   "legacyBridge": false,
   "architecture": "lightweight-modular",

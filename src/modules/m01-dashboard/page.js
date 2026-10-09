@@ -236,7 +236,7 @@
       }
 
       function dashboardTodoItems() {
-        const rows = scopedTasks();
+        const rows = hasPermission("tasks") && hasDataObject("维系任务") ? scopedTasks() : [];
         const canOwnTaskTodo = ["pm", "director"].includes(currentUser.role);
         const taskItems = (canOwnTaskTodo ? rows : [])
           .filter(
@@ -244,16 +244,6 @@
               task.pm === currentUser.name &&
               ["overdue", "pending"].includes(task.status),
           )
-          .sort((a, b) => {
-            const priority = (task) =>
-              ["overdue", "expired"].includes(task.status)
-                ? 0
-                : task.due === DEMO_TODAY
-                  ? 1
-                  : 2;
-            return priority(a) - priority(b) || a.due.localeCompare(b.due);
-          })
-          .slice(0, currentUser.role === "pm" ? 5 : 3)
           .map((task) => ({
             icon: "任",
             title: taskStatusName(task.status, task),
@@ -261,14 +251,23 @@
             tone: ["overdue", "expired"].includes(task.status) ? "red" : "yellow",
             action: "task-detail",
             id: task.id,
+            category: task.type === "常规维系" ? "regular" : ["生日关怀", "节假日关怀"].includes(task.type) ? "seasonal" : "campaign",
+            due: task.due ? task.due.length === 10 ? task.due + " 23:59" : task.due : "",
+            overdue: task.status === "overdue",
+            createdAt: task.createdAt || "",
+            sortId: String(task.id),
             command: currentUser.role === "pm" && task.status !== "expired" ? "处理" : "查看",
           }));
-        const projectItems = projectActionTodoItemsForCurrentUser();
+        const projectItems = projectActionTodoItemsForCurrentUser().map(item => ({
+          ...item, category: "project", due: "", overdue: false,
+          createdAt: item.createdAt || "", sortId: item.projectId,
+        }));
         const items =
           currentUser.role === "pm"
             ? [...projectItems, ...taskItems]
             : [...projectItems, ...taskItems];
-        return items;
+        const timeCompare = (a, b) => a ? b ? a.localeCompare(b) : -1 : b ? 1 : 0;
+        return items.sort((a,b) => Number(b.overdue) - Number(a.overdue) || timeCompare(a.due,b.due) || timeCompare(a.createdAt,b.createdAt) || a.sortId.localeCompare(b.sortId, "en", { numeric: true }) || a.title.localeCompare(b.title, "zh-CN"));
       }
 
       function dashboardDynamicItems() {
@@ -428,9 +427,26 @@
         });
         const total = values.reduce((sum, value) => sum + value, 0);
         if (!Number.isSafeInteger(total)) return null;
+        const moneySum = (rows, getValue, allowNoSettlement = false) => {
+          if (!rows.length) return 0;
+          const amounts = rows.map(project => {
+            if (allowNoSettlement && project.stage === "已中止" && !project.terminationInvolvesSettlement) return null;
+            const value = getValue(project);
+            if (value == null || String(value).trim() === "") return NaN;
+            const cents = Math.round(Number(value) * 100);
+            return Number(value) >= 0 && Number.isSafeInteger(cents) ? cents : NaN;
+          }).filter(value => value !== null);
+          if (!amounts.length) return null;
+          const sum = amounts.reduce((a,b) => a + b, 0);
+          return Number.isSafeInteger(sum) ? sum : NaN;
+        };
         return { total, measure, projectCount: selected.length, groups: labels.map((label) => {
           const value = values.reduce((sum, amount, index) => sum + (selected[index][dimension] === label ? amount : 0), 0);
-          return { label, value, share: total ? value / total * 100 : null };
+          const rows = selected.filter(project => project[dimension] === label);
+          return { label, value, share: total ? value / total * 100 : null,
+            projectAmount: moneySum(rows, project => project.amount),
+            settlementAmount: moneySum(rows, projectListSettlementAmount, true),
+          };
         }) };
       }
 
@@ -439,6 +455,7 @@
         if (!analysis) return '<div class="empty">项目数据暂不可用</div>';
         const money = analysis.measure === "amount";
         const format = (value) => money ? formatProjectMoney(value / 100) : String(value);
+        const formatAmount = value => value === null ? "—" : Number.isFinite(value) ? formatProjectMoney(value / 100) : "不可用";
         const colors = ["#7596b5", "#366895", "#68a6a0", "#457c68", "#c3ccd6", "#b69b89"];
         // Render a disposable SVG snapshot; no hidden selection, drilldown or canvas lifecycle.
         const chart = echarts.init(null, null, { renderer: "svg", ssr: true, width: 220, height: 220 });
@@ -459,7 +476,7 @@
           });
           svg = chart.renderToSVGString();
         } finally { chart.dispose(); }
-        return `<div class="workbench-project-chart"><div class="workbench-donut"><div class="workbench-chart-svg" aria-hidden="true">${svg}</div><div class="workbench-donut-center${money ? " workbench-money" : ""}"><span>${money ? "项目金额合计" : "项目总数（个）"}${dashboardFieldHelp(money ? "projectAmount" : "projectCount", money ? "项目金额合计" : "项目总数")}</span><strong data-dashboard-value="projects">${format(analysis.total)}</strong>${money ? "<small>含税，元</small>" : ""}${analysis.projectCount ? "" : "<small>暂无项目</small>"}</div></div><div class="workbench-project-detail" tabindex="0" role="region" aria-label="项目分组明细"><div class="workbench-legend-head"><span>${dashboardProjectDimension === "type" ? "类型" : "阶段"}</span><span>${money ? "金额（含税，元）" : "数量（个）"}</span><span>占比${dashboardFieldHelp("projectShare", "占比")}</span></div><ul class="workbench-stage-legend">${analysis.groups.map((item, index) => `<li><span class="workbench-group-name"><i aria-hidden="true" style="background:${colors[index]}"></i>${escapeDashboardHtml(item.label)}</span><strong>${format(item.value)}</strong><span class="workbench-share">${dashboardPercent(item.share)}</span></li>`).join("")}</ul></div></div>`;
+        return `<div class="workbench-project-chart"><div class="workbench-donut"><div class="workbench-chart-svg" aria-hidden="true">${svg}</div><div class="workbench-donut-center${money ? " workbench-money" : ""}"><span>${money ? "项目金额合计" : "项目总数（个）"}${dashboardFieldHelp(money ? "projectAmount" : "projectCount", money ? "项目金额合计" : "项目总数")}</span><strong data-dashboard-value="projects">${format(analysis.total)}</strong>${money ? "<small>含税，元</small>" : ""}${analysis.projectCount ? "" : "<small>暂无项目</small>"}</div></div><div class="workbench-project-detail workbench-project-amounts${money ? ' workbench-project-money-columns' : ''}" tabindex="0" role="region" aria-label="项目分组明细"><div class="workbench-legend-head"><span>${dashboardProjectDimension === "type" ? "类型" : "阶段"}</span>${money ? '' : '<span>数量（个）</span>'}<span>项目金额<br>（含税，元）</span><span>结账金额<br>（含税，元）</span><span>占比${dashboardFieldHelp("projectShare", "占比")}</span></div><ul class="workbench-stage-legend">${analysis.groups.map((item, index) => `<li><span class="workbench-group-name"><i aria-hidden="true" style="background:${colors[index]}"></i>${escapeDashboardHtml(item.label)}</span>${money ? '' : `<strong>${item.value}</strong>`}<strong>${formatAmount(item.projectAmount)}</strong><strong>${formatAmount(item.settlementAmount)}</strong><span class="workbench-share">${dashboardPercent(item.share)}</span></li>`).join("")}</ul></div></div>`;
       }
 
       function dashboardProjectControls() {
@@ -558,7 +575,7 @@
         }
         if (!["president", "vp", "director", "admin"].includes(currentUser.role)) return "";
         const groups = dashboardCoverageGroups(companies, people);
-        const levels = ["president", "vp"].includes(currentUser.role) ? Object.keys(contactLevelLabels) : [];
+        const levels = ["president", "vp", "director"].includes(currentUser.role) ? Object.keys(contactLevelLabels) : [];
         const levelHeaders = levels.map((level) => '<th>' + escapeDashboardHtml(level) + '</th>').join('');
         return '<div class="workbench-breakdown' + (levels.length ? ' workbench-level-breakdown' : '') + '" id="workbenchCoverageList" tabindex="0" role="region" aria-label="关键人覆盖明细"><table><thead><tr><th>' + (currentUser.role === "director" ? 'PM' : '区域运营中心') + '</th><th>关键人' + dashboardFieldHelp('groupPeople', '关键人') + '</th>' + levelHeaders + dashboardSortHeader('coverage', '覆盖率', dashboardCoverageOrder) + '</tr></thead><tbody>' + groups.map((item) => '<tr><td>' + escapeDashboardHtml(item.label) + '</td><td>' + item.people + '</td>' + levels.map((level) => '<td>' + item.levelCounts[level] + '</td>').join('') + '<td>' + dashboardPercent(item.rate) + '</td></tr>').join('') + '</tbody></table>' + (groups.length ? '' : '<div class="empty">暂无PM客户覆盖数据</div>') + '</div>';
       }
@@ -581,8 +598,11 @@
         return `<div class="workbench-value"><span>${label}${dashboardFieldHelp(key, label)}</span><strong data-dashboard-value="${key}">${value}${suffix ? `<small>${suffix}</small>` : ""}</strong></div>`;
       }
 
+      function dashboardPeopleLevels(people) {
+        if (!["director", "pm"].includes(currentUser.role)) return "";
+        return `<div class="workbench-level-totals" aria-label="各职级关键人数">${Object.keys(contactLevelLabels).map(level => `<div><span>${level}</span><strong>${people.filter(person => person.level === level).length}<small>人</small></strong></div>`).join('')}</div>`;
+      }
       function dashboardOverviewTodos() {
-        // Keep existing collection/ordering; this task only simplifies presentation.
         const items = dashboardTodoItems().filter((item) =>
           item.projectId ? hasPermission("projects") : hasPermission("tasks"));
         return items.map((item) => {
@@ -592,16 +612,51 @@
           }
           const task = tasks.find((row) => row.id === item.id);
           return task ? { ...item, title: `${task.company} · ${task.person}`,
-            detail: `${task.title} · ${taskStatusName(task.status, task)} · 截止 ${task.due}` } : item;
+            detail: `${task.title} · ${taskStatusName(task.status, task)}${task.due ? ` · 截止 ${task.due}` : ""}` } : item;
         });
       }
 
+      const WORKBENCH_TODO_CATEGORIES = [["all", "全部"], ["regular", "常规维系"], ["seasonal", "生日/节假日"], ["campaign", "专项"], ["project", "项目"]];
+      let dashboardTodoCategory = "all";
+      let dashboardTodoPage = 1;
+      function dashboardTodoPageData() {
+        const all = dashboardOverviewTodos();
+        const selected = all.filter(item => dashboardTodoCategory === "all" || item.category === dashboardTodoCategory);
+        const pageCount = Math.max(1, Math.ceil(selected.length / 10));
+        dashboardTodoPage = Math.min(pageCount, Math.max(1, dashboardTodoPage));
+        return { counts: Object.fromEntries(WORKBENCH_TODO_CATEGORIES.map(([key]) => [key, key === "all" ? all.length : all.filter(item => item.category === key).length])), pageCount, items: selected.slice((dashboardTodoPage - 1) * 10, dashboardTodoPage * 10) };
+      }
+      function dashboardTodosBody() {
+        const data = dashboardTodoPageData();
+        return `<div class="workbench-todo-controls"><label class="form-label" for="workbenchTodoCategory">待办类别</label><select class="input" id="workbenchTodoCategory">${WORKBENCH_TODO_CATEGORIES.map(([key,label]) => `<option value="${key}" ${key === dashboardTodoCategory ? 'selected' : ''}>${label}（${data.counts[key]}）</option>`).join('')}</select></div><div class="workbench-scroll list dashboard-list" tabindex="0" role="region" aria-labelledby="workbenchTodosTitle">${dashboardList(data.items, "当前没有需要本人处理的事项")}</div>${data.pageCount > 1 ? `<div class="workbench-todo-pagination"><button class="btn" type="button" data-workbench-todo-page="prev" ${dashboardTodoPage === 1 ? 'disabled' : ''}>上一页</button><span>${dashboardTodoPage} / ${data.pageCount} 页</span><button class="btn" type="button" data-workbench-todo-page="next" ${dashboardTodoPage === data.pageCount ? 'disabled' : ''}>下一页</button></div>` : ''}`;
+      }
+      function handleWorkbenchTodoAction(category, direction) {
+        if (!currentUser || currentPage !== "dashboard" || !canAccessPage("dashboard") || ["hr", "support"].includes(currentUser.role) || (currentUser.role === "admin" && adminDashboardView === "system")) return;
+        if (category != null) {
+          if (!WORKBENCH_TODO_CATEGORIES.some(([key]) => key === category)) return;
+          dashboardTodoCategory = category; dashboardTodoPage = 1;
+        } else {
+          if (!["prev", "next"].includes(direction)) return;
+          dashboardTodoPageData();
+          dashboardTodoPage += direction === "next" ? 1 : -1;
+        }
+        renderPage();
+      }
+      document.addEventListener("change", event => {
+        if (event.target?.id === "workbenchTodoCategory") handleWorkbenchTodoAction(event.target.value);
+      });
+      document.addEventListener("click", event => {
+        const target = event.target?.closest?.("[data-workbench-todo-page]");
+        if (target) handleWorkbenchTodoAction(null, target.dataset.workbenchTodoPage);
+      });
       function renderDashboard() {
         if (!currentUser || !canAccessPage("dashboard") || ["hr", "support"].includes(currentUser.role)) return "";
         const sortOwner = `${currentUser.employeeCode || currentUser.phone || currentUser.name}:${currentUser.role}`;
         if (lastRenderedPage !== "dashboard" || dashboardSortOwner !== sortOwner) {
           dashboardCoverageOrder = "asc";
           dashboardCampaignOrder = "asc";
+          dashboardTodoCategory = "all";
+          dashboardTodoPage = 1;
           dashboardSortOwner = sortOwner;
         }
         if (currentUser.role === "admin" && adminDashboardView === "system")
@@ -613,10 +668,10 @@
         const overdue = regular.filter((task) => task.status === "overdue").length;
         const canSeePeople = hasDataObject("客户单位") && hasDataObject("关键人");
         const canSeeTasks = hasPermission("tasks") && hasDataObject("维系任务");
-        const peopleCard = canSeePeople ? `<section class="panel workbench-card workbench-people"><div class="panel-head"><div class="panel-title" id="workbenchPeopleTitle">关键人概况</div><div class="spacer"></div><span class="workbench-updated">更新于 ${escapeDashboardHtml(DEMO_TODAY)}</span></div><div class="workbench-split" role="region" aria-labelledby="workbenchPeopleTitle"><div class="workbench-values">${dashboardOverviewValue("有效关键人", people.length, "people", "人")}${dashboardOverviewValue("关键人覆盖率", dashboardPercent(coverage), "coverage")}${coverage == null ? '<div class="workbench-empty-note">暂无客户单位</div>' : ""}</div>${dashboardCoverageTable(companies, people)}</div></section>` : "";
+        const peopleCard = canSeePeople ? `<section class="panel workbench-card workbench-people"><div class="panel-head"><div class="panel-title" id="workbenchPeopleTitle">关键人概况</div><div class="spacer"></div><span class="workbench-updated">更新于 ${escapeDashboardHtml(DEMO_TODAY)}</span></div><div class="workbench-split" role="region" aria-labelledby="workbenchPeopleTitle"><div class="workbench-values${["director", "pm"].includes(currentUser.role) ? ' workbench-values-levels' : ''}">${dashboardOverviewValue("有效关键人", people.length, "people", "人")}${dashboardOverviewValue("关键人覆盖率", dashboardPercent(coverage), "coverage")}${dashboardPeopleLevels(people)}${coverage == null ? '<div class="workbench-empty-note">暂无客户单位</div>' : ""}</div>${dashboardCoverageTable(companies, people)}</div></section>` : "";
         const taskCard = canSeeTasks ? `<section class="panel workbench-card workbench-tasks"><div class="panel-head"><div class="panel-title" id="workbenchTasksTitle">任务概况</div></div><div class="workbench-split" role="region" aria-labelledby="workbenchTasksTitle"><div class="workbench-values">${dashboardOverviewValue("常规任务待完成", pending, "pending", "项")}${dashboardOverviewValue("常规任务逾期", overdue, "overdue", "项")}</div>${dashboardCampaignTable(rows)}</div></section>` : "";
         const projectCard = hasPermission("projects") ? `<section class="panel workbench-card workbench-projects"><div class="panel-head"><div class="panel-title" id="workbenchProjectsTitle">项目概况</div></div><div class="workbench-project-body" role="region" aria-labelledby="workbenchProjectsTitle">${dashboardProjectControls()}<div class="workbench-project-visualization" id="workbenchProjectVisualization">${dashboardProjectChart(dashboardProjectSummary())}</div></div></section>` : "";
-        const todoCard = `<section class="panel workbench-card workbench-todos"><div class="panel-head"><div class="panel-title" id="workbenchTodosTitle">我的待办</div></div><div class="workbench-scroll list dashboard-list" tabindex="0" role="region" aria-labelledby="workbenchTodosTitle">${dashboardList(dashboardOverviewTodos(), "当前没有需要本人处理的事项")}</div></section>`;
+        const todoCard = `<section class="panel workbench-card workbench-todos"><div class="panel-head"><div class="panel-title" id="workbenchTodosTitle">我的待办</div></div>${dashboardTodosBody()}</section>`;
         return pageHead("工作台", "查看关键人、任务与项目概况，安排待办事项。",
           currentUser.role === "admin" ? '<button class="btn" type="button" data-admin-dashboard-view="system">系统运行</button>' : "") +
           `<div class="workbench">${peopleCard}${taskCard}<div class="workbench-bottom">${projectCard}${todoCard}</div></div>`;

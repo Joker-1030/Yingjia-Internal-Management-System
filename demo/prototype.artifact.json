@@ -1,11 +1,11 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-10-09T05:58:10.493Z",
+  "generatedAt": "2026-10-10T01:50:02.256Z",
   "generator": "scripts/build-prototype.mjs",
   "buildCommand": "node scripts/build-prototype.mjs",
   "sourceRoot": "src",
   "entry": "src/prototype.html",
-  "sourceDigest": "efd46df7b6b039e00b3bf4660b1282db23d0eb2ce978f149bfaf9f84b4ef2181",
+  "sourceDigest": "9617614bc13c279bfa3f6c2f8abedbe1d42ce31726b42cfa8a979ac27f1d5567",
   "sourceFiles": [
     {
       "path": "src/app.js",
@@ -14,8 +14,8 @@
     },
     {
       "path": "src/data/accounts.js",
-      "sha256": "6f5303f7b6dcc6482b6eabb684a4496c3f3d53f49d3861cfdafc48c3b137d09c",
-      "bytes": 1728
+      "sha256": "9d90a5ee7349ae0bf308f3848d40b50d1675df8ec8f7f043f44cc5c16320267f",
+      "bytes": 2069
     },
     {
       "path": "src/data/approvals.js",
@@ -54,8 +54,8 @@
     },
     {
       "path": "src/data/imports.js",
-      "sha256": "fc35b9437959ebb436c6d742d4e72207c5f9d222ca0bfd1459e1e8eed702c890",
-      "bytes": 12415
+      "sha256": "982bd09600c65036a0dccc2bff6ccffa01e5e9328efb2369151badf3d3229349",
+      "bytes": 11556
     },
     {
       "path": "src/data/maintenance.js",
@@ -79,13 +79,13 @@
     },
     {
       "path": "src/data/organization.js",
-      "sha256": "512d990c3bdf122789f4140e4669c551b7f46c88857b3437bdb4e50a406a0ab1",
-      "bytes": 14138
+      "sha256": "bd0933782c9b1644edef0d11a8cfa7a01ca8d34d0b7ed5fc4a7dfda817ec5c6e",
+      "bytes": 14593
     },
     {
       "path": "src/data/permissions.js",
-      "sha256": "63fda360c4794a8b0786060abbec9bee0e2b65e4347823c57fc2ec358d495254",
-      "bytes": 22848
+      "sha256": "5135bc1527c35c0e71e6f4bdb40a2d4c2982540cc56d69fc6c1a3869b4f998fe",
+      "bytes": 23795
     },
     {
       "path": "src/data/platform-companies.js",
@@ -109,8 +109,8 @@
     },
     {
       "path": "src/data/projects.js",
-      "sha256": "8ffc77fcb119bf3d8c3c92ffb93b7992acf865558f884b5a41b93c51d0a2a015",
-      "bytes": 29988
+      "sha256": "c68016976bb03204e082b5023e49d35b3434b48b16a40bce567c3c52ff73f4d4",
+      "bytes": 30149
     },
     {
       "path": "src/data/regions.js",
@@ -144,8 +144,8 @@
     },
     {
       "path": "src/modules/_app-shell/events.js",
-      "sha256": "8e087c3f1f8cacd0771c5fc7ce9eefaf350b3d2e2daabd95ac1d1d1d110b1f24",
-      "bytes": 75819
+      "sha256": "2c7537dc276b109f48bc3bcf584e4bd2740ef74f3d4405f4fff70234990817bd",
+      "bytes": 75732
     },
     {
       "path": "src/modules/_app-shell/notifications.js",
@@ -159,8 +159,8 @@
     },
     {
       "path": "src/modules/_app-shell/runtime.js",
-      "sha256": "04bec759177a9fcacefd966d7391b3eff21f4af42c26b31a9d1b8a930f079e6e",
-      "bytes": 62268
+      "sha256": "be83db60c9e55f37d00928d61cdc85b7cee474ccdaeff11a3a4e6ef4deb7f228",
+      "bytes": 62819
     },
     {
       "path": "src/modules/_app-shell/state.js",
@@ -189,8 +189,8 @@
     },
     {
       "path": "src/modules/m01-dashboard/page.js",
-      "sha256": "6f1f0af4f6a9f1ba5ee0d0b03f9978b2c072d77ef3018ab73f32811a4ffc491b",
-      "bytes": 59016
+      "sha256": "da73aad99e3e95650a531c93084f2798fc8640c298884669304db64f2a7c042a",
+      "bytes": 59534
     },
     {
       "path": "src/modules/m02-customer-operations/customer-tree.js",
@@ -289,8 +289,8 @@
     },
     {
       "path": "src/modules/m06-organization/interactions.js",
-      "sha256": "de9d21664716345217f8ec369e8a103bceabb8552ebc65604f0f2e3a913b5d81",
-      "bytes": 59417
+      "sha256": "943dbb832bfb2226ab812e0ab58507818c237c999d58653a9de3c7aa83390e2d",
+      "bytes": 64599
     },
     {
       "path": "src/modules/m06-organization/module.json",
@@ -299,8 +299,8 @@
     },
     {
       "path": "src/modules/m06-organization/page.js",
-      "sha256": "8ea840af5ecdbc26ea5927db6cd2a7a691ca05a0c908815efb89b27d44a7c90d",
-      "bytes": 21329
+      "sha256": "4c3d547eea3914b3ec226fd066184877cbba3852bd55ca21c85284a508dd0551",
+      "bytes": 21348
     },
     {
       "path": "src/modules/m07-permissions/module.json",
@@ -309,8 +309,8 @@
     },
     {
       "path": "src/modules/m07-permissions/page.js",
-      "sha256": "50797528069a1d97cdd5d4f7faf68c804ad0647c377e533398f8c7f08e503b75",
-      "bytes": 12942
+      "sha256": "e3ce121ca2a6be16b42328802f1c991bab9eb4286abff78139bad24adb8a4239",
+      "bytes": 13630
     },
     {
       "path": "src/modules/m08-regions/forms.js",
@@ -349,8 +349,8 @@
     },
     {
       "path": "src/modules/m10-imports/interactions.js",
-      "sha256": "4ed0236cbe4e78381e13b0ef2579e063e6c9bcab3bbbeff5c198311051124314",
-      "bytes": 39333
+      "sha256": "15df2f76dec0e20531978f609110cc42587e3829396c7d793cdd60d09372e222",
+      "bytes": 27667
     },
     {
       "path": "src/modules/m10-imports/module.json",
@@ -359,13 +359,13 @@
     },
     {
       "path": "src/modules/m10-imports/page.js",
-      "sha256": "d7158910577bbfa7d949569f77a4aca292f06d1c048ac072456b85a76eb17c0a",
-      "bytes": 10262
+      "sha256": "1db040d097feca51d28546d63d6e319619ba4e77523b8c3d2600671bcb9d6e1a",
+      "bytes": 10001
     },
     {
       "path": "src/modules/m11-project-management/interactions.js",
-      "sha256": "e3a0b1adf81233bb0443dd5b5ea5d78ace0e35a7e0a31cc209fa9e078e65fb0b",
-      "bytes": 132301
+      "sha256": "4b2c92f7bdbe132acd4619077fb1d3b2c78567cc294505ecf33b9efc4005fe5d",
+      "bytes": 118052
     },
     {
       "path": "src/modules/m11-project-management/module.json",
@@ -374,8 +374,8 @@
     },
     {
       "path": "src/modules/m11-project-management/page.js",
-      "sha256": "69f3ae2a1c3ae6d6b959dd31d56d5f94d2548c5848e4a11044f4912b468ff2f6",
-      "bytes": 110838
+      "sha256": "2ab1f885bf7c6f0f2c08e93fca185646471b91807ba3542a11aca8a17c5ad650",
+      "bytes": 118200
     },
     {
       "path": "src/modules/m12-sales-opportunity/interactions.js",
@@ -472,8 +472,8 @@
   ],
   "artifact": {
     "path": "demo/prototype.html",
-    "sha256": "198349dd5d543774ea017866bd9e8c250728878b3ae9019e8cb6e638a312be15",
-    "bytes": 2462570
+    "sha256": "e2b29b4d1c89592466f4b14f844519ec1cef120ea871f3299bc19f2749515bb8",
+    "bytes": 2451672
   },
   "legacyBridge": false,
   "architecture": "lightweight-modular",

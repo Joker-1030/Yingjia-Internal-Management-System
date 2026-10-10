@@ -176,8 +176,6 @@
           .forEach(
             (button) =>
               (button.onclick = () => {
-                if (button.dataset.action === "download-project-import-template")
-                  return downloadTemplate("project");
                 return genericAction(
                   button.dataset.action,
                   button.dataset.id,
@@ -380,7 +378,7 @@
             const activePermissions =
               permissionDraft?.permissions || template?.permissions || [];
             const groupItems = group.items.filter(([id]) =>
-              template?.name === "系统管理员" || !isAdminOnlyProjectConfigPage(id),
+              template?.name === "系统管理员" || (!isAdminOnlyProjectConfigPage(id) && templatePagePermissionAllowed(template, id)),
             );
             const selected = groupItems.filter(([id]) =>
               activePermissions.includes(id),

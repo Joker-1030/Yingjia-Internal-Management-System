@@ -1,3 +1,31 @@
+      function importActorEligible(actor) {
+        if (!actor || !["admin", "director", "pm"].includes(actor.role))
+          return false;
+        if (actor.fullAccess) return actor.role === "admin";
+        const employee = employees.find((item) => item.name === actor.name);
+        const expectedRole = actor.role === "director" ? "区域总监" : "PM";
+        return Boolean(
+          employee &&
+            employee.status === "在职" &&
+            employeeHasRole(employee, expectedRole),
+        );
+      }
+      function importCustomerInAccountScope(customer, owner, actor) {
+        if (!customer || !owner || !importActorEligible(actor)) return false;
+        if (actor.fullAccess) return true;
+        if (actor.role === "director") {
+          return (
+            customer.level === "省公司" &&
+            owner === actor.name &&
+            regionsMatch(customerRegionScope(customer), actor.region)
+          );
+        }
+        return (
+          actor.role === "pm" &&
+          ["市公司", "区县公司"].includes(customer.level) &&
+          owner === actor.name
+        );
+      }
       function downloadText(name, text) {
         const blob = new Blob(["\ufeff" + text], {
           type: "text/csv;charset=utf-8",
@@ -13,7 +41,6 @@
         const aliases = {
           full: FULL_IMPORT_TEMPLATE,
           contact: CONTACT_IMPORT_TEMPLATE,
-          project: PROJECT_IMPORT_TEMPLATE,
         };
         return aliases[requestedType] || requestedType || "";
       }
@@ -23,18 +50,13 @@
           return `${common}\n工作表,用途,下拉字段\n集团公司,维护集团主数据,行业\n地市负责人,仅分配,省份/城市/PM工号\n客户单位,维护客户公司,行业/集团/组织上级类型/上级客户公司编码/业务责任层级/业务责任省市区\n客户部门,维护公司下的部门树,行业/集团/客户公司/上级客户部门\n关键人,新增身份与首条任职,行业/集团/客户公司/客户部门/职级/标准岗位`;
         if (templateType === CONTACT_IMPORT_TEMPLATE)
           return `${common}\n工作表,关键人\n下拉字段,客户单位/部门/职级/标准岗位\n说明,仅新增关键人及首条任职；疑似重复默认跳过，任职变更须使用关键人调岗`;
-        return `${common}\n工作表,项目基本信息\n模板字段,项目名称/项目类型/客户编号/原创建时间/开始时间/结束时间/项目确认天数/资源类型/采购包及课程方向/合作形式/平台公司/AI 软件项目金额/导入阶段\n系统生成,项目编号/地区/当前项目负责人/系统计算天数/项目单价/培训项目金额/结账金额\n说明,仅新增项目；不覆盖存量，不接收已取消项目，不包含项目人员、资料和满意度`;
+        return "";
       }
       function downloadTemplate(requestedType) {
         if (!hasOperationPermission("imports.download"))
           return toast("当前角色无数据导入模板权限");
         const templateType = requestedImportTemplate(requestedType);
         if (!importTemplateTypesForAccount(currentUser).includes(templateType)) {
-          if (
-            templateType === PROJECT_IMPORT_TEMPLATE &&
-            !projectImportInitializationOpen
-          )
-            return toast("项目初始化已结束，项目模板不再提供下载");
           return toast("当前角色无权下载该导入模板");
         }
         const templateVersion = importTemplateVersion(templateType);
@@ -45,99 +67,13 @@
         );
         toast(`${templateType}已下载，版本 ${templateVersion}`);
       }
-      function projectImportDemoRows(actor, batchId) {
-        const eligibleCustomers = customers.filter((customer) => {
-          const owner = resolveProjectOwner(customer);
-          return (
-            !customer.archived &&
-            owner &&
-            projectImportCustomerInScope(customer, owner, actor)
-          );
-        });
-        const customer = eligibleCustomers[0];
-        if (!customer) return [];
-        const suffix = batchId.split("-").pop();
-        const commonAi = {
-          type: "AI软件项目",
-          customerCode: customerStableCode(customer),
-          resourceType: "AI区域框架",
-          cooperation: "直接服务",
-          packageId: "",
-          directionIntro: "",
-          companyId: "",
-          aiAmount: 68000,
-        };
-        return [
-          {
-            rowNumber: 2,
-            name: `${customer.name}历史智能服务迁移项目${suffix}`,
-            ...commonAi,
-            originalCreatedAt: "2024-03-01 09:00",
-            startTime: "2026-06-10 09:00",
-            endTime: "2026-06-20 18:00",
-            days: 10,
-            importStage: "已完成",
-          },
-          {
-            rowNumber: 3,
-            name: `${customer.name}管理能力提升项目${suffix}`,
-            type: "培训项目",
-            customerCode: customerStableCode(customer),
-            originalCreatedAt: "2025-11-18 10:00",
-            startTime: "2026-08-16 09:00",
-            endTime: "2026-08-18 18:00",
-            days: 3,
-            resourceType: "采购包课程",
-            packageId: "CGB2026000001",
-            directionIntro: "面向中基层管理者的管理沟通课程",
-            cooperation: "直接服务",
-            companyId: "",
-            aiAmount: "",
-            importStage: "进行中",
-          },
-          {
-            rowNumber: 4,
-            name: `${customer.name}运营支撑项目${suffix}`,
-            ...commonAi,
-            originalCreatedAt: "2023-09-12 14:00",
-            startTime: "2026-08-15 09:00",
-            endTime: "2026-09-15 18:00",
-            days: 32,
-            importStage: "进行中",
-            simulateExecutionFailure: true,
-          },
-          {
-            rowNumber: 5,
-            name:
-              projects.find((project) => project.stage !== "已取消")?.name ||
-              "当前占用项目名称",
-            ...commonAi,
-            originalCreatedAt: "2025-01-10 09:00",
-            startTime: "2026-05-01 09:00",
-            endTime: "2026-05-20 18:00",
-            days: 20,
-            importStage: "已交付",
-          },
-          {
-            rowNumber: 6,
-            name: `${customer.name}无效历史项目${suffix}`,
-            ...commonAi,
-            customerCode: "UNKNOWN-CUSTOMER",
-            originalCreatedAt: "2022-04-01 09:00",
-            startTime: "2026-03-01 09:00",
-            endTime: "2026-03-10 18:00",
-            days: 10,
-            importStage: "已取消",
-          },
-        ];
-      }
       function contactImportDemoRows(actor, batchId) {
         const customer = customers.find((item) => {
           const owner = resolveProjectOwner(item);
           return (
             !item.archived &&
             owner &&
-            projectImportCustomerInScope(item, owner, actor) &&
+            importCustomerInAccountScope(item, owner, actor) &&
             contacts.some(
               (person) => !person.archived && person.company === item.name,
             )
@@ -221,46 +157,6 @@
           }
         });
       }
-      function projectImportBatchDetails(rows, actor) {
-        const projectNameCounts = rows.reduce((counts, row) => {
-          const name = String(row?.name || "").trim();
-          if (name) counts.set(name, (counts.get(name) || 0) + 1);
-          return counts;
-        }, new Map());
-        const checks = rows.map((row) => {
-          const check = prepareProjectImportRow(row, actor);
-          const name = String(row?.name || "").trim();
-          if ((projectNameCounts.get(name) || 0) < 2) return check;
-          return {
-            ...check,
-            classification: "error",
-            adjustment: "",
-            issues: [
-              ...(check.issues || []),
-              projectImportIssue(
-                "项目名称",
-                "IMP-PROJECT-WORKBOOK-DUP-001",
-                "同一项目模板内存在重复项目名称",
-                "每个项目名称在模板内仅保留一行后重新上传",
-              ),
-            ],
-          };
-        });
-        const valid = checks.filter((item) => item.classification === "valid");
-        return {
-          projectRows: rows.map((row) => ({ ...row })),
-          projectPrevalidation: checks,
-          sheets: [
-            importSheet(
-              "项目基本信息",
-              valid.length,
-              checks.filter((item) => item.classification === "duplicate").length,
-              checks.filter((item) => item.classification === "error").length,
-              valid.filter((item) => item.adjustment).length,
-            ),
-          ],
-        };
-      }
       function openImportUpload() {
         if (!hasOperationPermission("imports.upload"))
           return toast("当前角色无数据导入权限");
@@ -271,7 +167,7 @@
             ? `<select class="input" id="importUploadType">${templateTypes.map((type) => `<option>${importEscapeHtml(type)}</option>`).join("")}</select>`
             : `<input class="input" id="importUploadType" value="${importEscapeHtml(templateTypes[0])}" disabled>`;
         openModal(
-          `<div class="modal-head"><div class="modal-title">上传导入文件</div><button class="icon-btn close" data-close>×</button></div><form id="importForm"><div class="modal-body"><div class="form-grid"><div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>模板类型</label>${templateControl}</div><div class="form-group"><label class="form-label">模板版本</label><input class="input" id="importUploadVersion" disabled></div><div class="form-group full"><label class="form-label">导入范围</label><input class="input" id="importUploadScope" disabled></div></div><label class="file-box" style="display:block;padding:var(--space-8)"><span id="importFileName"><span class="required-marker" aria-hidden="true">*</span>选择 .xlsx 文件</span><input id="importFile" type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" required hidden></label><div class="role-note" style="margin-top:var(--space-4)">仅接收单个 `.xlsx`，最大 20 MB，不接收 `.xls`、宏、加密文件。Demo 使用一致的预置行结果演示校验与确认，不读取本地真实业务内容。</div></div><div class="modal-foot"><button class="btn" type="button" data-close>取消</button><button class="btn btn-primary" type="submit">开始预校验</button></div></form>`,
+          `<div class="modal-head"><div class="modal-title">上传导入文件</div><button class="icon-btn close" data-close>×</button></div><form id="importForm"><div class="modal-body"><div class="form-grid"><div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>模板类型</label>${templateControl}</div><div class="form-group"><label class="form-label">模板版本</label><input class="input" id="importUploadVersion" disabled></div><div class="form-group full"><label class="form-label">导入范围</label><input class="input" id="importUploadScope" disabled></div></div><label class="file-box" style="display:block;padding:var(--space-8)"><span id="importFileName"><span class="required-marker" aria-hidden="true">*</span>选择 .xlsx 文件</span><input id="importFile" type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" required hidden></label><div class="role-note" style="margin-top:var(--space-4)">仅接收单个 <code>.xlsx</code>，最大 20 MB，不接收 <code>.xls</code>、宏、加密文件。Demo 使用一致的预置行结果演示校验与确认，不读取本地真实业务内容。</div></div><div class="modal-foot"><button class="btn" type="button" data-close>取消</button><button class="btn btn-primary" type="submit">开始预校验</button></div></form>`,
         );
         const refreshUploadMetadata = () => {
           const templateType = $("#importUploadType").value;
@@ -304,30 +200,11 @@
             return toast("文件大小不能超过 20 MB");
           const templateType = $("#importUploadType").value;
           if (!importTemplateTypesForAccount(currentUser).includes(templateType)) {
-            if (
-              templateType === PROJECT_IMPORT_TEMPLATE &&
-              !projectImportInitializationOpen
-            )
-              return toast("项目初始化已结束，不能再上传项目模板");
             return toast("当前角色无权上传该导入模板");
           }
-          if (
-            templateType === PROJECT_IMPORT_TEMPLATE &&
-            !projectImportActorEligible(currentUser)
-          )
-            return toast("当前账号不满足项目导入资格");
           const employee = employees.find((item) => item.name === currentUser.name);
           const batchId = nextImportBatchId();
-          const projectDetails =
-            templateType === PROJECT_IMPORT_TEMPLATE
-              ? projectImportBatchDetails(
-                  projectImportDemoRows(currentUser, batchId),
-                  currentUser,
-                )
-              : null;
-          const contactRows = projectDetails
-            ? []
-            : contactImportDemoRows(currentUser, batchId);
+          const contactRows = contactImportDemoRows(currentUser, batchId);
           const batch = {
             id: batchId,
             file: file.name,
@@ -342,7 +219,7 @@
             status: "待确认",
             createdAt: `${DEMO_TODAY} ${formatTaskUpdateTime(new Date()).slice(11)}`,
             finishedAt: "",
-            ...(projectDetails || {
+            ...{
               contactRows,
               sheets:
                 templateType === FULL_IMPORT_TEMPLATE
@@ -354,7 +231,7 @@
                       importSheet("关键人", 19, 1, 1, 1),
                     ]
                   : [importSheet("关键人", 38, 4, 3, 2)],
-            }),
+            },
           };
           normalizeImportBatch(batch);
           if (!batch.valid) {
@@ -371,30 +248,7 @@
         if (!valid) return "--";
         return `${((success / valid) * 100).toFixed(1)}%`;
       }
-      function projectImportIssueRowsHtml(batch) {
-        return (
-          (batch.projectPrevalidation || [])
-            .flatMap((check) => {
-              if (check.classification === "valid" && check.adjustment) {
-                return [
-                  `<tr><td>项目基本信息 / ${check.rowNumber}</td><td>导入阶段</td><td><span class="tag blue">警告</span></td><td>IMP-PROJECT-STAGE-ADJUST-001 · ${importEscapeHtml(check.adjustment)}</td><td>确认后按已交付建立并保留缺项待办</td></tr>`,
-                ];
-              }
-              const tone =
-                check.classification === "duplicate" ? "yellow" : "red";
-              const label =
-                check.classification === "duplicate" ? "疑似重复" : "阻断错误";
-              return (check.issues || []).map(
-                (issue) =>
-                  `<tr><td>项目基本信息 / ${check.rowNumber}</td><td>${importEscapeHtml(issue.field)}</td><td><span class="tag ${tone}">${label}</span></td><td>${importEscapeHtml(issue.code)} · ${importEscapeHtml(issue.reason)}</td><td>${importEscapeHtml(issue.suggestion)}</td></tr>`,
-              );
-            })
-            .join("") ||
-          '<tr><td colspan="5"><div class="empty">当前批次没有阻断错误、疑似重复或警告</div></td></tr>'
-        );
-      }
       function importIssueRowsHtml(batch) {
-        if (isProjectImportBatch(batch)) return projectImportIssueRowsHtml(batch);
         const rows = [];
         if (batch.errors)
           rows.push(
@@ -416,21 +270,6 @@
           rows.join("") ||
           '<tr><td colspan="5"><div class="empty">当前批次没有阻断错误、疑似重复或警告</div></td></tr>'
         );
-      }
-      function projectImportResultRowsHtml(batch) {
-        if (!isProjectImportBatch(batch) || !batch.resultAvailable) return "";
-        const rows = (batch.projectResults || [])
-          .map((result) => {
-            const tone =
-              result.status === "成功"
-                ? "green"
-                : result.status === "跳过"
-                  ? "yellow"
-                  : "red";
-            return `<tr><td>${result.rowNumber}</td><td><span class="tag ${tone}">${result.status}</span></td><td>${importEscapeHtml(result.objectId || "—")}</td><td>${importEscapeHtml(result.code || "—")}</td><td>${importEscapeHtml(result.reason || "—")}</td></tr>`;
-          })
-          .join("");
-        return `<div class="section-title">项目逐行结果</div><div class="table-wrap"><table><thead><tr><th>行号</th><th>处理结果</th><th>项目编号</th><th>错误码</th><th>原因</th></tr></thead><tbody>${rows || '<tr><td colspan="5"><div class="empty">暂无逐行结果</div></td></tr>'}</tbody></table></div>`;
       }
       function openImportDetail(id) {
         if (!hasOperationPermission("imports.view"))
@@ -482,7 +321,7 @@
             ? "导入进度"
             : "导入结果";
         openDrawer(
-          `<div class="drawer-head"><div><div class="modal-title">${detailTitle}</div><div class="panel-sub">${importEscapeHtml(b.id)} · ${importEscapeHtml(b.templateType)} · ${importEscapeHtml(b.templateVersion)}</div></div><button class="icon-btn close" data-close>×</button></div><div class="drawer-body"><div class="detail-hero"><div class="avatar">导</div><div><div class="detail-name">${importEscapeHtml(b.file)}</div><div class="detail-sub">${importEscapeHtml(b.user)}（${importEscapeHtml(b.userCode)}）· ${importEscapeHtml(b.scope)} · ${importEscapeHtml(b.createdAt)}</div></div><div class="spacer"></div><span class="tag ${importStatusTone(b.status)}">${importEscapeHtml(b.status)}</span></div>${validationReady ? `<div class="metrics" style="grid-template-columns:repeat(5,minmax(0,1fr));margin-top:var(--space-5)">${metric("可导入", b.valid, "格式、权限和引用通过")}${metric("疑似重复", b.duplicates, "默认跳过，不覆盖", "yellow")}${metric("阻断错误", b.errors, "本行不写入", "red")}${metric("警告", b.warnings, "确认后可继续", "blue")}${metric("成功率", resultRate, hasResult ? `${success} 条成功 / ${b.valid} 条确认` : "导入完成后计算", hasResult && failed ? "yellow" : "green")}</div><div class="section-title">分工作表统计</div><div class="table-wrap"><table><thead><tr><th>工作表</th><th>可导入</th><th>疑似重复</th><th>阻断错误</th><th>警告</th><th>成功</th><th>失败</th><th>成功率</th></tr></thead><tbody>${sheetRows}<tr><td><strong>全批次</strong></td><td><strong>${b.valid}</strong></td><td><strong>${b.duplicates}</strong></td><td><strong>${b.errors}</strong></td><td><strong>${b.warnings}</strong></td><td><strong>${hasResult ? success : "—"}</strong></td><td><strong>${hasResult ? failed : "—"}</strong></td><td><strong>${resultRate}</strong></td></tr></tbody></table></div><div class="section-title">错误、重复与警告明细</div><div class="table-wrap"><table><thead><tr><th>工作表 / 行号</th><th>字段</th><th>分类</th><th>错误码 / 原因</th><th>修复建议</th></tr></thead><tbody>${importIssueRowsHtml(b)}</tbody></table></div>${projectImportResultRowsHtml(b)}` : ""}${resultSummary}${canConfirm ? `<label class="choice-item" style="margin-top:var(--space-4)"><input id="importConfirmAck" type="checkbox"><span>已核对预校验结果，仅确认写入 ${b.valid} 条可导入源业务行；疑似重复和阻断错误行全部跳过</span></label>` : ""}</div><div class="drawer-foot">${finalized && hasOperationPermission("imports.download") ? `<button class="btn" data-action="download-report" data-id="${importEscapeHtml(b.id)}">下载结果报告 .xlsx</button>` : ""}<button class="btn" data-close>关闭</button>${canConfirm ? `<button class="btn btn-primary" id="confirmImport" disabled>确认导入 ${b.valid} 行</button>` : ""}</div>`,
+          `<div class="drawer-head"><div><div class="modal-title">${detailTitle}</div><div class="panel-sub">${importEscapeHtml(b.id)} · ${importEscapeHtml(b.templateType)} · ${importEscapeHtml(b.templateVersion)}</div></div><button class="icon-btn close" data-close>×</button></div><div class="drawer-body"><div class="detail-hero"><div class="avatar">导</div><div><div class="detail-name">${importEscapeHtml(b.file)}</div><div class="detail-sub">${importEscapeHtml(b.user)}（${importEscapeHtml(b.userCode)}）· ${importEscapeHtml(b.scope)} · ${importEscapeHtml(b.createdAt)}</div></div><div class="spacer"></div><span class="tag ${importStatusTone(b.status)}">${importEscapeHtml(b.status)}</span></div>${validationReady ? `<div class="metrics" style="grid-template-columns:repeat(5,minmax(0,1fr));margin-top:var(--space-5)">${metric("可导入", b.valid, "格式、权限和引用通过")}${metric("疑似重复", b.duplicates, "默认跳过，不覆盖", "yellow")}${metric("阻断错误", b.errors, "本行不写入", "red")}${metric("警告", b.warnings, "确认后可继续", "blue")}${metric("成功率", resultRate, hasResult ? `${success} 条成功 / ${b.valid} 条确认` : "导入完成后计算", hasResult && failed ? "yellow" : "green")}</div><div class="section-title">分工作表统计</div><div class="table-wrap"><table><thead><tr><th>工作表</th><th>可导入</th><th>疑似重复</th><th>阻断错误</th><th>警告</th><th>成功</th><th>失败</th><th>成功率</th></tr></thead><tbody>${sheetRows}<tr><td><strong>全批次</strong></td><td><strong>${b.valid}</strong></td><td><strong>${b.duplicates}</strong></td><td><strong>${b.errors}</strong></td><td><strong>${b.warnings}</strong></td><td><strong>${hasResult ? success : "—"}</strong></td><td><strong>${hasResult ? failed : "—"}</strong></td><td><strong>${resultRate}</strong></td></tr></tbody></table></div><div class="section-title">错误、重复与警告明细</div><div class="table-wrap"><table><thead><tr><th>工作表 / 行号</th><th>字段</th><th>分类</th><th>错误码 / 原因</th><th>修复建议</th></tr></thead><tbody>${importIssueRowsHtml(b)}</tbody></table></div>` : ""}${resultSummary}${canConfirm ? `<label class="choice-item" style="margin-top:var(--space-4)"><input id="importConfirmAck" type="checkbox"><span>已核对预校验结果，仅确认写入 ${b.valid} 条可导入源业务行；疑似重复和阻断错误行全部跳过</span></label>` : ""}</div><div class="drawer-foot">${finalized && hasOperationPermission("imports.download") ? `<button class="btn" data-action="download-report" data-id="${importEscapeHtml(b.id)}">下载结果报告 .xlsx</button>` : ""}<button class="btn" data-close>关闭</button>${canConfirm ? `<button class="btn btn-primary" id="confirmImport" disabled>确认导入 ${b.valid} 行</button>` : ""}</div>`,
         );
         if (detailTitle === "导入结果") {
           const headerMeta = document.querySelector(".drawer-head .panel-sub");
@@ -499,82 +338,6 @@
             ($("#confirmImport").disabled = !$("#importConfirmAck").checked);
         if ($("#confirmImport"))
           $("#confirmImport").onclick = () => openImportConfirmation(b.id);
-      }
-      function executeProjectImportBatch(batch, actor) {
-        const checks = batch.projectPrevalidation || [];
-        const results = checks.map((check) => {
-          if (check.classification === "duplicate") {
-            const issue = check.issues?.[0] || {};
-            return {
-              rowNumber: check.rowNumber,
-              status: "跳过",
-              objectId: "",
-              code: issue.code || "IMP-PROJECT-DUP-001",
-              reason: issue.reason || "命中当前存量项目",
-            };
-          }
-          if (check.classification === "error") {
-            const issue = check.issues?.[0] || {};
-            return {
-              rowNumber: check.rowNumber,
-              status: "阻断",
-              objectId: "",
-              code: issue.code || "IMP-PROJECT-VALIDATION-001",
-              reason: issue.reason || "预校验未通过",
-            };
-          }
-          if (check.sourceRow?.simulateExecutionFailure) {
-            return {
-              rowNumber: check.rowNumber,
-              status: "失败",
-              objectId: "",
-              code: "IMP-PROJECT-WRITE-001",
-              reason: "正式写入失败；本行未建立项目且未占用编号",
-            };
-          }
-          try {
-            const outcome = createProjectFromImportRow(
-              check.sourceRow,
-              actor,
-              batch.id,
-            );
-            if (outcome.success) {
-              return {
-                rowNumber: check.rowNumber,
-                status: "成功",
-                objectId: outcome.projectId,
-                code: "",
-                reason: outcome.adjustment || "写入成功",
-              };
-            }
-            const issue = outcome.issues?.[0] || {};
-            return {
-              rowNumber: check.rowNumber,
-              status: "失败",
-              objectId: "",
-              code: issue.code || "IMP-PROJECT-RECHECK-001",
-              reason: issue.reason || "确认时重新鉴权未通过",
-            };
-          } catch (error) {
-            return {
-              rowNumber: check.rowNumber,
-              status: "失败",
-              objectId: "",
-              code: "IMP-PROJECT-WRITE-001",
-              reason: "正式写入失败；本行未建立项目且未占用编号",
-            };
-          }
-        });
-        batch.projectResults = results;
-        const success = results.filter((item) => item.status === "成功").length;
-        batch.sheets[0].success = success;
-        batch.resultAvailable = true;
-        batch.status =
-          success === 0
-            ? "失败"
-            : success === batch.valid && !batch.duplicates && !batch.errors
-              ? "全部成功"
-              : "部分成功";
       }
       function openImportConfirmation(id) {
         if (!hasOperationPermission("imports.confirm"))
@@ -607,9 +370,7 @@
           liveBatch.confirmedByAccount = importAccountKey(currentUser);
           liveBatch.confirmedBy = currentUser.name;
           liveBatch.confirmedAt = recordCreatedAt();
-          if (isProjectImportBatch(liveBatch)) {
-            executeProjectImportBatch(liveBatch, currentUser);
-          } else {
+          {
             const importedContacts = materializeContactImportRows(liveBatch);
             liveBatch.sheets.forEach((sheet) => (sheet.success = sheet.valid));
             if (liveBatch.templateType === FULL_IMPORT_TEMPLATE) {
@@ -666,41 +427,7 @@
         };
         const csvRow = (...values) => values.map(csvCell).join(",");
         let reportRows;
-        if (isProjectImportBatch(b)) {
-          const results = b.projectResults || [];
-          reportRows = results.length
-            ? results
-                .map((result) =>
-                  csvRow(
-                    "项目基本信息",
-                    result.rowNumber,
-                    result.status,
-                    result.status === "成功" ? 1 : 0,
-                    result.objectId,
-                    "",
-                    result.code,
-                    result.reason,
-                    result.status === "成功" ? "无需处理" : "按原因修正后重新上传",
-                  ),
-                )
-                .join("\n")
-            : (b.projectPrevalidation || [])
-                .map((check) => {
-                  const issue = check.issues?.[0] || {};
-                  return csvRow(
-                    "项目基本信息",
-                    check.rowNumber,
-                    check.classification === "duplicate" ? "跳过" : "阻断",
-                    0,
-                    "",
-                    "",
-                    issue.code || "",
-                    issue.reason || check.adjustment || "",
-                    issue.suggestion || "修正后重新上传",
-                  );
-                })
-                .join("\n");
-        } else {
+        {
           const groupResultRows = b.groupResultRows || [];
           reportRows = (b.sheets || [])
             .flatMap((sheet) =>

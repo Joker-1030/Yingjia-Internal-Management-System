@@ -1,13 +1,36 @@
+      function ecosystemDepartmentsAllowed(names, departments = organizationDepartments) {
+        return names.every(name => {
+          let department = departments.find(item => item.name === name && item.status === "启用");
+          if (!department) return false;
+          const visited = new Set();
+          while (department) {
+            if (department.type === "region" || visited.has(department.id)) return false;
+            visited.add(department.id);
+            department = departments.find(item => item.id === department.parentId);
+          }
+          return true;
+        });
+      }
+      function refreshEmployeeEcosystemTransfer(employee, expectedIds) {
+        const removing = employeeHasRole(employee, "生态合作员") &&
+          ![...document.querySelectorAll("[data-edit-role]:checked")].some(input => input.value === "生态合作员");
+        const visible = removing && expectedIds.length > 0;
+        const host = $("#eeEcologyTransfer");
+        if (host) host.style.display = visible ? "contents" : "none";
+        const receiver = $("#eeEcologyReceiver");
+        if (receiver) { receiver.required = visible; receiver.disabled = !visible; }
+      }
       function openEmployeeEditForm(index) {
         if (!canEmployeeAction("employees.edit_employee"))
           return toast("当前角色对员工档案仅有只读权限");
         const employee = employees[index];
         if (!employee || employee.role === "系统管理员")
           return toast("该账号不在员工档案编辑范围内");
+        const expectedEcologyIds = ecosystemEmployeeProjectCandidates(employee.code).map(project => project.id);
         const currentDepartments = employeeDepartmentNames(employee);
         const currentManualRoles = employee.manualRoles || employee.roles || [];
         openModal(
-          `<div class="modal-head"><div class="modal-title">编辑员工</div><button class="icon-btn close" data-close>×</button></div><form id="employeeEditForm"><div class="modal-body"><div class="form-grid"><div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>姓名</label><input class="input" id="eeName" value="${employee.name}" minlength="2" maxlength="50" required></div><div class="form-group"><label class="form-label">工号</label><input class="input" value="${employee.code}" disabled><div class="list-sub">永久唯一，不可修改</div></div><div class="form-group"><label class="form-label">当前手机号</label><input class="input" value="${displayEmployeePhone(employee)}" disabled></div><div class="form-group"><label class="form-label">新手机号</label><input class="input" id="eeNewPhone" inputmode="numeric" pattern="1[3-9][0-9]{9}" maxlength="11" placeholder="不修改请留空"></div><div class="form-group"><label class="form-label">企业邮箱</label><input class="input" id="eeEmail" type="email" maxlength="254" value="${employee.email || ""}"></div><div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>入职日期</label><input class="input" id="eeHireDate" type="date" max="${DEMO_TODAY}" value="${employee.hireDate}" required></div><div class="form-group full"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>所属部门 <span class="panel-sub">可多选，不设主部门</span></label><div class="choice-grid">${organizationDepartments.filter((item) => item.status === "启用").map((department) => `<label class="choice-item"><input type="checkbox" data-edit-department value="${department.name}" ${currentDepartments.includes(department.name) ? "checked" : ""}><span>${department.name}</span></label>`).join("")}</div></div><div class="form-group full"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>系统角色 <span class="panel-sub">1-5 个</span></label><div class="choice-grid">${["总裁", "市场副总", "区域总监", "PM", "HR/人事", "商机支撑"].map((role) => `<label class="choice-item"><input type="checkbox" data-edit-role value="${role}" ${currentManualRoles.includes(role) ? "checked" : ""}><span>${role}</span></label>`).join("")}</div></div><div class="form-group full"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>更正原因</label><textarea class="input" id="eeReason" minlength="5" maxlength="500" required></textarea></div></div></div><div class="modal-foot"><button class="btn" type="button" data-close>取消</button><button class="btn btn-primary" type="submit">保存并立即生效</button></div></form>`,
+          `<div class="modal-head"><div class="modal-title">编辑员工</div><button class="icon-btn close" data-close>×</button></div><form id="employeeEditForm"><div class="modal-body"><div class="form-grid"><div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>姓名</label><input class="input" id="eeName" value="${employee.name}" minlength="2" maxlength="50" required></div><div class="form-group"><label class="form-label">工号</label><input class="input" value="${employee.code}" disabled><div class="list-sub">永久唯一，不可修改</div></div><div class="form-group"><label class="form-label">当前手机号</label><input class="input" value="${displayEmployeePhone(employee)}" disabled></div><div class="form-group"><label class="form-label">新手机号</label><input class="input" id="eeNewPhone" inputmode="numeric" pattern="1[3-9][0-9]{9}" maxlength="11" placeholder="不修改请留空"></div><div class="form-group"><label class="form-label">企业邮箱</label><input class="input" id="eeEmail" type="email" maxlength="254" value="${employee.email || ""}"></div><div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>入职日期</label><input class="input" id="eeHireDate" type="date" max="${DEMO_TODAY}" value="${employee.hireDate}" required></div><div class="form-group full"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>所属部门 <span class="panel-sub">可多选，不设主部门</span></label><div class="choice-grid">${organizationDepartments.filter((item) => item.status === "启用").map((department) => `<label class="choice-item"><input type="checkbox" data-edit-department value="${department.name}" ${currentDepartments.includes(department.name) ? "checked" : ""}><span>${department.name}</span></label>`).join("")}</div></div><div class="form-group full"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>系统角色 <span class="panel-sub">1-5 个</span></label><div class="choice-grid">${["总裁", "市场副总", "区域总监", "PM", "生态合作员", "HR/人事", "商机支撑"].map((role) => `<label class="choice-item"><input type="checkbox" data-edit-role value="${role}" ${currentManualRoles.includes(role) ? "checked" : ""}><span>${role}</span></label>`).join("")}</div></div><div id="eeEcologyTransfer" style="display:none">${ecosystemTransferFieldHtml(employee.code, "eeEcologyReceiver")}</div><div class="form-group full"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>更正原因</label><textarea class="input" id="eeReason" minlength="5" maxlength="500" required></textarea></div></div></div><div class="modal-foot"><button class="btn" type="button" data-close>取消</button><button class="btn btn-primary" type="submit">保存并立即生效</button></div></form>`,
         );
         document.querySelectorAll("[data-edit-role]").forEach(
           (input) =>
@@ -16,15 +39,27 @@
                 event.target.checked = false;
                 toast("系统角色最多选择 5 个");
               }
+              refreshEmployeeEcosystemTransfer(employee, expectedEcologyIds);
             }),
         );
+        refreshEmployeeEcosystemTransfer(employee, expectedEcologyIds);
         $("#employeeEditForm").onsubmit = (event) => {
           event.preventDefault();
+          if (!canEmployeeAction("employees.edit_employee")) return toast("当前角色无权编辑员工");
           const departments = [...document.querySelectorAll("[data-edit-department]:checked")].map((input) => input.value);
           const manualRoles = [...document.querySelectorAll("[data-edit-role]:checked")].map((input) => input.value);
           if (!departments.length) return toast("请至少选择一个所属部门");
           if (!manualRoles.length) return toast("请至少选择一个系统角色");
           if (manualRoles.length > 5) return toast("系统角色最多选择 5 个");
+          if (manualRoles.includes("生态合作员") && !ecosystemDepartmentsAllowed(departments))
+            return toast("生态合作员不能归属区域运营中心或其下级部门");
+          const reason = $("#eeReason").value.trim();
+          const name = $("#eeName").value.trim();
+          if (reason.length < 5 || reason.length > 500 || name.length < 2 || name.length > 50)
+            return toast("请填写有效姓名及 5-500 字更正原因");
+          const removingEcology = employeeHasRole(employee, "生态合作员") && !manualRoles.includes("生态合作员");
+          const ecologyPlan = removingEcology ? prepareEcosystemProjectTransfer(employee.code, $("#eeEcologyReceiver").value, expectedEcologyIds) : null;
+          if (ecologyPlan && !ecologyPlan.ok) return toast(ecologyPlan.error);
           const newPhone = $("#eeNewPhone").value.trim();
           const phone = newPhone || employee.phone;
           const email = $("#eeEmail").value.trim().toLowerCase();
@@ -34,6 +69,10 @@
             return toast("手机号已被其他员工或历史账号使用");
           if (email && employees.some((item) => item.code !== employee.code && item.email?.toLowerCase() === email))
             return toast("企业邮箱已被其他员工使用");
+          if (ecologyPlan) {
+            const transfer = applyEcosystemProjectTransfer(ecologyPlan, { effectiveAt: recordCreatedAt(), reason });
+            if (!transfer.ok) return toast(transfer.error);
+          }
           const before = `${employee.name}；部门 ${currentDepartments.join("、")}；系统角色 ${currentManualRoles.join("、") || "无"}`;
           Object.assign(employee, {
             name: $("#eeName").value.trim(),
@@ -65,7 +104,7 @@
         if (!canEmployeeAction("employees.create_employee"))
           return toast("当前角色对组织与员工仅有只读权限");
         openModal(
-          `<div class="modal-head"><div class="modal-title">新增员工</div><button class="icon-btn close" data-close>×</button></div><form id="employeeForm"><div class="modal-body"><div class="form-grid"><div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>姓名</label><input class="input" id="efName" required minlength="2" maxlength="50"></div><div class="form-group"><label class="form-label">工号</label><input class="input" value="保存后自动生成" disabled></div><div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>手机号（登录账号）</label><input class="input" id="efPhone" required inputmode="numeric" autocomplete="tel" pattern="1[3-9][0-9]{9}" maxlength="11" placeholder="11 位手机号"></div><div class="form-group"><label class="form-label">企业邮箱</label><input class="input" id="efEmail" type="email" maxlength="254" placeholder="name@company.com"></div><div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>入职日期</label><input class="input" id="efHireDate" type="date" max="${DEMO_TODAY}" value="${DEMO_TODAY}" required></div><div class="form-group full"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>所属部门 <span class="panel-sub">可多选，不设主部门</span></label><div class="choice-grid">${organizationDepartments.filter((item) => item.status === "启用").map((department) => `<label class="choice-item"><input type="checkbox" data-employee-department value="${department.name}"><span>${department.name}</span></label>`).join("")}</div></div><div class="form-group full"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>系统角色 <span class="panel-sub">1-5 个</span></label><div class="choice-grid">${["总裁", "市场副总", "区域总监", "PM", "HR/人事", "商机支撑"].map((role) => `<label class="choice-item"><input type="checkbox" data-employee-role value="${role}"><span>${role}</span></label>`).join("")}</div></div></div></div><div class="modal-foot"><button class="btn" type="button" data-close>取消</button><button class="btn btn-primary" type="submit">创建员工与账号</button></div></form>`,
+          `<div class="modal-head"><div class="modal-title">新增员工</div><button class="icon-btn close" data-close>×</button></div><form id="employeeForm"><div class="modal-body"><div class="form-grid"><div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>姓名</label><input class="input" id="efName" required minlength="2" maxlength="50"></div><div class="form-group"><label class="form-label">工号</label><input class="input" value="保存后自动生成" disabled></div><div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>手机号（登录账号）</label><input class="input" id="efPhone" required inputmode="numeric" autocomplete="tel" pattern="1[3-9][0-9]{9}" maxlength="11" placeholder="11 位手机号"></div><div class="form-group"><label class="form-label">企业邮箱</label><input class="input" id="efEmail" type="email" maxlength="254" placeholder="name@company.com"></div><div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>入职日期</label><input class="input" id="efHireDate" type="date" max="${DEMO_TODAY}" value="${DEMO_TODAY}" required></div><div class="form-group full"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>所属部门 <span class="panel-sub">可多选，不设主部门</span></label><div class="choice-grid">${organizationDepartments.filter((item) => item.status === "启用").map((department) => `<label class="choice-item"><input type="checkbox" data-employee-department value="${department.name}"><span>${department.name}</span></label>`).join("")}</div></div><div class="form-group full"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>系统角色 <span class="panel-sub">1-5 个</span></label><div class="choice-grid">${["总裁", "市场副总", "区域总监", "PM", "生态合作员", "HR/人事", "商机支撑"].map((role) => `<label class="choice-item"><input type="checkbox" data-employee-role value="${role}"><span>${role}</span></label>`).join("")}</div></div></div></div><div class="modal-foot"><button class="btn" type="button" data-close>取消</button><button class="btn btn-primary" type="submit">创建员工与账号</button></div></form>`,
         );
         document.querySelectorAll("[data-employee-role]").forEach(
           (input) =>
@@ -92,6 +131,8 @@
           if (!departments.length) return toast("请至少选择一个所属部门");
           if (!roles.length) return toast("请至少选择一个系统角色");
           if (roles.length > 5) return toast("系统角色最多选择 5 个");
+          if (roles.includes("生态合作员") && !ecosystemDepartmentsAllowed(departments))
+            return toast("生态合作员不能归属区域运营中心或其下级部门");
           const role = roles[0];
           const employee = {
             code: `YJ${String(101 + employees.length).padStart(3, "0")}`,
@@ -228,6 +269,13 @@
           const supervisor = employees.find(
             (employee) => employee.code === supervisorCode,
           );
+          const projectedDepartments = organizationDepartments.map(item => item.id === department?.id
+            ? { ...item, parentId, type: isRegion ? "region" : "department" } : item);
+          if (employees.some(employee => employeeHasRole(employee, "生态合作员") &&
+              !ecosystemDepartmentsAllowed(employeeDepartmentNames(employee), projectedDepartments)) ||
+              (supervisor && employeeHasRole(supervisor, "生态合作员") &&
+                (isRegion || (parentId && !ecosystemDepartmentsAllowed([organizationDepartments.find(item => item.id === parentId)?.name], projectedDepartments)))))
+            return toast("生态合作员不能归属区域运营中心或其下级部门");
           if (department) {
             const linkedRegion = regionsData.find(
               (region) => region.id === department.regionId,
@@ -839,6 +887,7 @@
           (mode === "恢复" && employee.status !== "停用")
         )
           return toast(`当前员工状态不允许${mode}`);
+        const ecologyIds = mode === "停用" ? ecosystemEmployeeProjectCandidates(employee.code).map(project => project.id) : [];
         const groups = mode === "停用" ? employeeDeactivationGroups(employee) : [];
         const groupCompanyNames = new Set(
           groups.flatMap((group) =>
@@ -873,7 +922,7 @@
                 )
               : [];
           }),
-        ).size;
+        ).size + ecologyIds.length;
         const receiverFields = groups
           .map((group, groupIndex) => {
             const candidates = employeeDeactivationReceiverCandidates(
@@ -893,10 +942,12 @@
           ),
         ).size;
         openModal(
-          `<div class="modal-head"><div class="modal-title">确认员工${mode}</div><button class="icon-btn close" data-close>×</button></div><form id="employeeStatusForm"><div class="modal-body"><div class="role-note ${mode === "停用" ? "danger-note" : ""}"><strong>${employee.name} · ${employee.code}</strong></div>${mode === "停用" ? `<div class="impact-summary"><div class="impact-grid"><div><label>责任交接组</label><strong>${groups.length}</strong></div><div><label>未完成任务</label><strong>${openTasks.length}</strong></div><div><label>随责任迁移项目</label><strong>${projectCount}</strong></div><div><label>迁移未落选商机</label><strong>${opportunityCount}</strong></div></div></div>${groups.length ? `<div class="section-title">责任组接收人</div><div class="form-grid">${receiverFields}</div>` : '<div class="role-note">该员工当前没有 PM 地市或区域总监区域中心责任，无需选择责任接收人。</div>'}<div class="role-note">确认后员工将立即停用并无法登录，交接开始后不可中途结束。任务、项目和未落选商机交给对应地市或区域中心的同一接收人；已取消或已中止项目、已落选商机不转交。原部门及系统角色保留。若部分交接失败，员工仍停用，已完成的交接不撤销。</div>` : `<div class="role-note">恢复后可登录，保留原部门及系统角色；已关闭任务不会重新打开，已交出的责任不会取回。</div>`}<div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>${mode}原因</label><textarea class="input" id="esReason" minlength="5" maxlength="500" required></textarea></div></div><div class="modal-foot"><button class="btn" type="button" data-close>取消</button><button class="btn ${mode === "停用" ? "btn-danger" : "btn-primary"}" type="submit">确认并立即${mode}</button></div></form>`,
+          `<div class="modal-head"><div class="modal-title">确认员工${mode}</div><button class="icon-btn close" data-close>×</button></div><form id="employeeStatusForm"><div class="modal-body"><div class="role-note ${mode === "停用" ? "danger-note" : ""}"><strong>${employee.name} · ${employee.code}</strong></div>${mode === "停用" ? `<div class="impact-summary"><div class="impact-grid"><div><label>责任交接组</label><strong>${groups.length}</strong></div><div><label>未完成任务</label><strong>${openTasks.length}</strong></div><div><label>随责任迁移项目</label><strong>${projectCount}</strong></div><div><label>迁移未落选商机</label><strong>${opportunityCount}</strong></div></div></div>${ecologyIds.length ? ecosystemTransferFieldHtml(employee.code, "esEcologyReceiver") + '<div class="role-note">生态项目全部交接成功后才停用员工与账号；交接失败时项目和员工保持不变。已取消或已中止项目不交接。</div>' : ""}${groups.length ? `<div class="section-title">责任组接收人</div><div class="form-grid">${receiverFields}</div>` : '<div class="role-note">该员工当前没有 PM 地市或区域总监区域中心责任。</div>'}${groups.length ? `<div class="role-note">确认后员工将立即停用并无法登录，交接开始后不可中途结束。任务、项目和未落选商机交给对应地市或区域中心的同一接收人；已取消或已中止项目、已落选商机不转交。原部门及系统角色保留。若部分交接失败，员工仍停用，已完成的交接不撤销。</div>` : ""}` : `<div class="role-note">恢复后可登录，保留原部门及系统角色；已关闭任务不会重新打开，已交出的责任不会取回。</div>`}<div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>${mode}原因</label><textarea class="input" id="esReason" minlength="5" maxlength="500" required></textarea></div></div><div class="modal-foot"><button class="btn" type="button" data-close>取消</button><button class="btn ${mode === "停用" ? "btn-danger" : "btn-primary"}" type="submit">确认并立即${mode}</button></div></form>`,
         );
         $("#employeeStatusForm").onsubmit = (event) => {
           event.preventDefault();
+          if (!canEmployeeAction(permission) || (mode === "停用" && employee.status !== "在职") || (mode === "恢复" && employee.status !== "停用"))
+            return toast("员工状态或操作权限已变化，请重新打开操作");
           const reason = $("#esReason").value.trim();
           if (reason.length < 5 || reason.length > 500)
             return toast(`${mode}原因需填写 5-500 字`);
@@ -949,6 +1000,10 @@
           );
           const invalidPlan = plans.find((plan) => !plan.ok);
           if (invalidPlan) return toast(invalidPlan.error);
+          const ecologyPlan = prepareEcosystemProjectTransfer(employee.code, $("#esEcologyReceiver")?.value || "", ecologyIds);
+          if (!ecologyPlan.ok) return toast(ecologyPlan.error);
+          const ecologyResult = applyEcosystemProjectTransfer(ecologyPlan, { effectiveAt: changedAt, reason });
+          if (!ecologyResult.ok) return toast(ecologyResult.error);
           const submitButton = event.submitter;
           if (submitButton) {
             submitButton.disabled = true;
@@ -989,7 +1044,7 @@
           );
           const migratedProjectCount = succeeded.reduce(
             (total, result) => total + result.projects,
-            0,
+            ecologyResult.projectIds.length,
           );
           const migratedOpportunityCount = succeeded.reduce(
             (total, result) => total + result.opportunities,
@@ -1018,7 +1073,9 @@
           closeOverlay();
           employeeView = "changes";
           renderPage();
-          const resultRows = groupResults.length
+          const ecologyRows = ecologyResult.projectIds.length
+            ? `<div class="timeline-item"><div class="timeline-title">生态项目 · 已交接给${escapeHtml(ecologyPlan.receiver.name)}</div><div class="timeline-content">迁移项目 ${ecologyResult.projectIds.length} 个</div></div>` : "";
+          const resultRows = ecologyRows + (groupResults.length
             ? groupResults
                 .map((result) =>
                   result.ok
@@ -1026,9 +1083,9 @@
                     : `<div class="timeline-item"><div class="timeline-title">${escapeHtml(result.label)} · 交接失败</div><div class="timeline-content">${escapeHtml(result.error)}；员工、账号和其他成功组不回滚，由有权人员继续处理。</div></div>`,
                 )
                 .join("")
-            : '<div class="role-note">该员工没有需要处理的地区责任组。</div>';
+            : ecologyRows ? "" : '<div class="role-note">该员工没有需要处理的地区责任组。</div>');
           openModal(
-            `<div class="modal-head"><div class="modal-title">员工停用结果</div><button class="icon-btn close" data-close>×</button></div><div class="modal-body"><div class="role-note ${failed.length ? "danger-note" : ""}">员工与账号已停用并使会话失效。${failed.length ? `已完成 ${succeeded.length} 个责任组，${failed.length} 个责任组需由有权人员继续处理。` : `全部 ${succeeded.length} 个责任组已处理完成。`}</div><div class="timeline">${resultRows}</div></div><div class="modal-foot"><button class="btn btn-primary" data-close>关闭</button></div>`,
+            `<div class="modal-head"><div class="modal-title">员工停用结果</div><button class="icon-btn close" data-close>×</button></div><div class="modal-body"><div class="role-note ${failed.length ? "danger-note" : ""}">员工与账号已停用并使会话失效。${ecologyResult.projectIds.length ? `生态项目 ${ecologyResult.projectIds.length} 个已交接。` : ""}${failed.length ? `已完成 ${succeeded.length} 个责任组，${failed.length} 个责任组需由有权人员继续处理。` : `全部 ${succeeded.length} 个责任组已处理完成。`}</div><div class="timeline">${resultRows}</div></div><div class="modal-foot"><button class="btn btn-primary" data-close>关闭</button></div>`,
           );
         };
       }

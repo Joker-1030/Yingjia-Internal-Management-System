@@ -88,7 +88,13 @@
         { code: "YJ029", name: "沈阳原PM", dept: "东北区域运营中心", job: "项目经理", role: "PM", scope: "沈阳", status: "停用" },
       );
       employees.push({ code: "YJ030", name: "支撑专员", dept: "咨询产品部", job: "方案顾问", role: "商机支撑", status: "在职" });
+      employees.push(
+        { code: "YJ031", name: "生态专员甲", dept: "师资管理部", role: "生态合作员", status: "在职" },
+        { code: "YJ032", name: "生态专员乙", dept: "师资管理部", role: "生态合作员", status: "在职" },
+      );
       const employeeProfiles = {
+        YJ031: ["13900000031", "ecology@yingjia.example", "2026-08-01", "YJ023"],
+        YJ032: ["13900000032", "ecology2@yingjia.example", "2026-08-01", "YJ023"],
         YJ030: ["13900000030", "support@yingjia.example", "2026-08-01", "YJ020"],
         YJ001: ["13900000001", "liuzong@yingjia.example", "2021-03-01", "YJ001"],
         YJ002: ["13900000002", "wangjing@yingjia.example", "2021-06-15", "YJ001"],
@@ -288,7 +294,7 @@
         department.sort = department.sort || (index + 1) * 10;
         department.updatedAt = department.updatedAt || "2026-08-17 09:30";
       });
-      const businessSystemRoles = ["总裁", "市场副总", "区域总监", "PM", "HR/人事", "商机支撑"];
+      const businessSystemRoles = ["总裁", "市场副总", "区域总监", "PM", "生态合作员", "HR/人事", "商机支撑"];
       employees.forEach((employee) => {
         employee.roles = businessSystemRoles.includes(employee.role)
           ? [employee.role]

@@ -1,10 +1,7 @@
       const FULL_IMPORT_TEMPLATE = "客户主数据全量模板";
       const CONTACT_IMPORT_TEMPLATE = "关键人模板";
-      const PROJECT_IMPORT_TEMPLATE = "项目模板";
       const FULL_IMPORT_VERSION = "CUSTOMER_MASTER_IMPORT_V1_5";
       const CONTACT_IMPORT_VERSION = "CONTACT_IMPORT_V1_5";
-      const PROJECT_IMPORT_VERSION = "初始化期当前版本";
-      let projectImportInitializationOpen = true;
       const IMPORT_BATCH_STATUSES = [
         "已上传",
         "预校验中",
@@ -259,18 +256,14 @@
           ""
         );
       }
-      function isProjectImportBatch(batch) {
-        return batch?.templateType === PROJECT_IMPORT_TEMPLATE;
-      }
       function canAccessImportBatch(batch, account = currentUser) {
-        if (!batch || !account) return false;
+        if (!batch || !account || ![FULL_IMPORT_TEMPLATE, CONTACT_IMPORT_TEMPLATE].includes(batch.templateType)) return false;
         if (account.fullAccess) return true;
         const sameCreator =
           importBatchCreatorKey(batch) === importAccountKey(account);
         if (account.role === "pm") return sameCreator;
         if (account.role !== "director") return false;
-        if (!isProjectImportBatch(batch)) return sameCreator;
-        return regionsMatch(importBatchRegionScope(batch), account.region);
+        return sameCreator;
       }
       function canConfirmImportBatch(batch, account = currentUser) {
         if (!canAccessImportBatch(batch, account)) return false;
@@ -295,28 +288,16 @@
         if (account.fullAccess) templates.push(FULL_IMPORT_TEMPLATE);
         if (account.fullAccess || ["director", "pm"].includes(account.role))
           templates.push(CONTACT_IMPORT_TEMPLATE);
-        if (
-          projectImportInitializationOpen &&
-          (account.fullAccess || ["director", "pm"].includes(account.role))
-        )
-          templates.push(PROJECT_IMPORT_TEMPLATE);
         return templates;
       }
       function importTemplateVersion(templateType) {
         if (templateType === FULL_IMPORT_TEMPLATE) return FULL_IMPORT_VERSION;
         if (templateType === CONTACT_IMPORT_TEMPLATE)
           return CONTACT_IMPORT_VERSION;
-        if (templateType === PROJECT_IMPORT_TEMPLATE)
-          return PROJECT_IMPORT_VERSION;
         return "";
       }
       function importScopeText(templateType, account = currentUser) {
         if (account?.fullAccess) return "公司全局";
-        if (templateType === PROJECT_IMPORT_TEMPLATE) {
-          return account?.role === "director"
-            ? `${account.name}负责的省级客户项目`
-            : `${account?.name || "当前用户"}负责的市/区县客户项目`;
-        }
         return account?.role === "director"
           ? `${account.name}负责的省级客户`
           : `${account?.name || "当前用户"}负责的市/区县客户`;

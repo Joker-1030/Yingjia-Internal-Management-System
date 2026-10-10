@@ -2,7 +2,7 @@
       // 仅表达当前 PRD 已确认的正式字段、培训项目/AI软件项目、六个主阶段与三个并行待办标识。
       // customerSnapshot 为创建立项时锁定的客户快照（稳定编号、客户公司、层级、省市区县），
       // 列表、详情、数据范围与负责人解析均使用该快照，客户主数据后续变化不追溯修改项目。
-      // 当前项目负责人由地区责任唯一驱动（DEC-175）：在客户快照基础上按当前地区责任 + 员工在职及角色有效解析。
+      // 平台师资合作由生态员工独立负责（DEC-220）；其余当前负责人由地区责任驱动（DEC-175）：在客户快照基础上按当前地区责任 + 员工在职及角色有效解析。
       // 已取消/已中止项目分别保留取消/中止时负责人，不继续跟随地区责任变化（DEC-175、DEC-201、M11 PRD 14）。
       // 资源标识（packageId/directionIntro/companyId/companyName）与 snapshot 表达创建时商业快照，
       // 配置后续变化不追溯修改已有项目（M11 PRD 8.5）。
@@ -234,9 +234,10 @@
             district: "",
           },
           opportunityId: "",
-          createdBy: "陈经理",
+          createdBy: "生态专员甲",
           createdAt: "2026-06-15 09:30:00",
-          ownerSnapshot: "陈经理",
+          ownerSnapshot: "生态专员甲",
+          ownerSnapshotId: "YJ031", currentOwnerId: "YJ031", currentOwner: "生态专员甲",
           startTime: "2026-08-14 09:00",
           endTime: "2026-08-18 18:00",
           days: 5,

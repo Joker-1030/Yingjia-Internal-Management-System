@@ -159,6 +159,11 @@
           permissions: ["sales-supports"],
         },
         {
+          name: "生态合作员", jobs: [], scopeType: "owned-ecosystem-projects",
+          scopeSource: "项目当前负责人", objects: ["项目"],
+          permissions: ["dashboard", "projects"],
+        },
+        {
           name: "系统管理员",
           jobs: ["内置 admin 账号"],
           scopeType: "company",
@@ -200,6 +205,7 @@
           cities: "负责地市",
           organization: "公司组织",
           "assigned-supports": "本人被指派方案支撑",
+          "owned-ecosystem-projects": "本人平台师资合作项目",
         }[template?.scopeType];
       }
 
@@ -296,6 +302,7 @@
           "employees.set_supervisor", "employees.create_employee", "employees.edit_employee",
           "employees.change_employee", "employees.suspend_employee", "employees.restore_employee",
         ],
+        生态合作员: ["dashboard.view", "projects.view", "projects.create", "projects.edit"],
         商机支撑: ["opportunities.support"],
         系统管理员: operationPermissionCatalog.filter((item) => item[0] !== "regions.handover").map((item) => item[0]),
       };
@@ -315,6 +322,7 @@
         区域总监: ["customer_base_view", "contact_sensitive_view", "record_view", "record_edit"],
         PM: ["customer_base_view", "customer_base_edit", "contact_sensitive_view", "record_view", "record_edit"],
         "HR/人事": ["employee_sensitive_view", "employee_sensitive_edit"],
+        生态合作员: [],
         商机支撑: [],
         系统管理员: fieldPermissionCatalog.map((item) => item[0]),
       };
@@ -330,6 +338,7 @@
         区域总监: ["attachment_view", "attachment_download", "attachment_upload", "attachment_delete"],
         PM: ["attachment_view", "attachment_download", "attachment_upload", "attachment_delete"],
         "HR/人事": ["attachment_view", "attachment_upload"],
+        生态合作员: attachmentPermissionCatalog.map((item) => item[0]),
         商机支撑: ["attachment_view", "attachment_download", "attachment_upload"],
         系统管理员: attachmentPermissionCatalog.map((item) => item[0]),
       };
@@ -339,6 +348,7 @@
         区域总监: "REGIONAL_DIRECTOR",
         PM: "PM",
         "HR/人事": "HR",
+        生态合作员: "ECOSYSTEM_COORDINATOR",
         商机支撑: "OPPORTUNITY_SUPPORT",
         系统管理员: "ADMIN",
       };
@@ -346,6 +356,7 @@
         systemRoleTemplates.map((template, position) => {
           const index = template.name === "系统管理员" ? 5 : position;
           const code = permissionRoleCodes[template.name];
+          if (template.name === "生态合作员") return [template.name, [{ id: `PERM-${code}-000001`, type: "初始化", operator: "系统管理员", time: "2026-10-10 09:00", reason: "建立生态合作员项目权限", permissions: [...template.permissions], operations: [...roleOperationPermissions[template.name]], fields: [], attachments: [...roleAttachmentPermissions[template.name]] }]];
           if (template.name === "商机支撑") return [template.name, [{
             id: `PERM-${code}-000001`, type: "初始化", operator: "系统管理员",
             time: "2026-09-11 09:00", reason: "建立商机支撑角色权限",

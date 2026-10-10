@@ -142,16 +142,91 @@
         if (!customer) return "—";
         return customer.companyCode || String(customer.id);
       }
+      function isEcosystemProject(project) {
+        return project?.resourceType === "平台师资合作";
+      }
+      function validEcosystemEmployee(employee) {
+        const account = employee && accounts.find(item => item.employeeCode === employee.code || (!item.employeeCode && item.name === employee.name));
+        return Boolean(employee && employee.status === "在职" && employee.accountStatus === "启用" && account && !account.disabled &&
+          employeeHasRole(employee, "生态合作员") && ecosystemDepartmentsAllowed(employeeDepartmentNames(employee)));
+      }
+      function currentEcosystemEmployee() {
+        const employee = employees.find((item) => item.code === currentUser?.employeeCode ||
+          (!currentUser?.employeeCode && item.name === currentUser?.name));
+        return validEcosystemEmployee(employee) ? employee : null;
+      }
+      function ecosystemProjectOwnerCode(project) {
+        return project.currentOwnerId || project.ownerSnapshotId || employees.find((item) => item.name === (project.currentOwner || project.ownerSnapshot))?.code || "";
+      }
+      function projectOwnedByCurrentUser(project) {
+        if (isEcosystemProject(project)) {
+          const employee = currentEcosystemEmployee();
+          return Boolean(employee && ecosystemProjectOwnerCode(project) === employee.code);
+        }
+        return projectCurrentOwner(project) === currentUser?.name;
+      }
+      function ecosystemEmployeeProjectCandidates(employeeCode) {
+        return projects.filter((project) => isEcosystemProject(project) &&
+          PROJECT_RESPONSIBILITY_TRANSFER_STAGES.has(project.stage) && ecosystemProjectOwnerCode(project) === employeeCode);
+      }
+      function ecosystemReceiverCandidates(employeeCode) {
+        return employees.filter((employee) => employee.code !== employeeCode && validEcosystemEmployee(employee));
+      }
+      function prepareEcosystemProjectTransfer(employeeCode, receiverCode, expectedIds) {
+        const owned = ecosystemEmployeeProjectCandidates(employeeCode);
+        const ids = owned.map(project => project.id).sort();
+        if (expectedIds && JSON.stringify(ids) !== JSON.stringify([...expectedIds].sort()))
+          return { ok: false, error: "项目责任已变化，请重新打开员工操作" };
+        const receiver = employees.find(employee => employee.code === receiverCode);
+        if (owned.length && (!receiver || receiver.code === employeeCode || !validEcosystemEmployee(receiver)))
+          return { ok: false, error: "请选择另一名有效生态合作员接收项目" };
+        if (owned.some(project => project.responsibilityHistory != null && !Array.isArray(project.responsibilityHistory)))
+          return { ok: false, error: "项目责任历史不可用，项目和员工保持不变" };
+        return { ok: true, employeeCode, receiverCode, receiver, ids, owned };
+      }
+      function applyEcosystemProjectTransfer(plan, audit) {
+        if (!canEmployeeAction("employees.edit_employee") && !canEmployeeAction("employees.suspend_employee"))
+          return { ok: false, error: "当前角色无权处理项目交接" };
+        if (!plan?.ok) return { ok: false, error: "项目交接方案无效" };
+        const checked = prepareEcosystemProjectTransfer(plan.employeeCode, plan.receiverCode, plan.ids);
+        if (!checked.ok) return checked;
+        const snapshots = checked.owned.map(project => [project, JSON.parse(JSON.stringify(project))]);
+        try {
+        checked.owned.forEach(project => {
+          const fromOwner = projectCurrentOwner(project);
+          project.currentOwnerId = checked.receiver.code;
+          project.currentOwner = checked.receiver.name;
+          project.responsibilityHistory = [...(project.responsibilityHistory || []), {
+            type: "ecosystem_project_transfer", fromOwner, toOwner: checked.receiver.name,
+            fromOwnerCode: plan.employeeCode, toOwnerCode: checked.receiver.code,
+            effectiveAt: audit.effectiveAt, operator: currentUser.name, reason: audit.reason,
+          }];
+        });
+        } catch (error) {
+          snapshots.forEach(([project, snapshot]) => {
+            Object.keys(project).forEach(key => delete project[key]);
+            Object.assign(project, snapshot);
+          });
+          return { ok: false, error: "项目交接失败，项目和员工保持不变" };
+        }
+        return { ok: true, projectIds: checked.ids };
+      }
+      function ecosystemTransferFieldHtml(employeeCode, id) {
+        return `<div class="form-group full"><label class="form-label" for="${id}"><span class="required-marker" aria-hidden="true">*</span>生态项目接收人</label><select class="input" id="${id}" required><option value="">请选择另一名生态合作员</option>${ecosystemReceiverCandidates(employeeCode).map(employee => `<option value="${employee.code}">${escapeHtml(employee.name)} · ${employee.code}</option>`).join("")}</select></div>`;
+      }
       function projectCurrentOwner(project) {
         if (project.stage === "已取消")
           return project.cancelledOwner || project.ownerSnapshot || "—";
         if (project.stage === "已中止")
           return project.terminatedOwner || project.currentOwner || project.ownerSnapshot || "—";
+        if (isEcosystemProject(project))
+          return employees.find(employee => employee.code === ecosystemProjectOwnerCode(project))?.name || project.currentOwner || project.ownerSnapshot || "待配置";
         const facts = projectCustomerFacts(project);
         const resolvedOwner = facts ? resolveProjectOwner(facts) : "";
         return resolvedOwner || project.currentOwner || "待配置";
       }
       function projectRegionScope(project) {
+        if (isEcosystemProject(project)) return "";
         const facts = projectCustomerFacts(project);
         if (!facts) return "待配置区域";
         const region = regionsData.find((item) =>
@@ -169,6 +244,7 @@
         if (!facts) return false;
         if (currentUser.fullAccess || ["president", "vp"].includes(currentUser.role))
           return true;
+        if (isEcosystemProject(project)) return projectOwnedByCurrentUser(project);
         if (currentUser.role === "director")
           return companyInCurrentManagedRegion(facts);
         if (currentUser.role === "pm")
@@ -183,8 +259,8 @@
         return projects.find((project) => project.id === id);
       }
       function projectEditMode(project) {
-        if (!project || !hasOperationPermission("projects.edit")) return null;
-        const isOwner = projectCurrentOwner(project) === currentUser.name;
+        if (!project || !projectIsVisibleToCurrentUser(project) || !hasOperationPermission("projects.edit")) return null;
+        const isOwner = projectOwnedByCurrentUser(project);
         if (!isOwner && !currentUser.fullAccess) return null;
         if (project.stage === "已立项" && project.startTime > DEMO_NOW)
           return "pre-start";
@@ -377,7 +453,7 @@
             : [],
         );
         return projects.filter((project) => {
-          if (!PROJECT_RESPONSIBILITY_TRANSFER_STAGES.has(project.stage))
+          if (isEcosystemProject(project) || !PROJECT_RESPONSIBILITY_TRANSFER_STAGES.has(project.stage))
             return false;
           const facts = projectCustomerFacts(project);
           if (!facts) return false;
@@ -650,6 +726,7 @@
         return labels;
       }
       function projectRegion(project) {
+        if (isEcosystemProject(project)) return null;
         const province = projectCustomerFacts(project)?.province;
         return regionsData.find((region) =>
           regionProvinceList(region).includes(province),
@@ -728,7 +805,7 @@
               reminderKind: trigger.kind,
               recipientKind: "owner",
               recipientName: owner,
-              recipientRoles: ["pm", "director"],
+              recipientRoles: isEcosystemProject(project) ? ["ecology"] : ["pm", "director"],
               title: ownerTitle,
               content: ownerContent,
               sentAt,
@@ -778,7 +855,7 @@
           : projects.filter(
               (project) =>
                 projectIsVisibleToCurrentUser(project) &&
-                projectCurrentOwner(project) === currentUser.name,
+                projectOwnedByCurrentUser(project),
             );
         return visibleProjects.flatMap((project) =>
           projectActionTodoLabels(project)
@@ -870,8 +947,8 @@
         );
       }
       function projectOperableByCurrentUser(project) {
-        if (!project || !hasOperationPermission("projects.edit")) return false;
-        return currentUser.fullAccess || projectCurrentOwner(project) === currentUser.name;
+        if (!project || !projectIsVisibleToCurrentUser(project) || !hasOperationPermission("projects.edit")) return false;
+        return currentUser.fullAccess || projectOwnedByCurrentUser(project);
       }
       function canConfirmProjectDelivery(project) {
         if (!project || project.type !== "AI软件项目") return false;
@@ -1471,10 +1548,10 @@
       }
       function projectResponsibilityItemHtml(item) {
         if (item.isCreation) {
-          return `<div class="timeline-item project-history-item"><div class="timeline-title">创建立项，按客户业务责任地区匹配项目负责人 ${escapeHtml(item.owner)}</div><div class="project-history-meta">实际操作人 ${escapeHtml(item.operator)} · 生效时间 ${escapeHtml(item.effectiveAt)}</div></div>`;
+          return `<div class="timeline-item project-history-item"><div class="timeline-title">创建立项，项目负责人 ${escapeHtml(item.owner)}</div><div class="project-history-meta">实际操作人 ${escapeHtml(item.operator)} · 生效时间 ${escapeHtml(item.effectiveAt)}</div></div>`;
         }
         const facts = [
-          `<div><span>责任地区</span>${escapeHtml(item.area || "未填写")}</div>`,
+          item.type === "ecosystem_project_transfer" ? "" : `<div><span>责任地区</span>${escapeHtml(item.area || "未填写")}</div>`,
           item.referenceId
             ? `<div><span>关联业务编号</span>${escapeHtml(item.referenceId)}</div>`
             : "",
@@ -1775,9 +1852,27 @@
         if (type === "AI软件项目") return ["AI区域框架"];
         return [];
       }
+      function projectAvailableResourceTypes(type, project = null) {
+        const types = projectResourceTypes(type);
+        if (project) return types.filter(resource => (resource === "平台师资合作") === isEcosystemProject(project));
+        if (currentUser?.fullAccess) return types;
+        return types.filter(resource => resource === "平台师资合作" ? Boolean(currentEcosystemEmployee()) : ["pm", "director"].includes(currentUser?.role));
+      }
+      function projectOwnerFieldHtml(project, resource = project?.resourceType || "", selectedCode = "") {
+        if (!project && resource === "平台师资合作" && currentUser?.fullAccess)
+          return projectFormFieldHtml("pfOwner", "项目负责人", `<select class="input" id="pfOwner"><option value="">请选择生态合作员</option>${employees.filter(validEcosystemEmployee).map(employee => `<option value="${employee.code}" ${employee.code === selectedCode ? "selected" : ""}>${escapeHtml(employee.name)} · ${employee.code}</option>`).join("")}</select>`, true);
+        const customer = customers.find(item => item.id === Number($("#pfCustomer")?.value));
+        const owner = project ? projectCurrentOwner(project) : resource === "平台师资合作" ? currentEcosystemEmployee()?.name : customer ? resolveProjectOwner(customer) : "";
+        return `<div class="form-group"><label class="form-label">项目负责人</label><div class="input" id="pfOwner">${escapeHtml(owner || "—")}</div></div>`;
+      }
+      function refreshProjectOwnerField() {
+        const project = currentPage === "project-edit" ? projectById(selectedProjectId) : null;
+        const host = $("#pfOwnerHost");
+        if (host) host.innerHTML = projectOwnerFieldHtml(project, $("#pfResource")?.value, $("#pfOwner")?.value || "");
+      }
       function projectCreatableCustomers() {
         if (!currentUser || !hasOperationPermission("projects.create")) return [];
-        if (currentUser.fullAccess)
+        if (currentUser.fullAccess || currentEcosystemEmployee())
           return customers.filter((customer) => !customer.archived);
         if (currentUser.role === "pm") {
           const cities = assignedCitiesForCurrentUser();
@@ -1934,7 +2029,7 @@
                   `<option value="${customer.id}" ${project?.customerId === customer.id ? "selected" : ""}>${customer.name}（${customer.level}）</option>`,
               )
               .join("");
-        const resourceOptions = `<option value="">请选择资源类型</option>${projectResourceTypes(type)
+        const resourceOptions = `<option value="">请选择资源类型</option>${projectAvailableResourceTypes(type, project)
           .map(
             (item) =>
               `<option value="${item}" ${resourceType === item ? "selected" : ""}>${item}</option>`,
@@ -2002,7 +2097,7 @@
           projectFormFieldHtml(
             "pfType",
             "项目类型",
-            `<select class="input" id="pfType" ${editing ? "disabled" : ""}><option value="">请选择项目类型</option>${PROJECT_TYPES.map((item) => `<option value="${item}" ${type === item ? "selected" : ""}>${item}</option>`).join("")}</select>`,
+            `<select class="input" id="pfType" ${editing ? "disabled" : ""}><option value="">请选择项目类型</option>${(currentUser?.role === "ecology" && !editing ? ["培训项目"] : PROJECT_TYPES).map((item) => `<option value="${item}" ${type === item ? "selected" : ""}>${item}</option>`).join("")}</select>`,
             true,
           ) +
           projectFormFieldHtml(
@@ -2014,7 +2109,7 @@
           `<div class="form-group"><label class="form-label">客户编号</label><div class="input" id="pfCustomerCode">${project ? project.customerSnapshot?.customerCode || "—" : "—"}</div></div>` +
           projectOpportunityFieldHtml(project) +
           `<div class="form-group"><label class="form-label">地区</label><div class="input" id="pfArea">${project ? projectArea(project) : "—"}</div></div>` +
-          `<div class="form-group"><label class="form-label">项目负责人</label><div class="input" id="pfOwner">${project ? projectCurrentOwner(project) : "—"}</div></div>` +
+          `<div id="pfOwnerHost" style="display:contents">${projectOwnerFieldHtml(project, resourceType)}</div>` +
           `</div>` +
           `<div class="section-title">时间与天数</div><div class="form-grid">` +
           projectFormFieldHtml(

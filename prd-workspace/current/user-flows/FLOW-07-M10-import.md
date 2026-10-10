@@ -5,7 +5,9 @@
 - 迁移方式：Mermaid block mechanical copy
 - 当前定位：Current Product Flow 使用下方 Current 分支；原机械迁移块保留为 Historical / Replaced Evidence（DEC-163）
 
-## Current Product Flow
+> 当前M10整体为DEFERRED；下方批量导入流程仅延期设计。项目导入子能力已按DEC-221取消（REMOVED），不得实现或恢复。当前Owner：`prd-workspace/current/modules/M10-import.md` →“当前范围状态”；项目排除：`prd-workspace/current/modules/M11-project-management.md` →§16“项目导入已取消”。
+
+## Current Product Flow（DEFERRED / Historical）
 
 ```mermaid
 flowchart LR
@@ -31,7 +33,9 @@ flowchart LR
 
 100 行允许形成 80 行成功、20 行失败；失败行不回滚其他成功行且不生成 M03 任务。一行内对应业务对象不得形成产品事实半成品。成功且适用 M03 规则的对象在 5 分钟内幂等生成任务；任务生成失败不回滚导入成功结果。
 
-## 项目初始化导入分支
+## 项目初始化导入分支（REMOVED / Historical）
+
+> 以下旧流程仅追溯，DEC-221已取消全部项目导入；不产生生态负责人或地区负责人的新导入规则。
 
 ```mermaid
 flowchart LR

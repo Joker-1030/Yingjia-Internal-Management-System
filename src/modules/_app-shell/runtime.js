@@ -159,6 +159,7 @@
         director: "区域总监",
         pm: "PM",
         hr: "HR/人事",
+        ecology: "生态合作员",
         support: "商机支撑",
         admin: "系统管理员",
       };
@@ -183,10 +184,12 @@
         ["packages", "platform-companies"].includes(page);
       const isProjectConfigAdmin = () =>
         Boolean(currentUser?.username === "admin" && currentUser?.role === "admin" && currentUser?.fullAccess);
+      const templatePagePermissionAllowed = (template, permission) =>
+        template.name !== "生态合作员" || ["dashboard", "projects"].includes(permission);
       const hasPermission = (permission) =>
         (!isAdminOnlyProjectConfigPage(permission) || isProjectConfigAdmin()) &&
         currentRoleTemplates().some((template) =>
-          template.permissions.includes(permission),
+          templatePagePermissionAllowed(template, permission) && template.permissions.includes(permission),
         );
       const hasDataObject = (object) =>
         currentRoleTemplates().some((template) => template.objects.includes(object));
@@ -228,7 +231,7 @@
           (!isAdminOnlyProjectConfigPage(operation.split(".")[0]) || isProjectConfigAdmin()) &&
           (currentUser?.fullAccess ||
             currentRoleTemplateNames().some((roleName) =>
-              roleOperationPermissions?.[roleName]?.includes(operation),
+              (roleName !== "生态合作员" || ["dashboard.view", "projects.view", "projects.create", "projects.edit"].includes(operation)) && roleOperationPermissions?.[roleName]?.includes(operation),
             )),
         );
       const hasFieldPermission = (permission) =>
@@ -313,6 +316,7 @@
         区域总监: "director",
         PM: "pm",
         "HR/人事": "hr",
+        生态合作员: "ecology",
         商机支撑: "support",
         系统管理员: "admin",
       };
@@ -332,6 +336,7 @@
             .map((item) => item.city);
           return cities.join("、") || "待配置负责地市";
         }
+        if (employeeHasRole(employee, "生态合作员")) return "本人平台师资合作项目";
         if (employeeHasRole(employee, "HR/人事")) return "公司组织";
         const template = systemRoleTemplates.find(
           (item) => item.name === employee.role,
@@ -363,6 +368,7 @@
           "市场副总",
           "区域总监",
           "PM",
+          "生态合作员",
           "HR/人事",
           "商机支撑",
         ].find((roleName) => effectiveRoles.includes(roleName));

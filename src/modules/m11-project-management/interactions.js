@@ -664,415 +664,6 @@
       function nextProjectId() {
         return nextProjectIdForYear(DEMO_TODAY.slice(0, 4));
       }
-      function projectImportIssue(field, code, reason, suggestion) {
-        return { field, code, reason, suggestion };
-      }
-      function projectImportDateTimeValid(value) {
-        const text = String(value || "");
-        const match = text.match(
-          /^(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2})(?::(\d{2}))?$/,
-        );
-        if (!match) return false;
-        const [, year, month, day, hour, minute, second = "0"] = match;
-        const parsed = new Date(
-          Number(year),
-          Number(month) - 1,
-          Number(day),
-          Number(hour),
-          Number(minute),
-          Number(second),
-        );
-        return (
-          parsed.getFullYear() === Number(year) &&
-          parsed.getMonth() === Number(month) - 1 &&
-          parsed.getDate() === Number(day) &&
-          parsed.getHours() === Number(hour) &&
-          parsed.getMinutes() === Number(minute) &&
-          parsed.getSeconds() === Number(second)
-        );
-      }
-      function projectImportTimeValue(value) {
-        return new Date(String(value).replace(" ", "T")).getTime();
-      }
-      function projectImportActorEligible(actor) {
-        if (!actor || !["admin", "director", "pm"].includes(actor.role))
-          return false;
-        if (actor.fullAccess) return actor.role === "admin";
-        const employee = employees.find((item) => item.name === actor.name);
-        const expectedRole = actor.role === "director" ? "区域总监" : "PM";
-        return Boolean(
-          employee &&
-            employee.status === "在职" &&
-            employeeHasRole(employee, expectedRole),
-        );
-      }
-      function projectImportCustomer(row) {
-        const code = String(row?.customerCode || "").trim();
-        const matches = customers.filter(
-          (customer) => customerStableCode(customer) === code,
-        );
-        return matches.length === 1 ? matches[0] : null;
-      }
-      function projectImportCustomerInScope(customer, owner, actor) {
-        if (!customer || !owner || !projectImportActorEligible(actor)) return false;
-        if (actor.fullAccess) return true;
-        if (actor.role === "director") {
-          return (
-            customer.level === "省公司" &&
-            owner === actor.name &&
-            regionsMatch(customerRegionScope(customer), actor.region)
-          );
-        }
-        return (
-          actor.role === "pm" &&
-          ["市公司", "区县公司"].includes(customer.level) &&
-          owner === actor.name
-        );
-      }
-      function projectImportStageMatchesTime(type, stage, startTime, endTime) {
-        const startValue = projectImportTimeValue(startTime);
-        const endValue = projectImportTimeValue(endTime);
-        const nowValue = projectImportTimeValue(DEMO_NOW);
-        if (startValue > nowValue) return false;
-        if (type === "培训项目") {
-          if (stage === "进行中") return endValue > nowValue;
-          return ["已交付", "已完成"].includes(stage) && endValue <= nowValue;
-        }
-        if (stage === "进行中") return true;
-        return ["已交付", "已完成"].includes(stage) && endValue <= nowValue;
-      }
-      function prepareProjectImportRow(row, actor) {
-        const rowNumber = Number(row?.rowNumber || 0) || 0;
-        const name = String(row?.name || "").trim();
-        const type = String(row?.type || "").trim();
-        const startTime = String(row?.startTime || "").trim();
-        const endTime = String(row?.endTime || "").trim();
-        const originalCreatedAt = String(row?.originalCreatedAt || "").trim();
-        const importStage = String(row?.importStage || "").trim();
-        const resourceType = String(row?.resourceType || "").trim();
-        const cooperation = String(row?.cooperation || "").trim();
-        const packageId =
-          resourceType === "采购包课程" ? String(row?.packageId || "").trim() : "";
-        const directionIntro =
-          resourceType === "采购包课程"
-            ? String(row?.directionIntro || "").trim()
-            : "";
-        const companyId = ["师资合作", "走账合作"].includes(cooperation)
-          ? String(row?.companyId || "").trim()
-          : "";
-        const days = Number(row?.days);
-        const issues = [];
-        const addIssue = (field, code, reason, suggestion) =>
-          issues.push(projectImportIssue(field, code, reason, suggestion));
-
-        if (name.length < 2 || name.length > 100 || /<[^>]*>/.test(name))
-          addIssue(
-            "项目名称",
-            "IMP-PROJECT-FIELD-001",
-            "项目名称需为 2-100 字且不得包含 HTML 标签",
-            "修正项目名称后重新上传",
-          );
-        if (!PROJECT_TYPES.includes(type))
-          addIssue(
-            "项目类型",
-            "IMP-PROJECT-FIELD-002",
-            "项目类型不在当前候选范围",
-            "使用培训项目或 AI软件项目",
-          );
-        if (!projectImportDateTimeValid(originalCreatedAt))
-          addIssue(
-            "原创建时间",
-            "IMP-PROJECT-TIME-001",
-            "原创建时间格式无效",
-            "使用 YYYY-MM-DD HH:mm 格式",
-          );
-        if (!projectImportDateTimeValid(startTime))
-          addIssue(
-            "开始时间",
-            "IMP-PROJECT-TIME-002",
-            "开始时间格式无效",
-            "使用 YYYY-MM-DD HH:mm 格式",
-          );
-        if (!projectImportDateTimeValid(endTime))
-          addIssue(
-            "结束时间",
-            "IMP-PROJECT-TIME-003",
-            "结束时间格式无效",
-            "使用 YYYY-MM-DD HH:mm 格式",
-          );
-        if (
-          projectImportDateTimeValid(startTime) &&
-          projectImportDateTimeValid(endTime) &&
-          projectImportTimeValue(startTime) > projectImportTimeValue(endTime)
-        )
-          addIssue(
-            "结束时间",
-            "IMP-PROJECT-TIME-004",
-            "项目开始时间不得晚于结束时间",
-            "修正项目时间后重新上传",
-          );
-        if (!["进行中", "已交付", "已完成"].includes(importStage))
-          addIssue(
-            "导入阶段",
-            "IMP-PROJECT-STAGE-001",
-            "当前初始化项目不支持该导入阶段",
-            "使用进行中、已交付或已完成",
-          );
-        if (
-          PROJECT_TYPES.includes(type) &&
-          ["进行中", "已交付", "已完成"].includes(importStage) &&
-          projectImportDateTimeValid(startTime) &&
-          projectImportDateTimeValid(endTime) &&
-          projectImportTimeValue(startTime) <= projectImportTimeValue(endTime) &&
-          !projectImportStageMatchesTime(type, importStage, startTime, endTime)
-        )
-          addIssue(
-            "导入阶段",
-            "IMP-PROJECT-STAGE-002",
-            "导入阶段与项目类型及开始/结束时间不一致",
-            "修正阶段或时间后重新上传",
-          );
-        if (!Number.isFinite(days) || days < 0.5 || days % 0.5 !== 0)
-          addIssue(
-            "项目确认天数",
-            "IMP-PROJECT-FIELD-003",
-            "项目确认天数最小为 0.5 天且必须为 0.5 的整数倍",
-            "修正项目确认天数后重新上传",
-          );
-
-        const customer = projectImportCustomer(row);
-        if (!customer || customer.archived)
-          addIssue(
-            "客户编号",
-            "IMP-PROJECT-CUSTOMER-001",
-            "客户编号无法匹配当前有效客户",
-            "核对当前客户编号后重新上传",
-          );
-        const owner = customer ? resolveProjectOwner(customer) : "";
-        if (customer && !owner)
-          addIssue(
-            "客户编号",
-            "IMP-PROJECT-OWNER-001",
-            "客户地区无法匹配唯一有效项目负责人",
-            "完成地区责任配置后重新上传",
-          );
-        if (customer && owner && !projectImportCustomerInScope(customer, owner, actor))
-          addIssue(
-            "客户编号",
-            "IMP-PROJECT-SCOPE-001",
-            "超出当前导入范围",
-            "使用当前账号有权客户的项目模板行",
-          );
-
-        if (!projectResourceTypes(type).includes(resourceType))
-          addIssue(
-            "资源类型",
-            "IMP-PROJECT-RESOURCE-001",
-            "项目类型与资源类型不匹配",
-            "按当前项目类型选择资源",
-          );
-        if (!(PROJECT_RESOURCE_COOPERATION[resourceType] || []).includes(cooperation))
-          addIssue(
-            "合作形式",
-            "IMP-PROJECT-RESOURCE-002",
-            "资源类型与合作形式不匹配",
-            "按当前资源类型选择合作形式",
-          );
-        const pkg = packageId
-          ? projectPackages.find((item) => item.id === packageId)
-          : null;
-        const direction = pkg
-          ? pkg.directions.find((item) => item.intro === directionIntro)
-          : null;
-        const company = companyId
-          ? platformCompanies.find((item) => item.id === companyId)
-          : null;
-        if (resourceType === "采购包课程" && (!pkg || !direction || !isProjectPackageValid(pkg)))
-          addIssue(
-            "采购包及课程方向",
-            "IMP-PROJECT-RESOURCE-003",
-            "采购包或课程方向当前不可用",
-            "使用当前正常且有效的采购包与方向",
-          );
-        if (["师资合作", "走账合作"].includes(cooperation) && (!company || company.status !== "正常"))
-          addIssue(
-            "平台公司",
-            "IMP-PROJECT-RESOURCE-004",
-            "平台公司当前不可用",
-            "使用当前正常的平台公司",
-          );
-        const aiAmount = Number(row?.aiAmount);
-        if (type === "AI软件项目" && (!Number.isFinite(aiAmount) || aiAmount <= 0))
-          addIssue(
-            "AI 软件项目金额",
-            "IMP-PROJECT-AMOUNT-001",
-            "AI 软件项目金额必须大于 0",
-            "填写有效项目金额后重新上传",
-          );
-
-        if (issues.length) {
-          return {
-            rowNumber,
-            sourceRow: { ...row },
-            classification: "error",
-            issues,
-          };
-        }
-        if (
-          projects.some(
-            (project) => project.name === name && project.stage !== "已取消",
-          )
-        ) {
-          return {
-            rowNumber,
-            sourceRow: { ...row },
-            classification: "duplicate",
-            issues: [
-              projectImportIssue(
-                "项目名称",
-                "IMP-PROJECT-DUP-001",
-                "项目名称命中当前存量项目",
-                "默认跳过，不覆盖或更新存量项目",
-              ),
-            ],
-          };
-        }
-
-        let unitPrice = null;
-        let snapshot;
-        if (type === "培训项目") {
-          unitPrice =
-            resourceType === "采购包课程"
-              ? direction.taxedPrice
-              : company.cooperationPay;
-          snapshot = {
-            untaxedPrice: direction ? direction.untaxedPrice : null,
-            taxedPrice: direction ? direction.taxedPrice : null,
-            taxRate: direction ? projectDirectionTaxRate(direction) : null,
-            cooperationPay:
-              resourceType === "平台师资合作" ? company.cooperationPay : null,
-            managementFeeRate:
-              cooperation === "走账合作" ? company.managementFeeRate : null,
-            unitPrice,
-          };
-        } else {
-          snapshot = {
-            untaxedPrice: null,
-            taxedPrice: null,
-            taxRate: null,
-            cooperationPay: null,
-            managementFeeRate:
-              cooperation === "走账合作" ? company.managementFeeRate : null,
-            unitPrice: null,
-          };
-        }
-        const amount =
-          type === "培训项目" ? round2(unitPrice * days) : round2(aiAmount);
-        const settlementAmount =
-          cooperation === "走账合作"
-            ? round2(amount * (1 - company.managementFeeRate / 100))
-            : amount;
-        const stage = importStage === "已完成" ? "已交付" : importStage;
-        const deliveryConfirmed =
-          type === "AI软件项目" && stage === "已交付";
-        const prepared = {
-          name,
-          type,
-          customerId: customer.id,
-          customerSnapshot: {
-            customerCode: customerStableCode(customer),
-            name: customer.name,
-            level: customer.level,
-            province: customer.province,
-            city: customer.city,
-            district: customer.district,
-          },
-          originalCreatedAt,
-          ownerSnapshot: owner,
-          startTime,
-          endTime,
-          days,
-          resourceType,
-          cooperation,
-          packageId,
-          directionIntro,
-          companyId,
-          companyName: companyId ? company.name : "",
-          unitPrice,
-          amount,
-          settlementAmount,
-          snapshot,
-          stage,
-          deliveryConfirmed,
-          lecturers: [],
-          assistantLecturers: [],
-          teachingAssistants: [],
-          materials: [],
-          satisfaction: null,
-        };
-        prepared.todos = projectTodosForStage(prepared, stage);
-        return {
-          rowNumber,
-          sourceRow: { ...row },
-          classification: "valid",
-          issues: [],
-          adjustment:
-            importStage === "已完成"
-              ? "当前完成条件未齐，将按已交付建立并显示待办"
-              : "",
-          prepared,
-        };
-      }
-      function createProjectFromImportRow(row, actor, batchId) {
-        const checked = prepareProjectImportRow(row, actor);
-        if (checked.classification !== "valid") {
-          return {
-            success: false,
-            rowNumber: checked.rowNumber,
-            issues: checked.issues,
-          };
-        }
-        const year = checked.prepared.originalCreatedAt.slice(0, 4);
-        const projectId = nextProjectIdForYear(year);
-        const project = {
-          ...checked.prepared,
-          id: projectId,
-          opportunityId: "",
-          createdBy: actor.name,
-          createdAt: checked.prepared.originalCreatedAt,
-          source: "import",
-          importBatchId: batchId,
-          importedBy: actor.name,
-          importedByAccount: importAccountKey(actor),
-          importedAt: projectNow(),
-        };
-        const insertAt = projects.length;
-        try {
-          projects.push(project);
-          normalizeProjectLifecycle(project);
-        } catch (error) {
-          projects.splice(insertAt, 1);
-          return {
-            success: false,
-            rowNumber: checked.rowNumber,
-            issues: [
-              projectImportIssue(
-                "项目",
-                "IMP-PROJECT-WRITE-001",
-                "正式写入失败；本行未建立项目且未占用编号",
-                "按结果报告修正后重新上传",
-              ),
-            ],
-          };
-        }
-        return {
-          success: true,
-          rowNumber: checked.rowNumber,
-          project,
-          projectId,
-          adjustment: checked.adjustment,
-        };
-      }
       function projectNow() {
         const n = new Date();
         const p = (x) => String(x).padStart(2, "0");
@@ -1543,6 +1134,7 @@
           projectSettlementFormulaText(cooperation),
         );
         refreshProjectFormAmounts();
+        refreshProjectOwnerField();
       }
       function writePreStartEditHistory(project, payload) {
         const event = createProjectHistoryEvent(project, "编辑项目");
@@ -1928,8 +1520,14 @@
           if (customerId && !projectCreatableCustomers().some((item) => item.id === customerId)) {
             return;
           }
-          owner = liveCustomer ? resolveProjectOwner(liveCustomer) : "";
-          if (liveCustomer && !owner)
+          if (resourceType === "平台师资合作") {
+            const employee = currentUser.fullAccess
+              ? employees.find(item => item.code === $("#pfOwner")?.value)
+              : currentEcosystemEmployee();
+            if (validEcosystemEmployee(employee)) owner = employee.name;
+            else errors.pfOwner = "请选择有效生态合作员作为项目负责人";
+          } else owner = liveCustomer ? resolveProjectOwner(liveCustomer) : "";
+          if (liveCustomer && !owner && resourceType !== "平台师资合作")
             errors.pfCustomer = "该客户未匹配到唯一有效项目负责人，无法创建项目";
         }
 
@@ -1940,6 +1538,10 @@
           ? companyId
           : "";
 
+        if (editing && isEcosystemProject(project) !== (resourceType === "平台师资合作"))
+          errors.pfResource = "平台师资合作与其他资源类型不能互相转换";
+        else if (!editing && type && !projectAvailableResourceTypes(type).includes(resourceType))
+          errors.pfResource = "当前角色不能创建该资源类型的项目";
         if (!resourceType) errors.pfResource = "请选择资源类型";
         else if (type && !projectResourceTypes(type).includes(resourceType))
           errors.pfResource = "当前项目类型、资源类型与合作形式不匹配，请重新选择";
@@ -2136,6 +1738,11 @@
             createdBy: currentUser.name,
             createdAt: projectNow(),
             ownerSnapshot: owner,
+            ...(resourceType === "平台师资合作" ? {
+              ownerSnapshotId: currentUser.fullAccess ? $("#pfOwner").value : currentEcosystemEmployee().code,
+              currentOwnerId: currentUser.fullAccess ? $("#pfOwner").value : currentEcosystemEmployee().code,
+              currentOwner: owner,
+            } : {}),
             customerSnapshot: liveCustomer
               ? {
                   customerCode: customerStableCode(liveCustomer),
@@ -2921,7 +2528,7 @@
             const resourceSelect = $("#pfResource");
             resourceSelect.innerHTML =
               '<option value="">请选择资源类型</option>' +
-              projectResourceTypes(type)
+              projectAvailableResourceTypes(type)
                 .map((item) => `<option value="${item}">${item}</option>`)
                 .join("");
             resourceSelect.value = "";
@@ -2998,9 +2605,7 @@
             );
             $("#pfCustomerCode").textContent = customerStableCode(customer);
             $("#pfArea").textContent = customer ? adminArea(customer) : "—";
-            $("#pfOwner").textContent = customer
-              ? resolveProjectOwner(customer) || "—"
-              : "—";
+            refreshProjectOwnerField();
           };
         }
         refreshProjectFormDynamics();

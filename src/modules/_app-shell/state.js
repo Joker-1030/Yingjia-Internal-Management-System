@@ -21,7 +21,6 @@
         {
           title: "销售管理",
           items: [
-            { id: "sales-dashboard", icon: "◫", label: "销售仪表盘" },
             { id: "opportunities", icon: "◎", label: "商机列表" },
             { id: "sales-supports", icon: "◇", label: "我的方案支撑" },
             { id: "sales-targets", icon: "▥", label: "销售指标" },

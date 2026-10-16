@@ -173,6 +173,7 @@
           estimateAmount: 860000,
           expectedContractAmount: 820000,
           selectedDate: "2026-08-29",
+          performanceOwnerCode: "YJ005", performanceOwnerName: "刘经理", performanceRegion: "山东区域",
           expectedWinDate: "2026-08-29",
           createdDate: "2026-08-12",
           createdBy: "刘经理",
@@ -252,6 +253,13 @@
           if (["已交付", "已关闭"].includes(support.status)) {
             support.delivery = support.id === "ZC-003" ? "客户需求复核结果" : "课程交付范围复核意见";
             support.deliveryFile = { name: "支撑文件.pdf", url: "data:application/pdf;base64,JVBERi0xLjQKMSAwIG9iago8PCAvVHlwZSAvQ2F0YWxvZyAvUGFnZXMgMiAwIFIgPj4KZW5kb2JqCjIgMCBvYmoKPDwgL1R5cGUgL1BhZ2VzIC9LaWRzIFszIDAgUl0gL0NvdW50IDEgPj4KZW5kb2JqCjMgMCBvYmoKPDwgL1R5cGUgL1BhZ2UgL1BhcmVudCAyIDAgUiAvTWVkaWFCb3ggWzAgMCAzMDAgMjAwXSAvUmVzb3VyY2VzIDw8IC9Gb250IDw8IC9GMSA0IDAgUiA+PiA+PiAvQ29udGVudHMgNSAwIFIgPj4KZW5kb2JqCjQgMCBvYmoKPDwgL1R5cGUgL0ZvbnQgL1N1YnR5cGUgL1R5cGUxIC9CYXNlRm9udCAvSGVsdmV0aWNhID4+CmVuZG9iago1IDAgb2JqCjw8IC9MZW5ndGggNTkgPj4Kc3RyZWFtCkJUIC9GMSAxMiBUZiAzMCAxNDAgVGQgKFNvbHV0aW9uIHN1cHBvcnQgZGVsaXZlcmFibGUpIFRqIEVUCmVuZHN0cmVhbQplbmRvYmoKeHJlZgowIDYKMDAwMDAwMDAwMCA2NTUzNSBmIAowMDAwMDAwMDA5IDAwMDAwIG4gCjAwMDAwMDAwNTggMDAwMDAgbiAKMDAwMDAwMDExNSAwMDAwMCBuIAowMDAwMDAwMjQxIDAwMDAwIG4gCjAwMDAwMDAzMTEgMDAwMDAgbiAKdHJhaWxlcgo8PCAvU2l6ZSA2IC9Sb290IDEgMCBSID4+CnN0YXJ0eHJlZgo0MjAKJSVFT0Y=" };
+          }
+          const deliveryEvent = support.histories?.findLast((record) => record.action === "提交交付");
+          if (deliveryEvent && support.deliveryFile) {
+            const delivery = { description: support.delivery, files: [support.deliveryFile],
+              time: deliveryEvent.time, operator: deliveryEvent.operator };
+            support.deliveries = [delivery];
+            deliveryEvent.delivery = delivery;
           }
           support.assigneeCode = employees.find((employee) => employee.name === support.assignee)?.code;
         });

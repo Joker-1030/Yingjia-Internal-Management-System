@@ -21,6 +21,10 @@ archive/                历史资料，不覆盖当前规则
 
 ## 2. 推荐读取顺序
 
+### 首次入场
+
+以下顺序用于首次建立项目认知；已经读取且未变化的内容不在同一会话重复全文加载。
+
 ```text
 README.md
 → docs/PROJECT_OVERVIEW.md
@@ -33,6 +37,38 @@ README.md
 ```
 
 只处理单个模块时，可以跳过无关模块，但不能跳过该模块的 Current PRD 和 Acceptance。
+
+### 日常局部修改
+
+1. 检查 `git status --short`、当前分支与 HEAD、相关 Task/Result；保护已有修改。请求路由以 `.ai/WORKFLOW.md` §1 为准。
+2. 从 `prd-workspace/current/PRD.md` 定位本次 Owner，读取对应模块 PRD、Acceptance 和实际引用的 Decision / Flow / Shared / Glossary / Boundary。首次入场的 README、总览不必每次全文重读；来源有变化时重读相关部分。已有评审范围的优化仍按 `.ai/WORKFLOW.md` §2.4 核对原评审与累计变化。
+3. 用 `references/prototype-maintenance-rules.md` §6 的现有模块目录表与目标 `module.json` 定位源码、数据、事件入口。先在目标模块搜索函数、页面或动作；需要共享依赖时沿调用进入 `src/data/`、`_app-shell/` 或 CSS 的相关片段。装配顺序以 `src/app.js` 为准；源码结构只能定位实现，不能定义产品行为。
+4. 按 Task 允许范围修改；验证深度只在 `references/prototype-maintenance-rules.md` §9 维护。局部展示调整执行构建、漂移和相关聚焦检查，不默认运行全部 `scripts/check-*.mjs`、全仓审计或浏览器；权限、状态、计算、数据范围与跨模块变化补充对应验证。
+5. 一份 Task、一份 Result（含 CODEX Review），用精确路径和检查结果交叉引用，不复制整份 PRD 和规则。必需身份、Git、产品上下文、范围与验收证据仍按 `.ai/TASK_TEMPLATE.md`、`.ai/REVIEW_RULES.md` 保留。
+
+### 检索示例与回退
+
+下列 M12 示例只表示路径选择；实际按本次 Owner 替换，不能据示例推断产品归属。
+
+```bash
+# 先定位当前定义、Owner 源码和函数，再读取命中附近片段。
+rg -n --max-columns 240 --max-columns-preview '销售指标|目标分配' prd-workspace/current/modules/M12-sales-opportunity.md
+rg -n --max-columns 240 --max-columns-preview 'allocation|target' src/modules/m12-sales-opportunity/ src/data/sales-targets.js
+
+# 必要时搜索当前产品链和实现，避免默认混入全部历史证据。
+rg -l '待查关键词' prd-workspace/current/ prd-workspace/decisions/ src/ demo-src/
+
+# 追溯评审时按已知 Task ID 或明确主题检索，不隐藏 Task/Result。
+rg -l '待查 Task ID' docs/AI_IMPLEMENTATION_TASKS/ docs/AI_IMPLEMENTATION_RESULTS/
+
+# 历史或生成产物必须显式进入；无结果先检查范围和忽略规则。
+rg --no-ignore -l '待查关键词' archive/
+rg --no-ignore -n --max-columns 240 --max-columns-preview '待查关键词' demo/prototype.html
+```
+
+项目根 `.ignore` 让默认 `rg` 搜索跳过 `archive/`、`demo/prototype.html` 和指定 ECharts 压缩库，减少历史与生成内容的重复命中。它不删除文件、不影响 Git 跟踪/构建/发布，也不排除 Current 产品源、Task/Result、评审登记或 `demo/prototype.artifact.json`。该配置只对遵循 `.ignore` 的检索工具生效，不表示 Codex 自动上下文或所有工具都会过滤；其他工具也应主动限定路径。
+
+全仓文件盘点、归档引用检查、发布安全检查和第三方库排障不能依赖过滤后的文件清单，应使用适合该检查的完整枚举方式。`--no-ignore` 会扩大范围，仍须明确目录，避免无关缓存和敏感文件进入输出。源码长行先用 `rg -l` 定位或限制列宽，不全文输出压缩库、生成 HTML、大段样例数据；截断输出不是完整审查证据，需要核验时再读取准确片段。
 
 ## 3. 哪些内容可以定义产品规则
 
@@ -123,8 +159,9 @@ OUT-OF-SCOPE FINDING
 ## 9. 可直接发送给 Codex 的启动指令
 
 ```text
-请先阅读 README.md、docs/PROJECT_OVERVIEW.md 和 docs/CODEX_READING_GUIDE.md，
-再阅读 prd-workspace/current/PRD.md。
+首次接手请阅读 README.md、docs/PROJECT_OVERVIEW.md 和 docs/CODEX_READING_GUIDE.md，
+再阅读 prd-workspace/current/PRD.md；日常局部修改走本指南 §2 的局部路径，
+已读取且未变化的规则不重复全文加载。
 
 根据本次任务定位涉及模块，继续阅读对应的 Current Module PRD、Acceptance、Decision 和 User Flow。
 

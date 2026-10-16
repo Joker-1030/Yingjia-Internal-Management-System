@@ -11,7 +11,6 @@
         ["projects", "项目管理"],
         ["packages", "采购包管理"],
         ["platform-companies", "平台公司管理"],
-        ["sales-dashboard", "销售仪表盘"],
         ["opportunities", "商机列表"],
         ["sales-supports", "我的方案支撑"],
         ["sales-targets", "销售指标"],
@@ -48,7 +47,6 @@
             "projects",
             "packages",
             "platform-companies",
-            "sales-dashboard",
             "opportunities",
             "sales-targets",
           ],
@@ -82,7 +80,6 @@
             "projects",
             "packages",
             "platform-companies",
-            "sales-dashboard",
             "opportunities",
             "sales-targets",
           ],
@@ -116,7 +113,6 @@
             "projects",
             "packages",
             "platform-companies",
-            "sales-dashboard",
             "opportunities",
             "sales-targets",
           ],
@@ -137,7 +133,6 @@
             "projects",
             "packages",
             "platform-companies",
-            "sales-dashboard",
             "opportunities",
             "sales-targets",
           ],
@@ -213,7 +208,7 @@
         { name: "经营概览", items: [["dashboard", "经营工作台", "页面访问"]] },
         { name: "客户经营", items: [["customers", "客户经营", "三栏查看 / 新增 / 维护"], ["tasks", "维系管理", "任务与记录"]] },
         { name: "项目管理", items: [["projects", "项目管理", "查看项目列表与详情"], ["packages", "采购包管理", "查看与维护"], ["platform-companies", "平台公司管理", "查看与维护"]] },
-        { name: "销售管理", items: [["sales-dashboard", "销售仪表盘", "查看目标与商机快照"], ["opportunities", "商机列表", "查看与推进商机"], ["sales-supports", "我的方案支撑", "处理本人方案支撑请求"], ["sales-targets", "销售指标", "查看与维护商机数量目标"]] },
+        { name: "销售管理", items: [["opportunities", "商机列表", "查看与推进商机"], ["sales-supports", "我的方案支撑", "处理本人方案支撑请求"], ["sales-targets", "销售指标", "查看与分配成交金额目标"]] },
         { name: "组织与配置", items: [["employees", "组织与员工", "组织、员工与异动"], ["regions", "区域中心与地市配置", "区域与地市责任"], ["city-management", "地市管理", "PM 本人地市责任"], ["settings", "客户基础配置", "配置项维护"], ["imports", "数据导入", "上传、确认与结果"]] },
       ];
       const operationPermissionCatalog = [
@@ -256,13 +251,12 @@
         ["packages.manage", "packages", "维护采购包（新增/编辑/停用/恢复）"],
         ["platform-companies.view", "platform-companies", "查看平台公司"],
         ["platform-companies.manage", "platform-companies", "维护平台公司（新增/编辑/停用/恢复）"],
-        ["sales.view", "sales-dashboard", "查看销售仪表盘"],
+        ["sales.view", "dashboard", "查看销售统计"],
         ["opportunities.view", "opportunities", "查看商机列表与详情"],
         ["opportunities.create", "opportunities", "创建商机"],
         ["opportunities.progress", "opportunities", "推进本人负责商机并新增跟进"],
-        ["opportunities.reassign", "opportunities", "改派有权范围内商机"],
         ["opportunities.support", "sales-supports", "处理本人方案支撑请求"],
-        ["sales-targets.manage", "sales-targets", "维护有权层级商机数量目标"],
+        ["sales-targets.manage", "sales-targets", "维护有权层级成交金额目标"],
       ];
       const roleOperationPermissions = {
         总裁: [
@@ -285,7 +279,7 @@
           "employees.view", "employees.view_changes", "regions.view", "regions.batch_assign",
           "imports.view", "imports.upload", "imports.confirm", "imports.download",
           "projects.view", "projects.create", "projects.edit", "packages.view", "platform-companies.view",
-          "sales.view", "opportunities.view", "opportunities.create", "opportunities.progress", "opportunities.reassign", "sales-targets.manage",
+          "sales.view", "opportunities.view", "opportunities.create", "opportunities.progress", "sales-targets.manage",
         ],
         PM: [
           "dashboard.view", "customers.view", "customers.create_contact",

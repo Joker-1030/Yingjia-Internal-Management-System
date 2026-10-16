@@ -416,9 +416,9 @@
       let dashboardProjectFilter = "";
 
       function dashboardProjectMeasureOptions() {
-        const options = [["count", "项目数量"], ["amount", "项目金额（含税，元）"]];
+        const options = [["count", "项目数量"], ["amount", "项目金额（含税，万元）"]];
         if (["president", "vp", "director", "pm", "ecology"].includes(currentUser?.role))
-          options.push(["settlement", "项目结账金额（含税，元）"]);
+          options.push(["settlement", "项目结账金额（含税，万元）"]);
         return options;
       }
 
@@ -468,8 +468,8 @@
         const totalLabel = money ? amountLabel + "合计" : "项目总数（个）";
         const helpKey = settlement ? "projectSettlementAmount" : money ? "projectAmount" : "projectCount";
         const shareKey = settlement ? "projectSettlementShare" : money ? "projectAmountShare" : singleMetric ? "projectCountShare" : "projectShare";
-        const format = (value) => value === null ? "—" : money ? formatProjectMoney(value / 100) : String(value);
-        const formatAmount = value => value === null ? "—" : Number.isFinite(value) ? formatProjectMoney(value / 100) : "不可用";
+        const format = (value) => value === null ? "—" : money ? formatProjectAmount(value / 100) : String(value);
+        const formatAmount = value => value === null ? "—" : Number.isFinite(value) ? formatProjectAmount(value / 100) : "不可用";
         const colors = ["#7596b5", "#366895", "#68a6a0", "#457c68", "#c3ccd6", "#b69b89"];
         // Render a disposable SVG snapshot; no hidden selection, drilldown or canvas lifecycle.
         const chart = echarts.init(null, null, { renderer: "svg", ssr: true, width: 220, height: 220 });
@@ -491,15 +491,15 @@
           svg = chart.renderToSVGString();
         } finally { chart.dispose(); }
         const columns = singleMetric
-          ? money ? `<span>${amountLabel}<br>（含税，元）</span>` : '<span>数量（个）</span>'
-          : `${money ? '' : '<span>数量（个）</span>'}<span>项目金额<br>（含税，元）</span><span>结账金额<br>（含税，元）</span>`;
+          ? money ? `<span>${amountLabel}<br>（含税，万元）</span>` : '<span>数量（个）</span>'
+          : `${money ? '' : '<span>数量（个）</span>'}<span>项目金额<br>（含税，万元）</span><span>结账金额<br>（含税，万元）</span>`;
         const rows = analysis.groups.map((item, index) => {
           const amounts = singleMetric ? `<strong>${format(item.value)}</strong>`
             : `${money ? '' : `<strong>${item.value}</strong>`}<strong>${formatAmount(item.projectAmount)}</strong><strong>${formatAmount(item.settlementAmount)}</strong>`;
           return `<li><span class="workbench-group-name"><i aria-hidden="true" style="background:${colors[index]}"></i>${escapeDashboardHtml(item.label)}</span>${amounts}<span class="workbench-share">${dashboardPercent(item.share)}</span></li>`;
         }).join("");
         const detailClass = singleMetric ? "" : ` workbench-project-amounts${money ? ' workbench-project-money-columns' : ''}`;
-        return `<div class="workbench-project-chart"><div class="workbench-donut"><div class="workbench-chart-svg" aria-hidden="true">${svg}</div><div class="workbench-donut-center${money ? " workbench-money" : ""}"><span>${totalLabel}${dashboardFieldHelp(helpKey, totalLabel)}</span><strong data-dashboard-value="projects">${format(analysis.total)}</strong>${money ? "<small>含税，元</small>" : ""}${analysis.projectCount ? "" : "<small>暂无项目</small>"}</div></div><div class="workbench-project-detail${detailClass}" tabindex="0" role="region" aria-label="项目分组明细"><div class="workbench-legend-head"><span>${dashboardProjectDimension === "resourceType" ? "资源类型" : dashboardProjectDimension === "type" ? "类型" : "阶段"}</span>${columns}<span>占比${dashboardFieldHelp(shareKey, "占比")}</span></div><ul class="workbench-stage-legend">${rows}</ul></div></div>`;
+        return `<div class="workbench-project-chart"><div class="workbench-donut"><div class="workbench-chart-svg" aria-hidden="true">${svg}</div><div class="workbench-donut-center${money ? " workbench-money" : ""}"><span>${totalLabel}${dashboardFieldHelp(helpKey, totalLabel)}</span><strong data-dashboard-value="projects">${format(analysis.total)}</strong>${money ? "<small>含税，万元</small>" : ""}${analysis.projectCount ? "" : "<small>暂无项目</small>"}</div></div><div class="workbench-project-detail${detailClass}" tabindex="0" role="region" aria-label="项目分组明细"><div class="workbench-legend-head"><span>${dashboardProjectDimension === "resourceType" ? "资源类型" : dashboardProjectDimension === "type" ? "类型" : "阶段"}</span>${columns}<span>占比${dashboardFieldHelp(shareKey, "占比")}</span></div><ul class="workbench-stage-legend">${rows}</ul></div></div>`;
       }
 
       function dashboardProjectControls() {
@@ -681,6 +681,8 @@
           dashboardTodoCategory = "all";
           dashboardTodoPage = 1;
           dashboardSortOwner = sortOwner;
+          resetSalesOverview();
+          resetSalesRegionTargets();
         }
         if (invalidMeasure) dashboardProjectMeasure = "amount";
         if (currentUser.role === "admin" && adminDashboardView === "system")
@@ -696,9 +698,9 @@
         const taskCard = canSeeTasks ? `<section class="panel workbench-card workbench-tasks"><div class="panel-head"><div class="panel-title" id="workbenchTasksTitle">任务概况</div></div><div class="workbench-split" role="region" aria-labelledby="workbenchTasksTitle"><div class="workbench-values">${dashboardOverviewValue("常规任务待完成", pending, "pending", "项")}${dashboardOverviewValue("常规任务逾期", overdue, "overdue", "项")}</div>${dashboardCampaignTable(rows)}</div></section>` : "";
         const projectCard = hasPermission("projects") ? `<section class="panel workbench-card workbench-projects"><div class="panel-head"><div class="panel-title" id="workbenchProjectsTitle">项目概况</div></div><div class="workbench-project-body" role="region" aria-labelledby="workbenchProjectsTitle">${dashboardProjectControls()}<div class="workbench-project-visualization" id="workbenchProjectVisualization">${dashboardProjectChart(dashboardProjectSummary())}</div></div></section>` : "";
         const todoCard = `<section class="panel workbench-card workbench-todos"><div class="panel-head"><div class="panel-title" id="workbenchTodosTitle">我的待办</div></div>${dashboardTodosBody()}</section>`;
-        return pageHead("工作台", currentUser.role === "ecology" ? "查看项目概况，安排项目待办。" : "查看关键人、任务与项目概况，安排待办事项。",
+        return pageHead("工作台", currentUser.role === "ecology" ? "查看项目概况，安排项目待办。" : "查看关键人、任务、销售与项目概况，安排待办事项。",
           currentUser.role === "admin" ? '<button class="btn" type="button" data-admin-dashboard-view="system">系统运行</button>' : "") +
-          `<div class="workbench">${peopleCard}${taskCard}<div class="workbench-bottom">${projectCard}${todoCard}</div></div>`;
+          `<div class="workbench">${peopleCard}${taskCard}${renderWorkbenchSales()}<div class="workbench-bottom">${projectCard}${todoCard}</div></div>`;
       }
 
       function renderAdminDashboard() {

@@ -202,9 +202,14 @@
           opportunities,
           employees,
           accounts,
+          ...salesTargetMutationLists(),
         ]);
-        const effectiveAt = `${handover.plannedEffectiveDate || DEMO_TODAY} 00:00`;
+        const effectiveAt = salesSupportNow();
         try {
+          const originalEmployee=employees.find(person=>person.name===handover.originalPm);
+          const receiver=employees.find(person=>person.name===handover.targetPm);
+          const targetPlan=originalEmployee && !salesRetainsRegionResponsibility(originalEmployee,region,owners) ? prepareSalesTargetHandoff(originalEmployee,regionScopeName(region),receiver) : null;
+          if(targetPlan && !targetPlan.ok)throw new Error(targetPlan.error);
           const projectResult = applyProjectResponsibilityTransfer(projectPlan, {
             effectiveAt,
             operator: handover.operator || currentUser.name,
@@ -247,6 +252,7 @@
           affectedOpportunities.forEach((opportunity) => {
             const previousOwner = opportunity.owner;
             if (previousOwner === handover.targetPm) return;
+            salesCapturePerformance(opportunity);
             opportunity.owner = handover.targetPm;
             opportunity.updatedAt = effectiveAt;
             opportunity.reassignments ||= [];
@@ -262,13 +268,11 @@
           normalizeCustomerResponsibilities();
           syncPmEmployeeScopes();
           handover.migratedProjectIds = projectResult.projectIds;
+          if(targetPlan)applySalesTargetHandoff(targetPlan,`PM地市责任交接：${handover.reason}`,effectiveAt,handover.operator || currentUser.name);
         } catch (error) {
           restoreResponsibilityMutationState(mutationState);
           handover.status = "processing_failed";
-          handover.businessError =
-            error?.message?.includes("保持不变")
-              ? error.message
-              : "地区责任、项目或商机负责人迁移失败，全部业务对象保持原值";
+          handover.businessError = error?.message || "地区责任、项目、商机或目标迁移失败，全部业务对象保持原值";
           return false;
         }
         handover.status = "effective";

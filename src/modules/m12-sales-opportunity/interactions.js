@@ -9,6 +9,14 @@
         return `${DEMO_TODAY} 12:00`;
       }
 
+      function salesSupportNow() {
+        const parts = Object.fromEntries(new Intl.DateTimeFormat("zh-CN", {
+          timeZone: "Asia/Shanghai", year: "numeric", month: "2-digit", day: "2-digit",
+          hour: "2-digit", minute: "2-digit", second: "2-digit", hourCycle: "h23",
+        }).formatToParts(new Date()).map((part) => [part.type, part.value]));
+        return `${parts.year}-${parts.month}-${parts.day} ${parts.hour}:${parts.minute}:${parts.second}`;
+      }
+
       function setSalesFormError(id, message) {
         const node = $(`#err-${id}`);
         if (node) node.textContent = message || "";
@@ -208,32 +216,73 @@
         }
       }
 
-      function bindSalesPeriod() {
-        const control = $("#salesPeriodDraft");
-        if (control) control.onchange = () => (salesPeriodDraft = control.value);
-        const apply = $("#applySalesPeriod");
-        if (apply)
-          apply.onclick = () => {
-            salesPeriodDraft = $("#salesPeriodDraft")?.value || "2026-09";
-            salesPeriodApplied = salesPeriodDraft;
-            renderPage();
-          };
-        const reset = $("#resetSalesPeriod");
-        if (reset)
-          reset.onclick = () => {
-            salesPeriodDraft = "2026-09";
-            salesPeriodApplied = "2026-09";
-            renderPage();
-          };
+      function bindSalesPeriodFields(dimensionId, periodId, getDraft, setDraft, allowed) {
+        const dimension = $(`#${dimensionId}`), year = $(`#${dimensionId.replace("Dimension", "Year")}`), unit = $(`#${periodId}`);
+        const read = () => {
+          if (!["year", "quarter", "month"].includes(dimension?.value) || !year) return null;
+          const value = dimension.value === "year" ? year.value : `${year.value}-${unit?.value}`;
+          return salesPeriodOptions(dimension.value).some(([period]) => period === value) ? value : null;
+        };
+        const sync = () => {
+          const period = getDraft(), kind = salesPeriodDimension(period);
+          if (dimension) dimension.value = kind;
+          if (year) year.value = period.slice(0, 4);
+          if (unit) { unit.innerHTML = salesPeriodValueOptions(period); unit.value = period.slice(5); unit.disabled = kind === "year"; }
+          const group = $(`#${periodId}Unit`), label = $(`#${periodId}Label`);
+          if (group) group.hidden = kind === "year";
+          if (label) label.textContent = kind === "quarter" ? "季度" : "月份";
+        };
+        if (dimension) dimension.onchange = () => {
+          if (!allowed()) return;
+          const next = salesConvertPeriod(getDraft(), dimension.value);
+          if (next) { setDraft(next); sync(); }
+        };
+        const change = () => { if (allowed()) { const next = read(); if (next) setDraft(next); } };
+        if (year) year.onchange = change;
+        if (unit) unit.onchange = change;
+        sync();
+        return { read, sync };
       }
 
-      function bindSalesTargetMonth() {
-        const control = $("#salesTargetMonth");
-        if (!control) return;
-        control.onchange = () => {
-          salesTargetMonth = control.value;
+      function bindSalesPeriod() {
+        const fields = bindSalesPeriodFields("salesPeriodDimension", "salesPeriodDraft", () => salesPeriodDraft, value => salesPeriodDraft = value, salesWorkbenchAllowed);
+        const apply = $("#applySalesPeriod");
+        if (apply) apply.onclick = () => {
+          const next = fields.read();
+          if (!salesWorkbenchAllowed() || !next) return;
+          salesPeriodDraft = salesPeriodApplied = next;
           renderPage();
         };
+        const reset = $("#resetSalesPeriod");
+        if (reset) reset.onclick = () => {
+          if (!salesWorkbenchAllowed()) return;
+          salesPeriodDraft = salesPeriodApplied = DEMO_TODAY.slice(0, 7);
+          renderPage();
+        };
+      }
+
+      function selectSalesTargetPeriod(selectedYear, selectedQuarter) {
+        if (!canAccessPage("sales-targets") || !salesTargetYears.some(item => item.year === selectedYear) || ![1,2,3,4].includes(selectedQuarter)) return;
+        const todayQuarter = Math.ceil(Number(DEMO_TODAY.slice(5,7))/3);
+        salesTargetMonth = selectedYear === DEMO_TODAY.slice(0,4) && selectedQuarter === todayQuarter ? DEMO_TODAY.slice(0,7) : `${selectedYear}-${String((selectedQuarter-1)*3+1).padStart(2,"0")}`;
+        renderPage();
+      }
+      function selectSalesTargetMonth(month) {
+        if (!canAccessPage("sales-targets") || !salesPeriodMonths(salesTargetQuarterPeriod()).includes(month)) return;
+        salesTargetMonth = month;
+        renderPage();
+      }
+      function bindSalesTargetMonth() {
+        const year = $("#salesTargetYear"), quarter = $("#salesTargetQuarter"), month = $("#salesTargetMonth");
+        if (year) year.onchange = () => selectSalesTargetPeriod(year.value,salesTargetQuarter());
+        if (quarter) quarter.onchange = () => selectSalesTargetPeriod(salesTargetMonth.slice(0,4),Number(quarter.value));
+        document.querySelectorAll("[data-sales-target-quarter]").forEach(button => {
+          button.onclick = () => selectSalesTargetPeriod(salesTargetMonth.slice(0,4),Number(button.dataset.salesTargetQuarter));
+        });
+        document.querySelectorAll("[data-sales-target-month]").forEach(button => {
+          button.onclick = () => selectSalesTargetMonth(button.dataset.salesTargetMonth);
+        });
+        if (month) month.onchange = () => selectSalesTargetMonth(month.value);
       }
 
       function bindOpportunityFilters() {
@@ -329,13 +378,15 @@
           $("#salesSupportDeadlineGroup").hidden = !visible;
         };
         $("#cancelOpportunityCreate").onclick = () => salesNavigate("opportunities");
+        let submitted = false;
         form.onsubmit = (event) => {
           event.preventDefault();
+          if (submitted) return;
           if (!salesCanCreate()) return toast("当前账号没有创建商机权限。");
           const required = [
             ["salesName", "请填写商机名称"],
             ["salesType", "请选择商机类型"],
-            ["salesAmount", "请填写预估金额（含税，元）"],
+            ["salesAmount", "请填写预估金额（含税，万元）"],
             ["salesPriority", "请选择优先级"],
             ["salesCustomer", "请选择客户单位"],
             ["salesExpectedDate", "请选择预计成交日期"],
@@ -352,9 +403,9 @@
           const people = selectedSalesKeyPeople(keyPeoplePicker);
           setSalesFormError("salesKeyPeople", people.length ? "" : "请选择至少一名商机关键人");
           if (!people.length) valid = false;
-          const amount = Number($("#salesAmount").value);
-          if (Number.isNaN(amount) || amount < 0) {
-            setSalesFormError("salesAmount", "预估金额必须大于或等于 0");
+          const amount = parseWanMoney($("#salesAmount").value.trim());
+          if (!Number.isFinite(amount) || amount < 0) {
+            setSalesFormError("salesAmount", "预估金额须大于或等于 0，最多6位小数（含税，万元）");
             valid = false;
           }
           if ($("#salesFirstFollow").value < salesNextBusinessDate()) {
@@ -440,6 +491,7 @@
             keyPeople: people,
             nextFollowDate: $("#salesFirstFollow").value,
             histories: [{ time: salesNow(), from: "—", to: "商机录入", operator: currentUser.name }],
+            editHistories: [],
             reassignments: [],
             followUps: [],
             supports: supportPeople.map((code, index) => ({
@@ -450,9 +502,13 @@
               status: "待响应",
               content: $("#salesSupportRequirement").value.trim(),
               delivery: "",
+              histories: [{ time: salesSupportNow(), action: "发起请求", operator: currentUser.name,
+                description: $("#salesSupportRequirement").value.trim(), owner: ownerMatch.owner.name,
+                assignee: employees.find((employee) => employee.code === code).name }],
             })),
           };
           opportunities.unshift(item);
+          submitted = true;
           opportunityDetailContext = "sales";
           selectedOpportunitySupportId = null;
           selectedOpportunityId = item.id;
@@ -466,7 +522,7 @@
         if (!salesCanProgress(item) || item.stage === "落选") return;
         const estimateDisabled = item.stage === "中选" ? "disabled" : "";
         openModal(
-          `<div class="modal-head"><div class="modal-title">编辑商机</div><button class="icon-btn close" data-close title="关闭">×</button></div><form id="salesEditForm"><div class="modal-body"><div class="form-grid sales-modal-grid"><div class="form-group"><label class="form-label">客户单位</label><input class="input" value="${escapeHtml(item.customer)}" disabled></div><div class="form-group"><label class="form-label">商机类型</label><input class="input" value="${escapeHtml(item.type)}" disabled></div><div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>商机名称</label><input class="input" id="salesEditName" value="${escapeHtml(item.name)}" maxlength="100"></div><div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>优先级</label><select class="input" id="salesEditPriority">${SALES_PRIORITIES.map((value) => `<option ${value === item.priority ? "selected" : ""}>${value}</option>`).join("")}</select></div><div class="form-group"><label class="form-label">预估金额（含税，元）</label><input class="input" id="salesEditAmount" type="number" min="0" step="0.01" value="${item.estimateAmount}" ${estimateDisabled}><div class="list-sub">${estimateDisabled ? "进入中选后只读" : "大于或等于 0"}</div></div><div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>预计成交日期</label><input class="input" id="salesEditExpectedDate" type="date" value="${item.expectedWinDate}"></div><div class="form-group full"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>商机关键人</label>${salesKeyPeoplePickerHtml("salesEditKeyPeoplePicker", item.customer, item.keyPeople)}</div><div class="form-group full"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>商机需求描述</label><textarea class="input" id="salesEditRequirement" rows="4" maxlength="1000">${escapeHtml(item.requirement)}</textarea></div></div></div><div class="modal-foot"><button class="btn" type="button" data-close>取消</button><button class="btn btn-primary" type="submit">保存修改</button></div></form>`,
+          `<div class="modal-head"><div class="modal-title">编辑商机</div><button class="icon-btn close" data-close title="关闭">×</button></div><form id="salesEditForm"><div class="modal-body"><div class="form-grid sales-modal-grid"><div class="form-group"><label class="form-label">客户单位</label><input class="input" value="${escapeHtml(item.customer)}" disabled></div><div class="form-group"><label class="form-label">商机类型</label><input class="input" value="${escapeHtml(item.type)}" disabled></div><div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>商机名称</label><input class="input" id="salesEditName" value="${escapeHtml(item.name)}" maxlength="100"></div><div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>优先级</label><select class="input" id="salesEditPriority">${SALES_PRIORITIES.map((value) => `<option ${value === item.priority ? "selected" : ""}>${value}</option>`).join("")}</select></div><div class="form-group"><label class="form-label">预估金额（含税，万元）</label><input class="input" id="salesEditAmount" type="number" min="0" step="0.000001" value="${wanMoneyInput(item.estimateAmount)}" ${estimateDisabled}><div class="list-sub">${estimateDisabled ? "进入中选后只读" : "大于或等于 0"}</div></div><div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>预计成交日期</label><input class="input" id="salesEditExpectedDate" type="date" value="${item.expectedWinDate}"></div><div class="form-group full"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>商机关键人</label>${salesKeyPeoplePickerHtml("salesEditKeyPeoplePicker", item.customer, item.keyPeople)}</div><div class="form-group full"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>商机需求描述</label><textarea class="input" id="salesEditRequirement" rows="4" maxlength="1000">${escapeHtml(item.requirement)}</textarea></div></div></div><div class="modal-foot"><button class="btn" type="button" data-close>取消</button><button class="btn btn-primary" type="submit">保存修改</button></div></form>`,
         );
         bindSalesKeyPeoplePickers($("#salesEditForm"));
         $("#salesEditForm").onsubmit = (event) => {
@@ -474,7 +530,7 @@
           const next = {
             name: $("#salesEditName").value.trim(),
             priority: $("#salesEditPriority").value,
-            estimateAmount: item.stage === "中选" ? item.estimateAmount : Number($("#salesEditAmount").value),
+            estimateAmount: item.stage === "中选" ? item.estimateAmount : parseWanMoney($("#salesEditAmount").value.trim()),
             expectedWinDate: $("#salesEditExpectedDate").value,
             keyPeople: selectedSalesKeyPeople($("#salesEditKeyPeoplePicker")),
             requirement: $("#salesEditRequirement").value.trim(),
@@ -492,11 +548,11 @@
           if (next.keyPeople.some((name) => !validKeyPeople.has(name)))
             return toast("关键人范围已变化，请按当前客户有效关键人重新选择");
           if (!Number.isFinite(next.estimateAmount) || next.estimateAmount < 0)
-            return toast("预估金额必须大于或等于 0");
+            return toast("预估金额须大于或等于 0，最多6位小数（含税，万元）");
           const labels = {
             name: "商机名称",
             priority: "优先级",
-            estimateAmount: "预估金额（含税，元）",
+            estimateAmount: "预估金额（含税，万元）",
             expectedWinDate: "预计成交日期",
             keyPeople: "商机关键人",
             requirement: "商机需求描述",
@@ -507,8 +563,8 @@
           changes.forEach((key) => item.editHistories.push({
             time: salesNow(),
             field: labels[key],
-            before: display(item[key]),
-            after: display(next[key]),
+            before: key === "estimateAmount" ? formatWanMoney(item[key]) : display(item[key]),
+            after: key === "estimateAmount" ? formatWanMoney(next[key]) : display(next[key]),
             operator: currentUser.name,
           }));
           Object.assign(item, next, { updatedAt: salesNow() });
@@ -518,51 +574,107 @@
         };
       }
 
-      function openSalesStageModal(item) {
-        if (!salesCanProgress(item) || item.stage === "落选") return;
+      function salesNextStages(item) {
         const index = SALES_FORWARD_STAGES.indexOf(item.stage);
-        const next = index >= 0 && index < SALES_FORWARD_STAGES.length - 1
-          ? SALES_FORWARD_STAGES[index + 1]
-          : "";
-        const options = [next, "落选"].filter(Boolean);
-        openModal(
-          `<div class="modal-head"><div class="modal-title">推进商机阶段</div><button class="icon-btn close" data-close title="关闭">×</button></div><form id="salesStageForm"><div class="modal-body"><div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>新阶段</label><select class="input" id="salesNextStage">${options.map((value) => `<option value="${value}">${value}</option>`).join("")}</select></div><div id="salesStageFields"></div></div><div class="modal-foot"><button class="btn" type="button" data-close>取消</button><button class="btn btn-primary" type="submit">确认推进</button></div></form>`,
-        );
-        const renderFields = () => {
-          const stage = $("#salesNextStage").value;
-          $("#salesStageFields").innerHTML = stage === "中选"
-            ? '<div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>中选日期</label><input class="input" id="salesSelectedDate" type="date"></div><div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>预计签约金额（含税，元）</label><input class="input" id="salesExpectedContractAmount" type="number" min="0" step="0.01"></div>'
-            : stage === "落选"
-              ? '<div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>落选原因</label><input class="input" id="salesLossReason"></div><div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>竞争对手</label><input class="input" id="salesCompetitor"></div><div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>复盘说明</label><textarea class="input" id="salesReview" rows="3"></textarea></div>'
-              : "";
+        if (index < 0) return [];
+        return [...new Set([SALES_FORWARD_STAGES[index+1], item.stage === "需求确认" ? "比选" : "", "落选"].filter(Boolean))];
+      }
+
+      function salesCloseSupport(item, support, kind, reason, time = salesSupportNow()) {
+        support.status = "已关闭";
+        support.closureKind = kind;
+        support.closedReason = reason;
+        support.histories ||= [];
+        support.histories.push({time,action:kind === "withdraw" ? "撤回" : "停止支撑",description:reason,operator:currentUser.name,owner:item.owner,assignee:support.assignee});
+        item.updatedAt = time;
+      }
+
+      function salesResultSnapshot(item) {
+        return {stage:item.stage, selectedDate:item.selectedDate || "", expectedContractAmount:item.expectedContractAmount ?? null,
+          lossReason:item.lossReason || "",competitor:item.competitor || "",review:item.review || ""};
+      }
+
+      function salesStageFilesHtml(item, history) {
+        return (history.files || []).map((file,index) => `<div>${hasAttachmentPermission("attachment_view") ? `<button class="link" data-stage-file="view" data-stage-opportunity="${item.id}" data-stage-history="${item.histories.indexOf(history)}" data-stage-file-index="${index}">${escapeHtml(file.name)}</button>` : escapeHtml(file.name)} ${hasAttachmentPermission("attachment_download") ? `<button class="link" data-stage-file="download" data-stage-opportunity="${item.id}" data-stage-history="${item.histories.indexOf(history)}" data-stage-file-index="${index}">下载</button>` : ""}</div>`).join("");
+      }
+
+      function openSalesStageFile(item, history, index, action, expected) {
+        if (!opportunities.includes(item) || !hasPermission("opportunities") || !salesVisibleOpportunities().includes(item) || !salesSupportActorActive() ||
+            !item.histories.includes(history) || !["view","download"].includes(action) || !hasAttachmentPermission(action === "download" ? "attachment_download" : "attachment_view")) return toast("当前无法查看该商机材料");
+        const file = history.files?.[index];
+        if (!Number.isInteger(index) || !file || file !== expected || !file.url?.startsWith("blob:")) return toast("当前无法查看该商机材料");
+        const link = document.createElement("a");link.href=file.url;
+        if (action === "download") link.download=file.name; else {link.target="_blank";link.rel="noopener";}
+        link.click();
+      }
+
+      function openSalesStageModal(item, correction = false) {
+        if (!opportunities.includes(item) || !salesSupportActorActive() || !(correction ? salesCanCorrect(item) : salesCanProgress(item)) || (!correction && item.stage === "落选")) return;
+        const actor = currentUser, original = JSON.stringify({owner:item.owner,result:salesResultSnapshot(item)});
+        const options = correction ? SALES_STAGES : salesNextStages(item);
+        const title = correction ? "商机纠错" : "推进商机阶段";
+        openModal(`<div class="modal-head"><div class="modal-title">${title}</div><button class="icon-btn close" data-close title="关闭">×</button></div><form id="salesStageForm"><div class="modal-body">${correction ? `<div class="form-group"><label class="form-label">当前阶段</label><div>${escapeHtml(item.stage)}</div></div>` : ""}<div class="form-group"><label class="form-label">${correction ? "纠正后阶段" : "新阶段"}</label><select class="input" id="salesNextStage">${options.map(value=>`<option value="${value}" ${correction && value === item.stage ? "selected" : ""}>${value}</option>`).join("")}</select></div><div id="salesStageFields"></div><div id="salesStageEvidence"></div></div><div class="modal-foot"><button class="btn" type="button" data-close>取消</button><button class="btn btn-primary" type="submit">${correction ? "确认纠错" : "确认推进"}</button></div></form>`);
+        const form = $("#salesStageForm"); let applied=false;
+        const hasSelectedFields = stage => stage === "中选" || Boolean(correction && item.stage === "落选" && stage === item.stage && item.selectedDate);
+        const valid=()=> !applied && form === $("#salesStageForm") && currentUser === actor && salesSupportActorActive() && opportunities.includes(item) && (correction ? salesCanCorrect(item) : salesCanProgress(item)) &&
+          JSON.stringify({owner:item.owner,result:salesResultSnapshot(item)}) === original;
+        const renderFields=()=> {
+          const stage=$("#salesNextStage").value;
+          $("#salesStageFields").innerHTML=(hasSelectedFields(stage) ? `<div class="form-group"><label class="form-label">中选日期</label><input class="input" id="salesSelectedDate" type="date" value="${correction ? escapeHtml(item.selectedDate || "") : ""}"></div><div class="form-group"><label class="form-label">成交金额（含税，万元）</label><input class="input" id="salesExpectedContractAmount" type="number" min="0" step="0.000001" value="${correction ? wanMoneyInput(item.expectedContractAmount) : ""}"></div>` : "") + (stage === "落选" ? `<div class="form-group"><label class="form-label">落选原因</label><input class="input" id="salesLossReason" value="${correction ? escapeHtml(item.lossReason || "") : ""}"></div><div class="form-group"><label class="form-label">竞争对手</label><input class="input" id="salesCompetitor" value="${correction ? escapeHtml(item.competitor || "") : ""}"></div><div class="form-group"><label class="form-label">复盘说明</label><textarea class="input" id="salesReview">${correction ? escapeHtml(item.review || "") : ""}</textarea></div>` : "");
+          $("#salesStageEvidence").innerHTML=correction || ["中选","落选"].includes(stage) ? `<div class="form-group"><label class="form-label">${correction ? "纠错原因与说明" : "说明"}</label><textarea class="input" id="salesStageDescription" rows="3"></textarea></div><div class="form-group"><label class="form-label">证明材料</label><input class="input" id="salesStageFiles" type="file" multiple accept=".jpg,.jpeg,.png,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx"></div>` : "";
+          // Loss review is the existing outcome explanation; no second normal-loss explanation.
+          if (!correction && stage === "落选") $("#salesStageEvidence").innerHTML='<div class="form-group"><label class="form-label">证明材料</label><input class="input" id="salesStageFiles" type="file" multiple accept=".jpg,.jpeg,.png,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx"></div>';
         };
-        $("#salesNextStage").onchange = renderFields;
-        renderFields();
-        $("#salesStageForm").onsubmit = (event) => {
+        $("#salesNextStage").onchange=renderFields; renderFields();
+        form.onsubmit=event=> {
           event.preventDefault();
-          const stage = $("#salesNextStage").value;
-          if (stage === "中选") {
-            if (!$("#salesSelectedDate").value || $("#salesExpectedContractAmount").value === "")
-              return toast("请填写中选日期和预计签约金额（含税，元）");
-            item.selectedDate = $("#salesSelectedDate").value;
-            item.expectedContractAmount = Number($("#salesExpectedContractAmount").value);
-          }
+          if (!valid()) return toast("商机或权限已变化，请重新打开操作");
+          const stage=$("#salesNextStage").value;
+          if (!options.includes(stage) || (!correction && !salesNextStages(item).includes(stage))) return toast("当前阶段不允许该操作");
+          const restoredOwner = correction && item.stage === "落选" && stage !== "落选" ? salesOwnerMatchForCustomer(salesOpportunityCustomer(item)) : null;
+          if (restoredOwner && !restoredOwner.ok) return toast("客户没有唯一有效负责人，请先完成客户责任配置");
+          const before=salesResultSnapshot(item), after={...before,stage};
+          if (hasSelectedFields(stage)) {
+            const date=$("#salesSelectedDate").value, amount=$("#salesExpectedContractAmount").value.trim();
+            if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || (!Number.isFinite(Date.parse(date+"T00:00:00Z")) || new Date(date+"T00:00:00Z").toISOString().slice(0,10)!==date) || !amount || salesMoneyCents(parseWanMoney(amount)) === null) return toast("请填写中选日期和成交金额（含税，万元）");
+            after.selectedDate=date;after.expectedContractAmount=parseWanMoney(amount);
+          } else if (correction && stage !== item.stage) {after.selectedDate="";after.expectedContractAmount=null;}
           if (stage === "落选") {
-            if (!$("#salesLossReason").value.trim() || !$("#salesCompetitor").value.trim() || !$("#salesReview").value.trim())
-              return toast("请填写落选原因、竞争对手和复盘说明");
-            item.lossReason = $("#salesLossReason").value.trim();
-            item.competitor = $("#salesCompetitor").value.trim();
-            item.review = $("#salesReview").value.trim();
-            item.nextFollowDate = "";
+            after.lossReason=$("#salesLossReason").value.trim();after.competitor=$("#salesCompetitor").value.trim();after.review=$("#salesReview").value.trim();
+            if (!after.lossReason || !after.competitor || !after.review) return toast("请填写落选原因、竞争对手和复盘说明");
           }
-          const from = item.stage;
-          item.stage = stage;
-          item.stageChangedAt = salesNow();
-          item.updatedAt = salesNow();
-          item.histories.push({ time: salesNow(), from, to: stage, operator: currentUser.name });
-          closeOverlay();
-          renderPage();
-          toast(`商机已进入${stage}`);
+          const evidence=correction || ["中选","落选"].includes(stage);
+          const description=evidence ? (!correction && stage === "落选" ? after.review : $("#salesStageDescription").value.trim()) : "";
+          const uploads=evidence ? Array.from($("#salesStageFiles").files || []) : [];
+          if (evidence && (!description || !uploads.length)) return toast("请填写说明并上传证明材料");
+          if (evidence && !hasAttachmentPermission("attachment_upload")) return toast("当前无法上传商机材料");
+          if (correction && JSON.stringify(before) === JSON.stringify(after)) return toast("纠错内容未发生变化");
+          const error=evidence ? validateAttachmentFiles(uploads,true) : "";
+          if (error) return toast(error);
+          if (uploads.some(file=>!file.size || file.name.length>200)) return toast("附件为空或文件名过长，请重新选择");
+          const files=[];
+          try {for (const file of uploads) files.push({name:file.name,url:URL.createObjectURL(file)});}
+          catch {files.forEach(file=>URL.revokeObjectURL(file.url));return toast("文件上传失败，请重新选择");}
+          const finalRestoreMatch=restoredOwner ? salesOwnerMatchForCustomer(salesOpportunityCustomer(item)) : null;
+          if (!valid() || (restoredOwner && (!finalRestoreMatch.ok || finalRestoreMatch.owner.code!==restoredOwner.owner.code))) {files.forEach(file=>URL.revokeObjectURL(file.url));return toast("商机或权限已变化，请重新打开操作");}
+          const time=salesSupportNow();
+          if (before.selectedDate) salesCapturePerformance(item);
+          if (restoredOwner && restoredOwner.owner.name !== item.owner) {
+            item.reassignments ||= [];
+            item.reassignments.push({before:item.owner,after:restoredOwner.owner.name,reason:description,operator:actor.name,time,source:"落选恢复"});
+            item.owner=restoredOwner.owner.name;
+          }
+          Object.assign(item,after,{updatedAt:time});
+          if (!after.selectedDate) {delete item.performanceOwnerCode;delete item.performanceOwnerName;delete item.performanceRegion;}
+          else if (!before.selectedDate) salesCapturePerformance(item);
+          if (before.stage !== stage) item.stageChangedAt=time;
+          if (stage === "落选") {
+            item.nextFollowDate="";
+            item.supports.filter(request=>request.status !== "已关闭").forEach(request=>salesCloseSupport(item,request,"stop","商机落选",time));
+          }
+          item.histories.push({time,from:before.stage,to:stage,operator:actor.name,action:correction ? "纠错" : "推进阶段",description,files,
+            ...(correction ? {before,after:{...after},reason:description} : {result:{...after}})});
+          applied=true;closeOverlay();renderPage();toast(correction ? "商机纠错已完成，业绩已重新计算" : `商机已进入${stage}`);
         };
       }
 
@@ -641,16 +753,19 @@
         openModal(
           formHtml,
         );
-        const supportPicker = $("#supportPeoplePicker");
-        bindSalesSupportPickers($("#salesSupportForm"));
-        $("#salesSupportForm").onsubmit = (event) => {
+        const supportPicker = $("#supportPeoplePicker"), supportActor=currentUser, supportForm=$("#salesSupportForm");
+        let supportApplied=false;
+        bindSalesSupportPickers(supportForm);
+        supportForm.onsubmit = (event) => {
           event.preventDefault();
+          if(supportApplied || supportForm!==$("#salesSupportForm") || currentUser!==supportActor) return toast("当前无法执行该支撑操作");
           const people = selectedSalesSupportPeople(supportPicker);
           const deadline = $("#supportDeadline").value;
           const content = $("#supportContent").value.trim();
           if (!people.length || !deadline || !content) return toast("请填写全部必填支撑信息");
           if (!salesCanProgress(item)) return toast("当前无法执行该支撑操作");
           if (!validSalesSupportSelection(people)) return toast("支撑人员已不符合当前候选条件，请重新选择");
+          if (people.some(code=>salesHasOpenSupport(item,code))) return toast("该商机已有所选人员的未关闭支撑请求，请重新选择");
           const requestCount = opportunities.flatMap((row) => row.supports).length;
           people.forEach((code, index) =>
             item.supports.push({
@@ -663,8 +778,9 @@
               delivery: "",
               histories: [
                 {
-                  time: salesNow(),
+                  time: salesSupportNow(),
                   action: "发起请求",
+                  description: content,
                   operator: currentUser.name,
                   owner: item.owner,
                   assignee: employees.find((employee) => employee.code === code).name,
@@ -672,6 +788,7 @@
               ],
             }),
           );
+          supportApplied=true;
           item.updatedAt = salesNow();
           closeOverlay();
           renderPage();
@@ -680,23 +797,38 @@
       }
 
       function handleSupportAction(item, support, action) {
-        if (!salesCanRunSupportAction(item, support, action)) return toast("当前无法执行该支撑操作");
+        if (!salesSupportActorActive() || !opportunities.includes(item) || !salesCanRunSupportAction(item, support, action)) return toast("当前无法执行该支撑操作");
         const actionLabel = {
           respond: "确认接收",
           deliver: "提交支撑文件",
           close: "确认接收交付",
           supplement: "要求补充",
         }[action];
-        const recordHistory = () => {
+        const recordHistory = (details = {}) => {
           support.histories = support.histories || [];
           support.histories.push({
-            time: salesNow(),
+            time: salesSupportNow(),
             action: actionLabel,
             operator: currentUser.name,
             owner: item.owner,
             assignee: support.assignee,
+            ...details,
           });
         };
+        if (["withdraw","stop"].includes(action)) {
+          const actor=currentUser, assigneeCode=support.assigneeCode, status=support.status;
+          const title=action === "withdraw" ? "撤回支撑" : "停止支撑";
+          openModal(`<div class="modal-head"><div class="modal-title">${title}</div><button class="icon-btn close" data-close>×</button></div><form id="supportStopForm"><div class="modal-body"><p>${escapeHtml(item.name)} · ${escapeHtml(support.assignee)}</p>${action === "stop" ? '<div class="form-group"><label class="form-label">关闭原因</label><textarea class="input" id="supportStopReason"></textarea></div>' : ""}<p>确认后本次请求关闭，需要支撑时请新增请求。</p></div><div class="modal-foot"><button class="btn" type="button" data-close>取消</button><button class="btn btn-danger" type="submit">确认${title}</button></div></form>`);
+          const form=$("#supportStopForm");
+          form.onsubmit=event=> {
+            event.preventDefault();
+            if (form !== $("#supportStopForm") || currentUser !== actor || !salesSupportActorActive() || support.assigneeCode !== assigneeCode || support.status !== status || !opportunities.includes(item) || !salesCanRunSupportAction(item,support,action)) return toast("当前无法执行该支撑操作");
+            const reason=action === "withdraw" ? "负责人撤回" : $("#supportStopReason").value.trim();
+            if (!reason) return toast("请填写关闭原因");
+            salesCloseSupport(item,support,action,reason);closeOverlay();renderPage();toast("方案支撑状态已更新");
+          };
+          return;
+        }
         if (action === "respond") {
           const actor = currentUser;
           const assigneeCode = support.assigneeCode;
@@ -706,24 +838,60 @@
           const form = $("#supportReceiptForm");
           form.onsubmit = (event) => {
             event.preventDefault();
-            if (form !== $("#supportReceiptForm") || currentUser !== actor || support.assigneeCode !== assigneeCode || !opportunities.includes(item) || !salesCanRunSupportAction(item, support, "respond"))
+            if (form !== $("#supportReceiptForm") || currentUser !== actor || !salesSupportActorActive() || support.assigneeCode !== assigneeCode || !opportunities.includes(item) || !salesCanRunSupportAction(item, support, "respond"))
               return toast("当前无法执行该支撑操作");
             support.status = "进行中";
             recordHistory();
-            item.updatedAt = salesNow();
+            item.updatedAt = salesSupportNow();
             closeOverlay();
             renderPage();
             toast("已接收，支撑需求已进入进行中。");
           };
           return;
         }
-        if (action === "close") support.status = "已关闭";
-        if (action === "supplement") support.status = "进行中";
-        if (action !== "deliver") {
-          recordHistory();
-          item.updatedAt = salesNow();
-          renderPage();
-          toast("方案支撑状态已更新");
+        if (action === "supplement") {
+          const actor = currentUser;
+          const assigneeCode = support.assigneeCode;
+          openModal(`<div class="modal-head"><div class="modal-title">要求补充</div><button class="icon-btn close" type="button" data-close title="关闭">×</button></div><form id="supportSupplementForm"><div class="modal-body"><div class="form-group"><label class="form-label">商机名称</label><div>${escapeHtml(item.name)}</div></div><div class="form-group"><label class="form-label">支撑人员</label><div>${escapeHtml(support.assignee)}</div></div><div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>补充或修改说明</label><textarea class="input" id="supportSupplementDescription" rows="4"></textarea></div></div><div class="modal-foot"><button class="btn" type="button" data-close>取消</button><button class="btn btn-primary" type="submit">提交补充要求</button></div></form>`);
+          const form = $("#supportSupplementForm");
+          form.onsubmit = (event) => {
+            event.preventDefault();
+            if (form !== $("#supportSupplementForm") || currentUser !== actor || !salesSupportActorActive() ||
+                support.assigneeCode !== assigneeCode || !opportunities.includes(item) || !salesCanRunSupportAction(item, support, "supplement"))
+              return toast("当前无法执行该支撑操作");
+            const description = $("#supportSupplementDescription").value.trim();
+            if (!description) return toast("请填写补充或修改说明");
+            support.status = "进行中";
+            recordHistory({ description });
+            item.updatedAt = salesSupportNow();
+            closeOverlay();
+            renderPage();
+            toast("补充要求已提交");
+          };
+          return;
+        }
+        if (action === "close") {
+          const actor = currentUser;
+          const assigneeCode = support.assigneeCode;
+          const delivery = support.deliveries?.at(-1);
+          const deliverySnapshot = JSON.stringify({ description: support.delivery, files: salesSupportDeliveryFiles(support) });
+          openModal(`<div class="modal-head"><div class="modal-title">确认接收支撑方案</div><button class="icon-btn close" type="button" data-close title="关闭">×</button></div><form id="supportAcceptanceForm"><div class="modal-body"><div class="form-group"><label class="form-label">商机名称</label><div>${escapeHtml(item.name)}</div></div><div class="form-group"><label class="form-label">支撑人员</label><div>${escapeHtml(support.assignee)}</div></div><p>确认接收该支撑方案并关闭本次支撑请求？</p></div><div class="modal-foot"><button class="btn" type="button" data-close>取消</button><button class="btn btn-primary" type="submit">确认接收</button></div></form>`);
+          const form = $("#supportAcceptanceForm");
+          form.onsubmit = (event) => {
+            event.preventDefault();
+            if (form !== $("#supportAcceptanceForm") || currentUser !== actor || !salesSupportActorActive() ||
+                support.assigneeCode !== assigneeCode || !opportunities.includes(item) || !salesCanRunSupportAction(item, support, "close") ||
+                support.deliveries?.at(-1) !== delivery ||
+                JSON.stringify({ description: support.delivery, files: salesSupportDeliveryFiles(support) }) !== deliverySnapshot)
+              return toast("当前无法执行该支撑操作");
+            support.status = "已关闭";
+            support.closureKind = "accepted";
+            recordHistory();
+            item.updatedAt = salesSupportNow();
+            closeOverlay();
+            renderPage();
+            toast("方案支撑状态已更新");
+          };
           return;
         }
         if (!hasAttachmentPermission("attachment_upload")) return toast("当前无法执行该支撑操作");
@@ -735,7 +903,7 @@
         const deliveryAssignee = support.assigneeCode;
         deliveryForm.onsubmit = (event) => {
           event.preventDefault();
-          if (deliveryForm !== $("#supportDeliveryForm") || currentUser !== deliveryActor || support.assigneeCode !== deliveryAssignee || !opportunities.includes(item) || !salesCanRunSupportAction(item, support, "deliver")) return toast("当前无法执行该支撑操作");
+          if (deliveryForm !== $("#supportDeliveryForm") || currentUser !== deliveryActor || !salesSupportActorActive() || support.assigneeCode !== deliveryAssignee || !opportunities.includes(item) || !salesCanRunSupportAction(item, support, "deliver")) return toast("当前无法执行该支撑操作");
           const delivery = $("#supportDelivery").value.trim();
           if (!delivery) return toast("请填写文件说明");
           if (!hasAttachmentPermission("attachment_upload")) return toast("当前无法执行该支撑操作");
@@ -752,13 +920,15 @@
             return toast("文件上传失败，请重新选择");
           }
           support.deliveries ||= [];
-          support.deliveries.push({ description: delivery, files: deliveryFiles, operator: currentUser.name, time: salesNow() });
+          const submission = { description: delivery, files: deliveryFiles, operator: currentUser.name, time: salesSupportNow() };
+          const repeated = support.deliveries.length > 0;
+          support.deliveries.push(submission);
           support.deliveryFiles = deliveryFiles;
           delete support.deliveryFile;
           support.delivery = delivery;
           support.status = "已交付";
-          recordHistory();
-          item.updatedAt = salesNow();
+          recordHistory({ time: submission.time, action: repeated ? "重新交付" : actionLabel, description: delivery, delivery: submission });
+          item.updatedAt = salesSupportNow();
           closeOverlay();
           renderPage();
           toast("方案支撑已交付");
@@ -772,22 +942,39 @@
         bindSalesSupportFileEvents();
       }
 
+      function openSupportHistory(item, support) {
+        if (!salesCanViewSupportFile(item, support)) return toast("当前无法执行该支撑操作");
+        const records = (support.histories || []).map((record, index) => ({ record, index }))
+          .sort((a, b) => String(b.record.time || "").localeCompare(String(a.record.time || "")) || b.index - a.index);
+        const entries = records.map(({ record }) => {
+          const deliveryIndex = record.delivery ? (support.deliveries || []).indexOf(record.delivery) : -1;
+          const delivery = deliveryIndex >= 0 ? record.delivery : null;
+          return `<li><div class="sales-support-history-heading"><strong>${escapeHtml(record.action || "—")}</strong><span>${escapeHtml(record.time || "—")}</span><span>${escapeHtml(record.operator || "—")}</span></div><div class="sales-support-history-description">${escapeHtml(delivery?.description || record.description || "—")}</div>${delivery ? supportFileHtml(item, support, deliveryIndex) : ""}</li>`;
+        }).join("");
+        openModal(`<div class="modal-head"><div class="modal-title">支撑历程</div><button class="icon-btn close" type="button" data-close title="关闭">×</button></div><div class="modal-body"><div class="form-group"><label class="form-label">商机名称</label><div>${escapeHtml(item.name)}</div></div><div class="form-group"><label class="form-label">支撑人员</label><div>${escapeHtml(support.assignee)}</div></div>${entries ? `<ol class="sales-support-history">${entries}</ol>` : '<div class="empty">暂无支撑历程</div>'}</div><div class="modal-foot"><button class="btn" type="button" data-close>关闭</button></div>`);
+        bindSalesSupportFileEvents();
+      }
+
       function bindSalesSupportFileEvents() {
         document.querySelectorAll("[data-support-file]").forEach((button) => {
           const item = opportunities.find((row) => row.id === button.dataset.supportOpportunity);
           const support = item?.supports.find((row) => row.id === button.dataset.supportId);
           const index = Number(button.dataset.supportFileIndex);
-          const file = salesSupportDeliveryFiles(support)[index];
-          button.onclick = () => openSalesSupportFile(item, support, button.dataset.supportFile, index, file);
+          const historyIndex = button.dataset.supportHistoryDelivery;
+          const delivery = historyIndex === undefined ? undefined : /^\d+$/.test(historyIndex) ? support?.deliveries?.[Number(historyIndex)] || null : null;
+          const file = (delivery === undefined ? salesSupportDeliveryFiles(support) : delivery?.files || [])[index];
+          button.onclick = () => openSalesSupportFile(item, support, button.dataset.supportFile, index, file, delivery);
         });
       }
 
-      function openSalesSupportFile(item, support, action, index = 0, expectedFile) {
+      function openSalesSupportFile(item, support, action, index = 0, expectedFile, delivery) {
         const permission = action === "download" ? "attachment_download" : "attachment_view";
         if (!["view", "download"].includes(action) || !salesCanViewSupportFile(item, support) ||
             !hasAttachmentPermission(permission) || !Number.isInteger(index) || index < 0)
           return toast("当前无法执行该支撑操作");
-        const file = salesSupportDeliveryFiles(support)[index];
+        if (delivery !== undefined && (!delivery || !support.deliveries?.includes(delivery)))
+          return toast("当前无法执行该支撑操作");
+        const file = (delivery === undefined ? salesSupportDeliveryFiles(support) : delivery.files || [])[index];
         if (!file?.url || (expectedFile && file !== expectedFile)) return toast("当前无法执行该支撑操作");
         if (!file.url.startsWith("blob:") && !file.url.startsWith("data:application/pdf;base64,"))
           return toast("当前无法执行该支撑操作");
@@ -800,126 +987,402 @@
         link.click();
       }
 
-      function openSalesReassignModal(item) {
-        if (!item || !salesCanReassign(item)) return toast("当前角色无权改派该商机");
-        const candidates = salesPmEmployees(item.region)
-          .map((employee) => employee.name)
-          .filter((name) => name !== item.owner);
-        openModal(
-          `<div class="modal-head"><div class="modal-title">改派商机负责人</div><button class="icon-btn close" data-close title="关闭">×</button></div><form id="salesReassignForm"><div class="modal-body"><div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>新负责人</label><select class="input" id="salesNewOwner"><option value="">请选择本区域在职 PM</option>${candidates.map((name) => `<option value="${name}">${name}</option>`).join("")}</select></div><div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>改派原因</label><textarea class="input" id="salesReassignReason" rows="3"></textarea></div></div><div class="modal-foot"><button class="btn" type="button" data-close>取消</button><button class="btn btn-primary" type="submit">确认改派</button></div></form>`,
-        );
-        $("#salesReassignForm").onsubmit = (event) => {
+      function openSalesReassignModal() { return toast("商机负责人由客户责任关系确定，不支持单独改派"); }
+
+      function selectSalesTargetRegion(name) {
+        if (!canAccessPage("sales-targets") || !salesTargetVisibleRegions().some(region => region.name === name)) return;
+        salesTargetSelectedRegion = name;
+        salesTargetSelectionUser = currentUser;
+        renderPage();
+      }
+
+      function openSalesTargetHistoryModal() {
+        if (!currentUser || !canAccessPage("sales-targets") ||
+          !(currentUser.fullAccess || salesIsRole("总裁") || salesIsRole("市场副总") || salesIsRole("区域总监"))) return;
+        openModal(`<div class="modal-head"><div class="modal-title">调整记录 · ${salesTargetYear().year}年</div><button class="icon-btn close" type="button" data-close title="关闭" aria-label="关闭">×</button></div><div class="modal-body sales-target-history-body">${salesTargetHistoryTable()}</div><div class="modal-foot"><button class="btn" type="button" data-close>关闭</button></div>`);
+        $("#modalLayer .modal")?.classList.add("sales-target-history-modal");
+        bindUnifiedTablePagination();
+      }
+
+      function salesCanAdjustTarget(level, object, checkPrerequisites = true) {
+        const year = salesTargetEditingYear();
+        if (!year || !currentUser || !canAccessPage("sales-targets") || !hasOperationPermission("sales-targets.manage") || year.year < salesTargetToday().slice(0,4)) return false;
+        const employee = employees.find(item => item.code === currentUser.employeeCode);
+        if (!accounts.includes(currentUser) || currentUser.disabled || !employee || employee.status !== "在职" || employee.accountStatus === "停用") return false;
+        const root = currentUser.fullAccess || (salesIsRole("总裁") && employeeHasRole(employee,"总裁"));
+        if (level === "company") return Boolean(root);
+        if (level === "region-year") return Boolean((root || (salesIsRole("市场副总") && employeeHasRole(employee,"市场副总"))) && year.companyTarget != null && year.regions.length);
+        const [name, code] = object.split("|");
+        const region = year.regions.find(item => item.name === name);
+        if (!region) return false;
+        const director = salesIsRole("区域总监") && employeeHasRole(employee,"区域总监") && salesManagedRegions().some(item => regionsMatch(regionScopeName(item), name));
+        // Used only to render disabled personal actions; edit plans always check prerequisites.
+        if (!checkPrerequisites && ["person-quarter","coordinate-month"].includes(level)) return Boolean(root || director);
+        const q = salesTargetQuarter()-1, months = salesPeriodMonths(salesTargetQuarterPeriod());
+        if (level === "region-quarter") return Boolean((root || director) && region.target != null);
+        if (months.at(-1) < salesTargetToday().slice(0,7) || region.quarters[q] == null) return false;
+        if (level === "region-month") return Boolean(root || director);
+        if (months.some(month => salesTargetMonthRegion(month,name,salesTargetEditingMonths())?.target == null)) return false;
+        if (level === "person-quarter") return Boolean((root || director) && region.salespeople.length);
+        if (level === "coordinate-month") return Boolean((root || director) && region.salespeople.length && region.salespeople.every(person => person.quarters[q] != null) && (!code || region.salespeople.some(person => person.code === code)));
+        // Personal targets are read-only; management uses coordinate-month for all people.
+        return false;
+      }
+
+      function salesTargetEditPlan(level, object) {
+        if (!salesCanAdjustTarget(level, object)) return null;
+        const year = salesTargetEditingYear(), q = salesTargetQuarter()-1;
+        const months = salesTargetEditingMonths().filter(item => item.month.startsWith(year.year+"-"));
+        const periods = salesPeriodMonths(salesTargetQuarterPeriod());
+        const [name, code] = object.split("|");
+        const ri = year.regions.findIndex(item => item.name === name), region = year.regions[ri];
+        const personCode = level === "coordinate-month" ? code || region.salespeople[0]?.code : code;
+        const rows = [];
+        const add = (key,label,path,period,scope,objectName,employeeCode) => {
+          const value = path.reduce((value,key) => value[key], {year,months});
+          const lastMonth = salesPeriodMonths(period).at(-1);
+          rows.push({key,label,path,period,level:scope,object:objectName,employeeCode,value,locked:lastMonth < salesTargetToday().slice(0,7)});
+        };
+        if (level === "company") add("company","公司年度",["year","companyTarget"],year.year,"公司","英嘉科技");
+        if (level === "region-year") year.regions.forEach((item,index) => add(`region:${item.name}`,item.name,["year","regions",index,"target"],year.year,"区域",item.name));
+        if (level === "region-quarter") [0,1,2,3].forEach(index => add(`quarter:${index}`,`第${index+1}季度`,["year","regions",ri,"quarters",index],`${year.year}-Q${index+1}`,"区域",name));
+        if (level === "person-quarter") region.salespeople.forEach((person,index) => {
+          add(`person:${person.code}`,person.name+" · 季度",["year","regions",ri,"salespeople",index,"quarters",q],salesTargetQuarterPeriod(),"PM",`${name} / ${person.name}`,person.code);
+          periods.forEach(month => {
+            const mi=months.findIndex(item=>item.month===month), mr=months[mi]?.regions.findIndex(item=>item.name===name);
+            const pi=months[mi]?.regions[mr]?.salespeople.findIndex(item=>item.code===person.code);
+            if (pi >= 0) add(`person:${person.code}:${month}`,`${person.name} · ${Number(month.slice(5))}月`,["months",mi,"regions",mr,"salespeople",pi,"target"],month,"PM",`${name} / ${person.name}`,person.code);
+          });
+        });
+        if (["region-month","person-month","coordinate-month"].includes(level)) periods.forEach(month => {
+          const mi = months.findIndex(item => item.month === month);
+          const mr = months[mi]?.regions.findIndex(item => item.name === name);
+          if (mi < 0 || mr < 0) return;
+          if (level === "region-month") add(`month:${month}`,`${Number(month.slice(5))}月`,["months",mi,"regions",mr,"target"],month,"区域",name);
+          else region.salespeople.filter(person => person.code === personCode).forEach(person => {
+            const pi = months[mi].regions[mr].salespeople.findIndex(item => item.code === person.code);
+            if (pi >= 0) add(`person:${person.code}:${month}`,`${level === "coordinate-month" ? "" : person.name+" · "}${Number(month.slice(5))}月`,["months",mi,"regions",mr,"salespeople",pi,"target"],month,"PM",`${name} / ${person.name}`,person.code);
+          });
+        });
+        const titles = {company:"设置公司年度目标","region-year":"分配区域年度目标","region-quarter":"拆分区域季度目标","region-month":"拆分区域月度目标","person-quarter":"分配个人季度目标","person-month":"拆分本人月度目标","coordinate-month":"分配个人月度目标"};
+        const parent = level === "region-year" ? year.companyTarget : level === "region-quarter" ? region.target : ["person-month","coordinate-month"].includes(level) ? region.salespeople.find(person => person.code === personCode)?.quarters[q] : region?.quarters[q];
+        return {year,months,rows,personCode,regionName:name,title:titles[level],parent,period:level === "company" || level === "region-year" || level === "region-quarter" ? year.year : salesTargetQuarterPeriod()};
+      }
+
+      function salesTargetValidateAllocation(state, regionName = "", quarter = null, mode = "all") {
+        const {year,months} = state;
+        const money = value => value == null || salesMoneyCents(value) !== null;
+        const check = (parent, values, label) => {
+          if (!money(parent) || values.some(value => !money(value))) return `${label}金额须为非负金额，最多6位小数`;
+          const assigned = values.filter(value => value != null);
+          if (!assigned.length) return "";
+          if (parent == null) return `${label}上级目标尚未分配`;
+          const cents = assigned.reduce((sum,value) => sum+salesMoneyCents(value),0), budget = salesMoneyCents(parent);
+          if (cents > budget || (assigned.length === values.length && cents !== budget))
+            return `${label}合计 ${salesTargetWanMoney(cents/100)} 万元，与目标 ${salesTargetWanMoney(parent)} 万元相差 ${salesTargetWanMoney(Math.abs(cents-budget)/100)} 万元`;
+          return "";
+        };
+        let error = regionName ? "" : check(year.companyTarget,year.regions.map(region => region.target),`${year.year}年区域年度`);
+        if (error || mode === "company") return error;
+        for (const region of year.regions.filter(item => !regionName || item.name === regionName)) {
+          error = quarter == null ? check(region.target,region.quarters,`${region.name}年度季度分配`) : "";
+          if (error) return error;
+          if (mode === "region-year") continue;
+          for (let q = 0; q < 4; q++) {
+            if (quarter != null && q !== quarter) continue;
+            const period = `${year.year}-Q${q+1}`;
+            const regionMonths = salesPeriodMonths(period).map(month => salesTargetMonthRegion(month,region.name,months));
+            error = ["all","region-quarter","region-month"].includes(mode)
+              ? check(region.quarters[q],regionMonths.map(item => item?.target),`${region.name} ${period}月度分配`) : "";
+            if (!error && ["all","region-quarter","person-quarter"].includes(mode))
+              error = check(region.quarters[q],region.salespeople.map(person => person.quarters[q]),`${region.name} ${period}个人季度分配`);
+            if (error) return error;
+            if (mode === "region-quarter") continue;
+            for (const person of mode === "region-month" ? [] : region.salespeople) {
+              error = check(person.quarters[q],regionMonths.map(item => item?.salespeople.find(p => p.code === person.code)?.target),`${person.name} ${period}个人拆月`);
+              if (error) return error;
+            }
+            for (let i = 0; i < 3; i++) {
+              error = check(regionMonths[i]?.target,region.salespeople.map(person => regionMonths[i]?.salespeople.find(p => p.code === person.code)?.target),`${region.name} ${salesPeriodMonths(period)[i]}个人月度分配`);
+              if (error) return error;
+            }
+          }
+        }
+        return "";
+      }
+
+      function salesTargetAllocationBalances(plan, level, object, values) {
+        const groups = [];
+        const add = (label, parent, indices) => groups.push({label,parent,indices});
+        if (plan.parent != null) add("",plan.parent,plan.rows.flatMap((row,index) => level !== "person-quarter" || row.period === plan.period ? [index] : []));
+        if (level === "person-quarter") salesPeriodMonths(plan.period).forEach(month => {
+          add(month+" ",salesTargetMonthRegion(month,plan.regionName,plan.months)?.target,plan.rows.flatMap((row,index)=>row.period===month?[index]:[]));
+          groups.at(-1).hidden=true;
+        });
+        if (level === "coordinate-month") {
+          if (groups[0]) groups[0].displayLabel = "季度总金额";
+          salesPeriodMonths(plan.period).forEach(month => {
+            const regionMonth = salesTargetMonthRegion(month,plan.regionName,plan.months);
+            const others = regionMonth?.salespeople.filter(person => person.code !== plan.personCode).map(person => person.target == null ? 0 : salesMoneyCents(person.target));
+            const budget = salesMoneyCents(regionMonth?.target);
+            const occupied = others && !others.includes(null) ? others.reduce((sum,value) => sum+value,0) : null;
+            add("",budget == null || occupied == null ? null : (budget-occupied)/100,plan.rows.flatMap((row,index) => row.period === month ? [index] : []));
+            groups.at(-1).hidden = true;
+          });
+        }
+        const cents = values.map(value => value == null ? 0 : salesMoneyCents(value));
+        const sum = indices => {
+          if (indices.some(index => cents[index] == null)) return null;
+          const total = indices.reduce((total,index) => total+cents[index],0);
+          return Number.isSafeInteger(total) ? total : null;
+        };
+        groups.forEach(group => {
+          const total = sum(group.indices), budget = salesMoneyCents(group.parent);
+          group.remaining = total == null || budget == null ? null : budget-total;
+        });
+        const limits = plan.rows.map((row,index) => {
+          const related = groups.filter(group => group.indices.includes(index));
+          const available = related.map(group => {
+            const other = sum(group.indices.filter(item => item !== index)), budget = salesMoneyCents(group.parent);
+            return other == null || budget == null ? null : budget-other;
+          });
+          return !available.length || available.some(value => value == null) ? null : Math.min(...available);
+        });
+        return {groups,limits};
+      }
+      function salesTargetBalancesHtml(balances) {
+        return balances.groups.filter(group => !group.hidden).map(group => `<div class="sales-target-edit-budget"><span>${escapeHtml(group.displayLabel || (group.label ? group.label+"可分配目标" : "可分配目标"))}：${salesTargetWanMoney(group.parent)} 万元</span><span class="sales-target-remaining">剩余未分配：${group.remaining == null ? "不可用" : salesTargetWanMoney(group.remaining/100)+" 万元"}</span></div>`).join("");
+      }
+      function salesTargetBalanceError(plan, values, balances) {
+        const index = values.findIndex((value,index) => !plan.rows[index].locked && value != null && salesMoneyCents(value) != null && balances.limits[index] != null && salesMoneyCents(value) > balances.limits[index]);
+        return index < 0 ? "" : "请输入不高于剩余未分配金额";
+      }
+      function openSalesTargetModal(level, object = "") {
+        const plan = salesTargetEditPlan(level, object);
+        if (!plan || !plan.rows.some(row => !row.locked)) return;
+        const user = currentUser, selectedMonth = salesTargetMonth;
+        const snapshot = () => JSON.stringify({year:plan.year,months:plan.months});
+        const original = snapshot();
+        const pending = salesTargetPending();
+        const starting = !pending && level === "company" && plan.year.companyTarget != null;
+        const staged = Boolean(pending || starting);
+        let applied = false;
+        const initialBalances = salesTargetAllocationBalances(plan,level,object,plan.rows.map(row => row.value));
+        const people = level === "coordinate-month" ? plan.year.regions.find(region => region.name === plan.regionName).salespeople : [];
+        const personSelect = people.length ? `<div class="form-group"><label class="form-label" for="salesTargetPerson">分配人员</label><select class="input" id="salesTargetPerson">${people.map(person => `<option value="${escapeHtml(person.code)}" ${person.code === plan.personCode ? "selected" : ""}>${escapeHtml(person.name)}</option>`).join("")}</select></div>` : "";
+        openModal(`<div class="modal-head"><div class="modal-title">${plan.title} · ${escapeHtml(plan.period)}</div><button class="icon-btn close" type="button" data-close title="关闭">×</button></div><form id="salesTargetForm" novalidate><div class="modal-body">${personSelect}<div id="salesTargetBalances" aria-live="polite">${salesTargetBalancesHtml(initialBalances)}</div><div class="sales-target-edit-list">${plan.rows.map((row,index) => `<label class="sales-target-edit-row"><span>${escapeHtml(row.label)}成交金额目标（含税，万元）${row.locked ? " · 历史月份只读" : ""}</span><input class="input" type="number" min="0" step="0.000001" ${initialBalances.limits[index] == null ? "" : `max="${salesTargetWanInput(initialBalances.limits[index]/100)}"`} ${row.locked ? "readonly" : level === "coordinate-month" ? "" : "required"} data-sales-target-key="${escapeHtml(row.key)}" value="${row.value == null ? "" : salesTargetWanInput(row.value)}"></label>`).join("")}</div><div class="form-group sales-target-reason" id="salesTargetReasonGroup" hidden><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>调整原因</label><textarea class="input" id="salesTargetReason" rows="3"></textarea></div></div><div class="modal-foot"><button class="btn" type="button" data-close>取消</button><button class="btn btn-primary" type="submit">${staged ? "保存本层调整" : "确认分配"}</button></div></form>`);
+        const form = $("#salesTargetForm");
+        form.oninput = () => {
+          const inputs = [...document.querySelectorAll("[data-sales-target-key]")];
+          const values = plan.rows.map(row => {
+            const input = inputs.find(item => item.dataset.salesTargetKey === row.key);
+            return !input ? row.value : input.validity?.badInput ? NaN : input.value.trim() === "" ? null : salesTargetParseWan(input.value.trim());
+          });
+          const balances = salesTargetAllocationBalances(plan,level,object,values);
+          $("#salesTargetBalances").innerHTML = salesTargetBalancesHtml(balances);
+          plan.rows.forEach((row,index) => {
+            const input = inputs.find(item => item.dataset.salesTargetKey === row.key);
+            if (!input) return;
+            if (balances.limits[index] == null) input.removeAttribute("max");
+            else input.max = salesTargetWanInput(balances.limits[index]/100);
+          });
+          const adjustment = plan.rows.some((row,index) => row.value != null && values[index] !== row.value);
+          $("#salesTargetReasonGroup").hidden = !adjustment;
+          $("#salesTargetReason").required = adjustment;
+        };
+        const valid = (checkSelection = true) => !applied && $("#salesTargetForm") === form && currentUser === user && salesTargetMonth === selectedMonth && salesTargetEditingYear() === plan.year && snapshot() === original && salesCanAdjustTarget(level,object) && (!checkSelection || level !== "coordinate-month" || $("#salesTargetPerson")?.value === plan.personCode);
+        if (level === "coordinate-month") {
+          const select = $("#salesTargetPerson");
+          select.value = plan.personCode;
+          select.onchange = () => {
+            const next = select.value;
+            if (!valid(false) || !people.some(person => person.code === next)) {
+              select.value = plan.personCode;
+              return toast("目标或权限已变化，请重新打开分配");
+            }
+            openSalesTargetModal(level,`${plan.regionName}|${next}`);
+          };
+        }
+        $("#salesTargetForm").onsubmit = event => {
           event.preventDefault();
-          const newOwner = $("#salesNewOwner").value;
-          const reason = $("#salesReassignReason").value.trim();
-          if (!newOwner || !reason) return toast("请选择新负责人并填写改派原因");
-          if (!salesCanReassign(item) || !salesPmEmployees(item.region).some(
-            (employee) => employee.name === newOwner && employee.name !== item.owner,
-          )) return toast("新负责人已不符合当前候选条件，请重新选择");
-          const oldOwner = item.owner;
-          item.owner = newOwner;
-          item.updatedAt = salesNow();
-          item.reassignments ||= [];
-          item.reassignments.push({ before: oldOwner, after: newOwner, reason, operator: currentUser.name, time: salesNow() });
-          closeOverlay();
-          renderPage();
-          toast("商机负责人已改派");
+          if (!valid()) return toast("目标或权限已变化，请重新打开分配");
+          const inputs = [...document.querySelectorAll("[data-sales-target-key]")];
+          if (inputs.length !== plan.rows.length || new Set(inputs.map(input => input.dataset.salesTargetKey)).size !== plan.rows.length || inputs.some(input => !plan.rows.some(row => row.key === input.dataset.salesTargetKey))) return toast("目标或权限已变化，请重新打开分配");
+          const candidate = structuredClone({year:plan.year,months:plan.months});
+          const changes = [];
+          for (const row of plan.rows) {
+            const input = inputs.find(item => item.dataset.salesTargetKey === row.key), text = input.value.trim();
+            if (input.validity?.badInput) return toast("成交金额目标须为非负金额，最多6位小数（含税，万元）");
+            const value = text === "" ? null : salesTargetParseWan(text);
+            if (row.locked && value !== row.value) return toast("历史月份目标不能修改");
+            if ((!row.locked && value === null && level !== "coordinate-month" && !(level === "person-quarter" && row.period !== plan.period)) || (value !== null && salesMoneyCents(value) === null)) return toast("成交金额目标须为非负金额，最多6位小数（含税，万元）");
+            // Coordination may leave an entire unallocated person untouched, but never erase an assigned target.
+            if (row.value != null && value == null) return toast("已分配目标不能清空");
+            const parent = row.path.slice(0,-1).reduce((item,key) => item[key],candidate);
+            parent[row.path.at(-1)] = value;
+            if (value !== row.value) changes.push({...row,after:value});
+          }
+          if (!changes.length) return toast("目标未发生变化");
+          const values = plan.rows.map(row => row.path.reduce((item,key) => item[key],candidate));
+          const balances = salesTargetAllocationBalances(plan,level,object,values);
+          const balanceError = salesTargetBalanceError(plan,values,balances);
+          if (!staged && balanceError) return toast(balanceError);
+          const adjustment = changes.some(change => change.value != null);
+          const reason = adjustment ? $("#salesTargetReason").value.trim() : "";
+          if (adjustment && !reason) return toast("请填写调整原因");
+          if (!staged && ["region-year","region-quarter","region-month","person-quarter","person-month"].includes(level)) {
+            const values = plan.rows.filter(row=>level !== "person-quarter" || row.period===plan.period).map(row => row.path.reduce((item,key) => item[key],candidate));
+            const total = values.some(value => value == null) ? null : salesSumMoney(values,value => value);
+            if (total === null || salesMoneyCents(total) !== salesMoneyCents(plan.parent))
+              return toast(`${plan.period} ${plan.title}合计 ${total === null ? "未分配" : salesTargetWanMoney(total)} 万元，须等于目标 ${salesTargetWanMoney(plan.parent)} 万元${total === null ? "" : `，相差 ${salesTargetWanMoney(Math.abs(total-plan.parent))} 万元`}`);
+          }
+          if (!staged && level === "coordinate-month") {
+            const region = candidate.year.regions.find(item => item.name === plan.regionName);
+            for (const code of new Set(changes.map(change => change.employeeCode))) {
+              const values = salesPeriodMonths(salesTargetQuarterPeriod()).map(month => salesTargetMonthRegion(month,plan.regionName,candidate.months)?.salespeople.find(person => person.code === code)?.target);
+              const person = region.salespeople.find(item => item.code === code);
+              if (values.some(value => value == null) || salesMoneyCents(salesSumMoney(values,value => value)) !== salesMoneyCents(person.quarters[salesTargetQuarter()-1]))
+                return toast(`${person.name}3个月合计须等于个人季度目标，历史月份保持只读`);
+            }
+          }
+          const name = object.split("|")[0];
+          let error;
+          if (!staged && level === "person-month") {
+            // Self-service errors disclose only the month and discrepancy, never another target.
+            for (const month of salesPeriodMonths(salesTargetQuarterPeriod())) {
+              const region = salesTargetMonthRegion(month,name,candidate.months);
+              const assigned = region.salespeople.filter(person => person.target != null);
+              const total = assigned.reduce((sum,person) => sum+salesMoneyCents(person.target),0);
+              const budget = salesMoneyCents(region.target);
+              if (total > budget || (assigned.length === region.salespeople.length && total !== budget)) {
+                error = `${month}个人月度分配与可分配额度相差 ${salesTargetWanMoney(Math.abs(total-budget)/100)} 万元，请由区域协调`;
+                break;
+              }
+            }
+          } else if (!staged) error = salesTargetValidateAllocation(candidate,
+            ["company","region-year"].includes(level) ? "" : name,
+            ["company","region-year","region-quarter"].includes(level) ? null : salesTargetQuarter()-1,level);
+          if (error) return toast(error);
+          if (adjustment && !window.confirm(staged ? "确认保存本层调整？本轮全部完成前，统计继续使用原目标。" : `确认分配 ${changes.length} 项成交金额目标并立即生效？`)) return;
+          if (!valid()) return toast("目标或权限已变化，请重新打开分配");
+          if (staged) {
+            let round = pending;
+            if (starting) {
+              if (salesTargetPending()) return toast("同年度已有目标调整，请先完成或取消");
+              const base=structuredClone({year:plan.year,months:plan.months});
+              round={base,candidate,reason,changes:new Map(),baseSnapshot:JSON.stringify(base)};
+              salesTargetAdjustments.set(plan.year.year,round);
+            } else {
+              Object.assign(plan.year,candidate.year);
+              plan.months.forEach((month,index)=>Object.assign(month,candidate.months[index]));
+            }
+            changes.forEach(change=> {
+              const key=JSON.stringify(change.path), existing=round.changes.get(key);
+              const baseValue=change.path.reduce((node,key)=>node[key],round.base);
+              round.changes.set(key,{...change,value:baseValue,operator:user.name,reason:reason || existing?.reason || round.reason});
+            });
+            applied=true;closeOverlay();renderPage();return toast("本层调整已保存，统计仍使用原目标");
+          }
+          Object.assign(plan.year,candidate.year,{version:Number(plan.year.version)+1,effectiveAt:salesNow()});
+          plan.months.forEach((month,index) => Object.assign(month,candidate.months[index]));
+          applied = true;
+          changes.slice().reverse().forEach(change => salesTargetHistory.unshift({period:change.period,level:change.level,object:change.object,employeeCode:change.employeeCode,
+            before:change.value ?? "未分配",after:change.after,reason:change.value == null ? "" : reason,operator:user.name,effectiveMode:change.value == null ? "首次分配" : "直接生效",effectiveAt:salesNow(),version:plan.year.version}));
+          closeOverlay();renderPage();toast("成交金额目标分配已生效");
         };
       }
 
-      function openSalesTargetModal(level, object) {
-        const target = salesCurrentTarget();
-        let rows;
-        let title;
-        if (level === "company") {
-          title = "调整公司与区域商机数量目标";
-          rows = [
-            { key: "company", label: "公司目标", value: target.companyTarget },
-            ...target.regions.map((region) => ({ key: `region:${region.name}`, label: region.name, value: region.target })),
-          ];
-        } else if (level === "region") {
-          title = "调整区域商机数量目标";
-          rows = target.regions.map((region) => ({ key: `region:${region.name}`, label: region.name, value: region.target }));
-        } else {
-          const regionName = object.split("|")[0];
-          const region = target.regions.find((item) => item.name === regionName);
-          title = `调整${regionName}PM商机数量目标`;
-          rows = region.salespeople.map((person) => ({ key: `sales:${regionName}:${person.name}`, label: person.name, value: person.target ?? 0 }));
-        }
-        openModal(
-          `<div class="modal-head"><div class="modal-title">${title}</div><button class="icon-btn close" data-close title="关闭">×</button></div><form id="salesTargetForm"><div class="modal-body"><div class="sales-target-edit-list">${rows.map((row) => `<label class="sales-target-edit-row"><span>${row.label}</span><input class="input" type="number" min="0" step="1" data-sales-target-key="${row.key}" value="${row.value}"></label>`).join("")}</div><div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>调整原因</label><textarea class="input" id="salesTargetReason" rows="3"></textarea></div></div><div class="modal-foot"><button class="btn" type="button" data-close>取消</button><button class="btn btn-primary" type="submit">提交调整</button></div></form>`,
-        );
-        $("#salesTargetForm").onsubmit = (event) => {
-          event.preventDefault();
-          const reason = $("#salesTargetReason").value.trim();
-          const values = Object.fromEntries(
-            [...document.querySelectorAll("[data-sales-target-key]")].map((input) => [input.dataset.salesTargetKey, Number(input.value)]),
-          );
-          if (!reason) return toast("请填写调整原因");
-          if (Object.values(values).some((value) => !Number.isInteger(value) || value < 0))
-            return toast("商机数量目标必须为大于或等于 0 的整数");
-          const company = values.company ?? target.companyTarget;
-          const regionTotal = target.regions.reduce(
-            (sum, region) => sum + (values[`region:${region.name}`] ?? region.target),
-            0,
-          );
-          if ((level === "company" || level === "region") && regionTotal !== company)
-            return toast(`区域目标合计 ${regionTotal}，与公司目标 ${company} 不一致`);
-          if (level === "sales") {
-            const regionName = object.split("|")[0];
-            const region = target.regions.find((item) => item.name === regionName);
-            const salesTotal = region.salespeople.reduce(
-              (sum, person) => sum + (values[`sales:${regionName}:${person.name}`] ?? person.target ?? 0),
-              0,
-            );
-            if (salesTotal !== region.target)
-              return toast(`PM目标合计 ${salesTotal}，与${regionName}目标 ${region.target} 不一致`);
+      function salesTargetPendingError(round) {
+        const {year,months}=round.candidate;
+        const base=round.base;
+        if (year.year !== base.year.year || months.length !== base.months.length || months.some((month,index)=>month.month !== base.months[index].month)) return "目标或权限已变化，请重新操作";
+        const exact=(parent,values,label,complete=true)=> {
+          if (salesMoneyCents(parent) === null || values.some(value=>value != null && salesMoneyCents(value) === null)) return `${label}金额不可用`;
+          if (complete && values.some(value=>value == null)) return `${label}尚未分配完成`;
+          const total=values.reduce((sum,value)=>sum+(value == null ? 0 : salesMoneyCents(value)),0);
+          const delta=salesMoneyCents(parent)-total;
+          return delta ? `${label}剩余未分配 ${salesTargetWanMoney(delta/100)} 万元，须为0` : "";
+        };
+        let error=exact(year.companyTarget,year.regions.map(region=>region.target),"区域年度分配");
+        if (error) return error;
+        for (const region of year.regions) {
+          const before=base.year.regions.find(item=>item.name===region.name);
+          const regionMonths=months.filter(month=>month.regions.some(item=>item.name===region.name));
+          const changed=JSON.stringify(region)!==JSON.stringify(before) || regionMonths.some(month=>JSON.stringify(salesTargetMonthRegion(month.month,region.name,months))!==JSON.stringify(salesTargetMonthRegion(month.month,region.name,base.months)));
+          if (!changed) continue;
+          error=exact(region.target,region.quarters,`${region.name}季度分配`);
+          if (error) return error;
+          for (let q=0;q<4;q++) {
+            const period=`${year.year}-Q${q+1}`, labels=salesPeriodMonths(period);
+            const current=labels.map(month=>salesTargetMonthRegion(month,region.name,months));
+            const previous=labels.map(month=>salesTargetMonthRegion(month,region.name,base.months));
+            const impacted=region.quarters[q]!==before.quarters[q] || region.salespeople.some(person=>person.quarters[q]!==before.salespeople.find(p=>p.code===person.code)?.quarters[q]) || JSON.stringify(current)!==JSON.stringify(previous);
+            if (!impacted) continue;
+            if (labels.some((month,index)=>month < salesTargetToday().slice(0,7) && JSON.stringify(current[index])!==JSON.stringify(previous[index]))) return "历史月份目标不能修改";
+            if (labels.at(-1) < salesTargetToday().slice(0,7)) return "历史季度目标不能修改";
+            error=exact(region.quarters[q],current.map(month=>month?.target),`${region.name} ${period}月度分配`) || exact(region.quarters[q],region.salespeople.map(person=>person.quarters[q]),`${region.name} ${period}个人季度分配`);
+            if (error) return error;
+            const inactiveZero = person => person.quarters[q] === 0 && employees.some(employee => employee.code === person.code && (employee.status === "停用" || employee.accountStatus === "停用"));
+            for (const person of region.salespeople) {
+              error=exact(person.quarters[q],current.map(month=>month?.salespeople.find(row=>row.code===person.code)?.target),`${person.name} ${period}个人月份`,!inactiveZero(person));
+              if (error) return error;
+            }
+            for (let index=0;index<3;index++) {
+              error=exact(current[index]?.target,region.salespeople.map(person=>current[index]?.salespeople.find(row=>row.code===person.code)?.target).filter((value,i)=>value != null || !inactiveZero(region.salespeople[i])),`${region.name} ${labels[index]}个人合计`);
+              if (error) return error;
+            }
           }
-          const changedItems = [];
-          if (values.company != null && values.company !== target.companyTarget)
-            changedItems.push({ level: "公司", object: "英嘉科技", before: target.companyTarget, after: values.company });
-          target.regions.forEach((region) => {
-            const regionValue = values[`region:${region.name}`];
-            if (regionValue != null && regionValue !== region.target)
-              changedItems.push({ level: "区域", object: region.name, before: region.target, after: regionValue });
-            region.salespeople.forEach((person) => {
-              const salesValue = values[`sales:${region.name}:${person.name}`];
-              if (salesValue != null && salesValue !== person.target)
-                changedItems.push({ level: "PM", object: `${region.name} / ${person.name}`, before: person.target ?? "未分配", after: salesValue });
-            });
-          });
-          if (!changedItems.length) return toast("目标未发生变化");
-          if (!window.confirm(`确认调整 ${changedItems.length} 项商机数量目标并立即生效？`)) return;
-          if (values.company != null) target.companyTarget = values.company;
-          target.regions.forEach((region) => {
-            if (values[`region:${region.name}`] != null) region.target = values[`region:${region.name}`];
-            region.salespeople.forEach((person) => {
-              if (values[`sales:${region.name}:${person.name}`] != null)
-                person.target = values[`sales:${region.name}:${person.name}`];
-            });
-          });
-          target.version = `${target.version.split("-")[0]}-${String(Number(target.version.split("-")[1]) + 1).padStart(2, "0")}`;
-          target.effectiveAt = salesNow();
-          changedItems
-            .slice()
-            .reverse()
-            .forEach((change) =>
-              salesTargetHistory.unshift({
-                version: target.version,
-                month: target.month,
-                level: change.level,
-                object: change.object,
-                before: change.before,
-                after: change.after,
-                reason,
-                operator: currentUser.name,
-                effectiveMode: "直接生效",
-                effectiveAt: salesNow(),
-              }),
-            );
-          closeOverlay();
-          renderPage();
-          toast("销售指标新版本已生效");
+        }
+        // Independent preservation check also rejects tampering with past quarter values.
+        for (const change of round.changes.values()) {
+          if (salesPeriodMonths(change.period).at(-1) < salesTargetToday().slice(0,7)) return "历史月份目标不能修改";
+          if (change.employeeCode && change.after !== change.value && !employees.some(employee=>employee.code===change.employeeCode && employee.status==="在职" && employee.accountStatus!=="停用" && (employeeHasRole(employee,"PM") || employeeHasRole(employee,"区域总监")))) return "目标分配人员已失效，请重新调整";
+        }
+        return "";
+      }
+
+      function finishSalesTargetAdjustment(cancel = false) {
+        const round=salesTargetPending(), actor=currentUser;
+        if (!round || !salesCanAdjustTarget("company","")) return toast("当前无法完成目标调整");
+        const year=salesTargetYear(), months=salesTargetMonths.filter(item=>item.month.startsWith(year.year+"-"));
+        if (!cancel && JSON.stringify({year,months}) !== round.baseSnapshot) return toast("有效目标已变化，请取消本轮后重新调整");
+        const error=cancel ? "" : salesTargetPendingError(round);
+        if (error) return toast(error);
+        const snapshot=JSON.stringify(round.candidate);
+        if (!window.confirm(cancel ? "确认取消本轮全部未生效调整？原目标保持有效。" : "确认完成本轮调整并使公司及下级目标整体生效？")) return;
+        if (currentUser !== actor || salesTargetPending() !== round || !salesCanAdjustTarget("company","") || JSON.stringify(round.candidate)!==snapshot || (!cancel && JSON.stringify({year,months})!==round.baseSnapshot)) return toast("目标或权限已变化，请重新操作");
+        if (cancel) {salesTargetAdjustments.delete(year.year);renderPage();return toast("本轮调整已取消，原目标保持有效");}
+        const finalError=salesTargetPendingError(round);if(finalError)return toast(finalError);
+        const time=salesSupportNow(), version=Number(year.version)+1;
+        Object.assign(year,structuredClone(round.candidate.year),{version,effectiveAt:time});
+        months.forEach((month,index)=>Object.assign(month,structuredClone(round.candidate.months[index]),{version,effectiveAt:time,companyTarget:year.companyTarget}));
+        [...round.changes.values()].filter(change=>change.value!==change.after).reverse().forEach(change=>salesTargetHistory.unshift({period:change.period,level:change.level,object:change.object,employeeCode:change.employeeCode,before:change.value ?? "未分配",after:change.after,delta:(salesMoneyCents(change.after)-salesMoneyCents(change.value ?? 0))/100,reason:change.reason,operator:change.operator,effectiveMode:"整体生效",effectiveAt:time,version}));
+        salesTargetAdjustments.delete(year.year);renderPage();toast("本轮目标调整已整体生效");
+      }
+
+      function bindSalesRegionGoal() {
+        const center = $("#salesRegionCenter");
+        const fields = bindSalesPeriodFields("salesRegionDimension", "salesRegionPeriod", () => salesRegionPeriodDraft, value => salesRegionPeriodDraft = value, salesRegionTargetsAllowed);
+        const validCenter = value => value === "" || salesRegionGoalCenters().some(item => String(item.id) === value);
+        if (center) center.onchange = () => {
+          if (salesRegionTargetsAllowed() && validCenter(center.value)) salesRegionCenterDraft = center.value;
+        };
+        const apply = $("#applySalesRegionGoal"), reset = $("#resetSalesRegionGoal");
+        if (apply) apply.onclick = () => {
+          const next = fields.read();
+          if (!salesRegionTargetsAllowed() || !next || !validCenter(center?.value)) return;
+          salesRegionPeriodDraft = salesRegionPeriodApplied = next;
+          salesRegionCenterDraft = salesRegionCenterApplied = center.value;
+          const table = $("#salesRegionGoalTable");
+          if (table) table.innerHTML = salesRegionGoalTable();
+        };
+        if (reset) reset.onclick = () => {
+          if (!salesRegionTargetsAllowed()) return;
+          resetSalesRegionTargets();
+          fields.sync();
+          if (center) center.value = "";
+          const table = $("#salesRegionGoalTable");
+          if (table) table.innerHTML = salesRegionGoalTable();
         };
       }
 
@@ -970,11 +1433,13 @@
           button.onclick = () => salesNavigate(button.dataset.salesPage);
         });
         bindSalesPeriod();
+        bindSalesRegionGoal();
         bindSalesTargetMonth();
         bindOpportunityFilters();
         bindSalesSupportFilters();
         document.querySelectorAll("[data-sales-trend]").forEach((button) => {
           button.onclick = () => {
+            if (!salesWorkbenchAllowed() || !["count", "amount"].includes(button.dataset.salesTrend)) return;
             salesTrendMode = button.dataset.salesTrend;
             renderPage();
           };
@@ -1009,8 +1474,21 @@
         if (followup && selected) followup.onclick = () => openSalesFollowupModal(selected);
         const support = $("[data-sales-support-add]");
         if (support && selected) support.onclick = () => openSalesSupportModal(selected);
-        const reassign = $("[data-sales-reassign]");
-        if (reassign && selected) reassign.onclick = () => openSalesReassignModal(selected);
+        const correction = $("[data-sales-correct]");
+        if (correction && selected) correction.onclick = () => openSalesStageModal(selected,true);
+        document.querySelectorAll("[data-stage-file]").forEach(button=> {
+          const item=opportunities.find(row=>row.id===button.dataset.stageOpportunity);
+          const history=item?.histories[Number(button.dataset.stageHistory)];
+          const index=Number(button.dataset.stageFileIndex), expected=history?.files?.[index];
+          button.onclick=()=>openSalesStageFile(item,history,index,button.dataset.stageFile,expected);
+        });
+        document.querySelectorAll("[data-support-history]").forEach((button) => {
+          button.onclick = () => {
+            const item = opportunities.find((row) => row.id === button.dataset.supportOpportunity);
+            const support = item?.supports.find((row) => row.id === button.dataset.supportHistory);
+            openSupportHistory(item, support);
+          };
+        });
         document.querySelectorAll("[data-support-delivery]").forEach((button) => {
           button.onclick = () => {
             const item = opportunities.find((row) => row.id === button.dataset.supportOpportunity);
@@ -1027,7 +1505,124 @@
             if (opportunity && request) handleSupportAction(opportunity, request, button.dataset.supportAction);
           };
         });
+        document.querySelectorAll("[data-sales-target-region]").forEach(button => {
+          button.onclick = () => selectSalesTargetRegion(button.dataset.salesTargetRegion);
+        });
+        const personalTargets=$("[data-sales-personal-targets]");
+        if (personalTargets) personalTargets.onclick=()=>{if(salesIsRole("区域总监") && canAccessPage("sales-targets")){salesTargetPersonalContext=true;salesTargetPersonalActor=currentUser;renderPage();}};
+        const managementTargets=$("[data-sales-management-targets]");
+        if (managementTargets) managementTargets.onclick=()=>{salesTargetPersonalContext=false;renderPage();};
+        const finish=$("[data-sales-target-finish]");if(finish)finish.onclick=()=>finishSalesTargetAdjustment();
+        const cancel=$("[data-sales-target-cancel]");if(cancel)cancel.onclick=()=>finishSalesTargetAdjustment(true);
+        const targetHistory = $("[data-sales-target-history]");
+        if (targetHistory) targetHistory.onclick = openSalesTargetHistoryModal;
         document.querySelectorAll("[data-sales-target-edit]").forEach((button) => {
           button.onclick = () => openSalesTargetModal(button.dataset.salesTargetEdit, button.dataset.salesTargetObject);
         });
+      }
+
+      function salesHasOpenSupport(item, code, except = null) {
+        return item.supports.some(request=>request !== except && request.assigneeCode === code && request.status !== "已关闭");
+      }
+
+      function salesTargetMutationLists() { return [salesTargetYears,salesTargetMonths,salesTargetHistory]; }
+
+      function salesRetainsRegionResponsibility(employee, region, excludedOwners = [], excludeDirector = false) {
+        return cityOwners.some(owner=>owner.pm===employee?.name && !excludedOwners.includes(owner) && regionProvinceList(region).includes(owner.province)) ||
+          (!excludeDirector && departmentsManagedBy(employee?.code).some(department=>department.type==="region" && department.regionId===region.id));
+      }
+
+      function salesPersonalEarnedCents(code, regionName, month) {
+        const rows=opportunities.filter(item=>item.selectedDate?.startsWith(month) &&
+          (item.performanceOwnerCode || employees.find(person=>person.name===item.owner)?.code)===code &&
+          regionsMatch(item.performanceRegion || item.region,regionName));
+        const amounts=rows.map(item=>salesMoneyCents(item.expectedContractAmount));
+        if (amounts.includes(null)) throw new Error("本人已发生成交金额不可用，请先纠正商机结果");
+        return amounts.reduce((total,amount)=>total+amount,0);
+      }
+
+      function salesEmployeeTargetRegions(code) {
+        const today=salesTargetToday().slice(0,7);
+        return [...new Set(salesTargetYears.flatMap(year=>year.regions.filter(region=> {
+          const person=region.salespeople.find(person=>person.code===code);
+          return person && person.quarters.some((value,q)=>value!=null && salesPeriodMonths(`${year.year}-Q${q+1}`).at(-1)>=today && value>0);
+        }).map(region=>region.name)))];
+      }
+
+      function prepareSalesTargetHandoff(employee, regionName, receiver, today = salesTargetToday()) {
+        const base=JSON.stringify([salesTargetYears,salesTargetMonths]);
+        const years=structuredClone(salesTargetYears), months=structuredClone(salesTargetMonths), changes=[];
+        if (employee && !salesEmployeeTargetRegions(employee.code).some(name=>regionsMatch(name,regionName))) return {ok:true,base,years,months,changes};
+        if (!receiver || receiver.code===employee?.code || receiver.status!=="在职" || receiver.accountStatus==="停用" ||
+          !(employeeHasRole(receiver,"PM") || employeeHasRole(receiver,"区域总监"))) return {ok:false,error:"请指定有效的个人目标承接人"};
+        const current=today.slice(0,7);
+        const change=(node,key,value,period,person)=> {
+          const before=node[key];
+          if (value===before) return;
+          node[key]=value;changes.push({period,level:"PM",object:`${regionName} / ${person.name}`,employeeCode:person.code,before:before ?? "未分配",after:value});
+        };
+        try {
+          for (const year of years) {
+            const region=year.regions.find(region=>regionsMatch(region.name,regionName));
+            const from=region?.salespeople.find(person=>person.code===employee.code);
+            if (!from) continue;
+            let to=region.salespeople.find(person=>person.code===receiver.code);
+            for (let q=0;q<4;q++) {
+              const period=`${year.year}-Q${q+1}`, periods=salesPeriodMonths(period);
+              if (periods.at(-1)<current || from.quarters[q]==null) continue;
+              const sourceMonths=periods.map(month=>months.find(row=>row.month===month)?.regions.find(row=>row.name===region.name));
+              const leaves=sourceMonths.map(row=>row?.salespeople.find(person=>person.code===employee.code));
+              if (sourceMonths.some(row=>!row)) throw new Error(`${region.name} ${period}月度目标缺失，请先补齐分配`);
+              const baseError=salesTargetValidateAllocation({year,months:months.filter(month=>month.month.startsWith(year.year+"-"))},region.name,q,"person-quarter");
+              if(baseError)throw new Error(baseError);
+              const sourceBudget=salesMoneyCents(from.quarters[q]);
+              if (sourceBudget===null) throw new Error("个人季度目标不可用");
+              const started=periods[0]<=current;
+              if (started && sourceBudget>0 && leaves.some(leaf=>leaf?.target==null)) throw new Error(`${employee.name} ${period}月度目标未分配，请先补齐分配再交接`);
+              if (started && sourceBudget>0 && leaves.reduce((sum,leaf)=>sum+salesMoneyCents(leaf.target),0)!==sourceBudget) throw new Error(`${employee.name} ${period}季月目标不一致，请先完成协调`);
+              const deltas=periods.map((month,i)=> {
+                if (month<current || leaves[i]?.target==null) return null;
+                const target=salesMoneyCents(leaves[i].target);
+                if (target===null) throw new Error("个人月度目标不可用");
+                return month===current ? Math.max(target-salesPersonalEarnedCents(employee.code,region.name,month),0) : target;
+              });
+              const transfer=started ? deltas.reduce((sum,value)=>sum+(value??0),0) : sourceBudget;
+              if (!transfer && !deltas.some(value=>value>0)) continue;
+              if (!to) {
+                to={code:receiver.code,name:receiver.name,quarters:[null,null,null,null]};region.salespeople.push(to);
+                months.filter(month=>month.month.startsWith(year.year+"-")).forEach(month=> {
+                  const row=month.regions.find(item=>item.name===region.name);
+                  if(row && !row.salespeople.some(person=>person.code===receiver.code))row.salespeople.push({code:receiver.code,name:receiver.name,target:null});
+                });
+              }
+              change(from.quarters,q,(sourceBudget-transfer)/100,period,from);
+              change(to.quarters,q,((salesMoneyCents(to.quarters[q])??0)+transfer)/100,period,to);
+              periods.forEach((month,i)=> {
+                if (deltas[i]==null) return;
+                const list=sourceMonths[i].salespeople, fromLeaf=leaves[i];
+                let toLeaf=list.find(person=>person.code===receiver.code);
+                if (!toLeaf) {toLeaf={code:receiver.code,name:receiver.name,target:null};list.push(toLeaf);}
+                change(fromLeaf,"target",(salesMoneyCents(fromLeaf.target)-deltas[i])/100,month,from);
+                change(toLeaf,"target",((salesMoneyCents(toLeaf.target)??0)+deltas[i])/100,month,to);
+              });
+              const error=salesTargetValidateAllocation({year,months:months.filter(month=>month.month.startsWith(year.year+"-"))},region.name,q,"person-quarter");
+              if (error) throw new Error(error);
+            }
+          }
+          return {ok:true,employee,receiver,regionName,today,base,years,months,changes};
+        } catch(error) {return {ok:false,error:error.message};}
+      }
+
+      function applySalesTargetHandoff(plan, reason, effectiveAt, operator = currentUser.name) {
+        if (!plan.ok) throw new Error(plan.error);
+        if (!plan.changes.length) return;
+        if (JSON.stringify([salesTargetYears,salesTargetMonths])!==plan.base || plan.receiver.status!=="在职" || plan.receiver.accountStatus==="停用" ||
+          !(employeeHasRole(plan.receiver,"PM") || employeeHasRole(plan.receiver,"区域总监"))) throw new Error("目标或承接人已变化，请重新交接");
+        plan.years.forEach((year,index)=> {
+          if (plan.changes.some(change=>change.period.startsWith(year.year))) Object.assign(salesTargetYears[index],year,{version:Number(year.version)+1,effectiveAt});
+        });
+        plan.months.forEach((month,index)=>Object.assign(salesTargetMonths[index],month));
+        plan.changes.forEach(change=>salesTargetHistory.unshift({...change,delta:(salesMoneyCents(change.after)-(typeof change.before==="number"?salesMoneyCents(change.before):0))/100,
+          fromEmployeeCode:plan.employee.code,toEmployeeCode:plan.receiver.code,region:plan.regionName,
+          reason:`${reason}；${plan.employee.name} → ${plan.receiver.name}`,operator,effectiveMode:"责任交接",effectiveAt}));
       }

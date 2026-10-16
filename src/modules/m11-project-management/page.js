@@ -207,7 +207,7 @@
             Object.keys(project).forEach(key => delete project[key]);
             Object.assign(project, snapshot);
           });
-          return { ok: false, error: "项目交接失败，项目和员工保持不变" };
+          return { ok: false, error: "项目交接失败，原项目保持不变" };
         }
         return { ok: true, projectIds: checked.ids };
       }
@@ -298,8 +298,10 @@
             "项目确认天数",
             "项目金额",
             "项目金额（含税，元）",
+            "项目金额（含税，万元）",
             "结账金额",
             "结账金额（含税，元）",
+            "结账金额（含税，万元）",
           ].includes(field)
         )
           return "时间与金额";
@@ -1115,6 +1117,9 @@
           maximumFractionDigits: 2,
         });
       }
+      function formatProjectAmount(value) {
+        return value == null ? "—" : formatWanMoney(value);
+      }
       function projectStageTone(stage) {
         if (stage === "已立项") return "blue";
         if (["进行中", "已交付"].includes(stage)) return "blue";
@@ -1160,7 +1165,7 @@
           `<td>${projectName}</td>` +
           `<td>${project.type}</td><td>${customerNameText}</td><td>${areaText}</td><td>${ownerText}</td>` +
           `<td>${project.startTime}</td><td>${project.endTime}</td>` +
-          `<td>${project.days}</td><td>¥${formatProjectMoney(project.amount)}</td><td>${formatProjectMoney(projectListSettlementAmount(project))}</td>` +
+          `<td>${project.days}</td><td>${formatProjectAmount(project.amount)}</td><td>${formatProjectAmount(projectListSettlementAmount(project))}</td>` +
           `<td>${projectStageTag(project.stage)}</td>` +
           `<td>${projectTodoTags(project.todos)}</td>` +
           `<td><button class="link" type="button" data-project-open="${projectId}">详情</button></td></tr>`
@@ -1272,8 +1277,8 @@
           "开始时间",
           "结束时间",
           "项目确认天数",
-          "项目金额（含税，元）",
-          "结账金额（含税，元）",
+          "项目金额（含税，万元）",
+          "结账金额（含税，万元）",
           "主阶段",
           "并行待办标识",
           "当前可用操作",
@@ -1364,13 +1369,13 @@
               : "—",
           ],
           [
-            "项目金额（含税，元）",
-            formatProjectMoney(project.amount),
+            "项目金额（含税，万元）",
+            formatProjectAmount(project.amount),
             projectAmountFormulaText(project.type),
           ],
           [
-            "结账金额（含税，元）",
-            formatProjectMoney(project.settlementAmount),
+            "结账金额（含税，万元）",
+            formatProjectAmount(project.settlementAmount),
             projectSettlementFormulaText(project.cooperation),
           ],
           ...(project.stage === "已中止"
@@ -1382,8 +1387,8 @@
                 ...(project.terminationInvolvesSettlement
                   ? [
                       [
-                        "应结算金额（含税，元）",
-                        formatProjectMoney(project.terminationSettlementAmount),
+                        "应结算金额（含税，万元）",
+                        formatProjectAmount(project.terminationSettlementAmount),
                       ],
                     ]
                   : []),
@@ -1570,7 +1575,7 @@
             return normalizedProjectHistoryTime(value);
           return value === null || value === undefined || value === "" || value === "—"
             ? "未填写"
-            : value;
+            : amountHistoryValue(change.field, value);
         };
         const categories = entry.categories
           .map(
@@ -1581,7 +1586,7 @@
         const changes = entry.changes
           .map(
             (change) =>
-              `<div class="project-history-change"><span>${escapeHtml(change.field)}</span>：${escapeHtml(displayHistoryValue(change, change.before))} <b aria-label="变更为">→</b> ${escapeHtml(displayHistoryValue(change, change.after))}</div>`,
+              `<div class="project-history-change"><span>${escapeHtml(amountHistoryField(change.field))}</span>：${escapeHtml(displayHistoryValue(change, change.before))} <b aria-label="变更为">→</b> ${escapeHtml(displayHistoryValue(change, change.after))}</div>`,
           )
           .join("");
         const summaries = entry.summaries
@@ -1599,7 +1604,7 @@
           .filter(Boolean)
           .map(
             (fact) =>
-              `<div><span>${escapeHtml(fact.label)}</span>${escapeHtml(fact.value)}</div>`,
+              `<div><span>${escapeHtml(amountHistoryField(fact.label))}</span>${escapeHtml(amountHistoryValue(fact.label, fact.value))}</div>`,
           )
           .join("");
         return `<div class="timeline-item project-history-item"><div class="project-history-head"><div class="project-history-categories">${categories}</div><div class="timeline-title">${escapeHtml(entry.title)}</div></div>${changes || summaries ? `<div class="project-history-body">${changes}${summaries}</div>` : ""}<div class="project-history-meta">实际操作人 ${escapeHtml(entry.operator)} · 操作/生效时间 ${escapeHtml(entry.time)}</div>${facts ? `<div class="project-history-facts">${facts}</div>` : ""}</div>`;
@@ -1928,7 +1933,7 @@
       }
       function projectAmountFormulaText(type) {
         if (type === "培训项目")
-          return "项目金额 = 项目单价 × 项目确认天数";
+          return "项目金额（万元） = 项目单价（元/天） × 项目确认天数 ÷ 10000";
         if (type === "AI软件项目") return "由项目负责人填写，不按天数计算";
         return "";
       }
@@ -2080,8 +2085,8 @@
             : null;
         const isTraining = type === "培训项目";
         const amountField = isTraining
-          ? `<input class="input" id="pfAmount" value="${project ? round2(project.amount) : ""}" disabled>`
-          : `<input class="input" id="pfAmount" type="number" step="0.01" value="${project ? round2(project.amount) : ""}">`;
+          ? `<input class="input" id="pfAmount" value="${project ? wanMoneyInput(project.amount) : ""}" disabled>`
+          : `<input class="input" id="pfAmount" type="number" min="0.000001" step="0.000001" value="${project ? wanMoneyInput(project.amount) : ""}">`;
         const personnelHtml =
           `<div class="form-group full"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>主讲师</label>${instructorSelectHtml("pfLecturers", "主讲师", project?.lecturers || [])}<div class="field-error" id="err-pfLecturers"></div></div>` +
           `<div class="form-group full"><label class="form-label">辅讲师</label>${instructorSelectHtml("pfAssistants", "辅讲师", project?.assistantLecturers || [])}</div>` +
@@ -2175,7 +2180,7 @@
           ) +
           projectFormFieldHtml(
             "pfAmount",
-            "项目金额（含税，元）",
+            "项目金额（含税，万元）",
             amountField,
             !isTraining,
             projectAmountFormulaText(type),
@@ -2183,8 +2188,8 @@
           ) +
           projectFormFieldHtml(
             "pfSettlement",
-            "结账金额（含税，元）",
-            `<input class="input" id="pfSettlement" value="${project ? formatProjectMoney(project.settlementAmount) : "—"}" disabled>`,
+            "结账金额（含税，万元）",
+            `<input class="input" id="pfSettlement" value="${project ? formatProjectAmount(project.settlementAmount) : "—"}" disabled>`,
             false,
             projectSettlementFormulaText(cooperation),
             "pfSettlementFormula",
@@ -2246,16 +2251,16 @@
               ) +
               projectFormFieldHtml(
                 "pfAmount",
-                "项目金额（含税，元）",
-                `<input class="input" id="pfAmount" value="${formatProjectMoney(project.amount)}" disabled>`,
+                "项目金额（含税，万元）",
+                `<input class="input" id="pfAmount" value="${formatProjectAmount(project.amount)}" disabled>`,
                 false,
                 projectAmountFormulaText(project.type),
                 "pfAmountFormula",
               ) +
               projectFormFieldHtml(
                 "pfSettlement",
-                "结账金额（含税，元）",
-                `<input class="input" id="pfSettlement" value="${formatProjectMoney(project.settlementAmount)}" disabled>`,
+                "结账金额（含税，万元）",
+                `<input class="input" id="pfSettlement" value="${formatProjectAmount(project.settlementAmount)}" disabled>`,
                 false,
                 projectSettlementFormulaText(project.cooperation),
                 "pfSettlementFormula",

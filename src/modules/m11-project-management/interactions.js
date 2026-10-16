@@ -1054,16 +1054,18 @@
           $("#pfUnitPrice").value =
             unitPrice != null ? formatProjectMoney(unitPrice) : "—";
           if (unitPrice != null && days) {
-            $("#pfAmount").value = round2(unitPrice * days);
+            $("#pfAmount").value = wanMoneyInput(round2(unitPrice * days));
           }
         }
-        const amount = Number($("#pfAmount").value);
+        const amount = parseWanMoney($("#pfAmount").value.trim());
         if (amount) {
           let settlement = amount;
           if (cooperation === "走账合作" && feeRate != null) {
             settlement = round2(amount * (1 - feeRate / 100));
           }
-          $("#pfSettlement").value = formatProjectMoney(settlement);
+          $("#pfSettlement").value = formatProjectAmount(settlement);
+        } else {
+          $("#pfSettlement").value = "—";
         }
       }
       function refreshProjectFormulaText(id, text) {
@@ -1094,8 +1096,8 @@
           project.cooperation === "走账合作" && feeRate != null
             ? round2(amount * (1 - feeRate / 100))
             : amount;
-        amountInput.value = formatProjectMoney(amount);
-        settlementInput.value = formatProjectMoney(settlement);
+        amountInput.value = wanMoneyInput(amount);
+        settlementInput.value = formatProjectAmount(settlement);
       }
       function refreshProjectFormDynamics() {
         const type = $("#pfType").value;
@@ -1211,16 +1213,16 @@
         if (project.amount !== payload.amount)
           appendProjectHistoryChange(
             event,
-            "项目金额（含税，元）",
-            formatProjectMoney(project.amount),
-            formatProjectMoney(payload.amount),
+            "项目金额（含税，万元）",
+            formatProjectAmount(project.amount),
+            formatProjectAmount(payload.amount),
           );
         if (project.settlementAmount !== payload.settlementAmount)
           appendProjectHistoryChange(
             event,
-            "结账金额（含税，元）",
-            formatProjectMoney(project.settlementAmount),
-            formatProjectMoney(payload.settlementAmount),
+            "结账金额（含税，万元）",
+            formatProjectAmount(project.settlementAmount),
+            formatProjectAmount(payload.settlementAmount),
           );
         if (!staffSetsEqual(project.lecturers, payload.lecturers))
           appendProjectHistoryChange(
@@ -1395,16 +1397,16 @@
         if (isTraining && amount !== project.amount)
           appendProjectHistoryChange(
             historyEvent,
-            "项目金额（含税，元）",
-            formatProjectMoney(project.amount),
-            formatProjectMoney(amount),
+            "项目金额（含税，万元）",
+            formatProjectAmount(project.amount),
+            formatProjectAmount(amount),
           );
         if (isTraining && settlementAmount !== project.settlementAmount)
           appendProjectHistoryChange(
             historyEvent,
-            "结账金额（含税，元）",
-            formatProjectMoney(project.settlementAmount),
-            formatProjectMoney(settlementAmount),
+            "结账金额（含税，万元）",
+            formatProjectAmount(project.settlementAmount),
+            formatProjectAmount(settlementAmount),
           );
         if (days !== project.days)
           appendProjectHistoryChange(
@@ -1494,7 +1496,7 @@
         const packageId = $("#pfPackage").value;
         const directionIntro = $("#pfDirection").value;
         const companyId = $("#pfCompany").value;
-        const amount = Number($("#pfAmount").value);
+        const amount = parseWanMoney($("#pfAmount").value.trim());
         const lecturers =
           type === "培训项目" ? selectedInstructorNames("pfLecturers") : [];
         const assistants =
@@ -1591,8 +1593,8 @@
             errors.pfDays =
               "项目确认天数最小为0.5天，且必须为0.5天的整数倍";
         }
-        if (type === "AI软件项目" && !amount)
-          errors.pfAmount = "请填写项目金额";
+        if (type === "AI软件项目" && (!Number.isFinite(amount) || amount <= 0))
+          errors.pfAmount = "请填写大于 0 且最多6位小数的项目金额（含税，万元）";
         if (type === "培训项目" && !lecturers.length)
           errors.pfLecturers = "培训项目至少需要选择一名主讲师";
 
@@ -2372,16 +2374,16 @@
           invalid = true;
         }
         const involvesSettlement = settlementChoice === "yes";
-        const amountFormatValid = /^(?:0|[1-9]\d*)(?:\.\d{1,2})?$/.test(
+        const amountFormatValid = /^(?:0|[1-9]\d*)(?:\.\d{1,6})?$/.test(
           amountRaw,
         );
-        const amount = Number(amountRaw);
+        const amount = parseWanMoney(amountRaw);
         if (
           involvesSettlement &&
           (!amountRaw || !amountFormatValid || !Number.isFinite(amount) || amount <= 0)
         ) {
           if (amountError)
-            amountError.textContent = "请填写大于 0 且最多两位小数的应结算金额";
+            amountError.textContent = "请填写大于 0 且最多6位小数的应结算金额（含税，万元）";
           invalid = true;
         }
         if (reason.length < 5 || reason.length > 500) {
@@ -2421,8 +2423,8 @@
         if (involvesSettlement)
           appendProjectHistoryFact(
             historyEvent,
-            "应结算金额（含税，元）",
-            formatProjectMoney(amount),
+            "应结算金额（含税，万元）",
+            formatProjectAmount(amount),
           );
         appendProjectHistoryFact(historyEvent, "触发摘要", "有权人确认中止");
         commitProjectHistoryEvent(historyEvent);
@@ -2438,7 +2440,7 @@
           '<div class="modal-head project-modal-head"><div class="modal-title">中止项目</div><button class="icon-btn close" data-close>×</button></div>' +
             '<form id="projectTerminationForm" class="project-config-form" novalidate><div class="modal-body project-modal-body">' +
             '<div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>是否涉及金额结算</label><div class="choice-grid"><label class="check-row"><input type="radio" name="projectTerminationSettlement" value="yes"><span>是</span></label><label class="check-row"><input type="radio" name="projectTerminationSettlement" value="no"><span>否</span></label></div><div class="field-error" id="err-terminationSettlement"></div></div>' +
-            '<div class="form-group" id="projectTerminationAmountGroup" style="display:none"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>应结算金额（含税，元）</label><input class="input" id="projectTerminationAmount" type="number" min="0.01" step="0.01" value=""><div class="field-error" id="err-terminationAmount"></div></div>' +
+            '<div class="form-group" id="projectTerminationAmountGroup" style="display:none"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>应结算金额（含税，万元）</label><input class="input" id="projectTerminationAmount" type="number" min="0.000001" step="0.000001" value=""><div class="field-error" id="err-terminationAmount"></div></div>' +
             '<div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>中止原因</label><textarea class="input" id="projectTerminationReason" rows="3" maxlength="500"></textarea><div class="field-error" id="err-terminationReason"></div></div>' +
             '</div><div class="modal-foot project-modal-foot"><button class="btn" type="button" data-close>取消</button><button class="btn btn-primary" type="submit">确认中止</button></div></form>',
         );
@@ -2575,6 +2577,8 @@
         const cooperationSelect = $("#pfCooperation");
         if (cooperationSelect)
           cooperationSelect.onchange = refreshProjectFormDynamics;
+        const amountInput = $("#pfAmount");
+        if (amountInput) amountInput.oninput = refreshProjectFormAmounts;
         ["#pfDirection", "#pfCompany"].forEach((selector) => {
           const el = $(selector);
           if (el) el.onchange = refreshProjectFormAmounts;

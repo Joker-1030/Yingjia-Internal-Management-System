@@ -1,4 +1,25 @@
       const $ = (s) => document.querySelector(s);
+      function formatWanMoney(value) {
+        return Number.isFinite(Number(value)) ? (Number(value) / 10000).toLocaleString("zh-CN", { minimumFractionDigits: 2, maximumFractionDigits: 6 }) : "不可用";
+      }
+      function wanMoneyInput(value) {
+        return value == null ? "" : (value / 10000).toFixed(6).replace(/(\.\d*?[1-9])0+$|\.0+$/, "$1");
+      }
+      function parseWanMoney(text) {
+        if (!/^(?:\d+(?:\.\d{0,6})?|\.\d{1,6})$/.test(text)) return NaN;
+        const [whole, fraction = ""] = text.split(".");
+        const cents = Number(whole || "0") * 1000000 + Number(fraction.padEnd(6, "0"));
+        return Number.isSafeInteger(cents) ? cents / 100 : NaN;
+      }
+      function amountHistoryField(field) {
+        return /^(项目金额|结账金额|应结算金额|预估金额)(（含税，元）)?$/.test(field) ? field.replace(/（含税，元）$/, "") + "（含税，万元）" : field;
+      }
+      function amountHistoryValue(field, value) {
+        if (amountHistoryField(field) === field || value == null || value === "" || value === "—") return value;
+        const raw = String(value).replace(/[,，¥￥\s]|元$/g, "");
+        return raw !== "" && Number.isFinite(Number(raw)) ? formatWanMoney(Number(raw)) : value;
+      }
+
       function filterField(label, control, className = "") {
         return `<label class="filter-field ${className}"><span class="filter-label">${label}</span>${control}</label>`;
       }
@@ -208,7 +229,7 @@
       };
       const roleCanSeeBusiness = () => hasDataObject("客户单位");
       const canAccessPage = (page) => {
-        if (["approvals", "archive"].includes(page)) return false;
+        if (["approvals", "archive", "sales-dashboard"].includes(page)) return false;
         if (page === "operations") return roleCanSeeBusiness();
         if (page === "city-management")
           return isPmCityManagementUser() && hasPermission(page);
@@ -1114,8 +1135,8 @@
         selectedOperationContactId = null;
         selectedOpportunityId = null;
         opportunityDetailTab = "overview";
-        salesPeriodDraft = "2026-09";
-        salesPeriodApplied = "2026-09";
+        salesPeriodDraft = DEMO_TODAY.slice(0, 7);
+        salesPeriodApplied = DEMO_TODAY.slice(0, 7);
         salesTargetMonth = "2026-09";
         salesTrendMode = "count";
         appliedOpportunityFilters = {
@@ -1297,7 +1318,6 @@
         "project-edit": "编辑项目",
         packages: "采购包管理",
         "platform-companies": "平台公司管理",
-        "sales-dashboard": "销售仪表盘",
         opportunities: "商机列表",
         "opportunity-detail": "商机详情",
         "opportunity-create": "新建商机",
@@ -1346,7 +1366,6 @@
           "project-edit": renderProjectEdit,
           packages: renderProjectPackages,
           "platform-companies": renderPlatformCompanies,
-          "sales-dashboard": renderSalesDashboard,
           opportunities: renderOpportunities,
           "opportunity-detail": renderOpportunityDetail,
           "opportunity-create": renderOpportunityCreate,

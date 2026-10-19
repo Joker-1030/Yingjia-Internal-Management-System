@@ -52,8 +52,8 @@
           return false;
         }
         if (template.name === "生态合作员" && (permissions.some(page => !templatePagePermissionAllowed(template, page)) ||
-            operations.some(operation => !["dashboard.view", "projects.view", "projects.create", "projects.edit"].includes(operation)) || fields.length)) {
-          toast("生态合作员仅可配置工作台与本人项目权限");
+            operations.some(operation => !["dashboard.view", "projects.view", "projects.create", "projects.edit", "opportunities.view", "opportunities.create", "opportunities.progress"].includes(operation)) || fields.length)) {
+          toast("生态合作员仅可配置工作台、本人平台师资合作项目及商机权限");
           return false;
         }
         const history = permissionVersions[template.name];
@@ -113,7 +113,7 @@
           .filter(([page]) => immutable || (!isAdminOnlyProjectConfigPage(page) && templatePagePermissionAllowed(template, page)))
           .map(([page, label]) => {
             const items = operationPermissionCatalog.filter(
-              ([id, operationPage]) => operationPage === page && (template.name !== "生态合作员" || ["dashboard.view", "projects.view", "projects.create", "projects.edit"].includes(id)),
+              ([id, operationPage]) => operationPage === page && (template.name !== "生态合作员" || ["dashboard.view", "projects.view", "projects.create", "projects.edit", "opportunities.view", "opportunities.create", "opportunities.progress"].includes(id)),
             );
             if (!items.length) return "";
             return `<div class="permission-tree-group"><div class="permission-tree-head"><span>${label}</span><span class="spacer"></span><span class="tag ${draft.permissions.includes(page) ? "blue" : "yellow"}">${draft.permissions.includes(page) ? "页面已授权" : "勾选操作将自动授权页面"}</span></div>${items.map(([id, , operationLabel]) => `<label class="permission-tree-node"><input type="checkbox" data-operation-permission="${id}" data-operation-page="${page}" ${draft.operations.includes(id) ? "checked" : ""} ${immutable ? "disabled" : ""}><span>${operationLabel}</span><small>操作</small></label>`).join("")}</div>`;

@@ -731,7 +731,9 @@
         openStopObject("department", id);
       }
 
-      function openContactForm(id, customerId) {
+      function openContactForm(id, customerId, onCreated = null) {
+        const contactActor = currentUser;
+        const opportunityForm = onCreated ? $("#opportunityCreateForm") : null;
         const person = contacts.find((item) => item.id === id);
         if (person && !canMaintainContact(person))
           return toast("当前账号无权编辑该关键人");
@@ -866,8 +868,13 @@
         $("#pfBirthdayMonth").onchange = refreshBirthdayDays;
         refreshBirthdayDays();
 
-        $("#contactForm").onsubmit = (event) => {
+        const contactForm = $("#contactForm");
+        contactForm.onsubmit = (event) => {
           event.preventDefault();
+          if (onCreated && (contactForm !== $("#contactForm") || opportunityForm !== $("#opportunityCreateForm") || currentUser !== contactActor || !salesCanCreate()))
+            return toast("商机或权限已变化，请重新打开操作");
+          if (onCreated && $("#pfCompany").value !== requestedCompany?.name)
+            return toast("当前选择不可用于新增关键人，请重新选择");
           const company = customers.find(
             (item) => item.name === $("#pfCompany").value,
           );
@@ -973,7 +980,8 @@
             queueDirectorContactCreatedNotice(created, company);
           }
           closeOverlay();
-          renderPage();
+          if (!person && onCreated) onCreated();
+          else renderPage();
           toast(
             person
               ? "关键人信息已更新"

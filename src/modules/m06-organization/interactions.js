@@ -11,10 +11,10 @@
           return true;
         });
       }
-      function refreshEmployeeEcosystemTransfer(employee, expectedIds) {
+      function refreshEmployeeEcosystemTransfer(employee, expectedIds, expectedOpportunityIds = []) {
         const removing = employeeHasRole(employee, "生态合作员") &&
           ![...document.querySelectorAll("[data-edit-role]:checked")].some(input => input.value === "生态合作员");
-        const visible = removing && expectedIds.length > 0;
+        const visible = removing && (expectedIds.length + expectedOpportunityIds.length > 0);
         const host = $("#eeEcologyTransfer");
         if (host) host.style.display = visible ? "contents" : "none";
         const receiver = $("#eeEcologyReceiver");
@@ -36,6 +36,7 @@
         if (!employee || employee.role === "系统管理员")
           return toast("该账号不在员工档案编辑范围内");
         const expectedEcologyIds = ecosystemEmployeeProjectCandidates(employee.code).map(project => project.id);
+        const expectedEcologyOpportunityIds = ecosystemEmployeeOpportunityCandidates(employee.code).map(item => item.id);
         const supportRequests=employeeOpenSupportRequests(employee.code), editActor=currentUser;
         const supportSnapshot=JSON.stringify(supportRequests.map(({item,support})=>({id:item.id,support})));
         const employeeSnapshot=JSON.stringify(employee);
@@ -51,11 +52,11 @@
                 event.target.checked = false;
                 toast("系统角色最多选择 5 个");
               }
-              refreshEmployeeEcosystemTransfer(employee, expectedEcologyIds);
+              refreshEmployeeEcosystemTransfer(employee, expectedEcologyIds, expectedEcologyOpportunityIds);
               refreshEmployeeSupportTransfer(employee);
             }),
         );
-        refreshEmployeeEcosystemTransfer(employee, expectedEcologyIds);
+        refreshEmployeeEcosystemTransfer(employee, expectedEcologyIds, expectedEcologyOpportunityIds);
         refreshEmployeeSupportTransfer(employee);
         const editForm=$("#employeeEditForm");let editApplied=false;
         editForm.onsubmit = (event) => {
@@ -73,7 +74,7 @@
           if (reason.length < 5 || reason.length > 500 || name.length < 2 || name.length > 50)
             return toast("请填写有效姓名及 5-500 字更正原因");
           const removingEcology = employeeHasRole(employee, "生态合作员") && !manualRoles.includes("生态合作员");
-          const ecologyPlan = removingEcology ? prepareEcosystemProjectTransfer(employee.code, $("#eeEcologyReceiver").value, expectedEcologyIds) : null;
+          const ecologyPlan = removingEcology ? prepareEcosystemProjectTransfer(employee.code, $("#eeEcologyReceiver").value, expectedEcologyIds, expectedEcologyOpportunityIds) : null;
           if (ecologyPlan && !ecologyPlan.ok) return toast(ecologyPlan.error);
           const removingSupport=employeeHasRole(employee,"商机支撑") && !manualRoles.includes("商机支撑");
           const supportPlan=removingSupport ? prepareEmployeeSupportHandoff(employee,new Map([...document.querySelectorAll("[data-employee-support-receiver]")].map(input=>[input.dataset.employeeSupportReceiver,input.value])),supportSnapshot) : null;
@@ -417,7 +418,7 @@
                   if(!targetPlan.ok)throw new Error(targetPlan.error);
                   applySalesTargetHandoff(targetPlan,"区域中心主管变更",effectiveAt);
                 }
-                opportunities.filter(item=>item.stage!=="落选" && item.owner===oldSupervisorName && salesOpportunityCustomer(item)?.level==="省公司" && regionForCompany(salesOpportunityCustomer(item))?.id===linkedRegion.id).forEach(item=> {
+                opportunities.filter(item=>!isEcosystemOpportunity(item) && item.stage!=="落选" && item.owner===oldSupervisorName && salesOpportunityCustomer(item)?.level==="省公司" && regionForCompany(salesOpportunityCustomer(item))?.id===linkedRegion.id).forEach(item=> {
                   salesCapturePerformance(item);item.owner=newSupervisorName;item.updatedAt=effectiveAt;item.reassignments ||= [];
                   item.reassignments.push({before:oldSupervisorName,after:newSupervisorName,reason:"区域中心主管变更",operator:currentUser.name,time:effectiveAt});
                 });
@@ -550,7 +551,7 @@
           return cityResponsibilityOpportunities([group.owner]);
         return opportunities.filter((opportunity) => {
           const company = salesOpportunityCustomer(opportunity);
-          return opportunity.stage !== "落选" && company?.level === "省公司" &&
+          return !isEcosystemOpportunity(opportunity) && opportunity.stage !== "落选" && company?.level === "省公司" &&
             group.region && regionForCompany(company)?.id === group.region.id;
         });
       }
@@ -952,6 +953,7 @@
         )
           return toast(`当前员工状态不允许${mode}`);
         const ecologyIds = mode === "停用" ? ecosystemEmployeeProjectCandidates(employee.code).map(project => project.id) : [];
+        const ecologyOpportunityIds = mode === "停用" ? ecosystemEmployeeOpportunityCandidates(employee.code).map(item => item.id) : [];
         const groups = mode === "停用" ? employeeDeactivationGroups(employee) : [];
         const supportRequests=mode === "停用" ? employeeOpenSupportRequests(employee.code) : [];
         const supportSnapshot=JSON.stringify(supportRequests.map(({item,support})=>({id:item.id,support})));
@@ -1011,9 +1013,9 @@
           groups.flatMap((group) =>
             employeeDeactivationGroupOpportunities(group).map((item) => item.id),
           ),
-        ).size;
+        ).size + ecologyOpportunityIds.length;
         openModal(
-          `<div class="modal-head"><div class="modal-title">确认员工${mode}</div><button class="icon-btn close" data-close>×</button></div><form id="employeeStatusForm"><div class="modal-body"><div class="role-note ${mode === "停用" ? "danger-note" : ""}"><strong>${employee.name} · ${employee.code}</strong></div>${mode === "停用" ? `<div class="impact-summary"><div class="impact-grid"><div><label>责任交接组</label><strong>${groups.length}</strong></div><div><label>未完成任务</label><strong>${openTasks.length}</strong></div><div><label>随责任迁移项目</label><strong>${projectCount}</strong></div><div><label>迁移未落选商机</label><strong>${opportunityCount}</strong></div></div></div>${ecologyIds.length ? ecosystemTransferFieldHtml(employee.code, "esEcologyReceiver") : ""}${supportRequests.length ? `<div class="section-title">方案支撑接替人</div><div class="form-grid">${supportFields}</div>` : ""}${targetRegions.length ? `<div class="section-title">个人目标承接</div><div class="role-note">本月未完成额度及未来目标交给所选人员，历史月份目标和已发生业绩保留。</div><div class="form-grid">${targetFields}</div>` : ""}${groups.length ? `<div class="section-title">责任组接收人</div><div class="form-grid">${receiverFields}</div>` : '<div class="role-note">该员工当前没有 PM 地市或区域总监区域中心责任。</div>'}<div class="role-note">请先为需交接事项选好有效接替人。确认后员工将立即停用并无法登录，再由系统自动交接，开始后不可中途结束。任务、适用项目和未落选商机按所选接替人转交；已取消或已中止项目、已落选商机及已关闭支撑不转交。原部门及系统角色保留。若部分交接失败，员工仍停用，已完成的交接不撤销，失败项由有权管理者继续处理。</div>` : `<div class="role-note">恢复后可登录，保留原部门及系统角色；已关闭任务不会重新打开，已交出的责任不会取回。</div>`}<div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>${mode}原因</label><textarea class="input" id="esReason" minlength="5" maxlength="500" required></textarea></div></div><div class="modal-foot"><button class="btn" type="button" data-close>取消</button><button class="btn ${mode === "停用" ? "btn-danger" : "btn-primary"}" type="submit">确认并立即${mode}</button></div></form>`,
+          `<div class="modal-head"><div class="modal-title">确认员工${mode}</div><button class="icon-btn close" data-close>×</button></div><form id="employeeStatusForm"><div class="modal-body"><div class="role-note ${mode === "停用" ? "danger-note" : ""}"><strong>${employee.name} · ${employee.code}</strong></div>${mode === "停用" ? `<div class="impact-summary"><div class="impact-grid"><div><label>责任交接组</label><strong>${groups.length}</strong></div><div><label>未完成任务</label><strong>${openTasks.length}</strong></div><div><label>随责任迁移项目</label><strong>${projectCount}</strong></div><div><label>迁移未落选商机</label><strong>${opportunityCount}</strong></div></div></div>${ecologyIds.length || ecologyOpportunityIds.length ? ecosystemTransferFieldHtml(employee.code, "esEcologyReceiver") : ""}${supportRequests.length ? `<div class="section-title">方案支撑接替人</div><div class="form-grid">${supportFields}</div>` : ""}${targetRegions.length ? `<div class="section-title">个人目标承接</div><div class="role-note">本月未完成额度及未来目标交给所选人员，历史月份目标和已发生业绩保留。</div><div class="form-grid">${targetFields}</div>` : ""}${groups.length ? `<div class="section-title">责任组接收人</div><div class="form-grid">${receiverFields}</div>` : '<div class="role-note">该员工当前没有 PM 地市或区域总监区域中心责任。</div>'}<div class="role-note">请先为需交接事项选好有效接替人。确认后员工将立即停用并无法登录，再由系统自动交接，开始后不可中途结束。任务、适用项目和未落选商机按所选接替人转交；已取消或已中止项目、已落选商机及已关闭支撑不转交。原部门及系统角色保留。若部分交接失败，员工仍停用，已完成的交接不撤销，失败项由有权管理者继续处理。</div>` : `<div class="role-note">恢复后可登录，保留原部门及系统角色；已关闭任务不会重新打开，已交出的责任不会取回。</div>`}<div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>${mode}原因</label><textarea class="input" id="esReason" minlength="5" maxlength="500" required></textarea></div></div><div class="modal-foot"><button class="btn" type="button" data-close>取消</button><button class="btn ${mode === "停用" ? "btn-danger" : "btn-primary"}" type="submit">确认并立即${mode}</button></div></form>`,
         );
         const refreshTargetReceivers=()=> {
           targetRegions.forEach((name,index)=> {
@@ -1104,7 +1106,7 @@
           const selections=new Map([...document.querySelectorAll("[data-employee-support-receiver]")].map(input=>[input.dataset.employeeSupportReceiver,input.value]));
           const supportPlan=prepareEmployeeSupportHandoff(employee,selections,supportSnapshot);
           if(!supportPlan.ok)return toast(supportPlan.error);
-          const ecologyPlan = prepareEcosystemProjectTransfer(employee.code, $("#esEcologyReceiver")?.value || "", ecologyIds);
+          const ecologyPlan = prepareEcosystemProjectTransfer(employee.code, $("#esEcologyReceiver")?.value || "", ecologyIds, ecologyOpportunityIds);
           if (!ecologyPlan.ok) return toast(ecologyPlan.error);
           const submitButton = event.submitter;
           if (submitButton) {
@@ -1150,7 +1152,7 @@
             return {ok:true};
           }));
           const additionalResults = [
-            ...(ecologyIds.length ? [ecologyResult] : []),
+            ...(ecologyIds.length || ecologyOpportunityIds.length ? [ecologyResult] : []),
             ...(supportRequests.length ? [supportResult] : []),
             ...targetResults,
           ];
@@ -1184,7 +1186,7 @@
           );
           const migratedOpportunityCount = succeeded.reduce(
             (total, result) => total + result.opportunities,
-            0,
+            ecologyResult.opportunityIds?.length || 0,
           );
           personnelChanges.unshift({
             id: changeId,
@@ -1211,8 +1213,8 @@
           closeOverlay();
           employeeView = "changes";
           renderPage();
-          const ecologyRows = ecologyResult.ok && ecologyResult.projectIds?.length
-            ? `<div class="timeline-item"><div class="timeline-title">生态项目 · 已交接给${escapeHtml(ecologyPlan.receiver.name)}</div><div class="timeline-content">迁移项目 ${ecologyResult.projectIds.length} 个</div></div>` : "";
+          const ecologyRows = ecologyResult.ok && (ecologyResult.projectIds?.length || ecologyResult.opportunityIds?.length)
+            ? `<div class="timeline-item"><div class="timeline-title">生态项目 · 已交接给${escapeHtml(ecologyPlan.receiver.name)}</div><div class="timeline-content">迁移项目 ${ecologyResult.projectIds.length} 个；迁移未落选商机 ${ecologyResult.opportunityIds.length} 条</div></div>` : "";
           const resultRows = (supportResult.requests || []).map(request=>`<div class="timeline-item"><div class="timeline-title">${escapeHtml(request.requestId)} · 支撑已交接给${escapeHtml(employees.find(person=>person.code===request.receiver)?.name || "—")}</div></div>`).join("") + ecologyRows + additionalResults.filter(result=>!result.ok).map(result=>`<div class="timeline-item"><div class="timeline-title">${escapeHtml(result.label)} · 交接失败</div><div class="timeline-content">${escapeHtml(result.error)}；员工与账号保持停用，其他成功交接保留，由有权管理者继续处理。</div></div>`).join("") + (groupResults.length
             ? groupResults
                 .map((result) =>
@@ -1223,7 +1225,7 @@
                 .join("")
             : ecologyRows ? "" : '<div class="role-note">该员工没有需要处理的地区责任组。</div>');
           openModal(
-            `<div class="modal-head"><div class="modal-title">员工停用结果</div><button class="icon-btn close" data-close>×</button></div><div class="modal-body"><div class="role-note ${failed.length ? "danger-note" : ""}">员工与账号已停用并使会话失效。${ecologyResult.ok && ecologyResult.projectIds?.length ? `生态项目 ${ecologyResult.projectIds.length} 个已交接。` : ""}${failed.length ? `已完成的交接保留，${failed.length} 项交接需由有权人员继续处理。` : `全部 ${succeeded.length} 个责任组已处理完成。`}</div><div class="timeline">${resultRows}</div></div><div class="modal-foot"><button class="btn btn-primary" data-close>关闭</button></div>`,
+            `<div class="modal-head"><div class="modal-title">员工停用结果</div><button class="icon-btn close" data-close>×</button></div><div class="modal-body"><div class="role-note ${failed.length ? "danger-note" : ""}">员工与账号已停用并使会话失效。${ecologyResult.ok && (ecologyResult.projectIds?.length || ecologyResult.opportunityIds?.length) ? `生态项目 ${ecologyResult.projectIds.length} 个、未落选商机 ${ecologyResult.opportunityIds.length} 条已交接。` : ""}${failed.length ? `已完成的交接保留，${failed.length} 项交接需由有权人员继续处理。` : `全部 ${succeeded.length} 个责任组已处理完成。`}</div><div class="timeline">${resultRows}</div></div><div class="modal-foot"><button class="btn btn-primary" data-close>关闭</button></div>`,
           );
         };
       }

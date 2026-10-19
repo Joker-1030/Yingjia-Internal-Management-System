@@ -338,31 +338,45 @@
         const customer = $("#salesCustomer");
         const facts = $("#salesCustomerFacts");
         const owner = $("#salesOwner");
+        const type = $("#salesType");
+        const ecosystemOwner = $("#salesEcosystemOwner");
+        const actor = currentUser;
+        const ownerCode = () => currentUser.fullAccess ? ecosystemOwner?.value || "" : currentEcosystemEmployee()?.code || "";
         const supportPicker = $("#salesSupportPeoplePicker");
         bindSalesSupportPickers(form);
         bindSalesKeyPeoplePickers(form);
         const replaceKeyPeoplePicker = (customerName = "") => {
+          if (type.value === SALES_ECOSYSTEM_TYPE) return;
           const currentPicker = $("#salesKeyPeoplePicker");
           if (!currentPicker) return;
           currentPicker.outerHTML = salesKeyPeoplePickerHtml(
             "salesKeyPeoplePicker",
-            customerName,
+            customerName, [], true,
           );
           bindSalesKeyPeoplePickers(form);
+          const createContact = form.querySelector?.("[data-sales-create-contact]");
+          if (createContact) createContact.onclick = () => {
+            const company = salesVisibleCustomers(type.value).find(item => salesCustomerSelectionValue(item, type.value) === customer.value);
+            if (currentUser !== actor || !salesCanCreate() || !canMaintainContactForCompany(company))
+              return toast("当前账号无权维护该客户公司的关键人");
+            openContactForm(undefined, company.id, () => {
+              if (currentUser === actor && form === $("#opportunityCreateForm") && salesCanCreate()) refreshCustomerFacts();
+            });
+          };
         };
         const refreshCustomerFacts = () => {
-          const selectedCustomer = salesVisibleCustomers().find(
-            (item) => item.name === customer.value,
+          const selectedCustomer = salesVisibleCustomers(type.value).find(
+            (item) => salesCustomerSelectionValue(item, type.value) === customer.value,
           );
           if (!selectedCustomer) {
             facts.textContent = "请选择客户单位";
-            owner.textContent = "选择客户后自动匹配";
+            owner.textContent = type.value === SALES_ECOSYSTEM_TYPE ? currentEcosystemEmployee()?.name || "请选择有效生态合作员作为商机负责人" : "选择客户后自动匹配";
             owner.dataset.owner = "";
             replaceKeyPeoplePicker();
             return;
           }
-          const ownerMatch = salesOwnerMatchForCustomer(selectedCustomer);
-          facts.textContent = `${selectedCustomer.industry} · ${selectedCustomer.group} · ${customerRegionLabel(selectedCustomer)} · ${adminArea(selectedCustomer)}`;
+          const ownerMatch = salesOwnerMatch(selectedCustomer, type.value, ownerCode());
+          facts.textContent = type.value === SALES_ECOSYSTEM_TYPE ? selectedCustomer.id : `${selectedCustomer.industry} · ${selectedCustomer.group} · ${customerRegionLabel(selectedCustomer)} · ${adminArea(selectedCustomer)}`;
           owner.textContent = ownerMatch.ok
             ? `${ownerMatch.owner.name} · ${ownerMatch.role}`
             : ownerMatch.message;
@@ -370,6 +384,20 @@
           replaceKeyPeoplePicker(selectedCustomer.name);
         };
         customer.onchange = refreshCustomerFacts;
+        const refreshType = () => {
+          const oldCustomer = customer.value;
+          const candidates = salesVisibleCustomers(type.value);
+          customer.innerHTML = '<option value="">请选择客户单位</option>' + candidates.map(item => `<option value="${escapeHtml(salesCustomerSelectionValue(item, type.value))}">${escapeHtml(item.name)}</option>`).join("");
+          customer.value = candidates.some(item => salesCustomerSelectionValue(item, type.value) === oldCustomer) ? oldCustomer : "";
+          const keyGroup = $("#salesKeyPeopleGroup");
+          if (keyGroup) { keyGroup.hidden = type.value === SALES_ECOSYSTEM_TYPE; keyGroup.style.display = keyGroup.hidden ? "none" : "contents"; }
+          if (ecosystemOwner) ecosystemOwner.hidden = type.value !== SALES_ECOSYSTEM_TYPE || !currentUser.fullAccess;
+          owner.hidden = type.value === SALES_ECOSYSTEM_TYPE && currentUser.fullAccess;
+          refreshCustomerFacts();
+        };
+        type.onchange = refreshType;
+        if (ecosystemOwner) ecosystemOwner.onchange = refreshCustomerFacts;
+        refreshType();
         const createSupport = $("#salesCreateSupport");
         createSupport.onchange = () => {
           const visible = createSupport.value === "是";
@@ -382,7 +410,8 @@
         form.onsubmit = (event) => {
           event.preventDefault();
           if (submitted) return;
-          if (!salesCanCreate()) return toast("当前账号没有创建商机权限。");
+          if (currentUser !== actor || !salesCanCreate() || form !== $("#opportunityCreateForm")) return toast("当前账号没有创建商机权限。");
+          if (!salesCreateTypes().includes(type.value)) return toast("当前账号不能创建该类型商机");
           const required = [
             ["salesName", "请填写商机名称"],
             ["salesType", "请选择商机类型"],
@@ -400,9 +429,10 @@
             if (!value) valid = false;
           });
           const keyPeoplePicker = $("#salesKeyPeoplePicker");
-          const people = selectedSalesKeyPeople(keyPeoplePicker);
-          setSalesFormError("salesKeyPeople", people.length ? "" : "请选择至少一名商机关键人");
-          if (!people.length) valid = false;
+          const ecosystem = type.value === SALES_ECOSYSTEM_TYPE;
+          const people = ecosystem ? [] : selectedSalesKeyPeople(keyPeoplePicker);
+          setSalesFormError("salesKeyPeople", ecosystem || people.length ? "" : "请选择至少一名商机关键人");
+          if (!ecosystem && !people.length) valid = false;
           const amount = parseWanMoney($("#salesAmount").value.trim());
           if (!Number.isFinite(amount) || amount < 0) {
             setSalesFormError("salesAmount", "预估金额须大于或等于 0，最多6位小数（含税，万元）");
@@ -423,10 +453,10 @@
             }
             if (!supportPeople.length || !$("#salesSupportRequirement").value.trim() || !$("#salesSupportDeadline").value) valid = false;
           }
-          const selectedCustomer = salesVisibleCustomers().find(
-            (item) => item.name === customer.value,
+          const selectedCustomer = salesVisibleCustomers(type.value).find(
+            (item) => salesCustomerSelectionValue(item, type.value) === customer.value,
           );
-          const ownerMatch = salesOwnerMatchForCustomer(selectedCustomer);
+          const ownerMatch = salesOwnerMatch(selectedCustomer, type.value, ownerCode());
           setSalesFormError("salesOwner", ownerMatch.ok ? "" : ownerMatch.message);
           if (!ownerMatch.ok) valid = false;
           const canCreateAcrossResponsibilities =
@@ -450,7 +480,7 @@
           }
           if (
             ownerMatch.ok &&
-            salesIsRole("PM") &&
+            type.value !== SALES_ECOSYSTEM_TYPE && salesIsRole("PM") &&
             !canCreateAcrossResponsibilities &&
             ownerMatch.owner.name !== currentUser.name
           ) {
@@ -459,7 +489,7 @@
           }
           if (
             ownerMatch.ok &&
-            salesIsRole("区域总监") &&
+            type.value !== SALES_ECOSYSTEM_TYPE && salesIsRole("区域总监") &&
             !canCreateAcrossResponsibilities &&
             ownerMatch.owner.name !== currentUser.name
           ) {
@@ -474,12 +504,13 @@
             type: $("#salesType").value,
             stage: "商机录入",
             customer: selectedCustomer.name,
-            customerCode: `CU-${String(selectedCustomer.id).padStart(4, "0")}`,
-            group: selectedCustomer.group,
-            industry: selectedCustomer.industry,
-            region: selectedCustomer.region,
-            city: selectedCustomer.city || "",
+            customerCode: ecosystem ? selectedCustomer.id : `CU-${String(selectedCustomer.id).padStart(4, "0")}`,
+            group: ecosystem ? "" : selectedCustomer.group,
+            industry: ecosystem ? "" : selectedCustomer.industry,
+            region: ecosystem ? "" : selectedCustomer.region,
+            city: ecosystem ? "" : selectedCustomer.city || "",
             owner: ownerMatch.owner.name,
+            ...(type.value === SALES_ECOSYSTEM_TYPE ? {ownerCode: ownerMatch.owner.code} : {}),
             priority: $("#salesPriority").value,
             estimateAmount: amount,
             expectedWinDate: $("#salesExpectedDate").value,
@@ -522,20 +553,21 @@
         if (!salesCanProgress(item) || item.stage === "落选") return;
         const estimateDisabled = item.stage === "中选" ? "disabled" : "";
         openModal(
-          `<div class="modal-head"><div class="modal-title">编辑商机</div><button class="icon-btn close" data-close title="关闭">×</button></div><form id="salesEditForm"><div class="modal-body"><div class="form-grid sales-modal-grid"><div class="form-group"><label class="form-label">客户单位</label><input class="input" value="${escapeHtml(item.customer)}" disabled></div><div class="form-group"><label class="form-label">商机类型</label><input class="input" value="${escapeHtml(item.type)}" disabled></div><div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>商机名称</label><input class="input" id="salesEditName" value="${escapeHtml(item.name)}" maxlength="100"></div><div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>优先级</label><select class="input" id="salesEditPriority">${SALES_PRIORITIES.map((value) => `<option ${value === item.priority ? "selected" : ""}>${value}</option>`).join("")}</select></div><div class="form-group"><label class="form-label">预估金额（含税，万元）</label><input class="input" id="salesEditAmount" type="number" min="0" step="0.000001" value="${wanMoneyInput(item.estimateAmount)}" ${estimateDisabled}><div class="list-sub">${estimateDisabled ? "进入中选后只读" : "大于或等于 0"}</div></div><div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>预计成交日期</label><input class="input" id="salesEditExpectedDate" type="date" value="${item.expectedWinDate}"></div><div class="form-group full"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>商机关键人</label>${salesKeyPeoplePickerHtml("salesEditKeyPeoplePicker", item.customer, item.keyPeople)}</div><div class="form-group full"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>商机需求描述</label><textarea class="input" id="salesEditRequirement" rows="4" maxlength="1000">${escapeHtml(item.requirement)}</textarea></div></div></div><div class="modal-foot"><button class="btn" type="button" data-close>取消</button><button class="btn btn-primary" type="submit">保存修改</button></div></form>`,
+          `<div class="modal-head"><div class="modal-title">编辑商机</div><button class="icon-btn close" data-close title="关闭">×</button></div><form id="salesEditForm"><div class="modal-body"><div class="form-grid sales-modal-grid"><div class="form-group"><label class="form-label">客户单位</label><input class="input" value="${escapeHtml(item.customer)}" disabled></div><div class="form-group"><label class="form-label">商机类型</label><input class="input" value="${escapeHtml(item.type)}" disabled></div><div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>商机名称</label><input class="input" id="salesEditName" value="${escapeHtml(item.name)}" maxlength="100"></div><div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>优先级</label><select class="input" id="salesEditPriority">${SALES_PRIORITIES.map((value) => `<option ${value === item.priority ? "selected" : ""}>${value}</option>`).join("")}</select></div><div class="form-group"><label class="form-label">预估金额（含税，万元）</label><input class="input" id="salesEditAmount" type="number" min="0" step="0.000001" value="${wanMoneyInput(item.estimateAmount)}" ${estimateDisabled}><div class="list-sub">${estimateDisabled ? "进入中选后只读" : "大于或等于 0"}</div></div><div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>预计成交日期</label><input class="input" id="salesEditExpectedDate" type="date" value="${item.expectedWinDate}"></div>${isEcosystemOpportunity(item) ? "" : `<div class="form-group full"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>商机关键人</label>${salesKeyPeoplePickerHtml("salesEditKeyPeoplePicker", item.customer, item.keyPeople)}</div>`}<div class="form-group full"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>商机需求描述</label><textarea class="input" id="salesEditRequirement" rows="4" maxlength="1000">${escapeHtml(item.requirement)}</textarea></div></div></div><div class="modal-foot"><button class="btn" type="button" data-close>取消</button><button class="btn btn-primary" type="submit">保存修改</button></div></form>`,
         );
         bindSalesKeyPeoplePickers($("#salesEditForm"));
         $("#salesEditForm").onsubmit = (event) => {
           event.preventDefault();
+          if (!salesCanProgress(item) || item.stage === "落选") return toast("商机或权限已变化，请重新打开操作");
           const next = {
             name: $("#salesEditName").value.trim(),
             priority: $("#salesEditPriority").value,
             estimateAmount: item.stage === "中选" ? item.estimateAmount : parseWanMoney($("#salesEditAmount").value.trim()),
             expectedWinDate: $("#salesEditExpectedDate").value,
-            keyPeople: selectedSalesKeyPeople($("#salesEditKeyPeoplePicker")),
+            ...(!isEcosystemOpportunity(item) ? {keyPeople: selectedSalesKeyPeople($("#salesEditKeyPeoplePicker"))} : {}),
             requirement: $("#salesEditRequirement").value.trim(),
           };
-          if (!next.name || !next.expectedWinDate || !next.keyPeople.length || !next.requirement)
+          if (!next.name || !next.expectedWinDate || (!isEcosystemOpportunity(item) && !next.keyPeople.length) || !next.requirement)
             return toast("请填写全部必填信息");
           const validKeyPeople = new Set(
             contacts
@@ -545,7 +577,7 @@
               )
               .map((person) => person.name),
           );
-          if (next.keyPeople.some((name) => !validKeyPeople.has(name)))
+          if (next.keyPeople?.some((name) => !validKeyPeople.has(name)))
             return toast("关键人范围已变化，请按当前客户有效关键人重新选择");
           if (!Number.isFinite(next.estimateAmount) || next.estimateAmount < 0)
             return toast("预估金额须大于或等于 0，最多6位小数（含税，万元）");
@@ -631,8 +663,8 @@
           if (!valid()) return toast("商机或权限已变化，请重新打开操作");
           const stage=$("#salesNextStage").value;
           if (!options.includes(stage) || (!correction && !salesNextStages(item).includes(stage))) return toast("当前阶段不允许该操作");
-          const restoredOwner = correction && item.stage === "落选" && stage !== "落选" ? salesOwnerMatchForCustomer(salesOpportunityCustomer(item)) : null;
-          if (restoredOwner && !restoredOwner.ok) return toast("客户没有唯一有效负责人，请先完成客户责任配置");
+          const restoredOwner = correction && item.stage === "落选" && stage !== "落选" ? salesOpportunityOwnerMatch(item) : null;
+          if (restoredOwner && !restoredOwner.ok) return toast(isEcosystemOpportunity(item) ? "当前商机负责人不符合生态合作员条件，暂不能恢复" : "客户没有唯一有效负责人，请先完成客户责任配置");
           const before=salesResultSnapshot(item), after={...before,stage};
           if (hasSelectedFields(stage)) {
             const date=$("#salesSelectedDate").value, amount=$("#salesExpectedContractAmount").value.trim();
@@ -655,7 +687,7 @@
           const files=[];
           try {for (const file of uploads) files.push({name:file.name,url:URL.createObjectURL(file)});}
           catch {files.forEach(file=>URL.revokeObjectURL(file.url));return toast("文件上传失败，请重新选择");}
-          const finalRestoreMatch=restoredOwner ? salesOwnerMatchForCustomer(salesOpportunityCustomer(item)) : null;
+          const finalRestoreMatch=restoredOwner ? salesOpportunityOwnerMatch(item) : null;
           if (!valid() || (restoredOwner && (!finalRestoreMatch.ok || finalRestoreMatch.owner.code!==restoredOwner.owner.code))) {files.forEach(file=>URL.revokeObjectURL(file.url));return toast("商机或权限已变化，请重新打开操作");}
           const time=salesSupportNow();
           if (before.selectedDate) salesCapturePerformance(item);
@@ -679,6 +711,9 @@
       }
 
       function openSalesFollowupModal(item) {
+        if (!salesCanProgress(item) || item.stage === "落选") return;
+        const actor = currentUser;
+        let applied = false;
         const keyPeopleOptions = item.keyPeople
           .map((name) => `<option value="${name}">${name}</option>`)
           .join("");
@@ -687,7 +722,7 @@
           '<form id="salesFollowupForm"><div class="modal-body"><div class="form-grid sales-modal-grid">',
           `<div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>跟进时间</label><input class="input" id="followTime" type="datetime-local" value="${DEMO_TODAY}T11:30"></div>`,
           '<div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>跟进方式</label><select class="input" id="followMethod"><option value="现场拜访">现场拜访</option><option value="电话">电话</option><option value="企业微信">企业微信</option></select></div>',
-          `<div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>参与关键人</label><select class="input" id="followPeople" multiple size="3">${keyPeopleOptions}</select></div>`,
+          isEcosystemOpportunity(item) ? "" : `<div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>参与关键人</label><select class="input" id="followPeople" multiple size="3">${keyPeopleOptions}</select></div>`,
           `<div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>当前风险</label><select class="input" id="followRisk">${SALES_RISKS.map((risk) => `<option value="${risk}">${risk}</option>`).join("")}</select></div>`,
           '<div class="form-group" id="followRiskOtherGroup" hidden><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>其他风险说明</label><input class="input" id="followRiskOther" maxlength="200" placeholder="请说明具体风险"></div>',
           '<div class="form-group full"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>跟进内容与结果</label><textarea class="input" id="followResult" rows="3"></textarea></div>',
@@ -705,9 +740,11 @@
         };
         riskControl.onchange = syncRiskOther;
         syncRiskOther();
-        $("#salesFollowupForm").onsubmit = (event) => {
+        const followupForm = $("#salesFollowupForm");
+        followupForm.onsubmit = (event) => {
           event.preventDefault();
-          const people = selectedValues($("#followPeople"));
+          if (applied || followupForm !== $("#salesFollowupForm") || currentUser !== actor || !salesCanProgress(item) || item.stage === "落选") return toast("商机或权限已变化，请重新打开操作");
+          const people = isEcosystemOpportunity(item) ? [] : selectedValues($("#followPeople"));
           const result = $("#followResult").value.trim();
           const risk = $("#followRisk").value;
           const riskOther = $("#followRiskOther").value.trim();
@@ -715,12 +752,14 @@
           const nextDate = $("#followNextDate").value;
           const time = $("#followTime").value;
           if (!time || time > `${DEMO_TODAY}T12:00`) return toast("跟进时间不得晚于提交时间");
-          if (!people.length || !result || !risk || !action || !nextDate)
+          if ((!isEcosystemOpportunity(item) && !people.length) || !result || !risk || !action || !nextDate)
             return toast("请填写全部必填跟进信息");
           if (!SALES_RISKS.includes(risk)) return toast("请选择有效的当前风险");
           if (risk === "其他" && !riskOther)
             return toast("选择其他风险时，请填写具体风险说明");
           if (nextDate <= time.slice(0, 10)) return toast("下次跟进日期必须晚于本次跟进时间");
+          if (people.some(name => !item.keyPeople.includes(name) || !contacts.some(person => person.company === item.customer && person.name === name && contactIsActive(person))))
+            return toast("关键人范围已变化，请按当前客户有效关键人重新选择");
           item.followUps.push({
             time: time.replace("T", " "),
             method: $("#followMethod").value,
@@ -732,6 +771,7 @@
             attachment: $("#followAttachment").files[0]?.name || "",
             operator: currentUser.name,
           });
+          applied = true;
           item.nextFollowDate = nextDate;
           item.updatedAt = salesNow();
           closeOverlay();
@@ -1533,7 +1573,7 @@
       }
 
       function salesPersonalEarnedCents(code, regionName, month) {
-        const rows=opportunities.filter(item=>item.selectedDate?.startsWith(month) &&
+        const rows=opportunities.filter(item=>!isEcosystemOpportunity(item) && item.selectedDate?.startsWith(month) &&
           (item.performanceOwnerCode || employees.find(person=>person.name===item.owner)?.code)===code &&
           regionsMatch(item.performanceRegion || item.region,regionName));
         const amounts=rows.map(item=>salesMoneyCents(item.expectedContractAmount));

@@ -206,7 +206,7 @@
       const isProjectConfigAdmin = () =>
         Boolean(currentUser?.username === "admin" && currentUser?.role === "admin" && currentUser?.fullAccess);
       const templatePagePermissionAllowed = (template, permission) =>
-        template.name !== "生态合作员" || ["dashboard", "projects"].includes(permission);
+        template.name !== "生态合作员" || ["dashboard", "projects", "opportunities"].includes(permission);
       const hasPermission = (permission) =>
         (!isAdminOnlyProjectConfigPage(permission) || isProjectConfigAdmin()) &&
         currentRoleTemplates().some((template) =>
@@ -252,7 +252,7 @@
           (!isAdminOnlyProjectConfigPage(operation.split(".")[0]) || isProjectConfigAdmin()) &&
           (currentUser?.fullAccess ||
             currentRoleTemplateNames().some((roleName) =>
-              (roleName !== "生态合作员" || ["dashboard.view", "projects.view", "projects.create", "projects.edit"].includes(operation)) && roleOperationPermissions?.[roleName]?.includes(operation),
+              (roleName !== "生态合作员" || ["dashboard.view", "projects.view", "projects.create", "projects.edit", "opportunities.view", "opportunities.create", "opportunities.progress"].includes(operation)) && roleOperationPermissions?.[roleName]?.includes(operation),
             )),
         );
       const hasFieldPermission = (permission) =>
@@ -357,7 +357,7 @@
             .map((item) => item.city);
           return cities.join("、") || "待配置负责地市";
         }
-        if (employeeHasRole(employee, "生态合作员")) return "本人平台师资合作项目";
+        if (employeeHasRole(employee, "生态合作员")) return "本人平台师资合作项目及商机";
         if (employeeHasRole(employee, "HR/人事")) return "公司组织";
         const template = systemRoleTemplates.find(
           (item) => item.name === employee.role,

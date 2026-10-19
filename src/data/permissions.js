@@ -155,8 +155,8 @@
         },
         {
           name: "生态合作员", jobs: [], scopeType: "owned-ecosystem-projects",
-          scopeSource: "项目当前负责人", objects: ["项目"],
-          permissions: ["dashboard", "projects"],
+          scopeSource: "项目及商机当前负责人", objects: ["项目", "商机"],
+          permissions: ["dashboard", "projects", "opportunities"],
         },
         {
           name: "系统管理员",
@@ -200,7 +200,7 @@
           cities: "负责地市",
           organization: "公司组织",
           "assigned-supports": "本人被指派方案支撑",
-          "owned-ecosystem-projects": "本人平台师资合作项目",
+          "owned-ecosystem-projects": "本人平台师资合作项目及商机",
         }[template?.scopeType];
       }
 
@@ -296,7 +296,7 @@
           "employees.set_supervisor", "employees.create_employee", "employees.edit_employee",
           "employees.change_employee", "employees.suspend_employee", "employees.restore_employee",
         ],
-        生态合作员: ["dashboard.view", "projects.view", "projects.create", "projects.edit"],
+        生态合作员: ["dashboard.view", "projects.view", "projects.create", "projects.edit", "opportunities.view", "opportunities.create", "opportunities.progress"],
         商机支撑: ["opportunities.support"],
         系统管理员: operationPermissionCatalog.filter((item) => item[0] !== "regions.handover").map((item) => item[0]),
       };
@@ -350,7 +350,10 @@
         systemRoleTemplates.map((template, position) => {
           const index = template.name === "系统管理员" ? 5 : position;
           const code = permissionRoleCodes[template.name];
-          if (template.name === "生态合作员") return [template.name, [{ id: `PERM-${code}-000001`, type: "初始化", operator: "系统管理员", time: "2026-10-10 09:00", reason: "建立生态合作员项目权限", permissions: [...template.permissions], operations: [...roleOperationPermissions[template.name]], fields: [], attachments: [...roleAttachmentPermissions[template.name]] }]];
+          if (template.name === "生态合作员") return [template.name, [
+            { id: `PERM-${code}-000002`, type: "调整", operator: "系统管理员", time: "2026-10-19 09:00", reason: "增加本人平台师资合作商机权限", permissions: [...template.permissions], operations: [...roleOperationPermissions[template.name]], fields: [], attachments: [...roleAttachmentPermissions[template.name]] },
+            { id: `PERM-${code}-000001`, type: "初始化", operator: "系统管理员", time: "2026-10-10 09:00", reason: "建立生态合作员项目权限", permissions: ["dashboard", "projects"], operations: ["dashboard.view", "projects.view", "projects.create", "projects.edit"], fields: [], attachments: [...roleAttachmentPermissions[template.name]] },
+          ]];
           if (template.name === "商机支撑") return [template.name, [{
             id: `PERM-${code}-000001`, type: "初始化", operator: "系统管理员",
             time: "2026-09-11 09:00", reason: "建立商机支撑角色权限",

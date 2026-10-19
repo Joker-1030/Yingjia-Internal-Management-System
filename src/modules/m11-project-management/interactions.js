@@ -991,6 +991,34 @@
           onConfirm();
         };
       }
+      function projectFormCompanyId() {
+        if ($("#pfResource")?.value !== "平台师资合作") return $("#pfCompany")?.value || "";
+        const project = currentPage === "project-edit" ? projectById(selectedProjectId) : null;
+        if (!project) return $("#pfCustomer")?.value || "";
+        return platformCompanies.some(company => company.id === project.customerId) ? project.customerId : $("#pfCompany")?.value || "";
+      }
+      function refreshProjectCustomerField() {
+        const editing = currentPage === "project-edit";
+        const resource = $("#pfResource")?.value || "";
+        const project = editing ? projectById(selectedProjectId) : null;
+        const platform = project ? isEcosystemProject(project) && platformCompanies.some(company => company.id === project.customerId) : projectUsesPlatformCustomer(resource);
+        const select = $("#pfCustomer");
+        if (!select) return;
+        if (!editing) {
+          const previous = select.value;
+          const source = platform ? "platform" : "customer";
+          const candidates = projectCreatableCustomers(resource);
+          select.innerHTML = '<option value="">请选择客户公司</option>' + candidates.map(customer =>
+            `<option value="${escapeHtml(String(customer.id))}">${escapeHtml(customer.name)}${customer.level ? `（${escapeHtml(customer.level)}）` : ""}</option>`).join("");
+          select.value = (!select.dataset.source || select.dataset.source === source) && candidates.some(customer => String(customer.id) === previous) ? previous : "";
+          select.dataset.source = source;
+          const customer = candidates.find(customer => String(customer.id) === select.value);
+          $("#pfCustomerCode").textContent = customerStableCode(customer);
+          $("#pfArea").textContent = !platform && customer ? adminArea(customer) : "—";
+        }
+        setProjectFieldVisible("pfArea", !platform);
+        if (resource === "平台师资合作") $("#pfCompany").value = projectFormCompanyId();
+      }
       function projectFormResourceChanged(project) {
         if (!project) return false;
         const resourceType = $("#pfResource").value;
@@ -1000,7 +1028,7 @@
         const directionIntro =
           resourceType === "采购包课程" ? $("#pfDirection").value : "";
         const companyId = ["师资合作", "走账合作"].includes(cooperation)
-          ? $("#pfCompany").value
+          ? projectFormCompanyId()
           : "";
         return (
           resourceType !== project.resourceType ||
@@ -1016,7 +1044,7 @@
         const cooperation = $("#pfCooperation").value;
         const packageId = $("#pfPackage").value;
         const directionIntro = $("#pfDirection").value;
-        const companyId = $("#pfCompany").value;
+        const companyId = projectFormCompanyId();
         const days = Number($("#pfDays").value);
         const editingProject =
           currentPage === "project-edit" ? projectById(selectedProjectId) : null;
@@ -1053,9 +1081,7 @@
         if (type === "培训项目") {
           $("#pfUnitPrice").value =
             unitPrice != null ? formatProjectMoney(unitPrice) : "—";
-          if (unitPrice != null && days) {
-            $("#pfAmount").value = wanMoneyInput(round2(unitPrice * days));
-          }
+          $("#pfAmount").value = unitPrice != null && days ? wanMoneyInput(round2(unitPrice * days)) : "";
         }
         const amount = parseWanMoney($("#pfAmount").value.trim());
         if (amount) {
@@ -1100,6 +1126,7 @@
         settlementInput.value = formatProjectAmount(settlement);
       }
       function refreshProjectFormDynamics() {
+        refreshProjectCustomerField();
         const type = $("#pfType").value;
         const resourceType = $("#pfResource").value;
         const cooperation = $("#pfCooperation").value;
@@ -1121,7 +1148,9 @@
         }
         setProjectFieldVisible("pfPackage", showPackage);
         setProjectFieldVisible("pfDirection", showPackage);
-        setProjectFieldVisible("pfCompany", showCompany);
+        const editingProject = currentPage === "project-edit" ? projectById(selectedProjectId) : null;
+        const linkedPlatform = resourceType === "平台师资合作" && (!editingProject || platformCompanies.some(company => company.id === editingProject.customerId));
+        setProjectFieldVisible("pfCompany", showCompany && !linkedPlatform);
         setProjectFieldVisible(
           "pfManagementFeeRate",
           cooperation === "走账合作",
@@ -1487,7 +1516,7 @@
         const type = editing ? project.type : $("#pfType").value;
         const customerId = editing
           ? project.customerId
-          : Number($("#pfCustomer").value);
+          : projectUsesPlatformCustomer($("#pfResource").value) ? $("#pfCustomer").value : Number($("#pfCustomer").value);
         const startTime = $("#pfStart").value.replace("T", " ");
         const endTime = $("#pfEnd").value.replace("T", " ");
         const daysValue = $("#pfDays").value.trim();
@@ -1495,7 +1524,7 @@
         const cooperation = $("#pfCooperation").value;
         const packageId = $("#pfPackage").value;
         const directionIntro = $("#pfDirection").value;
-        const companyId = $("#pfCompany").value;
+        const companyId = projectFormCompanyId();
         const amount = parseWanMoney($("#pfAmount").value.trim());
         const lecturers =
           type === "培训项目" ? selectedInstructorNames("pfLecturers") : [];
@@ -1518,8 +1547,8 @@
         let owner = "";
         let liveCustomer = null;
         if (!editing) {
-          liveCustomer = customers.find((item) => item.id === customerId);
-          if (customerId && !projectCreatableCustomers().some((item) => item.id === customerId)) {
+          liveCustomer = (resourceType === "平台师资合作" ? platformCompanies : customers).find((item) => item.id === customerId);
+          if (customerId && !projectCreatableCustomers(resourceType).some((item) => item.id === customerId)) {
             return;
           }
           if (resourceType === "平台师资合作") {
@@ -1749,10 +1778,12 @@
               ? {
                   customerCode: customerStableCode(liveCustomer),
                   name: liveCustomer.name,
-                  level: liveCustomer.level,
-                  province: liveCustomer.province,
-                  city: liveCustomer.city,
-                  district: liveCustomer.district,
+                  ...(resourceType !== "平台师资合作" ? {
+                    level: liveCustomer.level,
+                    province: liveCustomer.province,
+                    city: liveCustomer.city,
+                    district: liveCustomer.district,
+                  } : {}),
                 }
               : null,
             stage: "已立项",
@@ -2604,11 +2635,8 @@
         const customerSelect = $("#pfCustomer");
         if (customerSelect && !editing) {
           customerSelect.onchange = () => {
-            const customer = customers.find(
-              (item) => item.id === Number(customerSelect.value),
-            );
-            $("#pfCustomerCode").textContent = customerStableCode(customer);
-            $("#pfArea").textContent = customer ? adminArea(customer) : "—";
+            refreshProjectCustomerField();
+            refreshProjectFormAmounts();
             refreshProjectOwnerField();
           };
         }

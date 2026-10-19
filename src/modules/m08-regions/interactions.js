@@ -69,7 +69,7 @@
 
       function cityResponsibilityOpportunities(owners) {
         return opportunities.filter((opportunity) => {
-          if (opportunity.stage === "落选") return false;
+          if (opportunity.stage === "落选" || isEcosystemOpportunity(opportunity)) return false;
           const customer = salesOpportunityCustomer(opportunity);
           return customer && customer.level !== "省公司" && owners.some(
             (owner) => owner.province === customer.province && owner.city === customer.city,

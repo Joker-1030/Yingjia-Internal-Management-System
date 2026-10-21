@@ -425,6 +425,7 @@
 
       function salesStatisticsHelp(key, label) {
         const descriptions = {
+          overviewScope: "培训商机不包含平台师资合作商机，两者独立统计。“全部类型”按当前权限统计：公司范围的“全部运营中心”包含平台师资合作商机；指定运营中心及PM、区域总监的地区范围不包含。",
           target: "当前有权范围所选周期的成交金额目标（含税，万元）；按各层已分配的年、季、月目标读取，未分配时不计算完成率。",
           created: "创建日期在所选周期内的商机数量，后来落选仍计入该周期。",
           difference: "周期成交金额－目标金额（含税，万元）；正数超额，负数尚差；金额不可用或目标未分配时不计算。",
@@ -781,7 +782,7 @@
         const currentCard = `<section class="panel sales-snapshot-panel" aria-labelledby="salesSnapshotTitle"><div class="panel-head"><div class="panel-title" id="salesSnapshotTitle">${president ? "当前商机推进" : "当前销售快照"}</div></div><div class="metrics sales-metrics${president ? " sales-primary-metrics" : ""}">${currentMetrics.join("")}</div></section>`;
         const periodCard = `<section class="panel sales-period-panel" aria-labelledby="salesPeriodTitle"><div class="panel-head sales-period-head"><div class="sales-period-heading"><div class="panel-title" id="salesPeriodTitle">${role === "director" ? "区域周期销售" : role === "pm" ? "我的周期销售" : "周期销售"}</div><div class="panel-sub">${escapeHtml(appliedPeriodLabel)}</div></div>${salesPeriodFilter()}</div><div class="metrics sales-metrics sales-primary-metrics">${periodMetrics.join("")}</div>${trend}${president ? `<div class="metrics sales-metrics sales-secondary-metrics sales-primary-metrics">${salesDashboardMetric("周期新建商机", periodRows.length, "created")}${salesDashboardMetric("周期中选商机", won.length, "periodWon")}</div>` : ""}${salesWorkbenchPersonalSection()}</section>`;
         return `<section class="sales-workbench" aria-label="销售概况">${president ? currentCard + periodCard : periodCard + currentCard}` +
-          `<div class="sales-dashboard-grid"><section class="panel sales-overview-panel"><div class="panel-head"><div class="panel-title">商机概况</div></div><div class="sales-overview-body">${salesOverviewControls()}<div id="salesOverviewVisualization">${salesOverviewChart()}</div></div></section>` +
+          `<div class="sales-dashboard-grid"><section class="panel sales-overview-panel"><div class="panel-head"><div class="panel-title">商机概况${salesStatisticsHelp("overviewScope", "商机概况")}</div></div><div class="sales-overview-body">${salesOverviewControls()}<div id="salesOverviewVisualization">${salesOverviewChart()}</div></div></section>` +
           (salesRegionTargetsAllowed() ? salesRegionGoalCard() : role === "pm" ? "" : `<section class="panel sales-region-panel"><div class="panel-head"><div class="panel-title">当前区域对比</div></div><div class="table-wrap" tabindex="0" role="region" aria-label="当前区域对比"><table><thead><tr><th>运营中心</th><th>活跃商机${salesStatisticsHelp("regionActive", "活跃商机")}</th><th>活跃金额（含税，万元）${salesStatisticsHelp("regionAmount", "活跃金额")}</th><th>中选结果${salesStatisticsHelp("regionSelected", "中选结果")}</th></tr></thead><tbody>${regionRows || '<tr><td colspan="4"><div class="empty">暂无数据</div></td></tr>'}</tbody></table></div></section>` ) + "</div></section>";
       }
 

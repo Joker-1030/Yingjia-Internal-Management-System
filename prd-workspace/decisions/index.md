@@ -1,6 +1,6 @@
 # Decision Index
 
-> Current parseable Decision registry for the modular PRD Source of Truth. This index contains 208 stable Decision IDs; `../DECISIONS.md` is a navigation entry, and the former append-only ledger is Historical Evidence under `archive/product/decision-ledger/`.
+> Current parseable Decision registry for the modular PRD Source of Truth. This index contains 228 stable Decision IDs; `../DECISIONS.md` is a navigation entry, and the former append-only ledger is Historical Evidence under `archive/product/decision-ledger/`.
 
 | ID | Title | Status |
 | --- | --- | --- |
@@ -232,3 +232,4 @@
 | DEC-225 | [商机纠错与支撑停止交接](./DEC-225-商机纠错与支撑停止交接.md) | 已确认、未评审；跳过方案、材料与留痕纠错重算、支撑撤回停止落选关闭/停用交接、取消独立改派及有效进度；10/15补充角色移除交接、失效负责人恢复与未关闭唯一性；10/16员工停用先失效账号、再自动交接，撤角色前置保持 |
 | DEC-226 | [目标差额调整与总监个人分配](./DEC-226-目标差额调整与总监个人分配.md) | 已确认、未评审；受影响差额逐层完成整体生效/可取消/同年单轮；总监与PM共用个人目标池；10/15补充全部责任/停用目标承接及领导联合季月重分配 |
 | DEC-227 | [生态合作商机独立归属与公司业绩](./DEC-227-生态合作商机独立归属与公司业绩.md) | 已确认、未评审；平台师资合作项目/商机使用平台客户，项目同一平台自动带课酬，商机无关键人；本人负责及公司范围，地区与个人业绩排除，admin代建，未落选商机复用生态项目接替人 |
+| DEC-228 | [维系记录可多选关联同客户商机](./DEC-228-维系记录可多选关联同客户商机.md) | 已确认、未评审；新增维系及完成任务均非必填多选，同客户当前可见全阶段，保存锁定，不自动生成商机跟进 |

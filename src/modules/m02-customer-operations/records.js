@@ -4,6 +4,99 @@
         })[char]);
       }
 
+      function maintenanceActorSnapshot() {
+        return JSON.stringify([currentUser?.username, currentUser?.employeeCode,
+          currentUser?.name, currentUser?.role, currentUser?.roles, currentUser?.fullAccess]);
+      }
+
+      function maintenanceOpportunityPersonKey(person) {
+        const company = customers.find((item) => item.name === person?.company);
+        return JSON.stringify([person?.id, person?.name, company?.id]);
+      }
+
+      function maintenanceOpportunityCandidates(person) {
+        const company = customers.find((item) => item.name === person?.company);
+        if (!person || !contactIsActive(person) || !company || company.archived) return [];
+        return salesVisibleOpportunities()
+          .filter((item) => !isEcosystemOpportunity(item) && salesOpportunityCustomer(item)?.id === company.id)
+          .slice().sort((left, right) => String(right.updatedAt || "").localeCompare(String(left.updatedAt || "")) || right.id.localeCompare(left.id));
+      }
+
+      function maintenanceOpportunityPickerHtml(id) {
+        return `<div class="form-group full"><label class="form-label" id="${id}Label">关联商机 <span class="panel-sub">非必填，可多选</span></label><div class="multi-select" id="${id}"><button class="multi-select-trigger" type="button" id="${id}Trigger" aria-labelledby="${id}Label ${id}Summary" aria-expanded="false" aria-controls="${id}Menu"><span id="${id}Summary">请选择关联商机</span><span aria-hidden="true">⌄</span></button><div class="multi-select-menu hidden" id="${id}Menu"><input class="input" id="${id}Search" placeholder="搜索商机编号或名称" aria-label="搜索关联商机"><div id="${id}Options"></div></div></div><div class="sales-support-selected-list" id="${id}Selected"></div><div class="list-sub" id="${id}Hint"></div></div>`;
+      }
+
+      function bindMaintenanceOpportunityPicker(id, getPerson) {
+        const root = $(`#${id}`), trigger = $(`#${id}Trigger`), menu = $(`#${id}Menu`),
+          search = $(`#${id}Search`), options = $(`#${id}Options`), selected = $(`#${id}Selected`);
+        let chosen = [], candidates = [], personKey = "";
+        const inputs = () => [...root.querySelectorAll("input[data-maintenance-opportunity]")];
+        const readChecked = () => [...new Set(inputs().filter((input) => input.checked).map((input) => input.value))];
+        const setOpen = (open) => {
+          trigger.setAttribute("aria-expanded", String(open));
+          menu.classList.toggle("hidden", !open);
+          if (open) search.focus?.();
+          else { search.value = ""; filter(); }
+        };
+        const filter = () => {
+          const keyword = search.value.trim().toLocaleLowerCase("zh-CN");
+          options.querySelectorAll("[data-maintenance-opportunity-option]").forEach((row) => {
+            row.hidden = !row.textContent.toLocaleLowerCase("zh-CN").includes(keyword);
+          });
+        };
+        const renderSelected = () => {
+          $(`#${id}Summary`).textContent = chosen.length ? `已选择 ${chosen.length} 个商机` : "请选择关联商机";
+          selected.innerHTML = chosen.map((value) => {
+            const item = candidates.find((candidate) => candidate.id === value);
+            if (!item) return "";
+            const label = escapeMaintenanceMethodText(`${item.id} · ${item.name}`);
+            return `<span class="sales-support-selected-item"><span>${label}</span><button class="sales-support-selected-remove" type="button" data-maintenance-opportunity-remove="${escapeMaintenanceMethodText(value)}" aria-label="移除${label}">×</button></span>`;
+          }).join("");
+        };
+        const refresh = () => {
+          const person = getPerson();
+          candidates = maintenanceOpportunityCandidates(person);
+          personKey = maintenanceOpportunityPersonKey(person);
+          chosen = readChecked().filter((value) => candidates.some((item) => item.id === value));
+          options.innerHTML = candidates.map((item) => `<label class="multi-select-option" data-maintenance-opportunity-option><input type="checkbox" data-maintenance-opportunity value="${escapeMaintenanceMethodText(item.id)}" ${chosen.includes(item.id) ? "checked" : ""}><span>${escapeMaintenanceMethodText(item.id)} · ${escapeMaintenanceMethodText(item.name)}</span></label>`).join("");
+          inputs().forEach((input) => { input.onchange = () => { chosen = readChecked(); renderSelected(); }; });
+          trigger.disabled = !candidates.length;
+          $(`#${id}Hint`).textContent = !person ? "请先选择关键人" : !candidates.length ? "该客户暂无可关联的商机，可直接保存维系记录" : "";
+          setOpen(false);
+          renderSelected();
+        };
+        trigger.onclick = () => setOpen(trigger.getAttribute("aria-expanded") !== "true");
+        search.oninput = filter;
+        search.onkeydown = (event) => {
+          if (event.key === "Enter") event.preventDefault();
+        };
+        root.onkeydown = (event) => {
+          if (event.key === "Escape") { event.preventDefault(); setOpen(false); trigger.focus?.(); }
+        };
+        root.onfocusout = (event) => { if (!root.contains?.(event.relatedTarget)) setOpen(false); };
+        selected.onclick = (event) => {
+          const button = event.target.closest?.("[data-maintenance-opportunity-remove]");
+          if (!button || !selected.contains(button)) return;
+          inputs().filter((input) => input.value === button.dataset.maintenanceOpportunityRemove).forEach((input) => { input.checked = false; });
+          chosen = readChecked(); renderSelected();
+        };
+        refresh();
+        return { refresh, read(person) {
+          const values = readChecked(), eligible = new Set(maintenanceOpportunityCandidates(person).map((item) => item.id));
+          if (personKey !== maintenanceOpportunityPersonKey(person) || values.some((value) => !eligible.has(value))) {
+            toast("关联商机或客户范围已变化，请重新选择后提交");
+            return null;
+          }
+          return values;
+        } };
+      }
+
+      function maintenanceRecordOpportunitiesHtml(record) {
+        const ids = new Set(Array.isArray(record.opportunityIds) ? record.opportunityIds : []);
+        return salesVisibleOpportunities().filter((item) => ids.has(item.id))
+          .map((item) => `<div>${escapeMaintenanceMethodText(item.id)} · ${escapeMaintenanceMethodText(item.name)}</div>`).join("") || "—";
+      }
+
       function openRecord(personId, recordId) {
         const r = maintenanceRecords.find((x) => x.id === recordId);
         if (!r && !canCreateMaintenanceRecord())
@@ -29,6 +122,8 @@
               ? "区域总监仅可为本区域省公司关键人新增维系记录"
               : "当前关键人不在可维系数据范围内",
           );
+        const actor = maintenanceActorSnapshot();
+        let submitted = false;
         openModal(
           `<div class="modal-head"><div class="modal-title">${r ? "编辑" : "新增"}维系记录</div><button class="icon-btn close" data-close>×</button></div><form id="recordForm"><div class="modal-body"><div class="form-grid"><div class="form-group full"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>关键人</label>${
             lockedPerson
@@ -39,8 +134,10 @@
                       `<option value="${p.id}">${p.name || "未填写"}-${p.company || "未填写"}-${p.title || "未填写"}</option>`,
                   )
                   .join("")}</select>`
-          }</div>${r ? `<div class="form-group full"><label class="form-label">客户单位</label><input class="input" value="${lockedPerson?.company || ""}" disabled><div class="list-sub">维系记录关联的客户单位不可变更</div></div>` : '<div class="form-group full"><div class="role-note" id="recordTaskHint">请先选择关键人。</div></div>'}<div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>维系方式</label><select class="input" id="rfMethod">${["线下拜访", "电话", "微信", "视频会议", "邮件", "其他"].map((x) => `<option ${r?.method === x ? "selected" : ""}>${x}</option>`).join("")}</select></div><div class="form-group" id="rfOtherMethodGroup"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>其他方式说明</label><input class="input" id="rfOtherMethod" minlength="2" maxlength="30" value="${escapeMaintenanceMethodText(r?.otherMethod)}" placeholder="请填写 2-30 字"></div>${r ? `<div class="form-group"><label class="form-label">记录编号</label><input class="input" value="${maintenanceRecordCode(r)}" disabled></div><div class="form-group"><label class="form-label">创建时间</label><input class="input" value="${r.createdAt || r.date}" disabled></div>` : ""}<div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>维系时间</label><input class="input" id="rfDate" type="datetime-local" max="${DEMO_TODAY}T23:59" value="${r?.maintenanceAt ? r.maintenanceAt.replace(" ", "T").slice(0, 16) : `${r?.date || DEMO_TODAY}T09:30`}" ${r?.taskId ? "disabled" : ""} required><div class="list-sub">${r?.taskId ? "已用于任务完成认定，不可直接修改" : "不得晚于当前时间或早于任职生效时间"}</div></div>${r ? "" : '<div class="form-group full" id="recordLateReasonGroup"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>延迟登记原因</label><textarea class="input" id="recordLateReason" minlength="5" maxlength="500" placeholder="说明为何未在任务截止前完成系统登记"></textarea></div><div class="form-group full" id="recordLateEvidenceGroup"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>补录证明材料</label><label class="file-box">＋ 上传能证明实际维系日期的材料<input id="recordLateEvidence" type="file" accept=".jpg,.jpeg,.png,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx" hidden multiple></label><div class="list-sub">请至少上传一项证明材料</div></div>'}<div class="form-group full"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>沟通摘要</label><textarea class="input" id="rfSummary" minlength="5" maxlength="1000" required>${r?.summary || ""}</textarea></div><div class="form-group full"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>客户反馈</label><textarea class="input" id="rfFeedback" minlength="5" maxlength="1000" required>${r?.feedback || ""}</textarea></div><div class="form-group full"><label class="form-label">下一步计划</label><textarea class="input" id="rfNext" maxlength="1000">${r?.next || ""}</textarea></div><div class="form-group full"><label class="form-label">附件</label><label class="file-box">＋ 上传图片或办公文件（单文件≤20MB，最多9个，总计≤100MB）<input id="rfFiles" type="file" accept=".jpg,.jpeg,.png,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx" hidden multiple></label>${r?.attachments?.length ? `<div class="list-sub">已保留：${r.attachments.join("、")}</div>` : ""}</div></div></div><div class="modal-foot"><button class="btn" type="button" data-close>取消</button><button class="btn btn-primary" id="recordSubmit" type="submit">保存记录</button></div></form>`,
+          }</div>${r ? "" : maintenanceOpportunityPickerHtml("rfOpportunities")}${r ? `<div class="form-group full"><label class="form-label">客户单位</label><input class="input" value="${lockedPerson?.company || ""}" disabled><div class="list-sub">维系记录关联的客户单位不可变更</div></div>` : '<div class="form-group full"><div class="role-note" id="recordTaskHint">请先选择关键人。</div></div>'}<div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>维系方式</label><select class="input" id="rfMethod">${["线下拜访", "电话", "微信", "视频会议", "邮件", "其他"].map((x) => `<option ${r?.method === x ? "selected" : ""}>${x}</option>`).join("")}</select></div><div class="form-group" id="rfOtherMethodGroup"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>其他方式说明</label><input class="input" id="rfOtherMethod" minlength="2" maxlength="30" value="${escapeMaintenanceMethodText(r?.otherMethod)}" placeholder="请填写 2-30 字"></div>${r ? `<div class="form-group"><label class="form-label">记录编号</label><input class="input" value="${maintenanceRecordCode(r)}" disabled></div><div class="form-group"><label class="form-label">创建时间</label><input class="input" value="${r.createdAt || r.date}" disabled></div>` : ""}<div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>维系时间</label><input class="input" id="rfDate" type="datetime-local" max="${DEMO_TODAY}T23:59" value="${r?.maintenanceAt ? r.maintenanceAt.replace(" ", "T").slice(0, 16) : `${r?.date || DEMO_TODAY}T09:30`}" ${r?.taskId ? "disabled" : ""} required><div class="list-sub">${r?.taskId ? "已用于任务完成认定，不可直接修改" : "不得晚于当前时间或早于任职生效时间"}</div></div>${r ? "" : '<div class="form-group full" id="recordLateReasonGroup"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>延迟登记原因</label><textarea class="input" id="recordLateReason" minlength="5" maxlength="500" placeholder="说明为何未在任务截止前完成系统登记"></textarea></div><div class="form-group full" id="recordLateEvidenceGroup"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>补录证明材料</label><label class="file-box">＋ 上传能证明实际维系日期的材料<input id="recordLateEvidence" type="file" accept=".jpg,.jpeg,.png,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx" hidden multiple></label><div class="list-sub">请至少上传一项证明材料</div></div>'}<div class="form-group full"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>沟通摘要</label><textarea class="input" id="rfSummary" minlength="5" maxlength="1000" required>${r?.summary || ""}</textarea></div><div class="form-group full"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>客户反馈</label><textarea class="input" id="rfFeedback" minlength="5" maxlength="1000" required>${r?.feedback || ""}</textarea></div><div class="form-group full"><label class="form-label">下一步计划</label><textarea class="input" id="rfNext" maxlength="1000">${r?.next || ""}</textarea></div><div class="form-group full"><label class="form-label">附件</label><label class="file-box">＋ 上传图片或办公文件（单文件≤20MB，最多9个，总计≤100MB）<input id="rfFiles" type="file" accept=".jpg,.jpeg,.png,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx" hidden multiple></label>${r?.attachments?.length ? `<div class="list-sub">已保留：${r.attachments.join("、")}</div>` : ""}</div></div></div><div class="modal-foot"><button class="btn" type="button" data-close>取消</button><button class="btn btn-primary" id="recordSubmit" type="submit">保存记录</button></div></form>`,
         );
+        const form = $("#recordForm");
+        const opportunityPicker = r ? null : bindMaintenanceOpportunityPicker("rfOpportunities", () => contacts.find((person) => person.id === Number($("#rfPerson").value)));
         if (r) {
           const title = document.querySelector(".modal-head .modal-title");
           if (title) title.textContent = "追加附件";
@@ -111,16 +208,22 @@
             : "保存记录";
         };
         if (!r) {
-          $("#rfPerson").onchange = refreshTaskHint;
+          $("#rfPerson").onchange = () => { refreshTaskHint(); opportunityPicker.refresh(); };
           $("#rfDate").onchange = refreshTaskHint;
           refreshTaskHint();
         }
         $("#recordForm").onsubmit = (e) => {
           e.preventDefault();
+          if (submitted || $("#recordForm") !== form || actor !== maintenanceActorSnapshot() || !salesSupportActorActive())
+            return toast("表单已失效，请重新打开");
+          if (r ? !canEditMaintenanceRecord(r) : !canCreateMaintenanceRecord())
+            return toast("当前账号无权提交该维系记录");
           const p = contacts.find(
             (x) => x.id === Number($("#rfPerson").value),
           );
           if (!p) return toast("请选择关键人");
+          if (!r && ((!maintenanceContactCandidates().some((person) => person.id === p.id)) || (lockedPerson && p.id !== lockedPerson.id)))
+            return toast("当前关键人不在可维系数据范围内");
           if (r) {
             const recordFiles = Array.from($("#rfFiles").files);
             if (!recordFiles.length) return toast("请选择要追加的附件");
@@ -128,6 +231,7 @@
             if (attachmentError) return toast(attachmentError);
             if ((r.attachments?.length || 0) + recordFiles.length > 9)
               return toast("单条维系记录最多保留 9 个附件");
+            submitted = true;
             r.attachments = [
               ...(r.attachments || []),
               ...recordFiles.map((file) => file.name),
@@ -137,6 +241,8 @@
             renderPage();
             return toast("附件已追加");
           }
+          const opportunityIds = opportunityPicker.read(p);
+          if (opportunityIds === null) return;
           const matchingTasks = r ? [] : activeRegularTasks(p),
             linkedTask = matchingTasks[0];
           const maintenanceAt = $("#rfDate").value.replace("T", " ");
@@ -160,6 +266,7 @@
             return toast("单条维系记录最多保留 9 个附件");
           const data = {
               personId: p.id,
+              opportunityIds,
               person: p.name,
               company: p.company,
               method: $("#rfMethod").value,
@@ -190,6 +297,7 @@
             const evidenceError = validateAttachmentFiles(evidenceUploads, true);
             if (evidenceError) return toast(evidenceError);
             const evidenceFiles = evidenceUploads.map((file) => file.name);
+            submitted = true;
             acceptLateEntry(
               linkedTask,
               { id: Date.now(), ...data },
@@ -200,6 +308,7 @@
             renderPage();
             return toast("逾期补录已保存，任务认定为按期完成");
           } else {
+            submitted = true;
             const newRecord = { id: Date.now(), ...data };
             newRecord.code = maintenanceRecordCode(newRecord);
             maintenanceRecords.unshift(newRecord);
@@ -232,7 +341,7 @@
           return toast("无权查看该维系记录");
         const linkedTask = tasks.find((task) => task.id === r.taskId);
         openDrawer(
-          `<div class="drawer-head"><div class="modal-title">维系记录详情</div><button class="icon-btn close" data-close>×</button></div><div class="drawer-body"><div class="detail-hero"><div class="avatar">${r.person[0]}</div><div><div class="detail-name">${r.person}</div><div class="detail-sub">${r.company} · ${r.method}${r.method === "其他" ? `（${escapeMaintenanceMethodText(r.otherMethod || "未说明")}）` : ""}</div></div></div><div class="detail-grid"><div class="detail-item"><label>记录编号</label><div>${maintenanceRecordCode(r)}</div></div><div class="detail-item"><label>记录状态</label><div><span class="tag green">正式生效</span></div></div><div class="detail-item"><label>维系时间</label><div>${r.maintenanceAt || r.date}</div></div><div class="detail-item"><label>创建时间</label><div>${r.createdAt || "—"}</div></div><div class="detail-item"><label>更新时间</label><div>${r.updatedAt || r.createdAt || "—"}</div></div><div class="detail-item"><label>业务维系人</label><div>${r.pm}</div></div><div class="detail-item"><label>实际录入人</label><div>${r.createdBy || r.pm}${r.proxyOperator ? ' <span class="tag orange">管理员代办</span>' : ""}</div></div><div class="detail-item"><label>关联任务</label><div>${linkedTask ? linkedTask.executionCode : "未关联任务"}</div></div>${r.proxyOperator ? `<div class="detail-item full"><label>代办原因</label><div>${r.proxyReason}</div></div>` : ""}</div><div class="role-note">记录已保存，仅支持追加附件。</div><div class="section-title">沟通摘要</div><p style="font-size:var(--font-size-body);line-height:var(--line-height-body)">${r.summary}</p><div class="section-title">客户反馈</div><p style="font-size:var(--font-size-body);line-height:var(--line-height-body)">${r.feedback}</p><div class="section-title">下一步计划</div><p style="font-size:var(--font-size-body);line-height:var(--line-height-body)">${r.next || "暂无"}</p><div class="section-title">附件</div>${r.attachments.map((x) => `<div class="list-row"><div class="avatar">附</div><div class="list-main"><div class="list-title">${x}</div></div><button class="btn" data-action="preview-file">预览</button><button class="btn" data-action="download-file">下载</button></div>`).join("") || '<div class="role-note">无附件</div>'}</div><div class="drawer-foot"><button class="btn" data-close>关闭</button>${canEditMaintenanceRecord(r) ? `<button class="btn btn-primary" data-action="edit-record" data-id="${r.id}">编辑记录</button>` : ""}</div>`,
+          `<div class="drawer-head"><div class="modal-title">维系记录详情</div><button class="icon-btn close" data-close>×</button></div><div class="drawer-body"><div class="detail-hero"><div class="avatar">${r.person[0]}</div><div><div class="detail-name">${r.person}</div><div class="detail-sub">${r.company} · ${r.method}${r.method === "其他" ? `（${escapeMaintenanceMethodText(r.otherMethod || "未说明")}）` : ""}</div></div></div><div class="detail-grid"><div class="detail-item"><label>记录编号</label><div>${maintenanceRecordCode(r)}</div></div><div class="detail-item"><label>记录状态</label><div><span class="tag green">正式生效</span></div></div><div class="detail-item"><label>维系时间</label><div>${r.maintenanceAt || r.date}</div></div><div class="detail-item"><label>创建时间</label><div>${r.createdAt || "—"}</div></div><div class="detail-item"><label>更新时间</label><div>${r.updatedAt || r.createdAt || "—"}</div></div><div class="detail-item"><label>业务维系人</label><div>${r.pm}</div></div><div class="detail-item"><label>实际录入人</label><div>${r.createdBy || r.pm}${r.proxyOperator ? ' <span class="tag orange">管理员代办</span>' : ""}</div></div><div class="detail-item"><label>关联任务</label><div>${linkedTask ? linkedTask.executionCode : "未关联任务"}</div></div><div class="detail-item full"><label>关联商机</label><div>${maintenanceRecordOpportunitiesHtml(r)}</div></div>${r.proxyOperator ? `<div class="detail-item full"><label>代办原因</label><div>${r.proxyReason}</div></div>` : ""}</div><div class="role-note">记录已保存，仅支持追加附件。</div><div class="section-title">沟通摘要</div><p style="font-size:var(--font-size-body);line-height:var(--line-height-body)">${r.summary}</p><div class="section-title">客户反馈</div><p style="font-size:var(--font-size-body);line-height:var(--line-height-body)">${r.feedback}</p><div class="section-title">下一步计划</div><p style="font-size:var(--font-size-body);line-height:var(--line-height-body)">${r.next || "暂无"}</p><div class="section-title">附件</div>${r.attachments.map((x) => `<div class="list-row"><div class="avatar">附</div><div class="list-main"><div class="list-title">${x}</div></div><button class="btn" data-action="preview-file">预览</button><button class="btn" data-action="download-file">下载</button></div>`).join("") || '<div class="role-note">无附件</div>'}</div><div class="drawer-foot"><button class="btn" data-close>关闭</button>${canEditMaintenanceRecord(r) ? `<button class="btn btn-primary" data-action="edit-record" data-id="${r.id}">编辑记录</button>` : ""}</div>`,
         );
         const appendButton = document.querySelector(
           '[data-action="edit-record"]',

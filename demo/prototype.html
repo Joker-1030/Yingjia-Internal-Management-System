@@ -4899,16 +4899,16 @@
       }
 
       /* M01 business overview only. Content growth belongs to the scroll body. */
-      .workbench { display: grid; gap: 16px; min-width: 0; }
-      .workbench .workbench-card { display: flex; flex-direction: column; min-width: 0; min-height: 0; overflow: hidden; margin: 0; }
+      .workbench { display: grid; gap: 20px; min-width: 0; }
+      .workbench .workbench-card { display: flex; flex-direction: column; min-width: 0; min-height: 0; overflow: hidden; margin: 0; border-color: #dce3eb; border-radius: 10px; }
       .workbench .workbench-people,
       .workbench .workbench-tasks { height: 264px; }
       .workbench .workbench-projects,
       .workbench .workbench-todos { height: 352px; }
-      .workbench .workbench-card > .panel-head { flex: 0 0 auto; min-height: 51px; padding: 14px 20px; }
+      .workbench .workbench-card > .panel-head { flex: 0 0 auto; min-height: 56px; padding: 12px 20px; background: #fff; }
       .workbench-updated { color: var(--muted); font-size: 12px; white-space: nowrap; }
-      .workbench .workbench-split { display: grid; grid-template-columns: 180px minmax(0, 1fr); gap: 24px; flex: 1 1 0; min-height: 0; overflow: hidden; padding: 16px 20px; }
-      .workbench .workbench-values { display: flex; flex-direction: column; justify-content: center; gap: 22px; min-width: 0; padding-right: 24px; border-right: 1px solid var(--color-divider); }
+      .workbench .workbench-split { display: grid; grid-template-columns: 180px minmax(0, 1fr); gap: 20px; flex: 1 1 0; min-height: 0; overflow: hidden; padding: 16px 20px; }
+      .workbench .workbench-values { display: flex; flex-direction: column; justify-content: center; gap: 22px; min-width: 0; padding: 16px; border-radius: 8px; background: #f7f9fc; }
       .workbench .workbench-values:only-child { grid-column: 1 / -1; border-right: 0; }
       .workbench-value { display: grid; gap: 5px; min-width: 0; }
       .workbench-value > span { color: var(--muted); font-size: 12px; }
@@ -4918,8 +4918,11 @@
       .workbench .workbench-breakdown,
       .workbench .workbench-project-detail,
       .workbench .workbench-scroll { min-height: 0; min-width: 0; overflow: auto; overscroll-behavior: contain; scrollbar-gutter: stable; }
+      .workbench .workbench-breakdown { border: 1px solid var(--color-divider); border-radius: 8px; }
+      .workbench .workbench-breakdown tr:last-child td,
+      .workbench .workbench-breakdown tr:last-child th { border-bottom: 0; }
       .workbench [tabindex="0"]:focus-visible { outline: 2px solid var(--brand); outline-offset: -2px; }
-      .workbench .workbench-breakdown table { width: 100%; min-width: 0; table-layout: fixed; border-collapse: separate; border-spacing: 0; font-size: 13px; }
+      .workbench :where(.workbench-breakdown) table { width: 100%; min-width: 0; table-layout: fixed; border-collapse: separate; border-spacing: 0; font-size: 13px; }
       .workbench .workbench-breakdown th,
       .workbench .workbench-breakdown td { padding: 11px 12px; white-space: normal; overflow-wrap: anywhere; vertical-align: middle; }
       .workbench .workbench-breakdown th { position: sticky; top: 0; z-index: 1; background: #f7f9fb; font-size: 12px; font-weight: 500; color: var(--muted); }
@@ -4957,19 +4960,23 @@
       .workbench progress::-webkit-progress-bar { background: #edf1f5; border-radius: 4px; }
       .workbench progress::-webkit-progress-value { background: #658aa9; border-radius: 4px; }
       .workbench progress::-moz-progress-bar { background: #658aa9; border-radius: 4px; }
-      .workbench-bottom { display: grid; grid-template-columns: minmax(0, 1.18fr) minmax(0, 1fr); gap: 16px; min-width: 0; }
+      .workbench-bottom { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; min-width: 0; }
       .workbench-bottom > :only-child { grid-column: 1 / -1; }
       .workbench .workbench-scroll { flex: 1 1 0; padding: 16px 20px; }
       .workbench .workbench-project-body { display: flex; flex-direction: column; flex: 1 1 0; min-height: 0; padding: 14px 20px 18px; gap: 12px; overflow: hidden; }
-      .workbench .workbench-analysis-controls { display: flex; flex-wrap: wrap; gap: 10px; flex: 0 0 auto; }
-      .workbench .workbench-analysis-controls label { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--muted); min-width: 0; }
+      .workbench .workbench-analysis-controls { display: flex; align-items: end; flex-wrap: wrap; gap: 12px 16px; flex: 0 0 auto; }
+      .workbench .workbench-analysis-controls label { display: grid; gap: 6px; font-size: 12px; color: var(--muted); min-width: 0; max-width: 100%; }
       .workbench .workbench-analysis-controls select { width: auto; min-width: 102px; max-width: 100%; height: 32px; padding: 4px 26px 4px 10px; font-size: 12px; background-color: #f8fafc; }
+      .workbench .workbench-projects .workbench-analysis-controls label { flex: 1 1 120px; }
+      .workbench .workbench-projects .workbench-analysis-controls select,
+      .workbench .sales-overview-panel .workbench-analysis-controls select { width: 100%; min-width: 0; }
+      .workbench .sales-overview-panel .workbench-analysis-controls label { flex: 1 1 140px; }
       .workbench .workbench-project-visualization { display: flex; flex-direction: column; flex: 1 1 0; min-height: 0; }
-      .workbench .workbench-project-chart { display: grid; grid-template-columns: 180px minmax(0, 1fr); gap: 16px; flex: 1 1 0; min-height: 0; align-items: center; }
-      .workbench .workbench-donut { position: relative; width: 180px; height: 180px; }
+      .workbench .workbench-project-chart { display: grid; grid-template-columns: 160px minmax(0, 1fr); gap: 16px; flex: 1 1 0; min-height: 0; align-items: center; }
+      .workbench .workbench-donut { position: relative; width: 160px; height: 160px; }
       .workbench .workbench-chart-svg,
       .workbench .workbench-chart-svg svg { display: block; width: 100%; height: 100%; }
-      .workbench .workbench-donut-center { position: absolute; inset: 28px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 7px; text-align: center; color: var(--muted); font-size: 11px; }
+      .workbench .workbench-donut-center { position: absolute; inset: 24px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 7px; text-align: center; color: var(--muted); font-size: 11px; }
       .workbench .workbench-donut-center strong { color: var(--color-text-primary); font-size: 32px; font-weight: 600; font-variant-numeric: tabular-nums; line-height: 1.1; letter-spacing: -.5px; }
       .workbench .workbench-money strong { font-size: 17px; overflow-wrap: anywhere; max-width: 125px; }
       .workbench .workbench-donut-center small { font-size: 10px; }
@@ -4991,23 +4998,25 @@
       .workbench .list-row > .tag { flex-shrink: 0; }
       @media (max-width: 1200px) {
         .workbench-bottom { grid-template-columns: minmax(0, 1fr); }
-        .workbench .workbench-project-chart { grid-template-columns: 200px minmax(0, 1fr); gap: 24px; }
+        .workbench .workbench-project-chart { grid-template-columns: 160px minmax(0, 1fr); gap: 20px; }
       }
       @media (max-width: 600px) {
         .workbench .workbench-people,
         .workbench .workbench-tasks { height: 300px; }
         .workbench .workbench-card > .panel-head { padding: 12px; gap: 8px; }
-        .workbench .workbench-split { grid-template-columns: 92px minmax(0, 1fr); gap: 10px; padding: 12px; }
-        .workbench .workbench-values { padding-right: 10px; gap: 28px; }
+        .workbench .workbench-split { grid-template-columns: 104px minmax(0, 1fr); gap: 10px; padding: 12px; }
+        .workbench .workbench-values { padding: 10px; gap: 24px; }
         .workbench-value > span { font-size: 11px; }
-        .workbench-value > strong { font-size: 25px; }
+        .workbench-value > strong { font-size: 22px; }
         .workbench .workbench-breakdown th,
         .workbench .workbench-breakdown td { padding: 9px 4px; font-size: 11px; }
         .workbench .workbench-breakdown th:first-child { width: 46%; }
         .workbench-updated { font-size: 10px; }
         .workbench .workbench-project-body { padding: 12px; }
         .workbench .workbench-analysis-controls { gap: 6px; }
-        .workbench .workbench-analysis-controls label { width: 100%; justify-content: space-between; }
+        .workbench .workbench-analysis-controls label { width: 100%; }
+        .workbench .workbench-projects .workbench-analysis-controls label,
+        .workbench .sales-overview-panel .workbench-analysis-controls label { width: auto; flex: 1 1 120px; }
         .workbench .workbench-project-chart { grid-template-columns: 100px minmax(0, 1fr); gap: 8px; }
         .workbench .workbench-donut { width: 100px; height: 100px; }
         .workbench .workbench-donut-center { inset: 15px; gap: 3px; font-size: 9px; }
@@ -5032,10 +5041,10 @@
       #satisfactionFileInput { max-width: 100%; margin: 8px 0; }
 
       /* M01 / M12: each card owns its controls and visual boundary. */
-      .sales-workbench { display: grid; gap: 24px; min-width: 0; }
+      .workbench .sales-workbench { display: grid; gap: 20px; min-width: 0; }
       .sales-workbench > .panel { margin: 0; }
       .sales-workbench .panel { border-color: #dce3eb; border-radius: 10px; overflow: hidden; }
-      .sales-workbench .panel > .panel-head { min-height: 58px; padding: 14px 20px; background: #f8fafc; }
+      .workbench .sales-workbench .panel > .panel-head { min-height: 56px; padding: 12px 20px; background: #fff; }
       .sales-workbench .sales-period-head { justify-content: space-between; flex-wrap: wrap; gap: 12px 24px; }
       .sales-period-heading { flex: 0 0 auto; display: flex; align-items: baseline; gap: 12px; }
       .sales-period-controls { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
@@ -5044,12 +5053,13 @@
       .sales-period-actions { display: flex; gap: 8px; }
       .sales-period-actions > .btn { height: 34px; padding: 0 12px; }
       .sales-workbench .sales-metrics { grid-template-columns: repeat(4, minmax(0, 1fr)); border: 0; border-radius: 0; margin: 0; }
-      .sales-workbench .sales-metric { min-height: 116px; padding: 20px; gap: 12px; }
+      .workbench .sales-workbench .sales-metric { min-height: 104px; padding: 18px 20px; gap: 10px; }
       .sales-workbench .sales-metric .metric-label { min-height: 0; }
-      .sales-workbench .sales-metric .metric-value { margin-top: 0; font-size: 27px; line-height: 1.25; }
+      .workbench .sales-workbench .sales-metric .metric-value { margin-top: 0; font-size: 26px; line-height: 1.25; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
       .sales-workbench .sales-trend-panel { margin: 0; border-top: 1px solid var(--color-divider); }
-      .sales-workbench .sales-trend-panel > .panel-head { padding: 10px 20px; min-height: 50px; border-bottom: 0; }
-      .sales-workbench .sales-trend-panel .panel-title { font-size: 13px; }
+      .workbench .sales-workbench .sales-trend-panel > .panel-head { padding: 10px 20px; min-height: 50px; border-bottom: 0; flex-wrap: wrap; gap: 8px; justify-content: space-between; }
+      .workbench .sales-workbench .sales-trend-panel .panel-title { font-size: 13px; white-space: nowrap; }
+      .workbench .sales-trend-mode { flex-shrink: 0; white-space: nowrap; }
       .sales-trend-mode { display: flex; align-items: center; gap: 10px; font-size: 12px; color: var(--muted); }
       .sales-trend-legend { display: flex; align-items: center; flex-wrap: wrap; gap: 12px 24px; padding: 0 20px 4px; font-size: 12px; color: var(--color-text-secondary); }
       .sales-trend-legend > span { display: flex; align-items: center; gap: 6px; }
@@ -5060,10 +5070,22 @@
       .sales-trend-chart svg { display: block; width: 100%; min-width: 720px; height: auto; }
       .sales-trend-chart rect[tabindex]:focus-visible { outline: 1px solid var(--brand); outline-offset: -2px; }
       .sales-workbench .sales-primary-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .workbench .sales-period-panel > .sales-primary-metrics:not(.sales-secondary-metrics) { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+      .workbench .sales-period-panel > .sales-primary-metrics:not(.sales-secondary-metrics) .metric-value { font-size: 24px; }
+      .workbench .sales-period-controls .filter-field,
+      .workbench .sales-region-goal-controls .filter-field { display: grid; gap: 6px; }
+      .workbench .sales-period-controls { align-items: end; gap: 12px; }
+      .workbench .sales-period-controls .filter-field .input { height: 32px; }
+      .workbench .sales-period-actions > .btn,
+      .workbench .sales-region-goal-actions > .btn { height: 32px; padding: 0 12px; }
+      .workbench .sales-region-goal-controls { padding: 16px 20px; gap: 12px 16px; }
+      .workbench .sales-region-goal-controls .input { height: 32px; }
+      .workbench .sales-region-panel td:not(:first-child),
+      .workbench .sales-region-panel th:not(:first-child) { text-align: right; font-variant-numeric: tabular-nums; }
       .sales-workbench .sales-secondary-metrics { border-top: 1px solid var(--color-divider); }
       .sales-workbench .sales-secondary-metrics .sales-metric { min-height: 86px; padding: 14px 20px; gap: 8px; background: #f8fafc; }
       .sales-workbench .sales-secondary-metrics .metric-value { font-size: 20px; color: var(--color-text-secondary); }
-      .sales-workbench .sales-dashboard-grid { grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 24px; }
+      .workbench .sales-workbench .sales-dashboard-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; }
       .sales-overview-panel, .sales-region-panel { min-width: 0; height: 410px; display: flex; flex-direction: column; }
       .sales-overview-body { padding: 16px 20px 20px; display: flex; flex-direction: column; gap: 16px; flex: 1; min-height: 0; }
       #salesOverviewVisualization { flex: 1; min-height: 0; }
@@ -5078,25 +5100,29 @@
       .sales-workbench .table-wrap thead { position: sticky; top: 0; z-index: 1; }
       .sales-workbench .metric-label .workbench-help { vertical-align: middle; }
       @media (max-width: 1200px) {
-        .sales-workbench .sales-dashboard-grid { grid-template-columns: minmax(0, 1fr); }
+        .workbench .sales-workbench .sales-dashboard-grid { grid-template-columns: minmax(0, 1fr); }
       }
       @media (max-width: 900px) {
+        .workbench .sales-period-panel > .sales-primary-metrics:not(.sales-secondary-metrics) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
         .sales-workbench .sales-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
       }
       @media (max-width: 600px) {
-        .sales-workbench { gap: 18px; }
-        .sales-workbench .panel > .panel-head { padding: 12px; }
+        .workbench, .workbench .sales-workbench, .workbench-bottom { gap: 16px; }
+        .workbench .sales-period-panel > .sales-primary-metrics:not(.sales-secondary-metrics) { grid-template-columns: minmax(0, 1fr); }
+        .workbench .sales-workbench .panel > .panel-head { padding: 12px; }
+        .workbench .sales-region-goal-controls { padding: 12px; }
+        .workbench .sales-region-goal-controls .filter-field { flex-basis: 100%; }
         .sales-period-controls { width: 100%; }
         .sales-period-controls > .input { width: auto; flex: 1; min-width: 100px; }
         .sales-period-actions { margin-left: auto; }
         .sales-workbench .sales-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-        .sales-workbench .sales-metric { min-height: 110px; padding: 16px 12px; }
-        .sales-workbench .sales-metric .metric-value { font-size: 23px; }
+        .workbench .sales-workbench .sales-metric { min-height: 100px; padding: 16px 12px; }
+        .workbench .sales-workbench .sales-metric .metric-value { font-size: 22px; }
         .sales-workbench .sales-primary-metrics { grid-template-columns: minmax(0, 1fr); }
         .sales-workbench .sales-secondary-metrics .metric-value { font-size: 20px; }
         .sales-overview-panel { height: 470px; }
         .sales-overview-body { padding: 12px; }
-        .sales-workbench .workbench-analysis-controls select { max-width: 70%; }
+        .workbench .sales-workbench .workbench-analysis-controls select { max-width: 100%; }
         .sales-region-panel { height: 310px; }
       }
 
@@ -5197,6 +5223,61 @@
       .sales-period-controls .filter-field .sales-time-year { width: 96px; }
       .sales-region-goal-controls .filter-field:has(.sales-time-year), .sales-region-goal-controls .sales-time-unit { flex: 0 1 156px; }
       .sales-region-goal-controls .sales-time-year, .sales-region-goal-controls .sales-time-unit .input { min-width: 96px; }
+
+      /* M01 §6.22: fixed summary and filters, scrolling center breakdown. */
+      .workbench .workbench-new-people { height: 360px; }
+      .workbench .workbench-new-people .workbench-split { padding: 0; }
+      @media (max-width: 600px) {
+        .workbench .workbench-new-people { height: 430px; }
+      }
+
+      /* M01 §6.23: current task counts by type, with regional counts alongside. */
+      .workbench .workbench-tasks { height: 420px; }
+      .workbench .workbench-task-stats { grid-template-columns: minmax(280px, 1fr) minmax(0, 2.5fr); }
+      .workbench .workbench-task-stats th:first-child { width: auto; }
+      .workbench .workbench-task-stats .workbench-task-type { text-align: left; }
+      .workbench .workbench-task-detail { display: flex; flex-direction: column; gap: 12px; min-width: 0; min-height: 0; }
+      .workbench .workbench-task-controls { justify-content: flex-end; min-height: 32px; }
+      .workbench .workbench-task-controls label { display: flex; align-items: center; gap: 8px; }
+      .workbench .workbench-task-totals { margin-top: 44px; }
+      .workbench .workbench-task-centers { flex: 1 1 0; }
+      .workbench .workbench-task-matrix { width: max-content; min-width: 100%; table-layout: auto; }
+      .workbench .workbench-task-matrix th,
+      .workbench .workbench-task-matrix td { min-width: 120px; }
+      .workbench .workbench-task-matrix thead th { z-index: 3; text-align: center; white-space: nowrap; }
+      .workbench .workbench-task-matrix th:first-child { position: sticky; left: 0; min-width: 170px; max-width: 220px; text-align: left; white-space: nowrap; }
+      .workbench .workbench-task-matrix thead th:first-child { z-index: 4; }
+      .workbench .workbench-task-matrix tbody th { top: auto; z-index: 2; background: #fff; color: var(--text); font-size: 13px; }
+      .workbench-task-cell { display: grid; gap: 6px; font-variant-numeric: tabular-nums; }
+      .workbench-task-cell > span { display: flex; justify-content: space-between; gap: 16px; }
+      .workbench-task-cell > span > span { font-size: 12px; color: var(--muted); white-space: nowrap; }
+      .workbench-task-cell strong { font-size: 15px; font-weight: 600; }
+      .workbench-task-overdue { color: var(--red); }
+      .workbench-task-zero { color: #9ca3af; }
+      .workbench .workbench-time-controls label { flex: 0 1 220px; }
+      .workbench .workbench-time-controls input { width: 220px; max-width: 100%; min-width: 0; height: 32px; padding: 4px 8px; font-size: 12px; }
+      @media (max-width: 600px) {
+        .workbench .workbench-tasks { height: 680px; }
+        .workbench .workbench-task-stats { grid-template-columns: minmax(0, 1fr); grid-template-rows: 240px minmax(0, 1fr); }
+        .workbench .workbench-task-totals { margin-top: 0; }
+        .workbench .workbench-time-controls input { flex: 0 1 220px; }
+      }
+
+      .workbench .workbench-stat-result { display: flex; flex-direction: column; flex: 1 1 0; min-height: 0; }
+
+      /* M01 §6.22: PM new-contact total lives inside the existing overview. */
+      .workbench .workbench-pm-people { height: 460px; }
+      .workbench .workbench-pm-people > .workbench-split { flex: 0 0 200px; }
+      .workbench .workbench-pm-new-people { display: flex; flex-direction: column; flex: 1 1 0; min-height: 0; border-top: 1px solid var(--color-divider); }
+      .workbench .workbench-pm-new-people > .panel-title { padding: 12px 20px 0; font-size: 14px; }
+      .workbench .workbench-pm-new-people .workbench-project-body { padding-top: 12px; padding-bottom: 12px; gap: 10px; }
+      .workbench .workbench-pm-new-people .workbench-stat-result { overflow: auto; overscroll-behavior: contain; }
+      .workbench .workbench-pm-new-summary { display: flex; align-items: center; gap: 20px; flex: 0 0 auto; }
+      @media (max-width: 600px) {
+        .workbench .workbench-pm-people { height: 540px; }
+        .workbench .workbench-pm-people > .workbench-split { flex-basis: 220px; }
+        .workbench .workbench-pm-new-people > .panel-title { padding-left: 12px; }
+      }
     </style>
   </head>
   <body>
@@ -12549,14 +12630,14 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
       // M01 §4.4.1: native hints stay readable outside scrolling cards.
       function dashboardFieldHelp(key, label) {
         const descriptions = {
+          "newPeople": "所选时间范围内首次建档、当前仍有效且有权查看的关键人数；调岗、恢复不重复新增，按当前客户所属中心统计。",
+          "taskPending": "当前有权执行记录中，本类处于待执行或暂停的数量；不限截止日期，包含尚未到期任务，不含覆盖KPI。",
+          "taskOverdue": "当前有权执行记录中，本类当前仍逾期的数量；与待办互斥，不含已过期未完成或已补完成。",
           "people": "当前可见范围内，状态正常、当前任职有效，且所属客户和集团均正常的关键人数。",
           "coverage": "至少有 1 名有效关键人的正常客户单位数 ÷ 正常客户单位总数 × 100%。同一客户有多名关键人也只计 1 家；无正常客户时显示 --。",
           "groupPeople": "本行区域或 PM 当前负责客户中的有效关键人数；关键人正常、当前任职有效，且所属客户和集团均正常。",
           "groupCoverage": "本行至少有 1 名有效关键人的正常客户单位数 ÷ 本行正常客户单位总数 × 100%。无正常客户时显示 --；总体按客户数重新汇总，不平均各行百分比。",
           "uncovered": "本人当前负责范围内，有效关键人数为 0 的正常客户公司。",
-          "pending": "当前可见范围内，处于待执行或暂停中的常规维系任务执行记录数。",
-          "overdue": "当前可见范围内，处于当前逾期的常规维系任务执行记录数；暂停中的任务不计入。",
-          "campaign": "本专项当前可见的已完成有效执行项数 ÷ 全部有效执行项数 × 100%。包含未到期和已过期未完成项，排除已取消、已关闭项；无有效执行项时显示 --。覆盖 KPI 按责任人执行项计数。",
           "projectCount": "当前筛选后有权查看的项目数量，包含已取消和已中止项目。",
           "projectAmount": "当前筛选后有权查看的项目已保存含税金额之和，包含已取消和已中止项目；不代表实际收入或应收金额。",
           "projectSettlementAmount": "当前筛选后有权查看的项目结账金额之和；已中止且涉及结算取填写的应结算金额，无结算记录不参与求和。不代表实收金额。",
@@ -13078,7 +13159,6 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
       });
 
       let dashboardCoverageOrder = "asc";
-      let dashboardCampaignOrder = "asc";
       let dashboardSortOwner = "";
 
       function dashboardRateCompare(a, b, order) {
@@ -13089,7 +13169,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
 
       function dashboardSortHeader(key, label, order) {
         const ascending = order === "asc";
-        return `<th aria-sort="${ascending ? "ascending" : "descending"}"><button class="workbench-sort" type="button" data-workbench-sort="${key}" aria-label="${label}，当前${ascending ? "低到高" : "高到低"}，点击切换${ascending ? "高到低" : "低到高"}">${label}<span aria-hidden="true">${ascending ? "↑" : "↓"}</span></button>${dashboardFieldHelp(key === "coverage" ? "groupCoverage" : "campaign", label)}</th>`;
+        return `<th aria-sort="${ascending ? "ascending" : "descending"}"><button class="workbench-sort" type="button" data-workbench-sort="${key}" aria-label="${label}，当前${ascending ? "低到高" : "高到低"}，点击切换${ascending ? "高到低" : "低到高"}">${label}<span aria-hidden="true">${ascending ? "↑" : "↓"}</span></button>${dashboardFieldHelp("groupCoverage", label)}</th>`;
       }
 
       function handleWorkbenchSort(target) {
@@ -13101,11 +13181,6 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
           const { companies, people } = dashboardBusinessRows();
           const host = document.querySelector("#workbenchCoverageList");
           if (host) host.outerHTML = dashboardCoverageTable(companies, people);
-        } else if (key === "campaign") {
-          if (!hasPermission("tasks") || !hasDataObject("维系任务")) return;
-          dashboardCampaignOrder = dashboardCampaignOrder === "asc" ? "desc" : "asc";
-          const host = document.querySelector("#workbenchCampaignList");
-          if (host) host.outerHTML = dashboardCampaignTable(dashboardBusinessRows().rows);
         } else return;
         document.querySelector(`[data-workbench-sort="${key}"]`)?.focus?.({ preventScroll: true });
       }
@@ -13149,20 +13224,6 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
         const levels = ["president", "vp", "director"].includes(currentUser.role) ? Object.keys(contactLevelLabels) : [];
         const levelHeaders = levels.map((level) => '<th>' + escapeDashboardHtml(level) + '</th>').join('');
         return '<div class="workbench-breakdown' + (levels.length ? ' workbench-level-breakdown' : '') + '" id="workbenchCoverageList" tabindex="0" role="region" aria-label="关键人覆盖明细"><table><thead><tr><th>' + (currentUser.role === "director" ? 'PM' : '区域运营中心') + '</th><th>关键人' + dashboardFieldHelp('groupPeople', '关键人') + '</th>' + levelHeaders + dashboardSortHeader('coverage', '覆盖率', dashboardCoverageOrder) + '</tr></thead><tbody>' + groups.map((item) => '<tr><td>' + escapeDashboardHtml(item.label) + '</td><td>' + item.people + '</td>' + levels.map((level) => '<td>' + item.levelCounts[level] + '</td>').join('') + '<td>' + dashboardPercent(item.rate) + '</td></tr>').join('') + '</tbody></table>' + (groups.length ? '' : '<div class="empty">暂无PM客户覆盖数据</div>') + '</div>';
-      }
-
-      function dashboardCampaignProgress(rows) {
-        return campaigns.filter((campaign) => ["专项维系", "关键人覆盖 KPI"].includes(campaign.category) && taskThemeStatus(campaign) === "进行中" && rows.some((task) => task.campaignId === campaign.id))
-          .map((campaign) => {
-            const valid = rows.filter((task) => task.campaignId === campaign.id && ["pending", "paused", "overdue", "expired", "done"].includes(task.status));
-            const done = valid.filter((task) => task.status === "done").length;
-            return { id: campaign.id, createdAt: campaign.createdAt, name: campaign.name, state: taskThemeStatus(campaign), done, total: valid.length, rate: valid.length ? done / valid.length * 100 : null };
-          }).sort((a, b) => dashboardRateCompare(a, b, dashboardCampaignOrder) || b.createdAt.localeCompare(a.createdAt) || String(b.id).localeCompare(String(a.id), "en", { numeric: true }));
-      }
-
-      function dashboardCampaignTable(rows) {
-        const progress = dashboardCampaignProgress(rows);
-        return '<div class="workbench-breakdown" id="workbenchCampaignList" tabindex="0" role="region" aria-label="专项任务进度"><table><thead><tr><th>专项任务</th><th>状态</th>' + dashboardSortHeader('campaign', '完成进度', dashboardCampaignOrder) + '</tr></thead><tbody>' + progress.map((item) => '<tr><td>' + escapeDashboardHtml(item.name) + '</td><td>' + escapeDashboardHtml(item.state) + '</td><td><div class="workbench-progress"><strong>' + dashboardPercent(item.rate) + '</strong><progress max="100" value="' + (item.rate || 0) + '" aria-label="' + escapeDashboardHtml(item.name) + '完成进度"></progress></div></td></tr>').join('') + '</tbody></table>' + (progress.length ? '' : '<div class="empty">暂无专项任务</div>') + '</div>';
       }
 
       function dashboardOverviewValue(label, value, key, suffix = "") {
@@ -13216,8 +13277,220 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
         const target = event.target?.closest?.("[data-workbench-todo-page]");
         if (target) handleWorkbenchTodoAction(null, target.dataset.workbenchTodoPage);
       });
+      // M01 §6.22: contacts retain their time range, using the shared Demo day.
+      function dashboardRecentTimeRange(today = DEMO_TODAY) {
+        return { start: `${addDays(today, -6)}T00:00:00`, end: `${today}T23:59:59` };
+      }
+
+      function dashboardStatTimestamp(value, dateAtEnd = false) {
+        if (typeof value !== "string") return NaN;
+        const match = /^(\d{4})-(\d{2})-(\d{2})(?:[ T](\d{2}):(\d{2})(?::(\d{2})(?:\.\d+)?)?(Z|[+-]\d{2}:\d{2})?)?$/.exec(value);
+        if (!match) return NaN;
+        const [, year, month, day, hour = dateAtEnd ? "23" : "00", minute = dateAtEnd ? "59" : "00", second = match[4] ? "00" : dateAtEnd ? "59" : "00", zone = "+08:00"] = match;
+        const date = `${year}-${month}-${day}`, calendar = new Date(`${date}T00:00:00Z`);
+        if (!Number.isFinite(calendar.valueOf()) || calendar.toISOString().slice(0, 10) !== date || Number(hour) > 23 || Number(minute) > 59 || Number(second) > 59) return NaN;
+        return new Date(`${date}T${hour}:${minute}:${second}${zone}`).valueOf();
+      }
+
+      function dashboardStatRange(start, end) {
+        const isInputTime = (value) => typeof value === "string" && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2})?$/.test(value);
+        const first = isInputTime(start) ? dashboardStatTimestamp(start) : NaN;
+        const last = isInputTime(end) ? dashboardStatTimestamp(end) : NaN;
+        return Number.isFinite(first) && Number.isFinite(last) && first <= last ? { start: first, end: last } : null;
+      }
+
+      function dashboardStatTimeError(start, end) {
+        if (dashboardStatRange(start, end)) return "";
+        return dashboardStatRange(start, start) && dashboardStatRange(end, end)
+          ? "开始时间不能晚于结束时间" : "请选择有效的开始时间和结束时间";
+      }
+
+      function dashboardStatActor() {
+        return JSON.stringify([currentUser?.username, currentUser?.employeeCode, currentUser?.role, currentRoleTemplateNames(), adminDashboardView]);
+      }
+
+      function dashboardStatsAllowed(object) {
+        if (!currentUser || currentUser.disabled || !accounts.includes(currentUser) || !canAccessPage("dashboard") ||
+          ["hr", "support"].includes(currentUser.role) || (currentUser.role === "admin" && adminDashboardView !== "business") ||
+          !hasDataObject(object) || !["company", "market", "regions", "cities"].includes(currentScopeType())) return false;
+        const employee = employees.find((item) => item.code === currentUser.employeeCode);
+        return Boolean(employee && employee.status === "在职" && employee.accountStatus !== "停用");
+      }
+      const dashboardNewContactsAllowed = () => dashboardStatsAllowed("关键人") && hasDataObject("客户单位");
+      const dashboardTaskStatsAllowed = () => dashboardStatsAllowed("维系任务") && hasPermission("tasks");
+
+      function dashboardStatCenters(companies, allowed) {
+        if (!allowed) return [];
+        const scope = currentScopeType();
+        const eligible = scope === "regions" ? new Set(dashboardManagedRegions().map((region) => region.id)) :
+          scope === "cities" ? new Set(companies.map((company) => regionForCompany(company)?.id)) : null;
+        const seen = new Set();
+        return organizationDepartments.filter((department) => department.type === "region" && department.status === "启用")
+          .slice().sort((a, b) => a.sort - b.sort || a.name.localeCompare(b.name, "zh-CN") || String(a.id).localeCompare(String(b.id)))
+          .map((department) => regionsData.find((region) => region.id === department.regionId))
+          .filter((region) => region && (!eligible || eligible.has(region.id)) && !seen.has(region.id) && seen.add(region.id));
+      }
+      const dashboardNewContactCenters = () => dashboardStatCenters(dashboardBusinessRows().companies, dashboardNewContactsAllowed());
+
+      function dashboardStatCenterOptions(centerId, centers) {
+        const scope = currentScopeType(), overall = scope === "regions" ? "全部主管中心" : scope === "cities" ? "本人负责范围" : "公司整体";
+        const valid = !centerId || centers.some((center) => String(center.id) === centerId);
+        return `${valid ? "" : '<option value="" selected disabled>请重新选择运营中心</option>'}<option value="" ${!centerId ? "selected" : ""}>${overall}</option>${centers.map((center) => `<option value="${escapeDashboardHtml(center.id)}" ${String(center.id) === centerId ? "selected" : ""}>${escapeDashboardHtml(center.name)}</option>`).join("")}`;
+      }
+
+      function dashboardStatControls(prefix, start, end, centerId, centers) {
+        return `<div class="workbench-analysis-controls workbench-time-controls"><label for="${prefix}Start">开始时间<input class="input" id="${prefix}Start" type="datetime-local" step="1" value="${escapeDashboardHtml(start)}"></label><label for="${prefix}End">结束时间<input class="input" id="${prefix}End" type="datetime-local" step="1" value="${escapeDashboardHtml(end)}"></label>${centers ? `<label for="${prefix}Center">运营中心<select class="input" id="${prefix}Center">${dashboardStatCenterOptions(centerId, centers)}</select></label>` : ""}</div>`;
+      }
+
+      let dashboardNewContactStart = dashboardRecentTimeRange().start;
+      let dashboardNewContactEnd = dashboardRecentTimeRange().end;
+      let dashboardNewContactCenter = "";
+      let dashboardNewContactOwner = "";
+
+      function resetDashboardContactRange() {
+        ({ start: dashboardNewContactStart, end: dashboardNewContactEnd } = dashboardRecentTimeRange());
+        dashboardNewContactCenter = "";
+        dashboardNewContactOwner = dashboardStatActor();
+      }
+      function dashboardNewContactsAnalysis(start = dashboardNewContactStart, end = dashboardNewContactEnd, centerId = dashboardNewContactCenter) {
+        if (!dashboardNewContactsAllowed() || (currentUser.role === "pm" && centerId)) return null;
+        const range = dashboardStatRange(start, end);
+        if (!range) return null;
+        const { companies, people } = dashboardBusinessRows(), centers = currentUser.role === "pm" ? [] : dashboardStatCenters(companies, true);
+        const selected = centerId ? centers.find((region) => String(region.id) === centerId) : null;
+        if (centerId && !selected) return null;
+        const companyByName = new Map(companies.filter((company) => !customerOrgArchivedGroup(company.group)).map((company) => [company.name, company]));
+        const seen = new Set();
+        const created = people.filter((person) => {
+          const company = companyByName.get(person.company), stamp = dashboardStatTimestamp(person.createdAt);
+          if (!company || !contactIsActive(person) || (person.effectiveDate && person.effectiveDate > DEMO_TODAY) ||
+            !Number.isFinite(stamp) || stamp < range.start || stamp > range.end || person.id == null || seen.has(String(person.id))) return false;
+          seen.add(String(person.id));
+          return !selected || regionForCompany(company)?.id === selected.id;
+        });
+        return { total: created.length, groups: (selected ? [selected] : centers).map((region) => ({
+          id: region.id, name: region.name, count: created.filter((person) => regionForCompany(companyByName.get(person.company))?.id === region.id).length,
+        })) };
+      }
+
+      function dashboardNewContactsResult() {
+        if (!dashboardNewContactsAllowed()) return "";
+        const error = dashboardStatTimeError(dashboardNewContactStart, dashboardNewContactEnd);
+        if (error) return `<div class="empty" role="alert">${error}</div>`;
+        const analysis = dashboardNewContactsAnalysis();
+        if (!analysis) return '<div class="empty">关键人新增数据暂不可用</div>';
+        if (currentUser.role === "pm") return `<div class="workbench-pm-new-summary">${dashboardOverviewValue("新增关键人", analysis.total, "newPeople", "人")}${analysis.total ? "" : '<div class="workbench-empty-note">暂无新增关键人</div>'}</div>`;
+        return `<div class="workbench-split"><div class="workbench-values">${dashboardOverviewValue("新增关键人", analysis.total, "newPeople", "人")}</div><div class="workbench-breakdown" tabindex="0" role="region" aria-label="关键人新增运营中心明细"><table><thead><tr><th>区域运营中心</th><th>新增人数（人）</th></tr></thead><tbody>${analysis.groups.map((group) => `<tr><td>${escapeDashboardHtml(group.name)}</td><td>${group.count}</td></tr>`).join("")}</tbody></table>${analysis.total ? "" : '<div class="empty">暂无新增关键人</div>'}</div></div>`;
+      }
+
+      function dashboardNewContactsBody() {
+        if (!dashboardNewContactsAllowed()) return "";
+        return dashboardStatControls("workbenchNewContact", dashboardNewContactStart, dashboardNewContactEnd, dashboardNewContactCenter, currentUser.role === "pm" ? null : dashboardNewContactCenters()) +
+          `<div class="workbench-stat-result" id="workbenchNewContactsResult">${dashboardNewContactsResult()}</div>`;
+      }
+
+      function dashboardNewContactsCard() {
+        if (!dashboardNewContactsAllowed()) return "";
+        if (currentUser.role === "pm") return `<div class="workbench-pm-new-people"><div class="panel-title" id="workbenchNewContactsTitle">关键人新增详情</div><div class="workbench-project-body" id="workbenchNewContactsBody" role="region" aria-labelledby="workbenchNewContactsTitle">${dashboardNewContactsBody()}</div></div>`;
+        return `<section class="panel workbench-card workbench-new-people"><div class="panel-head"><div class="panel-title" id="workbenchNewContactsTitle">关键人新增详情</div></div><div class="workbench-project-body" id="workbenchNewContactsBody" role="region" aria-labelledby="workbenchNewContactsTitle">${dashboardNewContactsBody()}</div></section>`;
+      }
+
+      const DASHBOARD_TASK_TYPES = ["常规维系", "生日关怀", "节假日关怀", "专项维系"];
+      function dashboardTaskStatsAnalysis() {
+        if (!dashboardTaskStatsAllowed()) return null;
+        const { companies, rows } = dashboardBusinessRows(), centers = dashboardStatCenters(companies, true);
+        const seen = new Set();
+        const included = rows.filter((task) => {
+          if (!DASHBOARD_TASK_TYPES.includes(task.type) || !["pending", "paused", "overdue"].includes(task.status) ||
+            task.id == null || seen.has(String(task.id))) return false;
+          seen.add(String(task.id));
+          return true;
+        });
+        const numbers = (items) => ({ pending: items.filter((task) => ["pending", "paused"].includes(task.status)).length,
+          overdue: items.filter((task) => task.status === "overdue").length });
+        const types = (items) => DASHBOARD_TASK_TYPES.map((type) => ({ type, ...numbers(items.filter((task) => task.type === type)) }));
+        return { ...numbers(included), types: types(included), groups: centers.map((region) => ({
+          id: region.id, name: region.name, types: types(included.filter((task) => regionForName(task.region)?.id === region.id)),
+        })) };
+      }
+
+      let dashboardTaskView = "region";
+      let dashboardTaskViewOwner = "";
+      function resetDashboardTaskView() {
+        dashboardTaskView = "region";
+        dashboardTaskViewOwner = dashboardStatActor();
+      }
+
+      function dashboardTaskMatrix(analysis) {
+        const byTask = dashboardTaskView === "task";
+        const cell = (item, group) => `<td data-task-center="${escapeDashboardHtml(group.id)}" data-task-type="${escapeDashboardHtml(item.type)}"><div class="workbench-task-cell"><span><span>待办</span><strong class="${item.pending ? "" : "workbench-task-zero"}">${item.pending}</strong></span><span><span>逾期</span><strong class="${item.overdue ? "workbench-task-overdue" : "workbench-task-zero"}">${item.overdue}</strong></span></div></td>`;
+        const columns = byTask ? analysis.groups.map((group) => group.name) : analysis.types.map((item) => item.type);
+        const rows = byTask ? analysis.types.map((item, index) => `<tr><th scope="row">${escapeDashboardHtml(item.type)}</th>${analysis.groups.map((group) => cell(group.types[index], group)).join("")}</tr>`).join("") :
+          analysis.groups.map((group) => `<tr><th scope="row">${escapeDashboardHtml(group.name)}</th>${group.types.map((item) => cell(item, group)).join("")}</tr>`).join("");
+        return `<table class="workbench-task-matrix" aria-label="任务数量（条）"><thead><tr><th scope="col">${byTask ? "任务类型" : "大区"}</th>${columns.map((label) => `<th scope="col">${escapeDashboardHtml(label)}</th>`).join("")}</tr></thead><tbody>${rows}</tbody></table>${analysis.pending || analysis.overdue ? "" : '<div class="empty">暂无任务</div>'}`;
+      }
+
+      function dashboardTaskStatsBody() {
+        if (!dashboardTaskStatsAllowed()) return "";
+        const analysis = dashboardTaskStatsAnalysis();
+        if (!analysis) return '<div class="empty">任务统计数据暂不可用</div>';
+        const headers = `<th>待办任务数（条）${dashboardFieldHelp("taskPending", "待办任务数")}</th><th>当前逾期数（条）${dashboardFieldHelp("taskOverdue", "当前逾期数")}</th>`;
+        const cells = (item) => `<td class="workbench-task-type">${escapeDashboardHtml(item.type)}</td><td>${item.pending}</td><td>${item.overdue}</td>`;
+        const controls = `<div class="workbench-analysis-controls workbench-task-controls"><label for="workbenchTaskView">查看维度<select class="input" id="workbenchTaskView"><option value="region" ${dashboardTaskView === "region" ? "selected" : ""}>区域运营中心</option><option value="task" ${dashboardTaskView === "task" ? "selected" : ""}>任务</option></select></label></div>`;
+        return `<div class="workbench-split workbench-task-stats" id="workbenchTaskStatsBody"><div class="workbench-breakdown workbench-task-totals" tabindex="0" role="region" aria-label="任务分类数量"><table><thead><tr><th>任务类型</th>${headers}</tr></thead><tbody>${analysis.types.map((item) => `<tr>${cells(item)}</tr>`).join("")}</tbody></table></div><div class="workbench-task-detail">${controls}<div class="workbench-breakdown workbench-task-centers" id="workbenchTaskCenters" tabindex="0" role="region" aria-label="运营中心任务分类数量">${dashboardTaskMatrix(analysis)}</div></div></div>`;
+      }
+
+      function handleDashboardTaskView(value) {
+        if (currentPage !== "dashboard") return;
+        const body = $("#workbenchTaskStatsBody");
+        if (!dashboardTaskStatsAllowed()) {
+          if (body) { body.innerHTML = ""; body.closest(".workbench-tasks")?.remove(); }
+          return;
+        }
+        if (dashboardTaskViewOwner !== dashboardStatActor()) resetDashboardTaskView();
+        else if (["region", "task"].includes(value)) dashboardTaskView = value;
+        else return;
+        if (body) body.outerHTML = dashboardTaskStatsBody();
+        $("#workbenchTaskView")?.focus?.({ preventScroll: true });
+      }
+      document.addEventListener("change", (event) => {
+        if (event.target?.id === "workbenchTaskView" && event.target === $("#workbenchTaskView")) handleDashboardTaskView(event.target.value);
+      });
+
+      function dashboardTaskStatsCard() {
+        return dashboardTaskStatsAllowed() ? `<section class="panel workbench-card workbench-tasks"><div class="panel-head"><div class="panel-title" id="workbenchTasksTitle">任务概况</div></div>${dashboardTaskStatsBody()}</section>` : "";
+      }
+
+      function handleDashboardNewContactsFilter(field, value) {
+        if (currentPage !== "dashboard") return;
+        const body = $("#workbenchNewContactsBody");
+        if (!dashboardNewContactsAllowed()) {
+          if (body) { body.innerHTML = ""; (body.closest(".workbench-pm-new-people") || body.closest(".workbench-new-people"))?.remove(); }
+          return;
+        }
+        if (dashboardNewContactOwner !== dashboardStatActor()) {
+          resetDashboardContactRange();
+          if (body) body.innerHTML = dashboardNewContactsBody();
+          return;
+        }
+        if (currentUser.role === "pm" && field === "center") return;
+        if (field === "start") dashboardNewContactStart = value;
+        else if (field === "end") dashboardNewContactEnd = value;
+        else if (field === "center") dashboardNewContactCenter = value;
+        const center = $("#workbenchNewContactCenter"), result = $("#workbenchNewContactsResult");
+        if (center) center.innerHTML = dashboardStatCenterOptions(dashboardNewContactCenter, dashboardNewContactCenters());
+        if (result) result.innerHTML = dashboardNewContactsResult();
+      }
+
+      document.addEventListener("change", (event) => {
+        const field = { workbenchNewContactStart: "start", workbenchNewContactEnd: "end", workbenchNewContactCenter: "center" }[event.target?.id];
+        if (field && event.target === $(`#${event.target.id}`)) handleDashboardNewContactsFilter(field, event.target.value);
+      });
+
       function renderDashboard() {
         if (!currentUser || !canAccessPage("dashboard") || ["hr", "support"].includes(currentUser.role)) return "";
+        if (lastRenderedPage !== "dashboard" || dashboardNewContactOwner !== dashboardStatActor()) resetDashboardContactRange();
+        if (lastRenderedPage !== "dashboard" || dashboardTaskViewOwner !== dashboardStatActor()) resetDashboardTaskView();
         const invalidMeasure = !dashboardProjectMeasureOptions().some(([value]) => value === dashboardProjectMeasure);
         const sortOwner = `${currentUser.employeeCode || currentUser.phone || currentUser.name}:${currentUser.role}`;
         if (lastRenderedPage !== "dashboard" || dashboardSortOwner !== sortOwner) {
@@ -13225,7 +13498,6 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
           dashboardProjectFilter = "";
           dashboardProjectMeasure = "count";
           dashboardCoverageOrder = "asc";
-          dashboardCampaignOrder = "asc";
           dashboardTodoCategory = "all";
           dashboardTodoPage = 1;
           dashboardSortOwner = sortOwner;
@@ -13235,20 +13507,16 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
         if (invalidMeasure) dashboardProjectMeasure = "amount";
         if (currentUser.role === "admin" && adminDashboardView === "system")
           return renderAdminDashboard();
-        const { companies, people, rows } = dashboardBusinessRows();
+        const { companies, people } = dashboardBusinessRows();
         const coverage = dashboardCoverageRate(companies, people);
-        const regular = rows.filter((task) => task.type === "常规维系");
-        const pending = regular.filter((task) => ["pending", "paused"].includes(task.status)).length;
-        const overdue = regular.filter((task) => task.status === "overdue").length;
         const canSeePeople = hasDataObject("客户单位") && hasDataObject("关键人");
-        const canSeeTasks = hasPermission("tasks") && hasDataObject("维系任务");
-        const peopleCard = canSeePeople ? `<section class="panel workbench-card workbench-people"><div class="panel-head"><div class="panel-title" id="workbenchPeopleTitle">关键人概况</div><div class="spacer"></div><span class="workbench-updated">更新于 ${escapeDashboardHtml(DEMO_TODAY)}</span></div><div class="workbench-split" role="region" aria-labelledby="workbenchPeopleTitle"><div class="workbench-values">${dashboardOverviewValue("有效关键人", people.length, "people", "人")}${dashboardOverviewValue("关键人覆盖率", dashboardPercent(coverage), "coverage")}${coverage == null ? '<div class="workbench-empty-note">暂无客户单位</div>' : ""}</div>${dashboardCoverageTable(companies, people)}</div></section>` : "";
-        const taskCard = canSeeTasks ? `<section class="panel workbench-card workbench-tasks"><div class="panel-head"><div class="panel-title" id="workbenchTasksTitle">任务概况</div></div><div class="workbench-split" role="region" aria-labelledby="workbenchTasksTitle"><div class="workbench-values">${dashboardOverviewValue("常规任务待完成", pending, "pending", "项")}${dashboardOverviewValue("常规任务逾期", overdue, "overdue", "项")}</div>${dashboardCampaignTable(rows)}</div></section>` : "";
+        const peopleCard = canSeePeople ? `<section class="panel workbench-card workbench-people${currentUser.role === "pm" ? " workbench-pm-people" : ""}"><div class="panel-head"><div class="panel-title" id="workbenchPeopleTitle">关键人概况</div><div class="spacer"></div><span class="workbench-updated">更新于 ${escapeDashboardHtml(DEMO_TODAY)}</span></div><div class="workbench-split" role="region" aria-labelledby="workbenchPeopleTitle"><div class="workbench-values">${dashboardOverviewValue("有效关键人", people.length, "people", "人")}${dashboardOverviewValue("关键人覆盖率", dashboardPercent(coverage), "coverage")}${coverage == null ? '<div class="workbench-empty-note">暂无客户单位</div>' : ""}</div>${dashboardCoverageTable(companies, people)}</div>${currentUser.role === "pm" ? dashboardNewContactsCard() : ""}</section>` : "";
+        const taskCard = dashboardTaskStatsCard();
         const projectCard = hasPermission("projects") ? `<section class="panel workbench-card workbench-projects"><div class="panel-head"><div class="panel-title" id="workbenchProjectsTitle">项目概况</div></div><div class="workbench-project-body" role="region" aria-labelledby="workbenchProjectsTitle">${dashboardProjectControls()}<div class="workbench-project-visualization" id="workbenchProjectVisualization">${dashboardProjectChart(dashboardProjectSummary())}</div></div></section>` : "";
         const todoCard = `<section class="panel workbench-card workbench-todos"><div class="panel-head"><div class="panel-title" id="workbenchTodosTitle">我的待办</div></div>${dashboardTodosBody()}</section>`;
         return pageHead("工作台", currentUser.role === "ecology" ? "查看项目概况，安排项目待办。" : "查看关键人、任务、销售与项目概况，安排待办事项。",
           currentUser.role === "admin" ? '<button class="btn" type="button" data-admin-dashboard-view="system">系统运行</button>' : "") +
-          `<div class="workbench">${peopleCard}${taskCard}${renderWorkbenchSales()}<div class="workbench-bottom">${projectCard}${todoCard}</div></div>`;
+          `<div class="workbench">${peopleCard}${currentUser.role === "pm" ? "" : dashboardNewContactsCard()}${taskCard}${renderWorkbenchSales()}<div class="workbench-bottom">${projectCard}${todoCard}</div></div>`;
       }
 
       function renderAdminDashboard() {
@@ -18151,6 +18419,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
 
       function salesStatisticsHelp(key, label) {
         const descriptions = {
+          overviewScope: "培训商机不包含平台师资合作商机，两者独立统计。“全部类型”按当前权限统计：公司范围的“全部运营中心”包含平台师资合作商机；指定运营中心及PM、区域总监的地区范围不包含。",
           target: "当前有权范围所选周期的成交金额目标（含税，万元）；按各层已分配的年、季、月目标读取，未分配时不计算完成率。",
           created: "创建日期在所选周期内的商机数量，后来落选仍计入该周期。",
           difference: "周期成交金额－目标金额（含税，万元）；正数超额，负数尚差；金额不可用或目标未分配时不计算。",
@@ -18507,7 +18776,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
         const currentCard = `<section class="panel sales-snapshot-panel" aria-labelledby="salesSnapshotTitle"><div class="panel-head"><div class="panel-title" id="salesSnapshotTitle">${president ? "当前商机推进" : "当前销售快照"}</div></div><div class="metrics sales-metrics${president ? " sales-primary-metrics" : ""}">${currentMetrics.join("")}</div></section>`;
         const periodCard = `<section class="panel sales-period-panel" aria-labelledby="salesPeriodTitle"><div class="panel-head sales-period-head"><div class="sales-period-heading"><div class="panel-title" id="salesPeriodTitle">${role === "director" ? "区域周期销售" : role === "pm" ? "我的周期销售" : "周期销售"}</div><div class="panel-sub">${escapeHtml(appliedPeriodLabel)}</div></div>${salesPeriodFilter()}</div><div class="metrics sales-metrics sales-primary-metrics">${periodMetrics.join("")}</div>${trend}${president ? `<div class="metrics sales-metrics sales-secondary-metrics sales-primary-metrics">${salesDashboardMetric("周期新建商机", periodRows.length, "created")}${salesDashboardMetric("周期中选商机", won.length, "periodWon")}</div>` : ""}${salesWorkbenchPersonalSection()}</section>`;
         return `<section class="sales-workbench" aria-label="销售概况">${president ? currentCard + periodCard : periodCard + currentCard}` +
-          `<div class="sales-dashboard-grid"><section class="panel sales-overview-panel"><div class="panel-head"><div class="panel-title">商机概况</div></div><div class="sales-overview-body">${salesOverviewControls()}<div id="salesOverviewVisualization">${salesOverviewChart()}</div></div></section>` +
+          `<div class="sales-dashboard-grid"><section class="panel sales-overview-panel"><div class="panel-head"><div class="panel-title">商机概况${salesStatisticsHelp("overviewScope", "商机概况")}</div></div><div class="sales-overview-body">${salesOverviewControls()}<div id="salesOverviewVisualization">${salesOverviewChart()}</div></div></section>` +
           (salesRegionTargetsAllowed() ? salesRegionGoalCard() : role === "pm" ? "" : `<section class="panel sales-region-panel"><div class="panel-head"><div class="panel-title">当前区域对比</div></div><div class="table-wrap" tabindex="0" role="region" aria-label="当前区域对比"><table><thead><tr><th>运营中心</th><th>活跃商机${salesStatisticsHelp("regionActive", "活跃商机")}</th><th>活跃金额（含税，万元）${salesStatisticsHelp("regionAmount", "活跃金额")}</th><th>中选结果${salesStatisticsHelp("regionSelected", "中选结果")}</th></tr></thead><tbody>${regionRows || '<tr><td colspan="4"><div class="empty">暂无数据</div></td></tr>'}</tbody></table></div></section>` ) + "</div></section>";
       }
 
@@ -21039,6 +21308,99 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
         })[char]);
       }
 
+      function maintenanceActorSnapshot() {
+        return JSON.stringify([currentUser?.username, currentUser?.employeeCode,
+          currentUser?.name, currentUser?.role, currentUser?.roles, currentUser?.fullAccess]);
+      }
+
+      function maintenanceOpportunityPersonKey(person) {
+        const company = customers.find((item) => item.name === person?.company);
+        return JSON.stringify([person?.id, person?.name, company?.id]);
+      }
+
+      function maintenanceOpportunityCandidates(person) {
+        const company = customers.find((item) => item.name === person?.company);
+        if (!person || !contactIsActive(person) || !company || company.archived) return [];
+        return salesVisibleOpportunities()
+          .filter((item) => !isEcosystemOpportunity(item) && salesOpportunityCustomer(item)?.id === company.id)
+          .slice().sort((left, right) => String(right.updatedAt || "").localeCompare(String(left.updatedAt || "")) || right.id.localeCompare(left.id));
+      }
+
+      function maintenanceOpportunityPickerHtml(id) {
+        return `<div class="form-group full"><label class="form-label" id="${id}Label">关联商机 <span class="panel-sub">非必填，可多选</span></label><div class="multi-select" id="${id}"><button class="multi-select-trigger" type="button" id="${id}Trigger" aria-labelledby="${id}Label ${id}Summary" aria-expanded="false" aria-controls="${id}Menu"><span id="${id}Summary">请选择关联商机</span><span aria-hidden="true">⌄</span></button><div class="multi-select-menu hidden" id="${id}Menu"><input class="input" id="${id}Search" placeholder="搜索商机编号或名称" aria-label="搜索关联商机"><div id="${id}Options"></div></div></div><div class="sales-support-selected-list" id="${id}Selected"></div><div class="list-sub" id="${id}Hint"></div></div>`;
+      }
+
+      function bindMaintenanceOpportunityPicker(id, getPerson) {
+        const root = $(`#${id}`), trigger = $(`#${id}Trigger`), menu = $(`#${id}Menu`),
+          search = $(`#${id}Search`), options = $(`#${id}Options`), selected = $(`#${id}Selected`);
+        let chosen = [], candidates = [], personKey = "";
+        const inputs = () => [...root.querySelectorAll("input[data-maintenance-opportunity]")];
+        const readChecked = () => [...new Set(inputs().filter((input) => input.checked).map((input) => input.value))];
+        const setOpen = (open) => {
+          trigger.setAttribute("aria-expanded", String(open));
+          menu.classList.toggle("hidden", !open);
+          if (open) search.focus?.();
+          else { search.value = ""; filter(); }
+        };
+        const filter = () => {
+          const keyword = search.value.trim().toLocaleLowerCase("zh-CN");
+          options.querySelectorAll("[data-maintenance-opportunity-option]").forEach((row) => {
+            row.hidden = !row.textContent.toLocaleLowerCase("zh-CN").includes(keyword);
+          });
+        };
+        const renderSelected = () => {
+          $(`#${id}Summary`).textContent = chosen.length ? `已选择 ${chosen.length} 个商机` : "请选择关联商机";
+          selected.innerHTML = chosen.map((value) => {
+            const item = candidates.find((candidate) => candidate.id === value);
+            if (!item) return "";
+            const label = escapeMaintenanceMethodText(`${item.id} · ${item.name}`);
+            return `<span class="sales-support-selected-item"><span>${label}</span><button class="sales-support-selected-remove" type="button" data-maintenance-opportunity-remove="${escapeMaintenanceMethodText(value)}" aria-label="移除${label}">×</button></span>`;
+          }).join("");
+        };
+        const refresh = () => {
+          const person = getPerson();
+          candidates = maintenanceOpportunityCandidates(person);
+          personKey = maintenanceOpportunityPersonKey(person);
+          chosen = readChecked().filter((value) => candidates.some((item) => item.id === value));
+          options.innerHTML = candidates.map((item) => `<label class="multi-select-option" data-maintenance-opportunity-option><input type="checkbox" data-maintenance-opportunity value="${escapeMaintenanceMethodText(item.id)}" ${chosen.includes(item.id) ? "checked" : ""}><span>${escapeMaintenanceMethodText(item.id)} · ${escapeMaintenanceMethodText(item.name)}</span></label>`).join("");
+          inputs().forEach((input) => { input.onchange = () => { chosen = readChecked(); renderSelected(); }; });
+          trigger.disabled = !candidates.length;
+          $(`#${id}Hint`).textContent = !person ? "请先选择关键人" : !candidates.length ? "该客户暂无可关联的商机，可直接保存维系记录" : "";
+          setOpen(false);
+          renderSelected();
+        };
+        trigger.onclick = () => setOpen(trigger.getAttribute("aria-expanded") !== "true");
+        search.oninput = filter;
+        search.onkeydown = (event) => {
+          if (event.key === "Enter") event.preventDefault();
+        };
+        root.onkeydown = (event) => {
+          if (event.key === "Escape") { event.preventDefault(); setOpen(false); trigger.focus?.(); }
+        };
+        root.onfocusout = (event) => { if (!root.contains?.(event.relatedTarget)) setOpen(false); };
+        selected.onclick = (event) => {
+          const button = event.target.closest?.("[data-maintenance-opportunity-remove]");
+          if (!button || !selected.contains(button)) return;
+          inputs().filter((input) => input.value === button.dataset.maintenanceOpportunityRemove).forEach((input) => { input.checked = false; });
+          chosen = readChecked(); renderSelected();
+        };
+        refresh();
+        return { refresh, read(person) {
+          const values = readChecked(), eligible = new Set(maintenanceOpportunityCandidates(person).map((item) => item.id));
+          if (personKey !== maintenanceOpportunityPersonKey(person) || values.some((value) => !eligible.has(value))) {
+            toast("关联商机或客户范围已变化，请重新选择后提交");
+            return null;
+          }
+          return values;
+        } };
+      }
+
+      function maintenanceRecordOpportunitiesHtml(record) {
+        const ids = new Set(Array.isArray(record.opportunityIds) ? record.opportunityIds : []);
+        return salesVisibleOpportunities().filter((item) => ids.has(item.id))
+          .map((item) => `<div>${escapeMaintenanceMethodText(item.id)} · ${escapeMaintenanceMethodText(item.name)}</div>`).join("") || "—";
+      }
+
       function openRecord(personId, recordId) {
         const r = maintenanceRecords.find((x) => x.id === recordId);
         if (!r && !canCreateMaintenanceRecord())
@@ -21064,6 +21426,8 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
               ? "区域总监仅可为本区域省公司关键人新增维系记录"
               : "当前关键人不在可维系数据范围内",
           );
+        const actor = maintenanceActorSnapshot();
+        let submitted = false;
         openModal(
           `<div class="modal-head"><div class="modal-title">${r ? "编辑" : "新增"}维系记录</div><button class="icon-btn close" data-close>×</button></div><form id="recordForm"><div class="modal-body"><div class="form-grid"><div class="form-group full"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>关键人</label>${
             lockedPerson
@@ -21074,8 +21438,10 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
                       `<option value="${p.id}">${p.name || "未填写"}-${p.company || "未填写"}-${p.title || "未填写"}</option>`,
                   )
                   .join("")}</select>`
-          }</div>${r ? `<div class="form-group full"><label class="form-label">客户单位</label><input class="input" value="${lockedPerson?.company || ""}" disabled><div class="list-sub">维系记录关联的客户单位不可变更</div></div>` : '<div class="form-group full"><div class="role-note" id="recordTaskHint">请先选择关键人。</div></div>'}<div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>维系方式</label><select class="input" id="rfMethod">${["线下拜访", "电话", "微信", "视频会议", "邮件", "其他"].map((x) => `<option ${r?.method === x ? "selected" : ""}>${x}</option>`).join("")}</select></div><div class="form-group" id="rfOtherMethodGroup"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>其他方式说明</label><input class="input" id="rfOtherMethod" minlength="2" maxlength="30" value="${escapeMaintenanceMethodText(r?.otherMethod)}" placeholder="请填写 2-30 字"></div>${r ? `<div class="form-group"><label class="form-label">记录编号</label><input class="input" value="${maintenanceRecordCode(r)}" disabled></div><div class="form-group"><label class="form-label">创建时间</label><input class="input" value="${r.createdAt || r.date}" disabled></div>` : ""}<div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>维系时间</label><input class="input" id="rfDate" type="datetime-local" max="${DEMO_TODAY}T23:59" value="${r?.maintenanceAt ? r.maintenanceAt.replace(" ", "T").slice(0, 16) : `${r?.date || DEMO_TODAY}T09:30`}" ${r?.taskId ? "disabled" : ""} required><div class="list-sub">${r?.taskId ? "已用于任务完成认定，不可直接修改" : "不得晚于当前时间或早于任职生效时间"}</div></div>${r ? "" : '<div class="form-group full" id="recordLateReasonGroup"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>延迟登记原因</label><textarea class="input" id="recordLateReason" minlength="5" maxlength="500" placeholder="说明为何未在任务截止前完成系统登记"></textarea></div><div class="form-group full" id="recordLateEvidenceGroup"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>补录证明材料</label><label class="file-box">＋ 上传能证明实际维系日期的材料<input id="recordLateEvidence" type="file" accept=".jpg,.jpeg,.png,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx" hidden multiple></label><div class="list-sub">请至少上传一项证明材料</div></div>'}<div class="form-group full"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>沟通摘要</label><textarea class="input" id="rfSummary" minlength="5" maxlength="1000" required>${r?.summary || ""}</textarea></div><div class="form-group full"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>客户反馈</label><textarea class="input" id="rfFeedback" minlength="5" maxlength="1000" required>${r?.feedback || ""}</textarea></div><div class="form-group full"><label class="form-label">下一步计划</label><textarea class="input" id="rfNext" maxlength="1000">${r?.next || ""}</textarea></div><div class="form-group full"><label class="form-label">附件</label><label class="file-box">＋ 上传图片或办公文件（单文件≤20MB，最多9个，总计≤100MB）<input id="rfFiles" type="file" accept=".jpg,.jpeg,.png,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx" hidden multiple></label>${r?.attachments?.length ? `<div class="list-sub">已保留：${r.attachments.join("、")}</div>` : ""}</div></div></div><div class="modal-foot"><button class="btn" type="button" data-close>取消</button><button class="btn btn-primary" id="recordSubmit" type="submit">保存记录</button></div></form>`,
+          }</div>${r ? "" : maintenanceOpportunityPickerHtml("rfOpportunities")}${r ? `<div class="form-group full"><label class="form-label">客户单位</label><input class="input" value="${lockedPerson?.company || ""}" disabled><div class="list-sub">维系记录关联的客户单位不可变更</div></div>` : '<div class="form-group full"><div class="role-note" id="recordTaskHint">请先选择关键人。</div></div>'}<div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>维系方式</label><select class="input" id="rfMethod">${["线下拜访", "电话", "微信", "视频会议", "邮件", "其他"].map((x) => `<option ${r?.method === x ? "selected" : ""}>${x}</option>`).join("")}</select></div><div class="form-group" id="rfOtherMethodGroup"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>其他方式说明</label><input class="input" id="rfOtherMethod" minlength="2" maxlength="30" value="${escapeMaintenanceMethodText(r?.otherMethod)}" placeholder="请填写 2-30 字"></div>${r ? `<div class="form-group"><label class="form-label">记录编号</label><input class="input" value="${maintenanceRecordCode(r)}" disabled></div><div class="form-group"><label class="form-label">创建时间</label><input class="input" value="${r.createdAt || r.date}" disabled></div>` : ""}<div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>维系时间</label><input class="input" id="rfDate" type="datetime-local" max="${DEMO_TODAY}T23:59" value="${r?.maintenanceAt ? r.maintenanceAt.replace(" ", "T").slice(0, 16) : `${r?.date || DEMO_TODAY}T09:30`}" ${r?.taskId ? "disabled" : ""} required><div class="list-sub">${r?.taskId ? "已用于任务完成认定，不可直接修改" : "不得晚于当前时间或早于任职生效时间"}</div></div>${r ? "" : '<div class="form-group full" id="recordLateReasonGroup"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>延迟登记原因</label><textarea class="input" id="recordLateReason" minlength="5" maxlength="500" placeholder="说明为何未在任务截止前完成系统登记"></textarea></div><div class="form-group full" id="recordLateEvidenceGroup"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>补录证明材料</label><label class="file-box">＋ 上传能证明实际维系日期的材料<input id="recordLateEvidence" type="file" accept=".jpg,.jpeg,.png,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx" hidden multiple></label><div class="list-sub">请至少上传一项证明材料</div></div>'}<div class="form-group full"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>沟通摘要</label><textarea class="input" id="rfSummary" minlength="5" maxlength="1000" required>${r?.summary || ""}</textarea></div><div class="form-group full"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>客户反馈</label><textarea class="input" id="rfFeedback" minlength="5" maxlength="1000" required>${r?.feedback || ""}</textarea></div><div class="form-group full"><label class="form-label">下一步计划</label><textarea class="input" id="rfNext" maxlength="1000">${r?.next || ""}</textarea></div><div class="form-group full"><label class="form-label">附件</label><label class="file-box">＋ 上传图片或办公文件（单文件≤20MB，最多9个，总计≤100MB）<input id="rfFiles" type="file" accept=".jpg,.jpeg,.png,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx" hidden multiple></label>${r?.attachments?.length ? `<div class="list-sub">已保留：${r.attachments.join("、")}</div>` : ""}</div></div></div><div class="modal-foot"><button class="btn" type="button" data-close>取消</button><button class="btn btn-primary" id="recordSubmit" type="submit">保存记录</button></div></form>`,
         );
+        const form = $("#recordForm");
+        const opportunityPicker = r ? null : bindMaintenanceOpportunityPicker("rfOpportunities", () => contacts.find((person) => person.id === Number($("#rfPerson").value)));
         if (r) {
           const title = document.querySelector(".modal-head .modal-title");
           if (title) title.textContent = "追加附件";
@@ -21146,16 +21512,22 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
             : "保存记录";
         };
         if (!r) {
-          $("#rfPerson").onchange = refreshTaskHint;
+          $("#rfPerson").onchange = () => { refreshTaskHint(); opportunityPicker.refresh(); };
           $("#rfDate").onchange = refreshTaskHint;
           refreshTaskHint();
         }
         $("#recordForm").onsubmit = (e) => {
           e.preventDefault();
+          if (submitted || $("#recordForm") !== form || actor !== maintenanceActorSnapshot() || !salesSupportActorActive())
+            return toast("表单已失效，请重新打开");
+          if (r ? !canEditMaintenanceRecord(r) : !canCreateMaintenanceRecord())
+            return toast("当前账号无权提交该维系记录");
           const p = contacts.find(
             (x) => x.id === Number($("#rfPerson").value),
           );
           if (!p) return toast("请选择关键人");
+          if (!r && ((!maintenanceContactCandidates().some((person) => person.id === p.id)) || (lockedPerson && p.id !== lockedPerson.id)))
+            return toast("当前关键人不在可维系数据范围内");
           if (r) {
             const recordFiles = Array.from($("#rfFiles").files);
             if (!recordFiles.length) return toast("请选择要追加的附件");
@@ -21163,6 +21535,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
             if (attachmentError) return toast(attachmentError);
             if ((r.attachments?.length || 0) + recordFiles.length > 9)
               return toast("单条维系记录最多保留 9 个附件");
+            submitted = true;
             r.attachments = [
               ...(r.attachments || []),
               ...recordFiles.map((file) => file.name),
@@ -21172,6 +21545,8 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
             renderPage();
             return toast("附件已追加");
           }
+          const opportunityIds = opportunityPicker.read(p);
+          if (opportunityIds === null) return;
           const matchingTasks = r ? [] : activeRegularTasks(p),
             linkedTask = matchingTasks[0];
           const maintenanceAt = $("#rfDate").value.replace("T", " ");
@@ -21195,6 +21570,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
             return toast("单条维系记录最多保留 9 个附件");
           const data = {
               personId: p.id,
+              opportunityIds,
               person: p.name,
               company: p.company,
               method: $("#rfMethod").value,
@@ -21225,6 +21601,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
             const evidenceError = validateAttachmentFiles(evidenceUploads, true);
             if (evidenceError) return toast(evidenceError);
             const evidenceFiles = evidenceUploads.map((file) => file.name);
+            submitted = true;
             acceptLateEntry(
               linkedTask,
               { id: Date.now(), ...data },
@@ -21235,6 +21612,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
             renderPage();
             return toast("逾期补录已保存，任务认定为按期完成");
           } else {
+            submitted = true;
             const newRecord = { id: Date.now(), ...data };
             newRecord.code = maintenanceRecordCode(newRecord);
             maintenanceRecords.unshift(newRecord);
@@ -21267,7 +21645,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
           return toast("无权查看该维系记录");
         const linkedTask = tasks.find((task) => task.id === r.taskId);
         openDrawer(
-          `<div class="drawer-head"><div class="modal-title">维系记录详情</div><button class="icon-btn close" data-close>×</button></div><div class="drawer-body"><div class="detail-hero"><div class="avatar">${r.person[0]}</div><div><div class="detail-name">${r.person}</div><div class="detail-sub">${r.company} · ${r.method}${r.method === "其他" ? `（${escapeMaintenanceMethodText(r.otherMethod || "未说明")}）` : ""}</div></div></div><div class="detail-grid"><div class="detail-item"><label>记录编号</label><div>${maintenanceRecordCode(r)}</div></div><div class="detail-item"><label>记录状态</label><div><span class="tag green">正式生效</span></div></div><div class="detail-item"><label>维系时间</label><div>${r.maintenanceAt || r.date}</div></div><div class="detail-item"><label>创建时间</label><div>${r.createdAt || "—"}</div></div><div class="detail-item"><label>更新时间</label><div>${r.updatedAt || r.createdAt || "—"}</div></div><div class="detail-item"><label>业务维系人</label><div>${r.pm}</div></div><div class="detail-item"><label>实际录入人</label><div>${r.createdBy || r.pm}${r.proxyOperator ? ' <span class="tag orange">管理员代办</span>' : ""}</div></div><div class="detail-item"><label>关联任务</label><div>${linkedTask ? linkedTask.executionCode : "未关联任务"}</div></div>${r.proxyOperator ? `<div class="detail-item full"><label>代办原因</label><div>${r.proxyReason}</div></div>` : ""}</div><div class="role-note">记录已保存，仅支持追加附件。</div><div class="section-title">沟通摘要</div><p style="font-size:var(--font-size-body);line-height:var(--line-height-body)">${r.summary}</p><div class="section-title">客户反馈</div><p style="font-size:var(--font-size-body);line-height:var(--line-height-body)">${r.feedback}</p><div class="section-title">下一步计划</div><p style="font-size:var(--font-size-body);line-height:var(--line-height-body)">${r.next || "暂无"}</p><div class="section-title">附件</div>${r.attachments.map((x) => `<div class="list-row"><div class="avatar">附</div><div class="list-main"><div class="list-title">${x}</div></div><button class="btn" data-action="preview-file">预览</button><button class="btn" data-action="download-file">下载</button></div>`).join("") || '<div class="role-note">无附件</div>'}</div><div class="drawer-foot"><button class="btn" data-close>关闭</button>${canEditMaintenanceRecord(r) ? `<button class="btn btn-primary" data-action="edit-record" data-id="${r.id}">编辑记录</button>` : ""}</div>`,
+          `<div class="drawer-head"><div class="modal-title">维系记录详情</div><button class="icon-btn close" data-close>×</button></div><div class="drawer-body"><div class="detail-hero"><div class="avatar">${r.person[0]}</div><div><div class="detail-name">${r.person}</div><div class="detail-sub">${r.company} · ${r.method}${r.method === "其他" ? `（${escapeMaintenanceMethodText(r.otherMethod || "未说明")}）` : ""}</div></div></div><div class="detail-grid"><div class="detail-item"><label>记录编号</label><div>${maintenanceRecordCode(r)}</div></div><div class="detail-item"><label>记录状态</label><div><span class="tag green">正式生效</span></div></div><div class="detail-item"><label>维系时间</label><div>${r.maintenanceAt || r.date}</div></div><div class="detail-item"><label>创建时间</label><div>${r.createdAt || "—"}</div></div><div class="detail-item"><label>更新时间</label><div>${r.updatedAt || r.createdAt || "—"}</div></div><div class="detail-item"><label>业务维系人</label><div>${r.pm}</div></div><div class="detail-item"><label>实际录入人</label><div>${r.createdBy || r.pm}${r.proxyOperator ? ' <span class="tag orange">管理员代办</span>' : ""}</div></div><div class="detail-item"><label>关联任务</label><div>${linkedTask ? linkedTask.executionCode : "未关联任务"}</div></div><div class="detail-item full"><label>关联商机</label><div>${maintenanceRecordOpportunitiesHtml(r)}</div></div>${r.proxyOperator ? `<div class="detail-item full"><label>代办原因</label><div>${r.proxyReason}</div></div>` : ""}</div><div class="role-note">记录已保存，仅支持追加附件。</div><div class="section-title">沟通摘要</div><p style="font-size:var(--font-size-body);line-height:var(--line-height-body)">${r.summary}</p><div class="section-title">客户反馈</div><p style="font-size:var(--font-size-body);line-height:var(--line-height-body)">${r.feedback}</p><div class="section-title">下一步计划</div><p style="font-size:var(--font-size-body);line-height:var(--line-height-body)">${r.next || "暂无"}</p><div class="section-title">附件</div>${r.attachments.map((x) => `<div class="list-row"><div class="avatar">附</div><div class="list-main"><div class="list-title">${x}</div></div><button class="btn" data-action="preview-file">预览</button><button class="btn" data-action="download-file">下载</button></div>`).join("") || '<div class="role-note">无附件</div>'}</div><div class="drawer-foot"><button class="btn" data-close>关闭</button>${canEditMaintenanceRecord(r) ? `<button class="btn btn-primary" data-action="edit-record" data-id="${r.id}">编辑记录</button>` : ""}</div>`,
         );
         const appendButton = document.querySelector(
           '[data-action="edit-record"]',
@@ -28166,7 +28544,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
         const actor = currentUser, original = JSON.stringify({owner:item.owner,result:salesResultSnapshot(item)});
         const options = correction ? SALES_STAGES : salesNextStages(item);
         const title = correction ? "商机纠错" : "推进商机阶段";
-        openModal(`<div class="modal-head"><div class="modal-title">${title}</div><button class="icon-btn close" data-close title="关闭">×</button></div><form id="salesStageForm"><div class="modal-body">${correction ? `<div class="form-group"><label class="form-label">当前阶段</label><div>${escapeHtml(item.stage)}</div></div>` : ""}<div class="form-group"><label class="form-label">${correction ? "纠正后阶段" : "新阶段"}</label><select class="input" id="salesNextStage">${options.map(value=>`<option value="${value}" ${correction && value === item.stage ? "selected" : ""}>${value}</option>`).join("")}</select></div><div id="salesStageFields"></div><div id="salesStageEvidence"></div></div><div class="modal-foot"><button class="btn" type="button" data-close>取消</button><button class="btn btn-primary" type="submit">${correction ? "确认纠错" : "确认推进"}</button></div></form>`);
+        openModal(`<div class="modal-head"><div class="modal-title">${title}</div><button class="icon-btn close" data-close title="关闭">×</button></div><form id="salesStageForm"><div class="modal-body"><div class="form-group"><label class="form-label">当前阶段</label><div>${escapeHtml(item.stage)}</div></div><div class="form-group"><label class="form-label">${correction ? "纠正后阶段" : "推进至阶段"}</label><select class="input" id="salesNextStage">${options.map(value=>`<option value="${value}" ${correction && value === item.stage ? "selected" : ""}>${value}</option>`).join("")}</select></div><div id="salesStageFields"></div><div id="salesStageEvidence"></div></div><div class="modal-foot"><button class="btn" type="button" data-close>取消</button><button class="btn btn-primary" type="submit">${correction ? "确认纠错" : "确认推进"}</button></div></form>`);
         const form = $("#salesStageForm"); let applied=false;
         const hasSelectedFields = stage => stage === "中选" || Boolean(correction && item.stage === "落选" && stage === item.stage && item.selectedDate);
         const valid=()=> !applied && form === $("#salesStageForm") && currentUser === actor && salesSupportActorActive() && opportunities.includes(item) && (correction ? salesCanCorrect(item) : salesCanProgress(item)) &&
@@ -29605,9 +29983,16 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
         const t = tasks.find((x) => x.id === id);
         if (!t || !taskCanTakeAction(t))
           return toast("无权完成该任务");
+        const actor = maintenanceActorSnapshot();
+        const taskSnapshot = () => JSON.stringify([t.personId, t.person, t.company, t.pm, t.due, t.status]);
+        const originalTask = taskSnapshot();
+        const taskPerson = () => contacts.find((person) => t.personId ? person.id === t.personId : person.name === t.person && person.company === t.company);
+        let submitted = false;
         openModal(
-          `<div class="modal-head"><div class="modal-title">${currentUser.fullAccess ? "管理员代办完成" : "提交维系结果"}</div><button class="icon-btn close" data-close>×</button></div><form id="completeForm"><div class="modal-body"><div class="role-note">${t.title}<br>${t.company} · ${t.person} · 业务执行人 ${t.pm} · 截止 ${t.due}</div>${currentUser.fullAccess ? '<div class="form-group" style="margin-top:var(--space-4)"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>代办原因 <span class="panel-sub">5-500 字</span></label><textarea class="input" id="completeProxyReason" minlength="5" maxlength="500" required placeholder="说明管理员代办原因；不会改变业务执行人和 KPI 归属"></textarea></div>' : ""}<div class="form-grid"><div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>维系方式</label><select class="input" id="completeMethod"><option>电话</option><option>微信</option><option>线下拜访</option><option>视频会议</option><option>邮件</option><option>其他</option></select></div><div class="form-group" id="completeOtherMethodGroup" style="display:none"><label class="form-label" for="completeOtherMethod"><span class="required-marker" aria-hidden="true">*</span>其他方式说明</label><input class="input" id="completeOtherMethod" minlength="2" maxlength="30" placeholder="请填写 2-30 字"></div><div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>实际维系日期</label><input class="input" id="completeDate" type="date" max="${DEMO_TODAY}" value="${DEMO_TODAY}" required></div><div class="form-group full"><div class="role-note" id="completionRecognition"></div></div><div class="form-group full" id="lateEntryReasonGroup"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>延迟登记原因</label><textarea class="input" id="lateEntryReason" minlength="5" maxlength="500" placeholder="说明为何未在任务截止前完成系统登记"></textarea></div><div class="form-group full" id="lateEntryEvidenceGroup"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>补录证明材料</label><label class="file-box">＋ 上传能证明实际维系日期的材料<input id="lateEntryEvidence" type="file" accept=".jpg,.jpeg,.png,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx" hidden multiple></label><div class="list-sub" id="lateEntryEvidenceNames">至少上传一项</div></div><div class="form-group full"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>沟通摘要</label><textarea class="input" id="completeSummary" minlength="5" maxlength="1000" required placeholder="记录本次沟通的重点内容"></textarea></div><div class="form-group full"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>客户反馈</label><textarea class="input" id="completeFeedback" minlength="5" maxlength="1000" required placeholder="记录客户的明确反馈"></textarea></div><div class="form-group full"><label class="form-label">下一步计划</label><textarea class="input" id="completeNext" maxlength="1000" placeholder="例如：8月18日前提交课程方案"></textarea></div><div class="form-group full"><label class="form-label">维系记录附件</label><label class="file-box">＋ 上传图片或办公文件（单文件≤20MB，最多9个，总计≤100MB）<input id="completeFiles" type="file" accept=".jpg,.jpeg,.png,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx" hidden multiple></label></div></div></div><div class="modal-foot"><button class="btn" type="button" data-close>取消</button><button class="btn btn-primary" id="completeSubmit" type="submit">${currentUser.fullAccess ? "确认代办并完成" : "提交并完成任务"}</button></div></form>`,
+          `<div class="modal-head"><div class="modal-title">${currentUser.fullAccess ? "管理员代办完成" : "提交维系结果"}</div><button class="icon-btn close" data-close>×</button></div><form id="completeForm"><div class="modal-body"><div class="role-note">${t.title}<br>${t.company} · ${t.person} · 业务执行人 ${t.pm} · 截止 ${t.due}</div>${currentUser.fullAccess ? '<div class="form-group" style="margin-top:var(--space-4)"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>代办原因 <span class="panel-sub">5-500 字</span></label><textarea class="input" id="completeProxyReason" minlength="5" maxlength="500" required placeholder="说明管理员代办原因；不会改变业务执行人和 KPI 归属"></textarea></div>' : ""}<div class="form-grid">${maintenanceOpportunityPickerHtml("completeOpportunities")}<div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>维系方式</label><select class="input" id="completeMethod"><option>电话</option><option>微信</option><option>线下拜访</option><option>视频会议</option><option>邮件</option><option>其他</option></select></div><div class="form-group" id="completeOtherMethodGroup" style="display:none"><label class="form-label" for="completeOtherMethod"><span class="required-marker" aria-hidden="true">*</span>其他方式说明</label><input class="input" id="completeOtherMethod" minlength="2" maxlength="30" placeholder="请填写 2-30 字"></div><div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>实际维系日期</label><input class="input" id="completeDate" type="date" max="${DEMO_TODAY}" value="${DEMO_TODAY}" required></div><div class="form-group full"><div class="role-note" id="completionRecognition"></div></div><div class="form-group full" id="lateEntryReasonGroup"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>延迟登记原因</label><textarea class="input" id="lateEntryReason" minlength="5" maxlength="500" placeholder="说明为何未在任务截止前完成系统登记"></textarea></div><div class="form-group full" id="lateEntryEvidenceGroup"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>补录证明材料</label><label class="file-box">＋ 上传能证明实际维系日期的材料<input id="lateEntryEvidence" type="file" accept=".jpg,.jpeg,.png,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx" hidden multiple></label><div class="list-sub" id="lateEntryEvidenceNames">至少上传一项</div></div><div class="form-group full"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>沟通摘要</label><textarea class="input" id="completeSummary" minlength="5" maxlength="1000" required placeholder="记录本次沟通的重点内容"></textarea></div><div class="form-group full"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>客户反馈</label><textarea class="input" id="completeFeedback" minlength="5" maxlength="1000" required placeholder="记录客户的明确反馈"></textarea></div><div class="form-group full"><label class="form-label">下一步计划</label><textarea class="input" id="completeNext" maxlength="1000" placeholder="例如：8月18日前提交课程方案"></textarea></div><div class="form-group full"><label class="form-label">维系记录附件</label><label class="file-box">＋ 上传图片或办公文件（单文件≤20MB，最多9个，总计≤100MB）<input id="completeFiles" type="file" accept=".jpg,.jpeg,.png,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx" hidden multiple></label></div></div></div><div class="modal-foot"><button class="btn" type="button" data-close>取消</button><button class="btn btn-primary" id="completeSubmit" type="submit">${currentUser.fullAccess ? "确认代办并完成" : "提交并完成任务"}</button></div></form>`,
         );
+        const form = $("#completeForm");
+        const opportunityPicker = bindMaintenanceOpportunityPicker("completeOpportunities", taskPerson);
         const syncOtherMethod = () => {
           const isOther = $("#completeMethod").value === "其他";
           $("#completeOtherMethodGroup").style.display = isOther ? "block" : "none";
@@ -29656,6 +30041,14 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
         refreshRecognition();
         $("#completeForm").onsubmit = (e) => {
           e.preventDefault();
+          if (submitted || $("#completeForm") !== form || actor !== maintenanceActorSnapshot() || !salesSupportActorActive() || originalTask !== taskSnapshot())
+            return toast("表单已失效，请重新打开");
+          const currentPerson = taskPerson();
+          const company = customers.find((item) => item.name === currentPerson?.company);
+          if (!tasks.includes(t) || !taskCanTakeAction(t) || !currentPerson || !contactIsActive(currentPerson) || !company || company.archived || currentPerson.company !== t.company)
+            return toast("当前任务或关键人状态已变化，请重新打开");
+          const opportunityIds = opportunityPicker.read(currentPerson);
+          if (opportunityIds === null) return;
           const otherField = $("#completeOtherMethod");
           const otherMethod = otherField.value.trim();
           if ($("#completeMethod").value === "其他" && (otherMethod.length < 2 || otherMethod.length > 30)) {
@@ -29679,6 +30072,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
           const record = {
             id: Date.now(),
             taskId: t.id,
+            opportunityIds,
             personId: person?.id,
             person: t.person,
             company: t.company,
@@ -29703,6 +30097,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
             const evidenceError = validateAttachmentFiles(evidenceUploads, true);
             if (evidenceError) return toast(evidenceError);
             const evidenceFiles = evidenceUploads.map((file) => file.name);
+            submitted = true;
             acceptLateEntry(
               t,
               record,
@@ -29723,6 +30118,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
             renderPage();
             return toast(`${blockedReason}，任务保留为已过期未完成`);
           }
+          submitted = true;
           maintenanceRecords.unshift(record);
           finalizeTaskCompletion(
             t,

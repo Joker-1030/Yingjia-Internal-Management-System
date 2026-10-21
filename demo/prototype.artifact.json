@@ -1,11 +1,11 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-10-19T07:24:31.407Z",
+  "generatedAt": "2026-10-21T02:00:00.010Z",
   "generator": "scripts/build-prototype.mjs",
   "buildCommand": "node scripts/build-prototype.mjs",
   "sourceRoot": "src",
   "entry": "src/prototype.html",
-  "sourceDigest": "785279a1c6f7b25df2ed786d638cb55016712a911088f7db232c2ba0881fa629",
+  "sourceDigest": "11738cdc2bfedee7be110a5cafea812f95670ba057d4865b3c207130829b614f",
   "sourceFiles": [
     {
       "path": "src/app.js",
@@ -189,8 +189,8 @@
     },
     {
       "path": "src/modules/m01-dashboard/page.js",
-      "sha256": "3f735166fc97bcfb23f1af86abc46b51b14660a8b5a9634a488d6086c86bf1c6",
-      "bytes": 59657
+      "sha256": "56cac891f7788117ae21a529ea94dbe70898bfc418b7e0698e90e643821343e6",
+      "bytes": 73958
     },
     {
       "path": "src/modules/m02-customer-operations/customer-tree.js",
@@ -214,8 +214,8 @@
     },
     {
       "path": "src/modules/m02-customer-operations/records.js",
-      "sha256": "9462a599e4c38a291d254ae1314bf15d33adcdbcb55e3a17c2b4590b262c7e89",
-      "bytes": 19133
+      "sha256": "3c14c4396b69acd9cd5e342aedbe263c277f083f36c4e3cfc76045b4d8b666a2",
+      "bytes": 26895
     },
     {
       "path": "src/modules/m02-customer-operations/scoped-records.js",
@@ -244,8 +244,8 @@
     },
     {
       "path": "src/modules/m03-maintenance/task-actions.js",
-      "sha256": "7d81756148cb04a3bb770bed520ccc05cc4066edd2710f99cb724c6435a54938",
-      "bytes": 15910
+      "sha256": "ec017cac18659e47048ca2274bda09324f4d8c28e21d3b9b2f3df4db6909832e",
+      "bytes": 17344
     },
     {
       "path": "src/modules/m04-approvals/interactions.js",
@@ -379,8 +379,8 @@
     },
     {
       "path": "src/modules/m12-sales-opportunity/interactions.js",
-      "sha256": "b34b6d03e4ed768d75f444b11f3c71540510a018836686e774e9b00667eebb7f",
-      "bytes": 119803
+      "sha256": "2d5908a5f8b3fc7d9c2449c60450299dd95c147dac5757af4be40b183f09867e",
+      "bytes": 119786
     },
     {
       "path": "src/modules/m12-sales-opportunity/module.json",
@@ -389,8 +389,8 @@
     },
     {
       "path": "src/modules/m12-sales-opportunity/page.js",
-      "sha256": "96c6764f66892bc9b62f44d7b2497855f7d9cc89a26564c9b25f166b074af2b7",
-      "bytes": 107813
+      "sha256": "ad1c20a61f52063112a47bb89fd36bdbe13f5c4a7e457e66c1212c41a617d56e",
+      "bytes": 108145
     },
     {
       "path": "src/prototype.html",
@@ -399,8 +399,8 @@
     },
     {
       "path": "src/styles/prototype.css",
-      "sha256": "2c54fca10cdbc662324bbc22fa2b5561eb6cf75e9a07761382d1dc1c2b15726b",
-      "bytes": 169750
+      "sha256": "0eafa30283704172a0d0390802542750269dbe412e86ae096737461fa4323ce0",
+      "bytes": 176484
     }
   ],
   "artifactInputs": [
@@ -472,8 +472,8 @@
   ],
   "artifact": {
     "path": "demo/prototype.html",
-    "sha256": "fcaa9fb7f76efb8d0cdf93f108536fce641400b15fc2f7b5364c6a784200cfb2",
-    "bytes": 2614726
+    "sha256": "4daf5141758c71387f4639dd3e70142bd9064fddb5ae0d29226f4be596267331",
+    "bytes": 2645272
   },
   "legacyBridge": false,
   "architecture": "lightweight-modular",

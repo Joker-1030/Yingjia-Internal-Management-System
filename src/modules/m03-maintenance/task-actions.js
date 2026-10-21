@@ -135,9 +135,16 @@
         const t = tasks.find((x) => x.id === id);
         if (!t || !taskCanTakeAction(t))
           return toast("无权完成该任务");
+        const actor = maintenanceActorSnapshot();
+        const taskSnapshot = () => JSON.stringify([t.personId, t.person, t.company, t.pm, t.due, t.status]);
+        const originalTask = taskSnapshot();
+        const taskPerson = () => contacts.find((person) => t.personId ? person.id === t.personId : person.name === t.person && person.company === t.company);
+        let submitted = false;
         openModal(
-          `<div class="modal-head"><div class="modal-title">${currentUser.fullAccess ? "管理员代办完成" : "提交维系结果"}</div><button class="icon-btn close" data-close>×</button></div><form id="completeForm"><div class="modal-body"><div class="role-note">${t.title}<br>${t.company} · ${t.person} · 业务执行人 ${t.pm} · 截止 ${t.due}</div>${currentUser.fullAccess ? '<div class="form-group" style="margin-top:var(--space-4)"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>代办原因 <span class="panel-sub">5-500 字</span></label><textarea class="input" id="completeProxyReason" minlength="5" maxlength="500" required placeholder="说明管理员代办原因；不会改变业务执行人和 KPI 归属"></textarea></div>' : ""}<div class="form-grid"><div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>维系方式</label><select class="input" id="completeMethod"><option>电话</option><option>微信</option><option>线下拜访</option><option>视频会议</option><option>邮件</option><option>其他</option></select></div><div class="form-group" id="completeOtherMethodGroup" style="display:none"><label class="form-label" for="completeOtherMethod"><span class="required-marker" aria-hidden="true">*</span>其他方式说明</label><input class="input" id="completeOtherMethod" minlength="2" maxlength="30" placeholder="请填写 2-30 字"></div><div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>实际维系日期</label><input class="input" id="completeDate" type="date" max="${DEMO_TODAY}" value="${DEMO_TODAY}" required></div><div class="form-group full"><div class="role-note" id="completionRecognition"></div></div><div class="form-group full" id="lateEntryReasonGroup"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>延迟登记原因</label><textarea class="input" id="lateEntryReason" minlength="5" maxlength="500" placeholder="说明为何未在任务截止前完成系统登记"></textarea></div><div class="form-group full" id="lateEntryEvidenceGroup"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>补录证明材料</label><label class="file-box">＋ 上传能证明实际维系日期的材料<input id="lateEntryEvidence" type="file" accept=".jpg,.jpeg,.png,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx" hidden multiple></label><div class="list-sub" id="lateEntryEvidenceNames">至少上传一项</div></div><div class="form-group full"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>沟通摘要</label><textarea class="input" id="completeSummary" minlength="5" maxlength="1000" required placeholder="记录本次沟通的重点内容"></textarea></div><div class="form-group full"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>客户反馈</label><textarea class="input" id="completeFeedback" minlength="5" maxlength="1000" required placeholder="记录客户的明确反馈"></textarea></div><div class="form-group full"><label class="form-label">下一步计划</label><textarea class="input" id="completeNext" maxlength="1000" placeholder="例如：8月18日前提交课程方案"></textarea></div><div class="form-group full"><label class="form-label">维系记录附件</label><label class="file-box">＋ 上传图片或办公文件（单文件≤20MB，最多9个，总计≤100MB）<input id="completeFiles" type="file" accept=".jpg,.jpeg,.png,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx" hidden multiple></label></div></div></div><div class="modal-foot"><button class="btn" type="button" data-close>取消</button><button class="btn btn-primary" id="completeSubmit" type="submit">${currentUser.fullAccess ? "确认代办并完成" : "提交并完成任务"}</button></div></form>`,
+          `<div class="modal-head"><div class="modal-title">${currentUser.fullAccess ? "管理员代办完成" : "提交维系结果"}</div><button class="icon-btn close" data-close>×</button></div><form id="completeForm"><div class="modal-body"><div class="role-note">${t.title}<br>${t.company} · ${t.person} · 业务执行人 ${t.pm} · 截止 ${t.due}</div>${currentUser.fullAccess ? '<div class="form-group" style="margin-top:var(--space-4)"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>代办原因 <span class="panel-sub">5-500 字</span></label><textarea class="input" id="completeProxyReason" minlength="5" maxlength="500" required placeholder="说明管理员代办原因；不会改变业务执行人和 KPI 归属"></textarea></div>' : ""}<div class="form-grid">${maintenanceOpportunityPickerHtml("completeOpportunities")}<div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>维系方式</label><select class="input" id="completeMethod"><option>电话</option><option>微信</option><option>线下拜访</option><option>视频会议</option><option>邮件</option><option>其他</option></select></div><div class="form-group" id="completeOtherMethodGroup" style="display:none"><label class="form-label" for="completeOtherMethod"><span class="required-marker" aria-hidden="true">*</span>其他方式说明</label><input class="input" id="completeOtherMethod" minlength="2" maxlength="30" placeholder="请填写 2-30 字"></div><div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>实际维系日期</label><input class="input" id="completeDate" type="date" max="${DEMO_TODAY}" value="${DEMO_TODAY}" required></div><div class="form-group full"><div class="role-note" id="completionRecognition"></div></div><div class="form-group full" id="lateEntryReasonGroup"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>延迟登记原因</label><textarea class="input" id="lateEntryReason" minlength="5" maxlength="500" placeholder="说明为何未在任务截止前完成系统登记"></textarea></div><div class="form-group full" id="lateEntryEvidenceGroup"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>补录证明材料</label><label class="file-box">＋ 上传能证明实际维系日期的材料<input id="lateEntryEvidence" type="file" accept=".jpg,.jpeg,.png,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx" hidden multiple></label><div class="list-sub" id="lateEntryEvidenceNames">至少上传一项</div></div><div class="form-group full"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>沟通摘要</label><textarea class="input" id="completeSummary" minlength="5" maxlength="1000" required placeholder="记录本次沟通的重点内容"></textarea></div><div class="form-group full"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>客户反馈</label><textarea class="input" id="completeFeedback" minlength="5" maxlength="1000" required placeholder="记录客户的明确反馈"></textarea></div><div class="form-group full"><label class="form-label">下一步计划</label><textarea class="input" id="completeNext" maxlength="1000" placeholder="例如：8月18日前提交课程方案"></textarea></div><div class="form-group full"><label class="form-label">维系记录附件</label><label class="file-box">＋ 上传图片或办公文件（单文件≤20MB，最多9个，总计≤100MB）<input id="completeFiles" type="file" accept=".jpg,.jpeg,.png,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx" hidden multiple></label></div></div></div><div class="modal-foot"><button class="btn" type="button" data-close>取消</button><button class="btn btn-primary" id="completeSubmit" type="submit">${currentUser.fullAccess ? "确认代办并完成" : "提交并完成任务"}</button></div></form>`,
         );
+        const form = $("#completeForm");
+        const opportunityPicker = bindMaintenanceOpportunityPicker("completeOpportunities", taskPerson);
         const syncOtherMethod = () => {
           const isOther = $("#completeMethod").value === "其他";
           $("#completeOtherMethodGroup").style.display = isOther ? "block" : "none";
@@ -186,6 +193,14 @@
         refreshRecognition();
         $("#completeForm").onsubmit = (e) => {
           e.preventDefault();
+          if (submitted || $("#completeForm") !== form || actor !== maintenanceActorSnapshot() || !salesSupportActorActive() || originalTask !== taskSnapshot())
+            return toast("表单已失效，请重新打开");
+          const currentPerson = taskPerson();
+          const company = customers.find((item) => item.name === currentPerson?.company);
+          if (!tasks.includes(t) || !taskCanTakeAction(t) || !currentPerson || !contactIsActive(currentPerson) || !company || company.archived || currentPerson.company !== t.company)
+            return toast("当前任务或关键人状态已变化，请重新打开");
+          const opportunityIds = opportunityPicker.read(currentPerson);
+          if (opportunityIds === null) return;
           const otherField = $("#completeOtherMethod");
           const otherMethod = otherField.value.trim();
           if ($("#completeMethod").value === "其他" && (otherMethod.length < 2 || otherMethod.length > 30)) {
@@ -209,6 +224,7 @@
           const record = {
             id: Date.now(),
             taskId: t.id,
+            opportunityIds,
             personId: person?.id,
             person: t.person,
             company: t.company,
@@ -233,6 +249,7 @@
             const evidenceError = validateAttachmentFiles(evidenceUploads, true);
             if (evidenceError) return toast(evidenceError);
             const evidenceFiles = evidenceUploads.map((file) => file.name);
+            submitted = true;
             acceptLateEntry(
               t,
               record,
@@ -253,6 +270,7 @@
             renderPage();
             return toast(`${blockedReason}，任务保留为已过期未完成`);
           }
+          submitted = true;
           maintenanceRecords.unshift(record);
           finalizeTaskCompletion(
             t,

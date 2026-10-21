@@ -4891,16 +4891,16 @@
       }
 
       /* M01 business overview only. Content growth belongs to the scroll body. */
-      .workbench { display: grid; gap: 16px; min-width: 0; }
-      .workbench .workbench-card { display: flex; flex-direction: column; min-width: 0; min-height: 0; overflow: hidden; margin: 0; }
+      .workbench { display: grid; gap: 20px; min-width: 0; }
+      .workbench .workbench-card { display: flex; flex-direction: column; min-width: 0; min-height: 0; overflow: hidden; margin: 0; border-color: #dce3eb; border-radius: 10px; }
       .workbench .workbench-people,
       .workbench .workbench-tasks { height: 264px; }
       .workbench .workbench-projects,
       .workbench .workbench-todos { height: 352px; }
-      .workbench .workbench-card > .panel-head { flex: 0 0 auto; min-height: 51px; padding: 14px 20px; }
+      .workbench .workbench-card > .panel-head { flex: 0 0 auto; min-height: 56px; padding: 12px 20px; background: #fff; }
       .workbench-updated { color: var(--muted); font-size: 12px; white-space: nowrap; }
-      .workbench .workbench-split { display: grid; grid-template-columns: 180px minmax(0, 1fr); gap: 24px; flex: 1 1 0; min-height: 0; overflow: hidden; padding: 16px 20px; }
-      .workbench .workbench-values { display: flex; flex-direction: column; justify-content: center; gap: 22px; min-width: 0; padding-right: 24px; border-right: 1px solid var(--color-divider); }
+      .workbench .workbench-split { display: grid; grid-template-columns: 180px minmax(0, 1fr); gap: 20px; flex: 1 1 0; min-height: 0; overflow: hidden; padding: 16px 20px; }
+      .workbench .workbench-values { display: flex; flex-direction: column; justify-content: center; gap: 22px; min-width: 0; padding: 16px; border-radius: 8px; background: #f7f9fc; }
       .workbench .workbench-values:only-child { grid-column: 1 / -1; border-right: 0; }
       .workbench-value { display: grid; gap: 5px; min-width: 0; }
       .workbench-value > span { color: var(--muted); font-size: 12px; }
@@ -4910,8 +4910,11 @@
       .workbench .workbench-breakdown,
       .workbench .workbench-project-detail,
       .workbench .workbench-scroll { min-height: 0; min-width: 0; overflow: auto; overscroll-behavior: contain; scrollbar-gutter: stable; }
+      .workbench .workbench-breakdown { border: 1px solid var(--color-divider); border-radius: 8px; }
+      .workbench .workbench-breakdown tr:last-child td,
+      .workbench .workbench-breakdown tr:last-child th { border-bottom: 0; }
       .workbench [tabindex="0"]:focus-visible { outline: 2px solid var(--brand); outline-offset: -2px; }
-      .workbench .workbench-breakdown table { width: 100%; min-width: 0; table-layout: fixed; border-collapse: separate; border-spacing: 0; font-size: 13px; }
+      .workbench :where(.workbench-breakdown) table { width: 100%; min-width: 0; table-layout: fixed; border-collapse: separate; border-spacing: 0; font-size: 13px; }
       .workbench .workbench-breakdown th,
       .workbench .workbench-breakdown td { padding: 11px 12px; white-space: normal; overflow-wrap: anywhere; vertical-align: middle; }
       .workbench .workbench-breakdown th { position: sticky; top: 0; z-index: 1; background: #f7f9fb; font-size: 12px; font-weight: 500; color: var(--muted); }
@@ -4949,19 +4952,23 @@
       .workbench progress::-webkit-progress-bar { background: #edf1f5; border-radius: 4px; }
       .workbench progress::-webkit-progress-value { background: #658aa9; border-radius: 4px; }
       .workbench progress::-moz-progress-bar { background: #658aa9; border-radius: 4px; }
-      .workbench-bottom { display: grid; grid-template-columns: minmax(0, 1.18fr) minmax(0, 1fr); gap: 16px; min-width: 0; }
+      .workbench-bottom { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; min-width: 0; }
       .workbench-bottom > :only-child { grid-column: 1 / -1; }
       .workbench .workbench-scroll { flex: 1 1 0; padding: 16px 20px; }
       .workbench .workbench-project-body { display: flex; flex-direction: column; flex: 1 1 0; min-height: 0; padding: 14px 20px 18px; gap: 12px; overflow: hidden; }
-      .workbench .workbench-analysis-controls { display: flex; flex-wrap: wrap; gap: 10px; flex: 0 0 auto; }
-      .workbench .workbench-analysis-controls label { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--muted); min-width: 0; }
+      .workbench .workbench-analysis-controls { display: flex; align-items: end; flex-wrap: wrap; gap: 12px 16px; flex: 0 0 auto; }
+      .workbench .workbench-analysis-controls label { display: grid; gap: 6px; font-size: 12px; color: var(--muted); min-width: 0; max-width: 100%; }
       .workbench .workbench-analysis-controls select { width: auto; min-width: 102px; max-width: 100%; height: 32px; padding: 4px 26px 4px 10px; font-size: 12px; background-color: #f8fafc; }
+      .workbench .workbench-projects .workbench-analysis-controls label { flex: 1 1 120px; }
+      .workbench .workbench-projects .workbench-analysis-controls select,
+      .workbench .sales-overview-panel .workbench-analysis-controls select { width: 100%; min-width: 0; }
+      .workbench .sales-overview-panel .workbench-analysis-controls label { flex: 1 1 140px; }
       .workbench .workbench-project-visualization { display: flex; flex-direction: column; flex: 1 1 0; min-height: 0; }
-      .workbench .workbench-project-chart { display: grid; grid-template-columns: 180px minmax(0, 1fr); gap: 16px; flex: 1 1 0; min-height: 0; align-items: center; }
-      .workbench .workbench-donut { position: relative; width: 180px; height: 180px; }
+      .workbench .workbench-project-chart { display: grid; grid-template-columns: 160px minmax(0, 1fr); gap: 16px; flex: 1 1 0; min-height: 0; align-items: center; }
+      .workbench .workbench-donut { position: relative; width: 160px; height: 160px; }
       .workbench .workbench-chart-svg,
       .workbench .workbench-chart-svg svg { display: block; width: 100%; height: 100%; }
-      .workbench .workbench-donut-center { position: absolute; inset: 28px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 7px; text-align: center; color: var(--muted); font-size: 11px; }
+      .workbench .workbench-donut-center { position: absolute; inset: 24px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 7px; text-align: center; color: var(--muted); font-size: 11px; }
       .workbench .workbench-donut-center strong { color: var(--color-text-primary); font-size: 32px; font-weight: 600; font-variant-numeric: tabular-nums; line-height: 1.1; letter-spacing: -.5px; }
       .workbench .workbench-money strong { font-size: 17px; overflow-wrap: anywhere; max-width: 125px; }
       .workbench .workbench-donut-center small { font-size: 10px; }
@@ -4983,23 +4990,25 @@
       .workbench .list-row > .tag { flex-shrink: 0; }
       @media (max-width: 1200px) {
         .workbench-bottom { grid-template-columns: minmax(0, 1fr); }
-        .workbench .workbench-project-chart { grid-template-columns: 200px minmax(0, 1fr); gap: 24px; }
+        .workbench .workbench-project-chart { grid-template-columns: 160px minmax(0, 1fr); gap: 20px; }
       }
       @media (max-width: 600px) {
         .workbench .workbench-people,
         .workbench .workbench-tasks { height: 300px; }
         .workbench .workbench-card > .panel-head { padding: 12px; gap: 8px; }
-        .workbench .workbench-split { grid-template-columns: 92px minmax(0, 1fr); gap: 10px; padding: 12px; }
-        .workbench .workbench-values { padding-right: 10px; gap: 28px; }
+        .workbench .workbench-split { grid-template-columns: 104px minmax(0, 1fr); gap: 10px; padding: 12px; }
+        .workbench .workbench-values { padding: 10px; gap: 24px; }
         .workbench-value > span { font-size: 11px; }
-        .workbench-value > strong { font-size: 25px; }
+        .workbench-value > strong { font-size: 22px; }
         .workbench .workbench-breakdown th,
         .workbench .workbench-breakdown td { padding: 9px 4px; font-size: 11px; }
         .workbench .workbench-breakdown th:first-child { width: 46%; }
         .workbench-updated { font-size: 10px; }
         .workbench .workbench-project-body { padding: 12px; }
         .workbench .workbench-analysis-controls { gap: 6px; }
-        .workbench .workbench-analysis-controls label { width: 100%; justify-content: space-between; }
+        .workbench .workbench-analysis-controls label { width: 100%; }
+        .workbench .workbench-projects .workbench-analysis-controls label,
+        .workbench .sales-overview-panel .workbench-analysis-controls label { width: auto; flex: 1 1 120px; }
         .workbench .workbench-project-chart { grid-template-columns: 100px minmax(0, 1fr); gap: 8px; }
         .workbench .workbench-donut { width: 100px; height: 100px; }
         .workbench .workbench-donut-center { inset: 15px; gap: 3px; font-size: 9px; }
@@ -5024,10 +5033,10 @@
       #satisfactionFileInput { max-width: 100%; margin: 8px 0; }
 
       /* M01 / M12: each card owns its controls and visual boundary. */
-      .sales-workbench { display: grid; gap: 24px; min-width: 0; }
+      .workbench .sales-workbench { display: grid; gap: 20px; min-width: 0; }
       .sales-workbench > .panel { margin: 0; }
       .sales-workbench .panel { border-color: #dce3eb; border-radius: 10px; overflow: hidden; }
-      .sales-workbench .panel > .panel-head { min-height: 58px; padding: 14px 20px; background: #f8fafc; }
+      .workbench .sales-workbench .panel > .panel-head { min-height: 56px; padding: 12px 20px; background: #fff; }
       .sales-workbench .sales-period-head { justify-content: space-between; flex-wrap: wrap; gap: 12px 24px; }
       .sales-period-heading { flex: 0 0 auto; display: flex; align-items: baseline; gap: 12px; }
       .sales-period-controls { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
@@ -5036,12 +5045,13 @@
       .sales-period-actions { display: flex; gap: 8px; }
       .sales-period-actions > .btn { height: 34px; padding: 0 12px; }
       .sales-workbench .sales-metrics { grid-template-columns: repeat(4, minmax(0, 1fr)); border: 0; border-radius: 0; margin: 0; }
-      .sales-workbench .sales-metric { min-height: 116px; padding: 20px; gap: 12px; }
+      .workbench .sales-workbench .sales-metric { min-height: 104px; padding: 18px 20px; gap: 10px; }
       .sales-workbench .sales-metric .metric-label { min-height: 0; }
-      .sales-workbench .sales-metric .metric-value { margin-top: 0; font-size: 27px; line-height: 1.25; }
+      .workbench .sales-workbench .sales-metric .metric-value { margin-top: 0; font-size: 26px; line-height: 1.25; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
       .sales-workbench .sales-trend-panel { margin: 0; border-top: 1px solid var(--color-divider); }
-      .sales-workbench .sales-trend-panel > .panel-head { padding: 10px 20px; min-height: 50px; border-bottom: 0; }
-      .sales-workbench .sales-trend-panel .panel-title { font-size: 13px; }
+      .workbench .sales-workbench .sales-trend-panel > .panel-head { padding: 10px 20px; min-height: 50px; border-bottom: 0; flex-wrap: wrap; gap: 8px; justify-content: space-between; }
+      .workbench .sales-workbench .sales-trend-panel .panel-title { font-size: 13px; white-space: nowrap; }
+      .workbench .sales-trend-mode { flex-shrink: 0; white-space: nowrap; }
       .sales-trend-mode { display: flex; align-items: center; gap: 10px; font-size: 12px; color: var(--muted); }
       .sales-trend-legend { display: flex; align-items: center; flex-wrap: wrap; gap: 12px 24px; padding: 0 20px 4px; font-size: 12px; color: var(--color-text-secondary); }
       .sales-trend-legend > span { display: flex; align-items: center; gap: 6px; }
@@ -5052,10 +5062,22 @@
       .sales-trend-chart svg { display: block; width: 100%; min-width: 720px; height: auto; }
       .sales-trend-chart rect[tabindex]:focus-visible { outline: 1px solid var(--brand); outline-offset: -2px; }
       .sales-workbench .sales-primary-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .workbench .sales-period-panel > .sales-primary-metrics:not(.sales-secondary-metrics) { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+      .workbench .sales-period-panel > .sales-primary-metrics:not(.sales-secondary-metrics) .metric-value { font-size: 24px; }
+      .workbench .sales-period-controls .filter-field,
+      .workbench .sales-region-goal-controls .filter-field { display: grid; gap: 6px; }
+      .workbench .sales-period-controls { align-items: end; gap: 12px; }
+      .workbench .sales-period-controls .filter-field .input { height: 32px; }
+      .workbench .sales-period-actions > .btn,
+      .workbench .sales-region-goal-actions > .btn { height: 32px; padding: 0 12px; }
+      .workbench .sales-region-goal-controls { padding: 16px 20px; gap: 12px 16px; }
+      .workbench .sales-region-goal-controls .input { height: 32px; }
+      .workbench .sales-region-panel td:not(:first-child),
+      .workbench .sales-region-panel th:not(:first-child) { text-align: right; font-variant-numeric: tabular-nums; }
       .sales-workbench .sales-secondary-metrics { border-top: 1px solid var(--color-divider); }
       .sales-workbench .sales-secondary-metrics .sales-metric { min-height: 86px; padding: 14px 20px; gap: 8px; background: #f8fafc; }
       .sales-workbench .sales-secondary-metrics .metric-value { font-size: 20px; color: var(--color-text-secondary); }
-      .sales-workbench .sales-dashboard-grid { grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 24px; }
+      .workbench .sales-workbench .sales-dashboard-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; }
       .sales-overview-panel, .sales-region-panel { min-width: 0; height: 410px; display: flex; flex-direction: column; }
       .sales-overview-body { padding: 16px 20px 20px; display: flex; flex-direction: column; gap: 16px; flex: 1; min-height: 0; }
       #salesOverviewVisualization { flex: 1; min-height: 0; }
@@ -5070,25 +5092,29 @@
       .sales-workbench .table-wrap thead { position: sticky; top: 0; z-index: 1; }
       .sales-workbench .metric-label .workbench-help { vertical-align: middle; }
       @media (max-width: 1200px) {
-        .sales-workbench .sales-dashboard-grid { grid-template-columns: minmax(0, 1fr); }
+        .workbench .sales-workbench .sales-dashboard-grid { grid-template-columns: minmax(0, 1fr); }
       }
       @media (max-width: 900px) {
+        .workbench .sales-period-panel > .sales-primary-metrics:not(.sales-secondary-metrics) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
         .sales-workbench .sales-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
       }
       @media (max-width: 600px) {
-        .sales-workbench { gap: 18px; }
-        .sales-workbench .panel > .panel-head { padding: 12px; }
+        .workbench, .workbench .sales-workbench, .workbench-bottom { gap: 16px; }
+        .workbench .sales-period-panel > .sales-primary-metrics:not(.sales-secondary-metrics) { grid-template-columns: minmax(0, 1fr); }
+        .workbench .sales-workbench .panel > .panel-head { padding: 12px; }
+        .workbench .sales-region-goal-controls { padding: 12px; }
+        .workbench .sales-region-goal-controls .filter-field { flex-basis: 100%; }
         .sales-period-controls { width: 100%; }
         .sales-period-controls > .input { width: auto; flex: 1; min-width: 100px; }
         .sales-period-actions { margin-left: auto; }
         .sales-workbench .sales-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-        .sales-workbench .sales-metric { min-height: 110px; padding: 16px 12px; }
-        .sales-workbench .sales-metric .metric-value { font-size: 23px; }
+        .workbench .sales-workbench .sales-metric { min-height: 100px; padding: 16px 12px; }
+        .workbench .sales-workbench .sales-metric .metric-value { font-size: 22px; }
         .sales-workbench .sales-primary-metrics { grid-template-columns: minmax(0, 1fr); }
         .sales-workbench .sales-secondary-metrics .metric-value { font-size: 20px; }
         .sales-overview-panel { height: 470px; }
         .sales-overview-body { padding: 12px; }
-        .sales-workbench .workbench-analysis-controls select { max-width: 70%; }
+        .workbench .sales-workbench .workbench-analysis-controls select { max-width: 100%; }
         .sales-region-panel { height: 310px; }
       }
 
@@ -5189,3 +5215,58 @@
       .sales-period-controls .filter-field .sales-time-year { width: 96px; }
       .sales-region-goal-controls .filter-field:has(.sales-time-year), .sales-region-goal-controls .sales-time-unit { flex: 0 1 156px; }
       .sales-region-goal-controls .sales-time-year, .sales-region-goal-controls .sales-time-unit .input { min-width: 96px; }
+
+      /* M01 §6.22: fixed summary and filters, scrolling center breakdown. */
+      .workbench .workbench-new-people { height: 360px; }
+      .workbench .workbench-new-people .workbench-split { padding: 0; }
+      @media (max-width: 600px) {
+        .workbench .workbench-new-people { height: 430px; }
+      }
+
+      /* M01 §6.23: current task counts by type, with regional counts alongside. */
+      .workbench .workbench-tasks { height: 420px; }
+      .workbench .workbench-task-stats { grid-template-columns: minmax(280px, 1fr) minmax(0, 2.5fr); }
+      .workbench .workbench-task-stats th:first-child { width: auto; }
+      .workbench .workbench-task-stats .workbench-task-type { text-align: left; }
+      .workbench .workbench-task-detail { display: flex; flex-direction: column; gap: 12px; min-width: 0; min-height: 0; }
+      .workbench .workbench-task-controls { justify-content: flex-end; min-height: 32px; }
+      .workbench .workbench-task-controls label { display: flex; align-items: center; gap: 8px; }
+      .workbench .workbench-task-totals { margin-top: 44px; }
+      .workbench .workbench-task-centers { flex: 1 1 0; }
+      .workbench .workbench-task-matrix { width: max-content; min-width: 100%; table-layout: auto; }
+      .workbench .workbench-task-matrix th,
+      .workbench .workbench-task-matrix td { min-width: 120px; }
+      .workbench .workbench-task-matrix thead th { z-index: 3; text-align: center; white-space: nowrap; }
+      .workbench .workbench-task-matrix th:first-child { position: sticky; left: 0; min-width: 170px; max-width: 220px; text-align: left; white-space: nowrap; }
+      .workbench .workbench-task-matrix thead th:first-child { z-index: 4; }
+      .workbench .workbench-task-matrix tbody th { top: auto; z-index: 2; background: #fff; color: var(--text); font-size: 13px; }
+      .workbench-task-cell { display: grid; gap: 6px; font-variant-numeric: tabular-nums; }
+      .workbench-task-cell > span { display: flex; justify-content: space-between; gap: 16px; }
+      .workbench-task-cell > span > span { font-size: 12px; color: var(--muted); white-space: nowrap; }
+      .workbench-task-cell strong { font-size: 15px; font-weight: 600; }
+      .workbench-task-overdue { color: var(--red); }
+      .workbench-task-zero { color: #9ca3af; }
+      .workbench .workbench-time-controls label { flex: 0 1 220px; }
+      .workbench .workbench-time-controls input { width: 220px; max-width: 100%; min-width: 0; height: 32px; padding: 4px 8px; font-size: 12px; }
+      @media (max-width: 600px) {
+        .workbench .workbench-tasks { height: 680px; }
+        .workbench .workbench-task-stats { grid-template-columns: minmax(0, 1fr); grid-template-rows: 240px minmax(0, 1fr); }
+        .workbench .workbench-task-totals { margin-top: 0; }
+        .workbench .workbench-time-controls input { flex: 0 1 220px; }
+      }
+
+      .workbench .workbench-stat-result { display: flex; flex-direction: column; flex: 1 1 0; min-height: 0; }
+
+      /* M01 §6.22: PM new-contact total lives inside the existing overview. */
+      .workbench .workbench-pm-people { height: 460px; }
+      .workbench .workbench-pm-people > .workbench-split { flex: 0 0 200px; }
+      .workbench .workbench-pm-new-people { display: flex; flex-direction: column; flex: 1 1 0; min-height: 0; border-top: 1px solid var(--color-divider); }
+      .workbench .workbench-pm-new-people > .panel-title { padding: 12px 20px 0; font-size: 14px; }
+      .workbench .workbench-pm-new-people .workbench-project-body { padding-top: 12px; padding-bottom: 12px; gap: 10px; }
+      .workbench .workbench-pm-new-people .workbench-stat-result { overflow: auto; overscroll-behavior: contain; }
+      .workbench .workbench-pm-new-summary { display: flex; align-items: center; gap: 20px; flex: 0 0 auto; }
+      @media (max-width: 600px) {
+        .workbench .workbench-pm-people { height: 540px; }
+        .workbench .workbench-pm-people > .workbench-split { flex-basis: 220px; }
+        .workbench .workbench-pm-new-people > .panel-title { padding-left: 12px; }
+      }

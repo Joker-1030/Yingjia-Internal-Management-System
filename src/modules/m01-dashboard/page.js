@@ -1,14 +1,14 @@
       // M01 §4.4.1: native hints stay readable outside scrolling cards.
       function dashboardFieldHelp(key, label) {
         const descriptions = {
+          "newPeople": "所选时间范围内首次建档、当前仍有效且有权查看的关键人数；调岗、恢复不重复新增，按当前客户所属中心统计。",
+          "taskPending": "当前有权执行记录中，本类处于待执行或暂停的数量；不限截止日期，包含尚未到期任务，不含覆盖KPI。",
+          "taskOverdue": "当前有权执行记录中，本类当前仍逾期的数量；与待办互斥，不含已过期未完成或已补完成。",
           "people": "当前可见范围内，状态正常、当前任职有效，且所属客户和集团均正常的关键人数。",
           "coverage": "至少有 1 名有效关键人的正常客户单位数 ÷ 正常客户单位总数 × 100%。同一客户有多名关键人也只计 1 家；无正常客户时显示 --。",
           "groupPeople": "本行区域或 PM 当前负责客户中的有效关键人数；关键人正常、当前任职有效，且所属客户和集团均正常。",
           "groupCoverage": "本行至少有 1 名有效关键人的正常客户单位数 ÷ 本行正常客户单位总数 × 100%。无正常客户时显示 --；总体按客户数重新汇总，不平均各行百分比。",
           "uncovered": "本人当前负责范围内，有效关键人数为 0 的正常客户公司。",
-          "pending": "当前可见范围内，处于待执行或暂停中的常规维系任务执行记录数。",
-          "overdue": "当前可见范围内，处于当前逾期的常规维系任务执行记录数；暂停中的任务不计入。",
-          "campaign": "本专项当前可见的已完成有效执行项数 ÷ 全部有效执行项数 × 100%。包含未到期和已过期未完成项，排除已取消、已关闭项；无有效执行项时显示 --。覆盖 KPI 按责任人执行项计数。",
           "projectCount": "当前筛选后有权查看的项目数量，包含已取消和已中止项目。",
           "projectAmount": "当前筛选后有权查看的项目已保存含税金额之和，包含已取消和已中止项目；不代表实际收入或应收金额。",
           "projectSettlementAmount": "当前筛选后有权查看的项目结账金额之和；已中止且涉及结算取填写的应结算金额，无结算记录不参与求和。不代表实收金额。",
@@ -530,7 +530,6 @@
       });
 
       let dashboardCoverageOrder = "asc";
-      let dashboardCampaignOrder = "asc";
       let dashboardSortOwner = "";
 
       function dashboardRateCompare(a, b, order) {
@@ -541,7 +540,7 @@
 
       function dashboardSortHeader(key, label, order) {
         const ascending = order === "asc";
-        return `<th aria-sort="${ascending ? "ascending" : "descending"}"><button class="workbench-sort" type="button" data-workbench-sort="${key}" aria-label="${label}，当前${ascending ? "低到高" : "高到低"}，点击切换${ascending ? "高到低" : "低到高"}">${label}<span aria-hidden="true">${ascending ? "↑" : "↓"}</span></button>${dashboardFieldHelp(key === "coverage" ? "groupCoverage" : "campaign", label)}</th>`;
+        return `<th aria-sort="${ascending ? "ascending" : "descending"}"><button class="workbench-sort" type="button" data-workbench-sort="${key}" aria-label="${label}，当前${ascending ? "低到高" : "高到低"}，点击切换${ascending ? "高到低" : "低到高"}">${label}<span aria-hidden="true">${ascending ? "↑" : "↓"}</span></button>${dashboardFieldHelp("groupCoverage", label)}</th>`;
       }
 
       function handleWorkbenchSort(target) {
@@ -553,11 +552,6 @@
           const { companies, people } = dashboardBusinessRows();
           const host = document.querySelector("#workbenchCoverageList");
           if (host) host.outerHTML = dashboardCoverageTable(companies, people);
-        } else if (key === "campaign") {
-          if (!hasPermission("tasks") || !hasDataObject("维系任务")) return;
-          dashboardCampaignOrder = dashboardCampaignOrder === "asc" ? "desc" : "asc";
-          const host = document.querySelector("#workbenchCampaignList");
-          if (host) host.outerHTML = dashboardCampaignTable(dashboardBusinessRows().rows);
         } else return;
         document.querySelector(`[data-workbench-sort="${key}"]`)?.focus?.({ preventScroll: true });
       }
@@ -601,20 +595,6 @@
         const levels = ["president", "vp", "director"].includes(currentUser.role) ? Object.keys(contactLevelLabels) : [];
         const levelHeaders = levels.map((level) => '<th>' + escapeDashboardHtml(level) + '</th>').join('');
         return '<div class="workbench-breakdown' + (levels.length ? ' workbench-level-breakdown' : '') + '" id="workbenchCoverageList" tabindex="0" role="region" aria-label="关键人覆盖明细"><table><thead><tr><th>' + (currentUser.role === "director" ? 'PM' : '区域运营中心') + '</th><th>关键人' + dashboardFieldHelp('groupPeople', '关键人') + '</th>' + levelHeaders + dashboardSortHeader('coverage', '覆盖率', dashboardCoverageOrder) + '</tr></thead><tbody>' + groups.map((item) => '<tr><td>' + escapeDashboardHtml(item.label) + '</td><td>' + item.people + '</td>' + levels.map((level) => '<td>' + item.levelCounts[level] + '</td>').join('') + '<td>' + dashboardPercent(item.rate) + '</td></tr>').join('') + '</tbody></table>' + (groups.length ? '' : '<div class="empty">暂无PM客户覆盖数据</div>') + '</div>';
-      }
-
-      function dashboardCampaignProgress(rows) {
-        return campaigns.filter((campaign) => ["专项维系", "关键人覆盖 KPI"].includes(campaign.category) && taskThemeStatus(campaign) === "进行中" && rows.some((task) => task.campaignId === campaign.id))
-          .map((campaign) => {
-            const valid = rows.filter((task) => task.campaignId === campaign.id && ["pending", "paused", "overdue", "expired", "done"].includes(task.status));
-            const done = valid.filter((task) => task.status === "done").length;
-            return { id: campaign.id, createdAt: campaign.createdAt, name: campaign.name, state: taskThemeStatus(campaign), done, total: valid.length, rate: valid.length ? done / valid.length * 100 : null };
-          }).sort((a, b) => dashboardRateCompare(a, b, dashboardCampaignOrder) || b.createdAt.localeCompare(a.createdAt) || String(b.id).localeCompare(String(a.id), "en", { numeric: true }));
-      }
-
-      function dashboardCampaignTable(rows) {
-        const progress = dashboardCampaignProgress(rows);
-        return '<div class="workbench-breakdown" id="workbenchCampaignList" tabindex="0" role="region" aria-label="专项任务进度"><table><thead><tr><th>专项任务</th><th>状态</th>' + dashboardSortHeader('campaign', '完成进度', dashboardCampaignOrder) + '</tr></thead><tbody>' + progress.map((item) => '<tr><td>' + escapeDashboardHtml(item.name) + '</td><td>' + escapeDashboardHtml(item.state) + '</td><td><div class="workbench-progress"><strong>' + dashboardPercent(item.rate) + '</strong><progress max="100" value="' + (item.rate || 0) + '" aria-label="' + escapeDashboardHtml(item.name) + '完成进度"></progress></div></td></tr>').join('') + '</tbody></table>' + (progress.length ? '' : '<div class="empty">暂无专项任务</div>') + '</div>';
       }
 
       function dashboardOverviewValue(label, value, key, suffix = "") {
@@ -668,8 +648,220 @@
         const target = event.target?.closest?.("[data-workbench-todo-page]");
         if (target) handleWorkbenchTodoAction(null, target.dataset.workbenchTodoPage);
       });
+      // M01 §6.22: contacts retain their time range, using the shared Demo day.
+      function dashboardRecentTimeRange(today = DEMO_TODAY) {
+        return { start: `${addDays(today, -6)}T00:00:00`, end: `${today}T23:59:59` };
+      }
+
+      function dashboardStatTimestamp(value, dateAtEnd = false) {
+        if (typeof value !== "string") return NaN;
+        const match = /^(\d{4})-(\d{2})-(\d{2})(?:[ T](\d{2}):(\d{2})(?::(\d{2})(?:\.\d+)?)?(Z|[+-]\d{2}:\d{2})?)?$/.exec(value);
+        if (!match) return NaN;
+        const [, year, month, day, hour = dateAtEnd ? "23" : "00", minute = dateAtEnd ? "59" : "00", second = match[4] ? "00" : dateAtEnd ? "59" : "00", zone = "+08:00"] = match;
+        const date = `${year}-${month}-${day}`, calendar = new Date(`${date}T00:00:00Z`);
+        if (!Number.isFinite(calendar.valueOf()) || calendar.toISOString().slice(0, 10) !== date || Number(hour) > 23 || Number(minute) > 59 || Number(second) > 59) return NaN;
+        return new Date(`${date}T${hour}:${minute}:${second}${zone}`).valueOf();
+      }
+
+      function dashboardStatRange(start, end) {
+        const isInputTime = (value) => typeof value === "string" && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2})?$/.test(value);
+        const first = isInputTime(start) ? dashboardStatTimestamp(start) : NaN;
+        const last = isInputTime(end) ? dashboardStatTimestamp(end) : NaN;
+        return Number.isFinite(first) && Number.isFinite(last) && first <= last ? { start: first, end: last } : null;
+      }
+
+      function dashboardStatTimeError(start, end) {
+        if (dashboardStatRange(start, end)) return "";
+        return dashboardStatRange(start, start) && dashboardStatRange(end, end)
+          ? "开始时间不能晚于结束时间" : "请选择有效的开始时间和结束时间";
+      }
+
+      function dashboardStatActor() {
+        return JSON.stringify([currentUser?.username, currentUser?.employeeCode, currentUser?.role, currentRoleTemplateNames(), adminDashboardView]);
+      }
+
+      function dashboardStatsAllowed(object) {
+        if (!currentUser || currentUser.disabled || !accounts.includes(currentUser) || !canAccessPage("dashboard") ||
+          ["hr", "support"].includes(currentUser.role) || (currentUser.role === "admin" && adminDashboardView !== "business") ||
+          !hasDataObject(object) || !["company", "market", "regions", "cities"].includes(currentScopeType())) return false;
+        const employee = employees.find((item) => item.code === currentUser.employeeCode);
+        return Boolean(employee && employee.status === "在职" && employee.accountStatus !== "停用");
+      }
+      const dashboardNewContactsAllowed = () => dashboardStatsAllowed("关键人") && hasDataObject("客户单位");
+      const dashboardTaskStatsAllowed = () => dashboardStatsAllowed("维系任务") && hasPermission("tasks");
+
+      function dashboardStatCenters(companies, allowed) {
+        if (!allowed) return [];
+        const scope = currentScopeType();
+        const eligible = scope === "regions" ? new Set(dashboardManagedRegions().map((region) => region.id)) :
+          scope === "cities" ? new Set(companies.map((company) => regionForCompany(company)?.id)) : null;
+        const seen = new Set();
+        return organizationDepartments.filter((department) => department.type === "region" && department.status === "启用")
+          .slice().sort((a, b) => a.sort - b.sort || a.name.localeCompare(b.name, "zh-CN") || String(a.id).localeCompare(String(b.id)))
+          .map((department) => regionsData.find((region) => region.id === department.regionId))
+          .filter((region) => region && (!eligible || eligible.has(region.id)) && !seen.has(region.id) && seen.add(region.id));
+      }
+      const dashboardNewContactCenters = () => dashboardStatCenters(dashboardBusinessRows().companies, dashboardNewContactsAllowed());
+
+      function dashboardStatCenterOptions(centerId, centers) {
+        const scope = currentScopeType(), overall = scope === "regions" ? "全部主管中心" : scope === "cities" ? "本人负责范围" : "公司整体";
+        const valid = !centerId || centers.some((center) => String(center.id) === centerId);
+        return `${valid ? "" : '<option value="" selected disabled>请重新选择运营中心</option>'}<option value="" ${!centerId ? "selected" : ""}>${overall}</option>${centers.map((center) => `<option value="${escapeDashboardHtml(center.id)}" ${String(center.id) === centerId ? "selected" : ""}>${escapeDashboardHtml(center.name)}</option>`).join("")}`;
+      }
+
+      function dashboardStatControls(prefix, start, end, centerId, centers) {
+        return `<div class="workbench-analysis-controls workbench-time-controls"><label for="${prefix}Start">开始时间<input class="input" id="${prefix}Start" type="datetime-local" step="1" value="${escapeDashboardHtml(start)}"></label><label for="${prefix}End">结束时间<input class="input" id="${prefix}End" type="datetime-local" step="1" value="${escapeDashboardHtml(end)}"></label>${centers ? `<label for="${prefix}Center">运营中心<select class="input" id="${prefix}Center">${dashboardStatCenterOptions(centerId, centers)}</select></label>` : ""}</div>`;
+      }
+
+      let dashboardNewContactStart = dashboardRecentTimeRange().start;
+      let dashboardNewContactEnd = dashboardRecentTimeRange().end;
+      let dashboardNewContactCenter = "";
+      let dashboardNewContactOwner = "";
+
+      function resetDashboardContactRange() {
+        ({ start: dashboardNewContactStart, end: dashboardNewContactEnd } = dashboardRecentTimeRange());
+        dashboardNewContactCenter = "";
+        dashboardNewContactOwner = dashboardStatActor();
+      }
+      function dashboardNewContactsAnalysis(start = dashboardNewContactStart, end = dashboardNewContactEnd, centerId = dashboardNewContactCenter) {
+        if (!dashboardNewContactsAllowed() || (currentUser.role === "pm" && centerId)) return null;
+        const range = dashboardStatRange(start, end);
+        if (!range) return null;
+        const { companies, people } = dashboardBusinessRows(), centers = currentUser.role === "pm" ? [] : dashboardStatCenters(companies, true);
+        const selected = centerId ? centers.find((region) => String(region.id) === centerId) : null;
+        if (centerId && !selected) return null;
+        const companyByName = new Map(companies.filter((company) => !customerOrgArchivedGroup(company.group)).map((company) => [company.name, company]));
+        const seen = new Set();
+        const created = people.filter((person) => {
+          const company = companyByName.get(person.company), stamp = dashboardStatTimestamp(person.createdAt);
+          if (!company || !contactIsActive(person) || (person.effectiveDate && person.effectiveDate > DEMO_TODAY) ||
+            !Number.isFinite(stamp) || stamp < range.start || stamp > range.end || person.id == null || seen.has(String(person.id))) return false;
+          seen.add(String(person.id));
+          return !selected || regionForCompany(company)?.id === selected.id;
+        });
+        return { total: created.length, groups: (selected ? [selected] : centers).map((region) => ({
+          id: region.id, name: region.name, count: created.filter((person) => regionForCompany(companyByName.get(person.company))?.id === region.id).length,
+        })) };
+      }
+
+      function dashboardNewContactsResult() {
+        if (!dashboardNewContactsAllowed()) return "";
+        const error = dashboardStatTimeError(dashboardNewContactStart, dashboardNewContactEnd);
+        if (error) return `<div class="empty" role="alert">${error}</div>`;
+        const analysis = dashboardNewContactsAnalysis();
+        if (!analysis) return '<div class="empty">关键人新增数据暂不可用</div>';
+        if (currentUser.role === "pm") return `<div class="workbench-pm-new-summary">${dashboardOverviewValue("新增关键人", analysis.total, "newPeople", "人")}${analysis.total ? "" : '<div class="workbench-empty-note">暂无新增关键人</div>'}</div>`;
+        return `<div class="workbench-split"><div class="workbench-values">${dashboardOverviewValue("新增关键人", analysis.total, "newPeople", "人")}</div><div class="workbench-breakdown" tabindex="0" role="region" aria-label="关键人新增运营中心明细"><table><thead><tr><th>区域运营中心</th><th>新增人数（人）</th></tr></thead><tbody>${analysis.groups.map((group) => `<tr><td>${escapeDashboardHtml(group.name)}</td><td>${group.count}</td></tr>`).join("")}</tbody></table>${analysis.total ? "" : '<div class="empty">暂无新增关键人</div>'}</div></div>`;
+      }
+
+      function dashboardNewContactsBody() {
+        if (!dashboardNewContactsAllowed()) return "";
+        return dashboardStatControls("workbenchNewContact", dashboardNewContactStart, dashboardNewContactEnd, dashboardNewContactCenter, currentUser.role === "pm" ? null : dashboardNewContactCenters()) +
+          `<div class="workbench-stat-result" id="workbenchNewContactsResult">${dashboardNewContactsResult()}</div>`;
+      }
+
+      function dashboardNewContactsCard() {
+        if (!dashboardNewContactsAllowed()) return "";
+        if (currentUser.role === "pm") return `<div class="workbench-pm-new-people"><div class="panel-title" id="workbenchNewContactsTitle">关键人新增详情</div><div class="workbench-project-body" id="workbenchNewContactsBody" role="region" aria-labelledby="workbenchNewContactsTitle">${dashboardNewContactsBody()}</div></div>`;
+        return `<section class="panel workbench-card workbench-new-people"><div class="panel-head"><div class="panel-title" id="workbenchNewContactsTitle">关键人新增详情</div></div><div class="workbench-project-body" id="workbenchNewContactsBody" role="region" aria-labelledby="workbenchNewContactsTitle">${dashboardNewContactsBody()}</div></section>`;
+      }
+
+      const DASHBOARD_TASK_TYPES = ["常规维系", "生日关怀", "节假日关怀", "专项维系"];
+      function dashboardTaskStatsAnalysis() {
+        if (!dashboardTaskStatsAllowed()) return null;
+        const { companies, rows } = dashboardBusinessRows(), centers = dashboardStatCenters(companies, true);
+        const seen = new Set();
+        const included = rows.filter((task) => {
+          if (!DASHBOARD_TASK_TYPES.includes(task.type) || !["pending", "paused", "overdue"].includes(task.status) ||
+            task.id == null || seen.has(String(task.id))) return false;
+          seen.add(String(task.id));
+          return true;
+        });
+        const numbers = (items) => ({ pending: items.filter((task) => ["pending", "paused"].includes(task.status)).length,
+          overdue: items.filter((task) => task.status === "overdue").length });
+        const types = (items) => DASHBOARD_TASK_TYPES.map((type) => ({ type, ...numbers(items.filter((task) => task.type === type)) }));
+        return { ...numbers(included), types: types(included), groups: centers.map((region) => ({
+          id: region.id, name: region.name, types: types(included.filter((task) => regionForName(task.region)?.id === region.id)),
+        })) };
+      }
+
+      let dashboardTaskView = "region";
+      let dashboardTaskViewOwner = "";
+      function resetDashboardTaskView() {
+        dashboardTaskView = "region";
+        dashboardTaskViewOwner = dashboardStatActor();
+      }
+
+      function dashboardTaskMatrix(analysis) {
+        const byTask = dashboardTaskView === "task";
+        const cell = (item, group) => `<td data-task-center="${escapeDashboardHtml(group.id)}" data-task-type="${escapeDashboardHtml(item.type)}"><div class="workbench-task-cell"><span><span>待办</span><strong class="${item.pending ? "" : "workbench-task-zero"}">${item.pending}</strong></span><span><span>逾期</span><strong class="${item.overdue ? "workbench-task-overdue" : "workbench-task-zero"}">${item.overdue}</strong></span></div></td>`;
+        const columns = byTask ? analysis.groups.map((group) => group.name) : analysis.types.map((item) => item.type);
+        const rows = byTask ? analysis.types.map((item, index) => `<tr><th scope="row">${escapeDashboardHtml(item.type)}</th>${analysis.groups.map((group) => cell(group.types[index], group)).join("")}</tr>`).join("") :
+          analysis.groups.map((group) => `<tr><th scope="row">${escapeDashboardHtml(group.name)}</th>${group.types.map((item) => cell(item, group)).join("")}</tr>`).join("");
+        return `<table class="workbench-task-matrix" aria-label="任务数量（条）"><thead><tr><th scope="col">${byTask ? "任务类型" : "大区"}</th>${columns.map((label) => `<th scope="col">${escapeDashboardHtml(label)}</th>`).join("")}</tr></thead><tbody>${rows}</tbody></table>${analysis.pending || analysis.overdue ? "" : '<div class="empty">暂无任务</div>'}`;
+      }
+
+      function dashboardTaskStatsBody() {
+        if (!dashboardTaskStatsAllowed()) return "";
+        const analysis = dashboardTaskStatsAnalysis();
+        if (!analysis) return '<div class="empty">任务统计数据暂不可用</div>';
+        const headers = `<th>待办任务数（条）${dashboardFieldHelp("taskPending", "待办任务数")}</th><th>当前逾期数（条）${dashboardFieldHelp("taskOverdue", "当前逾期数")}</th>`;
+        const cells = (item) => `<td class="workbench-task-type">${escapeDashboardHtml(item.type)}</td><td>${item.pending}</td><td>${item.overdue}</td>`;
+        const controls = `<div class="workbench-analysis-controls workbench-task-controls"><label for="workbenchTaskView">查看维度<select class="input" id="workbenchTaskView"><option value="region" ${dashboardTaskView === "region" ? "selected" : ""}>区域运营中心</option><option value="task" ${dashboardTaskView === "task" ? "selected" : ""}>任务</option></select></label></div>`;
+        return `<div class="workbench-split workbench-task-stats" id="workbenchTaskStatsBody"><div class="workbench-breakdown workbench-task-totals" tabindex="0" role="region" aria-label="任务分类数量"><table><thead><tr><th>任务类型</th>${headers}</tr></thead><tbody>${analysis.types.map((item) => `<tr>${cells(item)}</tr>`).join("")}</tbody></table></div><div class="workbench-task-detail">${controls}<div class="workbench-breakdown workbench-task-centers" id="workbenchTaskCenters" tabindex="0" role="region" aria-label="运营中心任务分类数量">${dashboardTaskMatrix(analysis)}</div></div></div>`;
+      }
+
+      function handleDashboardTaskView(value) {
+        if (currentPage !== "dashboard") return;
+        const body = $("#workbenchTaskStatsBody");
+        if (!dashboardTaskStatsAllowed()) {
+          if (body) { body.innerHTML = ""; body.closest(".workbench-tasks")?.remove(); }
+          return;
+        }
+        if (dashboardTaskViewOwner !== dashboardStatActor()) resetDashboardTaskView();
+        else if (["region", "task"].includes(value)) dashboardTaskView = value;
+        else return;
+        if (body) body.outerHTML = dashboardTaskStatsBody();
+        $("#workbenchTaskView")?.focus?.({ preventScroll: true });
+      }
+      document.addEventListener("change", (event) => {
+        if (event.target?.id === "workbenchTaskView" && event.target === $("#workbenchTaskView")) handleDashboardTaskView(event.target.value);
+      });
+
+      function dashboardTaskStatsCard() {
+        return dashboardTaskStatsAllowed() ? `<section class="panel workbench-card workbench-tasks"><div class="panel-head"><div class="panel-title" id="workbenchTasksTitle">任务概况</div></div>${dashboardTaskStatsBody()}</section>` : "";
+      }
+
+      function handleDashboardNewContactsFilter(field, value) {
+        if (currentPage !== "dashboard") return;
+        const body = $("#workbenchNewContactsBody");
+        if (!dashboardNewContactsAllowed()) {
+          if (body) { body.innerHTML = ""; (body.closest(".workbench-pm-new-people") || body.closest(".workbench-new-people"))?.remove(); }
+          return;
+        }
+        if (dashboardNewContactOwner !== dashboardStatActor()) {
+          resetDashboardContactRange();
+          if (body) body.innerHTML = dashboardNewContactsBody();
+          return;
+        }
+        if (currentUser.role === "pm" && field === "center") return;
+        if (field === "start") dashboardNewContactStart = value;
+        else if (field === "end") dashboardNewContactEnd = value;
+        else if (field === "center") dashboardNewContactCenter = value;
+        const center = $("#workbenchNewContactCenter"), result = $("#workbenchNewContactsResult");
+        if (center) center.innerHTML = dashboardStatCenterOptions(dashboardNewContactCenter, dashboardNewContactCenters());
+        if (result) result.innerHTML = dashboardNewContactsResult();
+      }
+
+      document.addEventListener("change", (event) => {
+        const field = { workbenchNewContactStart: "start", workbenchNewContactEnd: "end", workbenchNewContactCenter: "center" }[event.target?.id];
+        if (field && event.target === $(`#${event.target.id}`)) handleDashboardNewContactsFilter(field, event.target.value);
+      });
+
       function renderDashboard() {
         if (!currentUser || !canAccessPage("dashboard") || ["hr", "support"].includes(currentUser.role)) return "";
+        if (lastRenderedPage !== "dashboard" || dashboardNewContactOwner !== dashboardStatActor()) resetDashboardContactRange();
+        if (lastRenderedPage !== "dashboard" || dashboardTaskViewOwner !== dashboardStatActor()) resetDashboardTaskView();
         const invalidMeasure = !dashboardProjectMeasureOptions().some(([value]) => value === dashboardProjectMeasure);
         const sortOwner = `${currentUser.employeeCode || currentUser.phone || currentUser.name}:${currentUser.role}`;
         if (lastRenderedPage !== "dashboard" || dashboardSortOwner !== sortOwner) {
@@ -677,7 +869,6 @@
           dashboardProjectFilter = "";
           dashboardProjectMeasure = "count";
           dashboardCoverageOrder = "asc";
-          dashboardCampaignOrder = "asc";
           dashboardTodoCategory = "all";
           dashboardTodoPage = 1;
           dashboardSortOwner = sortOwner;
@@ -687,20 +878,16 @@
         if (invalidMeasure) dashboardProjectMeasure = "amount";
         if (currentUser.role === "admin" && adminDashboardView === "system")
           return renderAdminDashboard();
-        const { companies, people, rows } = dashboardBusinessRows();
+        const { companies, people } = dashboardBusinessRows();
         const coverage = dashboardCoverageRate(companies, people);
-        const regular = rows.filter((task) => task.type === "常规维系");
-        const pending = regular.filter((task) => ["pending", "paused"].includes(task.status)).length;
-        const overdue = regular.filter((task) => task.status === "overdue").length;
         const canSeePeople = hasDataObject("客户单位") && hasDataObject("关键人");
-        const canSeeTasks = hasPermission("tasks") && hasDataObject("维系任务");
-        const peopleCard = canSeePeople ? `<section class="panel workbench-card workbench-people"><div class="panel-head"><div class="panel-title" id="workbenchPeopleTitle">关键人概况</div><div class="spacer"></div><span class="workbench-updated">更新于 ${escapeDashboardHtml(DEMO_TODAY)}</span></div><div class="workbench-split" role="region" aria-labelledby="workbenchPeopleTitle"><div class="workbench-values">${dashboardOverviewValue("有效关键人", people.length, "people", "人")}${dashboardOverviewValue("关键人覆盖率", dashboardPercent(coverage), "coverage")}${coverage == null ? '<div class="workbench-empty-note">暂无客户单位</div>' : ""}</div>${dashboardCoverageTable(companies, people)}</div></section>` : "";
-        const taskCard = canSeeTasks ? `<section class="panel workbench-card workbench-tasks"><div class="panel-head"><div class="panel-title" id="workbenchTasksTitle">任务概况</div></div><div class="workbench-split" role="region" aria-labelledby="workbenchTasksTitle"><div class="workbench-values">${dashboardOverviewValue("常规任务待完成", pending, "pending", "项")}${dashboardOverviewValue("常规任务逾期", overdue, "overdue", "项")}</div>${dashboardCampaignTable(rows)}</div></section>` : "";
+        const peopleCard = canSeePeople ? `<section class="panel workbench-card workbench-people${currentUser.role === "pm" ? " workbench-pm-people" : ""}"><div class="panel-head"><div class="panel-title" id="workbenchPeopleTitle">关键人概况</div><div class="spacer"></div><span class="workbench-updated">更新于 ${escapeDashboardHtml(DEMO_TODAY)}</span></div><div class="workbench-split" role="region" aria-labelledby="workbenchPeopleTitle"><div class="workbench-values">${dashboardOverviewValue("有效关键人", people.length, "people", "人")}${dashboardOverviewValue("关键人覆盖率", dashboardPercent(coverage), "coverage")}${coverage == null ? '<div class="workbench-empty-note">暂无客户单位</div>' : ""}</div>${dashboardCoverageTable(companies, people)}</div>${currentUser.role === "pm" ? dashboardNewContactsCard() : ""}</section>` : "";
+        const taskCard = dashboardTaskStatsCard();
         const projectCard = hasPermission("projects") ? `<section class="panel workbench-card workbench-projects"><div class="panel-head"><div class="panel-title" id="workbenchProjectsTitle">项目概况</div></div><div class="workbench-project-body" role="region" aria-labelledby="workbenchProjectsTitle">${dashboardProjectControls()}<div class="workbench-project-visualization" id="workbenchProjectVisualization">${dashboardProjectChart(dashboardProjectSummary())}</div></div></section>` : "";
         const todoCard = `<section class="panel workbench-card workbench-todos"><div class="panel-head"><div class="panel-title" id="workbenchTodosTitle">我的待办</div></div>${dashboardTodosBody()}</section>`;
         return pageHead("工作台", currentUser.role === "ecology" ? "查看项目概况，安排项目待办。" : "查看关键人、任务、销售与项目概况，安排待办事项。",
           currentUser.role === "admin" ? '<button class="btn" type="button" data-admin-dashboard-view="system">系统运行</button>' : "") +
-          `<div class="workbench">${peopleCard}${taskCard}${renderWorkbenchSales()}<div class="workbench-bottom">${projectCard}${todoCard}</div></div>`;
+          `<div class="workbench">${peopleCard}${currentUser.role === "pm" ? "" : dashboardNewContactsCard()}${taskCard}${renderWorkbenchSales()}<div class="workbench-bottom">${projectCard}${todoCard}</div></div>`;
       }
 
       function renderAdminDashboard() {

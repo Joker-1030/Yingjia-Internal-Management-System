@@ -1,11 +1,11 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-10-21T02:00:00.010Z",
+  "generatedAt": "2026-10-21T03:02:11.758Z",
   "generator": "scripts/build-prototype.mjs",
   "buildCommand": "node scripts/build-prototype.mjs",
   "sourceRoot": "src",
   "entry": "src/prototype.html",
-  "sourceDigest": "11738cdc2bfedee7be110a5cafea812f95670ba057d4865b3c207130829b614f",
+  "sourceDigest": "44a065cf78f078e68aa9222d7c7274afb73dc97290b768fffc60c02ec94565d5",
   "sourceFiles": [
     {
       "path": "src/app.js",
@@ -189,8 +189,8 @@
     },
     {
       "path": "src/modules/m01-dashboard/page.js",
-      "sha256": "56cac891f7788117ae21a529ea94dbe70898bfc418b7e0698e90e643821343e6",
-      "bytes": 73958
+      "sha256": "0e4229e1961163d6c281e5b6610da82430882b731bc9920c7ef0a17047dced47",
+      "bytes": 74467
     },
     {
       "path": "src/modules/m02-customer-operations/customer-tree.js",
@@ -399,8 +399,8 @@
     },
     {
       "path": "src/styles/prototype.css",
-      "sha256": "0eafa30283704172a0d0390802542750269dbe412e86ae096737461fa4323ce0",
-      "bytes": 176484
+      "sha256": "52c7770c36bce837d5747025fd27396abfe32e572817f0220886b545d908e164",
+      "bytes": 176863
     }
   ],
   "artifactInputs": [
@@ -472,8 +472,8 @@
   ],
   "artifact": {
     "path": "demo/prototype.html",
-    "sha256": "4daf5141758c71387f4639dd3e70142bd9064fddb5ae0d29226f4be596267331",
-    "bytes": 2645272
+    "sha256": "cf3e8829410b0380251902f8875786d065019bc200fc9c836d56845675189e51",
+    "bytes": 2646160
   },
   "legacyBridge": false,
   "architecture": "lightweight-modular",

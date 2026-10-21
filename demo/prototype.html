@@ -5263,6 +5263,11 @@
         .workbench .workbench-time-controls input { flex: 0 1 220px; }
       }
 
+      /* PM task overview keeps only its existing four-type summary. */
+      .workbench .workbench-tasks.workbench-pm-tasks { height: 420px; }
+      .workbench .workbench-task-stats.workbench-task-summary-only { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); }
+      .workbench .workbench-task-summary-only .workbench-task-totals { margin-top: 0; }
+
       .workbench .workbench-stat-result { display: flex; flex-direction: column; flex: 1 1 0; min-height: 0; }
 
       /* M01 §6.22: PM new-contact total lives inside the existing overview. */
@@ -13422,6 +13427,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
       }
 
       function dashboardTaskMatrix(analysis) {
+        if (currentUser.role === "pm") return "";
         const byTask = dashboardTaskView === "task";
         const cell = (item, group) => `<td data-task-center="${escapeDashboardHtml(group.id)}" data-task-type="${escapeDashboardHtml(item.type)}"><div class="workbench-task-cell"><span><span>待办</span><strong class="${item.pending ? "" : "workbench-task-zero"}">${item.pending}</strong></span><span><span>逾期</span><strong class="${item.overdue ? "workbench-task-overdue" : "workbench-task-zero"}">${item.overdue}</strong></span></div></td>`;
         const columns = byTask ? analysis.groups.map((group) => group.name) : analysis.types.map((item) => item.type);
@@ -13436,8 +13442,9 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
         if (!analysis) return '<div class="empty">任务统计数据暂不可用</div>';
         const headers = `<th>待办任务数（条）${dashboardFieldHelp("taskPending", "待办任务数")}</th><th>当前逾期数（条）${dashboardFieldHelp("taskOverdue", "当前逾期数")}</th>`;
         const cells = (item) => `<td class="workbench-task-type">${escapeDashboardHtml(item.type)}</td><td>${item.pending}</td><td>${item.overdue}</td>`;
+        const summaryOnly = currentUser.role === "pm";
         const controls = `<div class="workbench-analysis-controls workbench-task-controls"><label for="workbenchTaskView">查看维度<select class="input" id="workbenchTaskView"><option value="region" ${dashboardTaskView === "region" ? "selected" : ""}>区域运营中心</option><option value="task" ${dashboardTaskView === "task" ? "selected" : ""}>任务</option></select></label></div>`;
-        return `<div class="workbench-split workbench-task-stats" id="workbenchTaskStatsBody"><div class="workbench-breakdown workbench-task-totals" tabindex="0" role="region" aria-label="任务分类数量"><table><thead><tr><th>任务类型</th>${headers}</tr></thead><tbody>${analysis.types.map((item) => `<tr>${cells(item)}</tr>`).join("")}</tbody></table></div><div class="workbench-task-detail">${controls}<div class="workbench-breakdown workbench-task-centers" id="workbenchTaskCenters" tabindex="0" role="region" aria-label="运营中心任务分类数量">${dashboardTaskMatrix(analysis)}</div></div></div>`;
+        return `<div class="workbench-split workbench-task-stats${summaryOnly ? " workbench-task-summary-only" : ""}" id="workbenchTaskStatsBody"><div class="workbench-breakdown workbench-task-totals" tabindex="0" role="region" aria-label="任务分类数量"><table><thead><tr><th>任务类型</th>${headers}</tr></thead><tbody>${analysis.types.map((item) => `<tr>${cells(item)}</tr>`).join("")}</tbody></table>${summaryOnly && !analysis.pending && !analysis.overdue ? '<div class="empty">暂无任务</div>' : ""}</div>${summaryOnly ? "" : `<div class="workbench-task-detail">${controls}<div class="workbench-breakdown workbench-task-centers" id="workbenchTaskCenters" tabindex="0" role="region" aria-label="运营中心任务分类数量">${dashboardTaskMatrix(analysis)}</div></div>`}</div>`;
       }
 
       function handleDashboardTaskView(value) {
@@ -13445,6 +13452,11 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
         const body = $("#workbenchTaskStatsBody");
         if (!dashboardTaskStatsAllowed()) {
           if (body) { body.innerHTML = ""; body.closest(".workbench-tasks")?.remove(); }
+          return;
+        }
+        if (currentUser.role === "pm") {
+          resetDashboardTaskView();
+          if (body) body.outerHTML = dashboardTaskStatsBody();
           return;
         }
         if (dashboardTaskViewOwner !== dashboardStatActor()) resetDashboardTaskView();
@@ -13458,7 +13470,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
       });
 
       function dashboardTaskStatsCard() {
-        return dashboardTaskStatsAllowed() ? `<section class="panel workbench-card workbench-tasks"><div class="panel-head"><div class="panel-title" id="workbenchTasksTitle">任务概况</div></div>${dashboardTaskStatsBody()}</section>` : "";
+        return dashboardTaskStatsAllowed() ? `<section class="panel workbench-card workbench-tasks${currentUser.role === "pm" ? " workbench-pm-tasks" : ""}"><div class="panel-head"><div class="panel-title" id="workbenchTasksTitle">任务概况</div></div>${dashboardTaskStatsBody()}</section>` : "";
       }
 
       function handleDashboardNewContactsFilter(field, value) {

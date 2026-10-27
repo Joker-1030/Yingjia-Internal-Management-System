@@ -9,6 +9,7 @@
         ["settings", "客户基础配置"],
         ["imports", "数据导入"],
         ["projects", "项目管理"],
+        ["teachers", "培训老师管理"],
         ["packages", "采购包管理"],
         ["platform-companies", "平台公司管理"],
         ["opportunities", "商机列表"],
@@ -36,6 +37,7 @@
             "商机",
             "商机跟进记录",
             "方案支撑请求",
+            "排期",
           ],
           permissions: [
             "dashboard",
@@ -45,6 +47,7 @@
             "regions",
             "settings",
             "projects",
+            "teachers",
             "packages",
             "platform-companies",
             "opportunities",
@@ -158,6 +161,8 @@
           scopeSource: "项目及商机当前负责人", objects: ["项目", "商机"],
           permissions: ["dashboard", "projects", "opportunities"],
         },
+        { name: "老师", jobs: [], scopeType: "own-teacher", scopeSource: "员工关联老师档案", objects: ["老师", "排期"], permissions: ["teachers"] },
+        { name: "教学管理人员", jobs: [], scopeType: "teaching-scopes", scopeSource: "admin分配教学管理范围", objects: ["老师", "渠道", "排期"], permissions: ["teachers"] },
         {
           name: "系统管理员",
           jobs: ["内置 admin 账号"],
@@ -201,6 +206,8 @@
           organization: "公司组织",
           "assigned-supports": "本人被指派方案支撑",
           "owned-ecosystem-projects": "本人平台师资合作项目及商机",
+          "own-teacher": "本人老师档案与排期",
+          "teaching-scopes": "分配的教学管理范围",
         }[template?.scopeType];
       }
 
@@ -208,10 +215,15 @@
         { name: "经营概览", items: [["dashboard", "经营工作台", "页面访问"]] },
         { name: "客户经营", items: [["customers", "客户经营", "三栏查看 / 新增 / 维护"], ["tasks", "维系管理", "任务与记录"]] },
         { name: "项目管理", items: [["projects", "项目管理", "查看项目列表与详情"], ["packages", "采购包管理", "查看与维护"], ["platform-companies", "平台公司管理", "查看与维护"]] },
+        { name: "培训老师", items: [["teachers", "培训老师管理", "老师档案与排期"]] },
         { name: "销售管理", items: [["opportunities", "商机列表", "查看与推进商机"], ["sales-supports", "我的方案支撑", "处理本人方案支撑请求"], ["sales-targets", "销售指标", "查看与分配成交金额目标"]] },
         { name: "组织与配置", items: [["employees", "组织与员工", "组织、员工与异动"], ["regions", "区域中心与地市配置", "区域与地市责任"], ["city-management", "地市管理", "PM 本人地市责任"], ["settings", "客户基础配置", "配置项维护"], ["imports", "数据导入", "上传、确认与结果"]] },
       ];
       const operationPermissionCatalog = [
+        ["teachers.view", "teachers", "查看老师资料与排期"],
+        ["teachers.manage", "teachers", "维护负责范围内老师档案"],
+        ["teachers.unavailable", "teachers", "维护有权人工不可用日期"],
+        ["teachers.status", "teachers", "停用与恢复老师"],
         ["dashboard.view", "dashboard", "查看经营工作台"],
         ["customers.view", "customers", "查看客户与关键人"],
         ["customers.create_group", "settings", "新增集团公司（仅 F005）"],
@@ -259,19 +271,22 @@
         ["sales-targets.manage", "sales-targets", "维护有权层级成交金额目标"],
       ];
       const roleOperationPermissions = {
+        老师: ["teachers.view", "teachers.unavailable"],
+        教学管理人员: ["teachers.view", "teachers.manage", "teachers.unavailable", "teachers.status"],
         总裁: [
           "dashboard.view", "customers.view",
           "tasks.view", "tasks.publish_campaign", "tasks.create_record",
           "employees.view", "employees.view_changes", "regions.view", "settings.view", "projects.view",
-          "packages.view", "platform-companies.view",
+          "packages.view", "platform-companies.view", "teachers.view",
           "sales.view", "opportunities.view", "opportunities.create", "sales-targets.manage",
         ],
         市场副总: [
-          "dashboard.view", "customers.view",
-          "tasks.view", "tasks.publish_campaign", "tasks.create_record",
-          "employees.view", "employees.view_changes", "regions.view", "regions.edit", "settings.view", "projects.view",
+          "dashboard.view", "customers.view", "customers.create_contact", "customers.edit_contact",
+          "customers.transfer_contact", "tasks.view", "tasks.publish_campaign", "tasks.create_record", "tasks.complete", "tasks.adjust",
+          "employees.view", "employees.view_changes", "regions.view", "regions.edit", "regions.batch_assign", "settings.view", "projects.view",
+          "imports.view", "imports.upload", "imports.confirm", "imports.download",
           "packages.view", "platform-companies.view",
-          "sales.view", "opportunities.view", "opportunities.create", "sales-targets.manage",
+          "sales.view", "opportunities.view", "opportunities.create", "opportunities.progress", "sales-targets.manage",
         ],
         区域总监: [
           "dashboard.view", "customers.view", "customers.create_contact", "customers.edit_contact",
@@ -301,6 +316,8 @@
         系统管理员: operationPermissionCatalog.filter((item) => item[0] !== "regions.handover").map((item) => item[0]),
       };
       const fieldPermissionCatalog = [
+        ["teacher_contact_view", "老师有权联系方式明文查看", "view"],
+        ["teacher_fee_view", "老师有权课酬查看", "view"],
         ["customer_base_view", "客户基础字段查看", "view"],
         ["customer_base_edit", "客户基础字段编辑", "edit", "customer_base_view"],
         ["contact_sensitive_view", "关键人敏感字段明文查看", "view"],
@@ -311,6 +328,8 @@
         ["employee_sensitive_edit", "员工敏感字段编辑", "edit", "employee_sensitive_view"],
       ];
       const roleFieldPermissions = {
+        老师: ["teacher_contact_view"],
+        教学管理人员: ["teacher_contact_view", "teacher_fee_view"],
         总裁: ["customer_base_view", "customer_base_edit", "contact_sensitive_view", "record_view", "record_edit"],
         市场副总: ["customer_base_view", "customer_base_edit", "contact_sensitive_view", "record_view", "record_edit"],
         区域总监: ["customer_base_view", "contact_sensitive_view", "record_view", "record_edit"],
@@ -321,22 +340,30 @@
         系统管理员: fieldPermissionCatalog.map((item) => item[0]),
       };
       const attachmentPermissionCatalog = [
+        ["teacher_resume_view", "老师有权简历查看 / 预览"],
+        ["teacher_resume_download", "老师有权简历下载", "teacher_resume_view"],
+        ["teacher_resume_upload", "老师有权简历上传", "teacher_resume_view"],
+        ["teacher_resume_delete", "老师有权简历删除", "teacher_resume_view|teacher_resume_upload"],
         ["attachment_view", "附件查看 / 在线预览"],
         ["attachment_download", "附件下载", "attachment_view"],
         ["attachment_upload", "附件上传"],
         ["attachment_delete", "附件删除", "attachment_view|attachment_upload"],
       ];
       const roleAttachmentPermissions = {
+        老师: [],
+        教学管理人员: ["teacher_resume_view", "teacher_resume_download", "teacher_resume_upload", "teacher_resume_delete"],
         总裁: ["attachment_view", "attachment_download", "attachment_upload", "attachment_delete"],
         市场副总: ["attachment_view", "attachment_download", "attachment_upload", "attachment_delete"],
         区域总监: ["attachment_view", "attachment_download", "attachment_upload", "attachment_delete"],
         PM: ["attachment_view", "attachment_download", "attachment_upload", "attachment_delete"],
         "HR/人事": ["attachment_view", "attachment_upload"],
-        生态合作员: attachmentPermissionCatalog.map((item) => item[0]),
+        生态合作员: ["attachment_view", "attachment_download", "attachment_upload", "attachment_delete"],
         商机支撑: ["attachment_view", "attachment_download", "attachment_upload"],
         系统管理员: attachmentPermissionCatalog.map((item) => item[0]),
       };
       const permissionRoleCodes = {
+        老师: "TEACHER",
+        教学管理人员: "TEACHING_MANAGER",
         总裁: "PRESIDENT",
         市场副总: "MARKET_VP",
         区域总监: "REGIONAL_DIRECTOR",
@@ -350,6 +377,7 @@
         systemRoleTemplates.map((template, position) => {
           const index = template.name === "系统管理员" ? 5 : position;
           const code = permissionRoleCodes[template.name];
+          if (["老师", "教学管理人员"].includes(template.name)) return [template.name, [{ id: `PERM-${code}-000001`, type: "初始化", operator: "系统管理员", time: "2026-10-21 09:00", reason: "建立老师管理权限", permissions: [...template.permissions], operations: [...roleOperationPermissions[template.name]], fields: [...roleFieldPermissions[template.name]], attachments: [...roleAttachmentPermissions[template.name]] }]];
           if (template.name === "生态合作员") return [template.name, [
             { id: `PERM-${code}-000002`, type: "调整", operator: "系统管理员", time: "2026-10-19 09:00", reason: "增加本人平台师资合作商机权限", permissions: [...template.permissions], operations: [...roleOperationPermissions[template.name]], fields: [], attachments: [...roleAttachmentPermissions[template.name]] },
             { id: `PERM-${code}-000001`, type: "初始化", operator: "系统管理员", time: "2026-10-10 09:00", reason: "建立生态合作员项目权限", permissions: ["dashboard", "projects"], operations: ["dashboard.view", "projects.view", "projects.create", "projects.edit"], fields: [], attachments: [...roleAttachmentPermissions[template.name]] },
@@ -372,35 +400,35 @@
             "platform-companies.manage",
           ];
           const projectActionOperationKeys = ["projects.create", "projects.edit"];
-          const m11CreatePermissions = [...template.permissions];
-          const m11CreateOperations = [...roleOperationPermissions[template.name]];
+          const m11CreatePermissions = template.permissions.filter((key) => template.name !== "总裁" || key !== "teachers");
+          const m11CreateOperations = roleOperationPermissions[template.name].filter((key) => template.name !== "总裁" || key !== "teachers.view");
           const priorM11Permissions = receivesM11ReadonlyConfig
-            ? template.permissions.filter(
+            ? m11CreatePermissions.filter(
                 (permission) => !configPageKeys.includes(permission),
               )
-            : [...template.permissions];
+            : [...m11CreatePermissions];
           const priorM11Operations = receivesM11ReadonlyConfig
-            ? roleOperationPermissions[template.name].filter(
+            ? m11CreateOperations.filter(
                 (operation) => !configOperationKeys.includes(operation),
               )
-            : [...roleOperationPermissions[template.name]];
+            : [...m11CreateOperations];
           const m11ConfigPermissions = [...priorM11Permissions];
           const m11ConfigOperations = priorM11Operations.filter(
             (operation) => !projectActionOperationKeys.includes(operation),
           );
-          const m11ProjectPermissions = template.permissions.filter(
+          const m11ProjectPermissions = m11CreatePermissions.filter(
             (permission) => !configPageKeys.includes(permission),
           );
-          const m11ProjectOperations = roleOperationPermissions[template.name].filter(
+          const m11ProjectOperations = m11CreateOperations.filter(
             (operation) =>
               ![...configOperationKeys, ...projectActionOperationKeys].includes(
                 operation,
               ),
           );
-          const baselinePermissions = template.permissions.filter(
+          const baselinePermissions = m11CreatePermissions.filter(
             (permission) => !["projects", ...configPageKeys].includes(permission),
           );
-          const baselineOperations = roleOperationPermissions[template.name].filter(
+          const baselineOperations = m11CreateOperations.filter(
             (operation) =>
               !["projects.view", ...configOperationKeys, ...projectActionOperationKeys].includes(
                 operation,

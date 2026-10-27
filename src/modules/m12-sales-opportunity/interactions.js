@@ -342,8 +342,6 @@
         const ecosystemOwner = $("#salesEcosystemOwner");
         const actor = currentUser;
         const ownerCode = () => currentUser.fullAccess ? ecosystemOwner?.value || "" : currentEcosystemEmployee()?.code || "";
-        const supportPicker = $("#salesSupportPeoplePicker");
-        bindSalesSupportPickers(form);
         bindSalesKeyPeoplePickers(form);
         const replaceKeyPeoplePicker = (customerName = "") => {
           if (type.value === SALES_ECOSYSTEM_TYPE) return;
@@ -398,13 +396,6 @@
         type.onchange = refreshType;
         if (ecosystemOwner) ecosystemOwner.onchange = refreshCustomerFacts;
         refreshType();
-        const createSupport = $("#salesCreateSupport");
-        createSupport.onchange = () => {
-          const visible = createSupport.value === "是";
-          $("#salesSupportPeopleGroup").hidden = !visible;
-          $("#salesSupportRequirementGroup").hidden = !visible;
-          $("#salesSupportDeadlineGroup").hidden = !visible;
-        };
         $("#cancelOpportunityCreate").onclick = () => salesNavigate("opportunities");
         let submitted = false;
         form.onsubmit = (event) => {
@@ -441,17 +432,6 @@
           if ($("#salesFirstFollow").value < salesNextBusinessDate()) {
             setSalesFormError("salesFirstFollow", "首次跟进日期不得早于下一业务日");
             valid = false;
-          }
-          const supportPeople = createSupport.value === "是" ? selectedSalesSupportPeople(supportPicker) : [];
-          if (createSupport.value === "是") {
-            setSalesFormError("salesSupportPeople", supportPeople.length ? "" : "请选择至少一名支撑人员");
-            setSalesFormError("salesSupportRequirement", $("#salesSupportRequirement").value.trim() ? "" : "请填写支撑需求");
-            setSalesFormError("salesSupportDeadline", $("#salesSupportDeadline").value ? "" : "请选择交付截止时间");
-            if (supportPeople.length && !validSalesSupportSelection(supportPeople)) {
-              setSalesFormError("salesSupportPeople", "支撑人员已不符合当前候选条件，请重新选择");
-              valid = false;
-            }
-            if (!supportPeople.length || !$("#salesSupportRequirement").value.trim() || !$("#salesSupportDeadline").value) valid = false;
           }
           const selectedCustomer = salesVisibleCustomers(type.value).find(
             (item) => salesCustomerSelectionValue(item, type.value) === customer.value,
@@ -525,18 +505,7 @@
             editHistories: [],
             reassignments: [],
             followUps: [],
-            supports: supportPeople.map((code, index) => ({
-              id: `ZC-${String(opportunities.flatMap((row) => row.supports).length + index + 1).padStart(3, "0")}`,
-              assigneeCode: code,
-              assignee: employees.find((employee) => employee.code === code).name,
-              deadline: $("#salesSupportDeadline").value.replace("T", " "),
-              status: "待响应",
-              content: $("#salesSupportRequirement").value.trim(),
-              delivery: "",
-              histories: [{ time: salesSupportNow(), action: "发起请求", operator: currentUser.name,
-                description: $("#salesSupportRequirement").value.trim(), owner: ownerMatch.owner.name,
-                assignee: employees.find((employee) => employee.code === code).name }],
-            })),
+            supports: [],
           };
           opportunities.unshift(item);
           submitted = true;
@@ -608,8 +577,20 @@
 
       function salesNextStages(item) {
         const index = SALES_FORWARD_STAGES.indexOf(item.stage);
-        if (index < 0) return [];
+        if (index < 0 || item.stage === "中选") return [];
         return [...new Set([SALES_FORWARD_STAGES[index+1], item.stage === "需求确认" ? "比选" : "", "落选"].filter(Boolean))];
+      }
+
+      function salesStageTransition(item, target) {
+        if (!SALES_STAGES.includes(item.stage) || !SALES_STAGES.includes(target) || target === item.stage) return "";
+        if (salesNextStages(item).includes(target)) return "advance";
+        if (item.stage === "落选" || (item.stage === "中选" && target === "落选") ||
+            (SALES_FORWARD_STAGES.includes(target) && SALES_FORWARD_STAGES.indexOf(target) < SALES_FORWARD_STAGES.indexOf(item.stage))) return "correction";
+        return "";
+      }
+
+      function salesStageTargets(item) {
+        return [...salesNextStages(item), ...SALES_STAGES.filter(target => salesStageTransition(item, target) === "correction")];
       }
 
       function salesCloseSupport(item, support, kind, reason, time = salesSupportNow()) {
@@ -640,29 +621,56 @@
         link.click();
       }
 
-      function openSalesStageModal(item, correction = false) {
-        if (!opportunities.includes(item) || !salesSupportActorActive() || !(correction ? salesCanCorrect(item) : salesCanProgress(item)) || (!correction && item.stage === "落选")) return;
+      function openSalesStageModal(item) {
+        if (!opportunities.includes(item) || !salesSupportActorActive() || !salesCanCorrect(item)) return;
         const actor = currentUser, original = JSON.stringify({owner:item.owner,result:salesResultSnapshot(item)});
-        const options = correction ? SALES_STAGES : salesNextStages(item);
-        const title = correction ? "商机纠错" : "推进商机阶段";
-        openModal(`<div class="modal-head"><div class="modal-title">${title}</div><button class="icon-btn close" data-close title="关闭">×</button></div><form id="salesStageForm"><div class="modal-body"><div class="form-group"><label class="form-label">当前阶段</label><div>${escapeHtml(item.stage)}</div></div><div class="form-group"><label class="form-label">${correction ? "纠正后阶段" : "推进至阶段"}</label><select class="input" id="salesNextStage">${options.map(value=>`<option value="${value}" ${correction && value === item.stage ? "selected" : ""}>${value}</option>`).join("")}</select></div><div id="salesStageFields"></div><div id="salesStageEvidence"></div></div><div class="modal-foot"><button class="btn" type="button" data-close>取消</button><button class="btn btn-primary" type="submit">${correction ? "确认纠错" : "确认推进"}</button></div></form>`);
-        const form = $("#salesStageForm"); let applied=false;
-        const hasSelectedFields = stage => stage === "中选" || Boolean(correction && item.stage === "落选" && stage === item.stage && item.selectedDate);
-        const valid=()=> !applied && form === $("#salesStageForm") && currentUser === actor && salesSupportActorActive() && opportunities.includes(item) && (correction ? salesCanCorrect(item) : salesCanProgress(item)) &&
+        const options = salesStageTargets(item);
+        if (!options.length) return;
+        openModal(`<div class="modal-head"><div class="modal-title">推进商机阶段</div><button class="icon-btn close" data-close title="关闭">×</button></div><form id="salesStageForm"><div class="modal-body"><div class="form-group"><label class="form-label">当前阶段</label><div>${escapeHtml(salesStageLabel(item.stage))}</div></div><div class="form-group"><label class="form-label">推进至阶段</label><select class="input" id="salesNextStage">${options.map(value=>`<option value="${value}">${salesStageLabel(value)}</option>`).join("")}</select></div><div id="salesStageFields"></div><div id="salesStageEvidence"></div></div><div class="modal-foot"><button class="btn" type="button" data-close>取消</button><button class="btn btn-primary" id="salesStageConfirm" type="submit">确认推进</button></div></form>`);
+        const form = $("#salesStageForm"); let applied=false, renderedStage="", renderRevision=0;
+        const hasSelectedFields = stage => stage === "中选";
+        const valid=correction=> !applied && form === $("#salesStageForm") && currentUser === actor && salesSupportActorActive() && opportunities.includes(item) && (correction ? salesCanCorrect(item) : salesCanProgress(item)) &&
           JSON.stringify({owner:item.owner,result:salesResultSnapshot(item)}) === original;
         const renderFields=()=> {
           const stage=$("#salesNextStage").value;
-          $("#salesStageFields").innerHTML=(hasSelectedFields(stage) ? `<div class="form-group"><label class="form-label">中选日期</label><input class="input" id="salesSelectedDate" type="date" value="${correction ? escapeHtml(item.selectedDate || "") : ""}"></div><div class="form-group"><label class="form-label">成交金额（含税，万元）</label><input class="input" id="salesExpectedContractAmount" type="number" min="0" step="0.000001" value="${correction ? wanMoneyInput(item.expectedContractAmount) : ""}"></div>` : "") + (stage === "落选" ? `<div class="form-group"><label class="form-label">落选原因</label><input class="input" id="salesLossReason" value="${correction ? escapeHtml(item.lossReason || "") : ""}"></div><div class="form-group"><label class="form-label">竞争对手</label><input class="input" id="salesCompetitor" value="${correction ? escapeHtml(item.competitor || "") : ""}"></div><div class="form-group"><label class="form-label">复盘说明</label><textarea class="input" id="salesReview">${correction ? escapeHtml(item.review || "") : ""}</textarea></div>` : "");
-          $("#salesStageEvidence").innerHTML=correction || ["中选","落选"].includes(stage) ? `<div class="form-group"><label class="form-label">${correction ? "纠错原因与说明" : "说明"}</label><textarea class="input" id="salesStageDescription" rows="3"></textarea></div><div class="form-group"><label class="form-label">证明材料</label><input class="input" id="salesStageFiles" type="file" multiple accept=".jpg,.jpeg,.png,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx"></div>` : "";
+          const correction = salesStageTransition(item, stage) === "correction";
+          renderedStage=stage; renderRevision++;
+          $("#salesStageConfirm").textContent=correction ? "确认纠错" : "确认推进";
+          $("#salesStageFields").innerHTML=(hasSelectedFields(stage) ? `<div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>中选日期</label><input class="input" id="salesSelectedDate" aria-required="true" type="date" value="${correction ? escapeHtml(item.selectedDate || "") : ""}"></div><div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>成交金额（含税，万元）</label><input class="input" id="salesExpectedContractAmount" aria-required="true" type="number" min="0" step="0.000001" value="${correction ? wanMoneyInput(item.expectedContractAmount) : ""}"></div>` : "") + (stage === "落选" ? `<div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>落选原因</label><input class="input" id="salesLossReason" aria-required="true" value="${correction ? escapeHtml(item.lossReason || "") : ""}"></div><div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>竞争对手</label><input class="input" id="salesCompetitor" aria-required="true" value="${correction ? escapeHtml(item.competitor || "") : ""}"></div><div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>复盘说明</label><textarea class="input" id="salesReview" aria-required="true">${correction ? escapeHtml(item.review || "") : ""}</textarea></div>` : "");
+          $("#salesStageEvidence").innerHTML=correction || ["中选","落选"].includes(stage) ? `<div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>${correction ? "纠错原因与说明" : "说明"}</label><textarea class="input" id="salesStageDescription" aria-required="true" rows="3"></textarea></div><div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>证明材料</label><input class="input" id="salesStageFiles" aria-required="true" type="file" multiple accept=".jpg,.jpeg,.png,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx"></div>` : "";
+          if (!correction && stage === "需求确认") $("#salesStageEvidence").innerHTML='<div class="form-group"><label class="form-label">需求附件（选填）</label><input class="input" id="salesStageFiles" type="file" multiple accept=".jpg,.jpeg,.png,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx"></div>';
+          if (!correction && stage === "方案支撑") {
+            $("#salesStageFields").innerHTML +=
+              `<div class="form-group"><label class="form-label">同时发起方案支撑请求</label><select class="input" id="salesCreateSupport"><option value="否">否</option><option value="是">是</option></select></div>` +
+              `<div class="form-group" id="salesSupportPeopleGroup" hidden><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>支撑人员</label>${salesSupportPeoplePickerHtml("salesSupportPeoplePicker")}</div>` +
+              `<div class="form-group" id="salesSupportRequirementGroup" hidden><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>支撑需求</label><textarea class="input" id="salesSupportRequirement" rows="3" maxlength="500"></textarea></div>` +
+              `<div class="form-group" id="salesSupportDeadlineGroup" hidden><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>交付截止时间</label><input class="input" id="salesSupportDeadline" type="datetime-local" value=""></div>`;
+            bindSalesSupportPickers(form);
+            $("#salesCreateSupport").onchange = () => {
+              const visible = $("#salesCreateSupport").value === "是";
+              ["salesSupportPeopleGroup", "salesSupportRequirementGroup", "salesSupportDeadlineGroup"]
+                .forEach(id => $(`#${id}`).hidden = !visible);
+            };
+          }
           // Loss review is the existing outcome explanation; no second normal-loss explanation.
-          if (!correction && stage === "落选") $("#salesStageEvidence").innerHTML='<div class="form-group"><label class="form-label">证明材料</label><input class="input" id="salesStageFiles" type="file" multiple accept=".jpg,.jpeg,.png,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx"></div>';
+          if (!correction && stage === "落选") $("#salesStageEvidence").innerHTML='<div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>证明材料</label><input class="input" id="salesStageFiles" aria-required="true" type="file" multiple accept=".jpg,.jpeg,.png,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx"></div>';
         };
         $("#salesNextStage").onchange=renderFields; renderFields();
         form.onsubmit=event=> {
           event.preventDefault();
-          if (!valid()) return toast("商机或权限已变化，请重新打开操作");
-          const stage=$("#salesNextStage").value;
-          if (!options.includes(stage) || (!correction && !salesNextStages(item).includes(stage))) return toast("当前阶段不允许该操作");
+          const stage=$("#salesNextStage").value, mode=salesStageTransition(item,stage);
+          const correction=mode === "correction", submittedRevision=renderRevision;
+          if (!valid(correction)) return toast("商机或权限已变化，请重新打开操作");
+          if (!mode || !options.includes(stage) || stage !== renderedStage) return toast("当前阶段不允许该操作");
+          const withSupport = !correction && stage === "方案支撑" && $("#salesCreateSupport")?.value === "是";
+          const people = withSupport ? selectedSalesSupportPeople($("#salesSupportPeoplePicker")) : [];
+          const deadline = withSupport ? $("#salesSupportDeadline").value : "";
+          const content = withSupport ? $("#salesSupportRequirement").value.trim() : "";
+          if (withSupport) {
+            if (!people.length || !deadline || !content) return toast("请填写全部必填支撑信息");
+            if (!validSalesSupportSelection(people)) return toast("支撑人员已不符合当前候选条件，请重新选择");
+            if (people.some(code => salesHasOpenSupport(item, code))) return toast("该商机已有所选人员的未关闭支撑请求，请重新选择");
+          }
           const restoredOwner = correction && item.stage === "落选" && stage !== "落选" ? salesOpportunityOwnerMatch(item) : null;
           if (restoredOwner && !restoredOwner.ok) return toast(isEcosystemOpportunity(item) ? "当前商机负责人不符合生态合作员条件，暂不能恢复" : "客户没有唯一有效负责人，请先完成客户责任配置");
           const before=salesResultSnapshot(item), after={...before,stage};
@@ -677,18 +685,18 @@
           }
           const evidence=correction || ["中选","落选"].includes(stage);
           const description=evidence ? (!correction && stage === "落选" ? after.review : $("#salesStageDescription").value.trim()) : "";
-          const uploads=evidence ? Array.from($("#salesStageFiles").files || []) : [];
+          const uploads=evidence || (!correction && stage === "需求确认") ? Array.from($("#salesStageFiles").files || []) : [];
           if (evidence && (!description || !uploads.length)) return toast("请填写说明并上传证明材料");
-          if (evidence && !hasAttachmentPermission("attachment_upload")) return toast("当前无法上传商机材料");
-          if (correction && JSON.stringify(before) === JSON.stringify(after)) return toast("纠错内容未发生变化");
-          const error=evidence ? validateAttachmentFiles(uploads,true) : "";
+          if (uploads.length && !hasAttachmentPermission("attachment_upload")) return toast("当前无法上传商机材料");
+          const error=validateAttachmentFiles(uploads,evidence);
           if (error) return toast(error);
           if (uploads.some(file=>!file.size || file.name.length>200)) return toast("附件为空或文件名过长，请重新选择");
           const files=[];
           try {for (const file of uploads) files.push({name:file.name,url:URL.createObjectURL(file)});}
           catch {files.forEach(file=>URL.revokeObjectURL(file.url));return toast("文件上传失败，请重新选择");}
           const finalRestoreMatch=restoredOwner ? salesOpportunityOwnerMatch(item) : null;
-          if (!valid() || (restoredOwner && (!finalRestoreMatch.ok || finalRestoreMatch.owner.code!==restoredOwner.owner.code))) {files.forEach(file=>URL.revokeObjectURL(file.url));return toast("商机或权限已变化，请重新打开操作");}
+          if (!valid(correction) || (uploads.length && !hasAttachmentPermission("attachment_upload")) || $("#salesNextStage").value !== stage || renderRevision !== submittedRevision || salesStageTransition(item,stage) !== mode || (restoredOwner && (!finalRestoreMatch.ok || finalRestoreMatch.owner.code!==restoredOwner.owner.code))) {files.forEach(file=>URL.revokeObjectURL(file.url));return toast("商机或权限已变化，请重新打开操作");}
+          const requests = withSupport ? salesBuildSupportRequests(item, people, deadline, content) : [];
           const time=salesSupportNow();
           if (before.selectedDate) salesCapturePerformance(item);
           if (restoredOwner && restoredOwner.owner.name !== item.owner) {
@@ -697,6 +705,7 @@
             item.owner=restoredOwner.owner.name;
           }
           Object.assign(item,after,{updatedAt:time});
+          item.supports.push(...requests);
           if (!after.selectedDate) {delete item.performanceOwnerCode;delete item.performanceOwnerName;delete item.performanceRegion;}
           else if (!before.selectedDate) salesCapturePerformance(item);
           if (before.stage !== stage) item.stageChangedAt=time;
@@ -706,7 +715,7 @@
           }
           item.histories.push({time,from:before.stage,to:stage,operator:actor.name,action:correction ? "纠错" : "推进阶段",description,files,
             ...(correction ? {before,after:{...after},reason:description} : {result:{...after}})});
-          applied=true;closeOverlay();renderPage();toast(correction ? "商机纠错已完成，业绩已重新计算" : `商机已进入${stage}`);
+          applied=true;closeOverlay();renderPage();toast(correction ? "商机纠错已完成，业绩已重新计算" : `商机已进入${salesStageLabel(stage)}`);
         };
       }
 
@@ -780,8 +789,23 @@
         };
       }
 
+      function salesBuildSupportRequests(item, people, deadline, content) {
+        const count = opportunities.flatMap(row => row.supports).length;
+        const time = salesSupportNow();
+        return people.map((code, index) => {
+          const assignee = employees.find(employee => employee.code === code).name;
+          return {
+            id: `ZC-${String(count + index + 1).padStart(3, "0")}`,
+            assigneeCode: code, assignee, deadline: deadline.replace("T", " "),
+            status: "待响应", content, delivery: "",
+            histories: [{time, action: "发起请求", description: content,
+              operator: currentUser.name, owner: item.owner, assignee}],
+          };
+        });
+      }
+
       function openSalesSupportModal(item) {
-        if (!salesCanProgress(item)) return toast("当前无法执行该支撑操作");
+        if (!salesCanInitiateSupport(item)) return toast("当前无法执行该支撑操作");
         const formHtml = [
           '<div class="modal-head"><div class="modal-title">发起方案支撑</div><button class="icon-btn close" data-close title="关闭">×</button></div>',
           '<form id="salesSupportForm"><div class="modal-body">',
@@ -803,31 +827,11 @@
           const deadline = $("#supportDeadline").value;
           const content = $("#supportContent").value.trim();
           if (!people.length || !deadline || !content) return toast("请填写全部必填支撑信息");
-          if (!salesCanProgress(item)) return toast("当前无法执行该支撑操作");
+          if (!salesCanInitiateSupport(item)) return toast("当前无法执行该支撑操作");
           if (!validSalesSupportSelection(people)) return toast("支撑人员已不符合当前候选条件，请重新选择");
           if (people.some(code=>salesHasOpenSupport(item,code))) return toast("该商机已有所选人员的未关闭支撑请求，请重新选择");
-          const requestCount = opportunities.flatMap((row) => row.supports).length;
-          people.forEach((code, index) =>
-            item.supports.push({
-              id: `ZC-${String(requestCount + index + 1).padStart(3, "0")}`,
-              assigneeCode: code,
-              assignee: employees.find((employee) => employee.code === code).name,
-              deadline: deadline.replace("T", " "),
-              status: "待响应",
-              content,
-              delivery: "",
-              histories: [
-                {
-                  time: salesSupportNow(),
-                  action: "发起请求",
-                  description: content,
-                  operator: currentUser.name,
-                  owner: item.owner,
-                  assignee: employees.find((employee) => employee.code === code).name,
-                },
-              ],
-            }),
-          );
+          const requests = salesBuildSupportRequests(item, people, deadline, content);
+          item.supports.push(...requests);
           supportApplied=true;
           item.updatedAt = salesNow();
           closeOverlay();
@@ -1489,6 +1493,10 @@
             opportunityDetailContext = button.dataset.opportunityContext === "support" ? "support" : "sales";
             selectedOpportunitySupportId = opportunityDetailContext === "support" ? button.dataset.opportunitySupport || null : null;
             selectedOpportunityId = button.dataset.opportunityOpen;
+            if (opportunityDetailContext === "sales") {
+              const item = opportunities.find((opportunity) => opportunity.id === selectedOpportunityId);
+              if (item) markSalesOpportunityRead(item);
+            }
             opportunityDetailTab = "overview";
             salesNavigate("opportunity-detail");
           };
@@ -1514,8 +1522,6 @@
         if (followup && selected) followup.onclick = () => openSalesFollowupModal(selected);
         const support = $("[data-sales-support-add]");
         if (support && selected) support.onclick = () => openSalesSupportModal(selected);
-        const correction = $("[data-sales-correct]");
-        if (correction && selected) correction.onclick = () => openSalesStageModal(selected,true);
         document.querySelectorAll("[data-stage-file]").forEach(button=> {
           const item=opportunities.find(row=>row.id===button.dataset.stageOpportunity);
           const history=item?.histories[Number(button.dataset.stageHistory)];

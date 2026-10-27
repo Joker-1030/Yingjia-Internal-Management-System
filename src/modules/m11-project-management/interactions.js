@@ -249,7 +249,7 @@
       function packageDirectionRowHtml(direction = {}) {
         const taxRate = projectDirectionTaxRate(direction);
         return (
-          '<div class="package-direction-row" data-price-basis="untaxed">' +
+          `<div class="package-direction-row" data-price-basis="untaxed" data-course-id="${escapeHtml(direction.directionId || "")}">` +
           '<label class="package-direction-field package-direction-name-field"><span class="form-label"><span class="required-marker" aria-hidden="true">*</span>课程方向一句话介绍</span>' +
           `<input class="input package-direction-name" data-pkg-dir-intro value="${direction.intro || ""}" placeholder="一句话课程介绍" required></label>` +
           '<label class="package-direction-field package-direction-untaxed-field"><span class="form-label"><span class="required-marker" aria-hidden="true">*</span>不含税报价（元/天）</span>' +
@@ -302,6 +302,7 @@
         });
       }
       function packageDirectionData(row) {
+        const directionId = row.dataset.courseId || `COURSE-${Date.now()}-${Math.random().toString(36).slice(2)}`;
         const untaxedInput = row.querySelector("[data-pkg-dir-untaxed]");
         const taxRateInput = row.querySelector("[data-pkg-dir-tax-rate]");
         const taxedInput = row.querySelector("[data-pkg-dir-taxed]");
@@ -333,6 +334,7 @@
           return null;
         }
         return {
+          directionId,
           intro: row.querySelector("[data-pkg-dir-intro]").value.trim(),
           untaxedPrice,
           taxRate,
@@ -801,13 +803,40 @@
           .filter((n) => Number.isFinite(n));
         return `MAT${String((seqs.length ? Math.max(...seqs) : 0) + 1).padStart(6, "0")}`;
       }
-      function selectedInstructorNames(containerId) {
-        const names = [
-          ...document.querySelectorAll(`#${containerId} input[data-instructor]:checked`),
-        ].map((input) => input.value);
-        return [...new Set(names)].filter((name) =>
-          projectInstructors.includes(name),
-        );
+      function selectedTeacherIds(containerId) { return [...new Set([...document.querySelectorAll(`#${containerId} input[data-instructor]:checked`)].map((input) => input.value))]; }
+      function selectedInstructorNames(containerId) { return selectedTeacherIds(containerId).map(projectTeacherTokenName); }
+      function projectFormTeacherAssignments(stage = false) {
+        const prefix = stage ? "pfStage" : "pf";
+        return { lecturers: selectedTeacherIds(prefix + "Lecturers"), assistantLecturers: selectedTeacherIds(prefix + "Assistants"), teachingAssistants: selectedTeacherIds(prefix + "Helpers") };
+      }
+      function projectTeacherAssignmentsChanged(project, assignments) {
+        return ["lecturers", "assistantLecturers", "teachingAssistants"].some((role) => JSON.stringify(assignments[role] || []) !== JSON.stringify(projectSelectedTokens(project, role, project[role])));
+      }
+      function projectFormTeachingDirectionId(project = null) {
+        project = project || (currentPage === "project-edit" ? projectById(selectedProjectId) : null);
+        if (project && ["in-progress", "delivered"].includes(projectEditMode(project))) return project.teachingDirectionId || "";
+        const packageId = $("#pfPackage")?.value, courseIntro = $("#pfDirection")?.value;
+        if (project?.teachingDirectionId && packageId === project.packageId && courseIntro === project.directionIntro) return project.teachingDirectionId;
+        return projectPackages.find((pkg) => pkg.id === packageId)?.directions.find((direction) => direction.intro === courseIntro)?.directionId || "";
+      }
+      function projectTeacherValidation(assignments, directionId, start, end, excludeId = "") {
+        const errors = [];
+        for (const [role, ids] of Object.entries(assignments)) for (const id of ids) {
+          const error = teacherEligibility(id, directionId, start, end, role === "teachingAssistants", excludeId);
+          if (error) errors.push(`${projectTeacherTokenName(id)}：${error}`);
+        }
+        return errors.join("；");
+      }
+      function refreshProjectTeacherCandidates() {
+        const form = $("#projectForm"); if (!form) return;
+        const project = currentPage === "project-edit" ? projectById(selectedProjectId) : null;
+        const context = { directionId: projectFormTeachingDirectionId(project), start: $("#pfStart")?.value.replace("T", " ") || project?.startTime || "", end: $("#pfEnd")?.value.replace("T", " ") || $("#pfStageEnd")?.value.replace("T", " ") || project?.endTime || "", excludeId: project?.id || "" };
+        form.querySelectorAll("[data-instructor-picker]").forEach((picker) => {
+          const tokens = [...picker.querySelectorAll("input[data-instructor]:checked")].map((input) => input.value);
+          picker.querySelector("[data-instructor-options]").innerHTML = projectTeacherOptionHtml(tokens, context, projectStaffRole(picker.id) === "teachingAssistants");
+          renderInstructorSelected(picker);
+        });
+        bindInstructorSelects(form); bindTeacherEvents();
       }
       let projectInstructorOutsideClickBound = false;
       function setInstructorSelectOpen(picker, open) {
@@ -837,7 +866,7 @@
         selectedContainer.innerHTML = names
           .map(
             (name) =>
-              `<span class="instructor-selected-item"><span>${escapeHtml(name)}</span><button class="instructor-selected-remove" type="button" data-instructor-remove="${escapeHtml(name)}" title="移除${escapeHtml(name)}" aria-label="移除${escapeHtml(name)}">×</button></span>`,
+              `<span class="instructor-selected-item"><span>${escapeHtml(projectTeacherTokenName(name))}</span><button class="instructor-selected-remove" type="button" data-instructor-remove="${escapeHtml(name)}" title="移除${escapeHtml(projectTeacherTokenName(name))}" aria-label="移除${escapeHtml(projectTeacherTokenName(name))}">×</button></span>`,
           )
           .join("");
       }
@@ -920,36 +949,7 @@
         if (group) group.style.display = visible ? "" : "none";
       }
       function projectScheduleConflicts(personnel, startTime, endTime, excludeId) {
-        const conflicts = [];
-        const names = new Set([
-          ...personnel.lecturers,
-          ...personnel.assistantLecturers,
-          ...personnel.teachingAssistants,
-        ]);
-        if (!names.size || !startTime || !endTime) return conflicts;
-        projects.forEach((other) => {
-          if (other.id === excludeId) return;
-          if (["已取消", "已中止"].includes(other.stage)) return;
-          const otherNames = [
-            ...(other.lecturers || []),
-            ...(other.assistantLecturers || []),
-            ...(other.teachingAssistants || []),
-          ];
-          const overlapNames = [...names].filter((name) =>
-            otherNames.includes(name),
-          );
-          if (!overlapNames.length) return;
-          if (!(startTime < other.endTime && other.startTime < endTime)) return;
-          overlapNames.forEach((name) =>
-            conflicts.push({
-              name,
-              projectId: other.id,
-              startTime: other.startTime,
-              endTime: other.endTime,
-            }),
-          );
-        });
-        return conflicts;
+        return [...new Set(Object.values(personnel.teacherAssignments || {}).flat())].flatMap((id) => teacherConflicts(id, startTime, endTime, excludeId));
       }
       function refreshProjectFormDays(fallbackStartTime) {
         const startValue =
@@ -1024,9 +1024,9 @@
         const resourceType = $("#pfResource").value;
         const cooperation = $("#pfCooperation").value;
         const packageId =
-          resourceType === "采购包课程" ? $("#pfPackage").value : "";
+          ["采购包课程", "平台师资合作"].includes(resourceType) ? $("#pfPackage").value : "";
         const directionIntro =
-          resourceType === "采购包课程" ? $("#pfDirection").value : "";
+          ["采购包课程", "平台师资合作"].includes(resourceType) ? $("#pfDirection").value : "";
         const companyId = ["师资合作", "走账合作"].includes(cooperation)
           ? projectFormCompanyId()
           : "";
@@ -1131,7 +1131,7 @@
         const resourceType = $("#pfResource").value;
         const cooperation = $("#pfCooperation").value;
         const showPersonnel = type === "培训项目";
-        const showPackage = resourceType === "采购包课程";
+        const showPackage = showPersonnel && ["采购包课程", "平台师资合作"].includes(resourceType);
         const showCompany = ["师资合作", "走账合作"].includes(cooperation);
         const showUnitPrice = type === "培训项目";
         const personnelSection = $("#pfPersonnelSection");
@@ -1166,6 +1166,7 @@
         );
         refreshProjectFormAmounts();
         refreshProjectOwnerField();
+        refreshProjectTeacherCandidates();
       }
       function writePreStartEditHistory(project, payload) {
         const event = createProjectHistoryEvent(project, "编辑项目");
@@ -1277,6 +1278,7 @@
         commitProjectHistoryEvent(event);
       }
       function handleStageProjectEditSubmit(project, mode, daysConfirmed = false) {
+        if (!project || projectEditMode(project) !== mode) return;
         clearProjectFormErrors();
         const isTraining = project.type === "培训项目";
         const name = $("#pfStageName").value.trim();
@@ -1320,7 +1322,7 @@
         const staffChanged =
           !staffSetsEqual(project.lecturers, lecturers) ||
           !staffSetsEqual(project.assistantLecturers, assistants) ||
-          !staffSetsEqual(project.teachingAssistants, helpers);
+          !staffSetsEqual(project.teachingAssistants, helpers) || projectTeacherAssignmentsChanged(project, projectFormTeacherAssignments(true));
         if (staffChanged && !reason)
           errors.pfChangeReason = "请填写人员调整原因";
 
@@ -1357,13 +1359,17 @@
           }
         }
 
-        const shouldCheckConflicts = isTraining && (staffChanged || endChanged);
+        const stageTeacherAssignments = projectFormTeacherAssignments(true);
+        const teacherIdsChanged = projectTeacherAssignmentsChanged(project, stageTeacherAssignments);
+        const shouldCheckConflicts = isTraining && (staffChanged || endChanged || teacherIdsChanged);
+        if (shouldCheckConflicts) { const teacherError = projectTeacherValidation(stageTeacherAssignments, project.teachingDirectionId, project.startTime, endTime, project.id); if (teacherError) errors.pfConflicts = teacherError; }
         const conflicts = shouldCheckConflicts
           ? projectScheduleConflicts(
               {
                 lecturers,
                 assistantLecturers: assistants,
                 teachingAssistants: helpers,
+                teacherAssignments: stageTeacherAssignments,
               },
               project.startTime,
               mode === "in-progress" ? endTime : project.endTime,
@@ -1482,6 +1488,7 @@
           }
         }
         if (isTraining) {
+          if (staffChanged) project.teacherAssignments = stageTeacherAssignments;
           project.lecturers = lecturers;
           project.assistantLecturers = assistants;
           project.teachingAssistants = helpers;
@@ -1562,9 +1569,10 @@
             errors.pfCustomer = "该客户未匹配到唯一有效项目负责人，无法创建项目";
         }
 
-        const effPackageId = resourceType === "采购包课程" ? packageId : "";
+        const effPackageId = ["采购包课程", "平台师资合作"].includes(resourceType) ? packageId : "";
         const effDirectionIntro =
-          resourceType === "采购包课程" ? directionIntro : "";
+          ["采购包课程", "平台师资合作"].includes(resourceType) ? directionIntro : "";
+        const teachingDirectionId = type === "培训项目" ? projectFormTeachingDirectionId() : "";
         const effCompanyId = ["师资合作", "走账合作"].includes(cooperation)
           ? companyId
           : "";
@@ -1589,15 +1597,15 @@
             effCompanyId !== (project.companyId || ""));
         const preserveExistingSnapshot = editing && !resourceChanged;
 
-        if (resourceType === "采购包课程") {
+        if (["采购包课程", "平台师资合作"].includes(resourceType)) {
           if (!effPackageId) errors.pfPackage = "请选择采购包";
           else {
             const pkg = projectPackages.find((item) => item.id === effPackageId);
             if (!pkg) errors.pfPackage = "所选采购包或平台公司当前不可用，请重新选择";
-            else if (!effDirectionIntro) errors.pfDirection = "请选择课程方向";
+            else if (!effDirectionIntro) errors.pfDirection = "请选择课程";
             else if (!preserveExistingSnapshot) {
               if (!pkg.directions.some((item) => item.intro === effDirectionIntro))
-                errors.pfDirection = "请选择课程方向";
+                errors.pfDirection = "请选择课程";
               if (!isProjectPackageValid(pkg))
                 errors.pfPackage = "所选采购包或平台公司当前不可用，请重新选择";
             }
@@ -1627,7 +1635,10 @@
         if (type === "培训项目" && !lecturers.length)
           errors.pfLecturers = "培训项目至少需要选择一名主讲师";
 
+        const teacherAssignments = type === "培训项目" ? projectFormTeacherAssignments() : {};
+        if (type === "培训项目" && !teacherCourseOptions().some((direction) => direction.id === teachingDirectionId)) errors.pfDirection = "请选择有效采购包课程";
         const conflictPersonnel = {
+          teacherAssignments,
           lecturers,
           assistantLecturers: assistants,
           teachingAssistants: helpers,
@@ -1638,7 +1649,10 @@
           !staffSetsEqual(project.assistantLecturers, assistants) ||
           !staffSetsEqual(project.teachingAssistants, helpers) ||
           startTime !== project.startTime ||
-          endTime !== project.endTime;
+          endTime !== project.endTime ||
+          teachingDirectionId !== project.teachingDirectionId ||
+          projectTeacherAssignmentsChanged(project, teacherAssignments);
+        if (scheduleChanged && type === "培训项目") { const teacherError = projectTeacherValidation(teacherAssignments, teachingDirectionId, startTime, endTime, project?.id); if (teacherError) errors.pfConflicts = teacherError; }
         const conflicts = scheduleChanged
           ? projectScheduleConflicts(
               conflictPersonnel,
@@ -1685,9 +1699,9 @@
           else if (resourceType === "平台师资合作" && company)
             unitPrice = company.cooperationPay;
           snapshot = {
-            untaxedPrice: direction ? direction.untaxedPrice : null,
-            taxedPrice: direction ? direction.taxedPrice : null,
-            taxRate: direction ? projectDirectionTaxRate(direction) : null,
+            untaxedPrice: resourceType === "采购包课程" && direction ? direction.untaxedPrice : null,
+            taxedPrice: resourceType === "采购包课程" && direction ? direction.taxedPrice : null,
+            taxRate: resourceType === "采购包课程" && direction ? projectDirectionTaxRate(direction) : null,
             cooperationPay: company && resourceType === "平台师资合作" ? company.cooperationPay : null,
             managementFeeRate: company && cooperation === "走账合作" ? company.managementFeeRate : null,
             unitPrice,
@@ -1736,6 +1750,8 @@
           cooperation,
           packageId: effPackageId,
           directionIntro: effDirectionIntro,
+          teachingDirectionId,
+          teacherAssignments,
           companyId: effCompanyId,
           companyName: effCompanyId ? company?.name || "" : "",
           unitPrice,
@@ -2533,6 +2549,7 @@
         const stageEdit =
           editMode === "in-progress" || editMode === "delivered";
         if (stageEdit) {
+          refreshProjectTeacherCandidates();
           if (editMode === "in-progress") {
             const stageEnd = $("#pfStageEnd");
             const confirmedDays = $("#pfDays");
@@ -2540,6 +2557,7 @@
               stageEnd.onchange = () => {
                 refreshProjectFormDays(editingProject.startTime);
                 refreshStageProjectAmounts(editingProject);
+                refreshProjectTeacherCandidates();
               };
             if (confirmedDays)
               confirmedDays.oninput = () => {
@@ -2597,12 +2615,13 @@
               (item) => item.id === packageSelect.value,
             );
             $("#pfDirection").innerHTML =
-              '<option value="">请选择课程方向</option>' +
+              '<option value="">请选择课程</option>' +
               (pkg?.directions || [])
                 .map((item) => `<option value="${item.intro}">${item.intro}</option>`)
                 .join("");
             $("#pfDirection").value = "";
             refreshProjectFormAmounts();
+            refreshProjectTeacherCandidates();
           };
         }
         const cooperationSelect = $("#pfCooperation");
@@ -2612,7 +2631,7 @@
         if (amountInput) amountInput.oninput = refreshProjectFormAmounts;
         ["#pfDirection", "#pfCompany"].forEach((selector) => {
           const el = $(selector);
-          if (el) el.onchange = refreshProjectFormAmounts;
+          if (el) el.onchange = () => { refreshProjectFormAmounts(); refreshProjectTeacherCandidates(); };
         });
         const confirmedDays = $("#pfDays");
         if (confirmedDays)
@@ -2626,11 +2645,13 @@
           startEl.onchange = () => {
             refreshProjectFormDays();
             refreshProjectFormAmounts();
+            refreshProjectTeacherCandidates();
           };
         if (endEl)
           endEl.onchange = () => {
             refreshProjectFormDays();
             refreshProjectFormAmounts();
+            refreshProjectTeacherCandidates();
           };
         const customerSelect = $("#pfCustomer");
         if (customerSelect && !editing) {

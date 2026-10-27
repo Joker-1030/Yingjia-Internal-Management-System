@@ -19,3 +19,5 @@
 - [FLOW-15 M11-project-lifecycle](./FLOW-15-M11-project-lifecycle.md)
 - [FLOW-16 M11-project-responsibility-handover](./FLOW-16-M11-project-responsibility-handover.md)
 - [FLOW-17 M12-sales-opportunity](./FLOW-17-M12-sales-opportunity.md)
+
+- [FLOW-18 M13-teacher-scheduling](./FLOW-18-M13-teacher-scheduling.md)

@@ -19,6 +19,10 @@
           ],
         },
         {
+          title: "培训老师",
+          items: [{ id: "teachers", icon: "♧", label: "老师管理" }, { id: "teacher-schedule", icon: "▦", label: "老师排期" }],
+        },
+        {
           title: "销售管理",
           items: [
             { id: "opportunities", icon: "◎", label: "商机列表" },
@@ -118,3 +122,5 @@
       const customerOrgLoadLimits = new Map();
       let taskDataUpdatedAt = formatTaskUpdateTime(new Date());
       const executionTableStates = {};
+
+      let teacherScheduleState = { actor: null, month: "", view: "calendar", selected: null };

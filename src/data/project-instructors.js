@@ -1,13 +1,3 @@
-      // Demo 示例虚拟讲师候选（M11 项目管理）。
-      // 当前版本不使用正式讲师管理模块，仅以明确标注为示例的姓名作为培训项目人员候选（M11 PRD 9.1）。
-      // 该临时数据不定义讲师完整生命周期、费用扣减或排课优先级。
-      const projectInstructors = [
-        "王讲师",
-        "张讲师",
-        "赵讲师",
-        "李讲师",
-        "孙讲师",
-        "李助教",
-        "王助教",
-        "刘助教",
-      ];
+      // M11 personnel are supplied by M13 teachers (src/data/teachers.js).
+      // New assignments store stable teacher IDs plus display-name snapshots.
+      // Existing historical virtual names are not automatically matched or migrated.

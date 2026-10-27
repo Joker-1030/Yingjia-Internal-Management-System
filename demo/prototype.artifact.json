@@ -1,21 +1,21 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-10-21T03:02:11.758Z",
+  "generatedAt": "2026-10-27T02:01:06.108Z",
   "generator": "scripts/build-prototype.mjs",
   "buildCommand": "node scripts/build-prototype.mjs",
   "sourceRoot": "src",
   "entry": "src/prototype.html",
-  "sourceDigest": "44a065cf78f078e68aa9222d7c7274afb73dc97290b768fffc60c02ec94565d5",
+  "sourceDigest": "3a9fd4846cb583eb46d1534e8bc0f87741086b14c4148cff52099e0c507428dd",
   "sourceFiles": [
     {
       "path": "src/app.js",
-      "sha256": "ae6b4e7bd5fd03f896cf0b0821993b34433786353a1a0ffa91e82e549fbe3c4e",
-      "bytes": 2953
+      "sha256": "e4f9bbceddd391ab496c764893c9f20b01f28091d5e67e7ca2c83db6f5e58446",
+      "bytes": 3107
     },
     {
       "path": "src/data/accounts.js",
-      "sha256": "c83e52e96594ea282fde6182dfa8864322b15e85b25e81e3b6723b1342f9762c",
-      "bytes": 1898
+      "sha256": "983615421ee757da2aadfc2db0917b20adf2ffc1d18f1a6f7a91198c996bb195",
+      "bytes": 2237
     },
     {
       "path": "src/data/approvals.js",
@@ -79,13 +79,13 @@
     },
     {
       "path": "src/data/organization.js",
-      "sha256": "bd0933782c9b1644edef0d11a8cfa7a01ca8d34d0b7ed5fc4a7dfda817ec5c6e",
-      "bytes": 14593
+      "sha256": "49537d188f861db0fb69a5c1902871a6d3ea44218b2693d99d6fe43cbd6a0f84",
+      "bytes": 14625
     },
     {
       "path": "src/data/permissions.js",
-      "sha256": "400b2f7aa3f54fd35dac58ff6aaca25ae90220ec43c6f37a697da3b2e1e5131f",
-      "bytes": 23940
+      "sha256": "ad6e8d96e2be5eb6afa6c99711ca367404e2245fa9f301f3d068adc167dfbd7b",
+      "bytes": 26709
     },
     {
       "path": "src/data/platform-companies.js",
@@ -99,18 +99,18 @@
     },
     {
       "path": "src/data/project-instructors.js",
-      "sha256": "4524036b2a946a07c09f62fe1fc498c75fe864afd713c231e38eb95a203f18c0",
-      "bytes": 514
+      "sha256": "23d7ec22d551cfbf9c6996063961074bd9260eadb0b4e20905674b9ae2cc750f",
+      "bytes": 241
     },
     {
       "path": "src/data/project-packages.js",
-      "sha256": "0fedefa0f9e9f62d0e78fc202c67bced2c5ba8a984028f34b15867f22e406bd6",
-      "bytes": 2420
+      "sha256": "869f937b1e8a1dbc037274d3e85914badeebeb533cad2c24b6ef5438be61687a",
+      "bytes": 2552
     },
     {
       "path": "src/data/projects.js",
-      "sha256": "c68016976bb03204e082b5023e49d35b3434b48b16a40bce567c3c52ff73f4d4",
-      "bytes": 30149
+      "sha256": "0deecbbc6f8c1949da0eb7ef11082d516301b30ac92864848e83e794b9775ab3",
+      "bytes": 32381
     },
     {
       "path": "src/data/regions.js",
@@ -133,6 +133,11 @@
       "bytes": 17663
     },
     {
+      "path": "src/data/teachers.js",
+      "sha256": "faa72c4a9a39262fabd6bb1fd534f19e3156654eee49e684d06c563b910df201",
+      "bytes": 4964
+    },
+    {
       "path": "src/modules/_app-shell/account.js",
       "sha256": "0536e903dd8f19fbc7a7f9f3a93cb570b4de351a74722c2667eb4c1119b821e5",
       "bytes": 5586
@@ -144,8 +149,8 @@
     },
     {
       "path": "src/modules/_app-shell/events.js",
-      "sha256": "2c7537dc276b109f48bc3bcf584e4bd2740ef74f3d4405f4fff70234990817bd",
-      "bytes": 75732
+      "sha256": "9624e03ca3369d04ee72cf2d2a1bc2eec1bfeb87911a9d0424e039481dde1e29",
+      "bytes": 75761
     },
     {
       "path": "src/modules/_app-shell/notifications.js",
@@ -159,13 +164,13 @@
     },
     {
       "path": "src/modules/_app-shell/runtime.js",
-      "sha256": "87529ad49556d70f6698aac08d51490c1e99b8dfbc8699cfb5073678b1d4bcc3",
-      "bytes": 64134
+      "sha256": "c66ab9057c9d9a6957d1ea20c7d5b8978be669a50316b5594c2e2dc2a45a11eb",
+      "bytes": 65783
     },
     {
       "path": "src/modules/_app-shell/state.js",
-      "sha256": "dea03e0009c516e7ae472dd23a2fa493476c59cd88ef17f2258cb13e016a298c",
-      "bytes": 4213
+      "sha256": "5c40de2e0fae0852cc64cefb2544ade931cd73d7fe66079bc72a914c2caf2133",
+      "bytes": 4502
     },
     {
       "path": "src/modules/m01-dashboard/echarts-LICENSE.txt",
@@ -189,8 +194,8 @@
     },
     {
       "path": "src/modules/m01-dashboard/page.js",
-      "sha256": "0e4229e1961163d6c281e5b6610da82430882b731bc9920c7ef0a17047dced47",
-      "bytes": 74467
+      "sha256": "6fe35763212b436d28c79bfbcf82c8145f192cfa119dcd6a946f61c631ae2a9e",
+      "bytes": 75959
     },
     {
       "path": "src/modules/m02-customer-operations/customer-tree.js",
@@ -289,8 +294,8 @@
     },
     {
       "path": "src/modules/m06-organization/interactions.js",
-      "sha256": "264130b30835c7207e948c090ba0711e801c0cb07ee7e47ed260e2667e73326f",
-      "bytes": 79055
+      "sha256": "2d4fc2acfb83bd211afad697e18e21a5f861589a3390c7faf93f5e923bf25bda",
+      "bytes": 79119
     },
     {
       "path": "src/modules/m06-organization/module.json",
@@ -299,8 +304,8 @@
     },
     {
       "path": "src/modules/m06-organization/page.js",
-      "sha256": "4c3d547eea3914b3ec226fd066184877cbba3852bd55ca21c85284a508dd0551",
-      "bytes": 21348
+      "sha256": "1f6e4a9e99856105c71fa52f950b6137694f7007bd39f30acb14d779644ac6fd",
+      "bytes": 21380
     },
     {
       "path": "src/modules/m07-permissions/module.json",
@@ -309,18 +314,18 @@
     },
     {
       "path": "src/modules/m07-permissions/page.js",
-      "sha256": "59ca15b2096df6197619b8476200b8216266062cb889a39b3f4f367ae927fa68",
-      "bytes": 13801
+      "sha256": "a454e6f9804eee08d7f06e38018491f995476ba20170cffd32588bb477ddebfb",
+      "bytes": 13802
     },
     {
       "path": "src/modules/m08-regions/forms.js",
-      "sha256": "e2976f1d8cc1d334cdca49d424adaecea3f2ab570c8e5c0a9edfee42ad054594",
-      "bytes": 7182
+      "sha256": "ddbad69681173380733899490e1ab30661868824495e58e95eea5399a4dda5b7",
+      "bytes": 14692
     },
     {
       "path": "src/modules/m08-regions/interactions.js",
-      "sha256": "18efe56d08e3ddb7828f233a20b86dcfccf87d402637723052340bb6ceff8017",
-      "bytes": 38660
+      "sha256": "d9461501f9403ad7efc13becd6f08b52503b6d863273d26c08de843e6e083446",
+      "bytes": 43118
     },
     {
       "path": "src/modules/m08-regions/module.json",
@@ -364,23 +369,23 @@
     },
     {
       "path": "src/modules/m11-project-management/interactions.js",
-      "sha256": "bec699d23f873ceb386411b92af320d0e55db14fc38677e9b9000219f636f6b3",
-      "bytes": 120811
+      "sha256": "a82932344fb0c5d66161057affb8773d8972e65ccea7d74623eae71e56c255b5",
+      "bytes": 125052
     },
     {
       "path": "src/modules/m11-project-management/module.json",
-      "sha256": "41eededb27ad5703dce18b35cfc72cffab1bccd4fe8bc89323ca60dfe7efadd6",
-      "bytes": 918
+      "sha256": "8f56f0ec1f249f8d8ee1c5460d02bbeadb5c46269a4c1a1862ce15da6187ce46",
+      "bytes": 942
     },
     {
       "path": "src/modules/m11-project-management/page.js",
-      "sha256": "689e8d0a53217faf729d13e9e20da376bf7936a985e74d8de8b884125bd8e35c",
-      "bytes": 120680
+      "sha256": "dd434cded4d4f1316a3d566ecbf2fdedf1764d98758e43507da44b10d422dca2",
+      "bytes": 122188
     },
     {
       "path": "src/modules/m12-sales-opportunity/interactions.js",
-      "sha256": "2d5908a5f8b3fc7d9c2449c60450299dd95c147dac5757af4be40b183f09867e",
-      "bytes": 119786
+      "sha256": "0d84f2de56603efc16e9d258526211202dcc7dbd3d5058bfcdd5a8b8ea937e4b",
+      "bytes": 121990
     },
     {
       "path": "src/modules/m12-sales-opportunity/module.json",
@@ -389,8 +394,23 @@
     },
     {
       "path": "src/modules/m12-sales-opportunity/page.js",
-      "sha256": "ad1c20a61f52063112a47bb89fd36bdbe13f5c4a7e457e66c1212c41a617d56e",
-      "bytes": 108145
+      "sha256": "48902a3a2457878ef13cf36dcb341446ab2a2ca7cf6b89233ba86b2c74ba4244",
+      "bytes": 109867
+    },
+    {
+      "path": "src/modules/m13-teacher-management/interactions.js",
+      "sha256": "a365874844c334bfdcf01a7f8513ee309c079368935e4dcc9610d7e88f853840",
+      "bytes": 37305
+    },
+    {
+      "path": "src/modules/m13-teacher-management/module.json",
+      "sha256": "25694e4dc48f505f0c619b2268d53bff197f8243440ad486d2632f02a8a95075",
+      "bytes": 582
+    },
+    {
+      "path": "src/modules/m13-teacher-management/page.js",
+      "sha256": "1148c2b7b440f03959c3a4e73ac6cac16ff5bc2b2be295252d869f3f20ad10d9",
+      "bytes": 26723
     },
     {
       "path": "src/prototype.html",
@@ -399,8 +419,8 @@
     },
     {
       "path": "src/styles/prototype.css",
-      "sha256": "52c7770c36bce837d5747025fd27396abfe32e572817f0220886b545d908e164",
-      "bytes": 176863
+      "sha256": "dfa29fec007262a92a03b0b5d7a3b9ae1498f51a8e7f6c6599bd1d5007f61a97",
+      "bytes": 187326
     }
   ],
   "artifactInputs": [
@@ -429,6 +449,7 @@
     "src/data/sales-targets.js",
     "src/data/task-state.js",
     "src/data/tasks.js",
+    "src/data/teachers.js",
     "src/modules/_app-shell/account.js",
     "src/modules/_app-shell/bootstrap.js",
     "src/modules/_app-shell/events.js",
@@ -467,13 +488,15 @@
     "src/modules/m11-project-management/page.js",
     "src/modules/m12-sales-opportunity/interactions.js",
     "src/modules/m12-sales-opportunity/page.js",
+    "src/modules/m13-teacher-management/interactions.js",
+    "src/modules/m13-teacher-management/page.js",
     "src/prototype.html",
     "src/styles/prototype.css"
   ],
   "artifact": {
     "path": "demo/prototype.html",
-    "sha256": "cf3e8829410b0380251902f8875786d065019bc200fc9c836d56845675189e51",
-    "bytes": 2646160
+    "sha256": "9a37ddeecbc851c5235488989d8315bed1755d188ece47f68fdd8ac97d130712",
+    "bytes": 2756045
   },
   "legacyBridge": false,
   "architecture": "lightweight-modular",
@@ -489,6 +512,7 @@
     "M09": "modular-source",
     "M10": "modular-source",
     "M11": "modular-source",
-    "M12": "modular-source"
+    "M12": "modular-source",
+    "M13": "modular-source"
   }
 }

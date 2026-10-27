@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "id": "M13",
+  "name": "培训老师管理",
+  "pages": ["teachers", "teacher-schedule"],
+  "pageStates": ["老师列表", "老师详情与排期", "本人月历", "负责老师日历与甘特图", "新增和编辑", "人工不可用", "启停校验", "教学管理范围"],
+  "dataReferences": ["data/teachers.js", "data/project-packages.js", "data/projects.js", "data/organization.js"],
+  "sourceFiles": ["modules/m13-teacher-management/page.js", "modules/m13-teacher-management/interactions.js"],
+  "eventRouterSource": "modules/_app-shell/events.js"
+}

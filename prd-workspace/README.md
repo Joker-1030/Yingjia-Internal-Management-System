@@ -2,7 +2,7 @@
 
 - 更新日期：2026-09-03
 - 当前产品入口：`current/PRD.md`
-- 当前模块范围：M01-M12；P00/P01 为 Supporting Product Facts
+- 当前模块范围：M01-M13；P00/P01 为 Supporting Product Facts
 - 生命周期：Current PRD 持续演进，Approved Baseline 通过 Registry 和 Git Commit 定位
 
 ## 当前真相层级
@@ -28,6 +28,7 @@
 | M02-M03、M06-M09、P00 | `REVIEWED` | `IN PROGRESS` |
 | M01、M04-M05、M10-M11、P01 | `NOT REVIEWED` | `NOT STARTED` |
 | M12 | `NOT REVIEWED` | `NOT STARTED` |
+| M13（2026-10-21新增） | `NOT REVIEWED` | `NOT STARTED` |
 
 准确基线与证据见 `../docs/AI_IMPLEMENTATION_RESULTS/PRD-REVIEW-BASELINE-REGISTRY-001.md`。已评审不冻结 Current PRD；后续变化仍需分类并判断研发影响。
 

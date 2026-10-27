@@ -1,6 +1,6 @@
 # Acceptance Index
 
-> Active Acceptance registry for the M01-M12 modular PRD Source of Truth. Stable IDs, priorities and source-governance history remain traceable; the global current set is maintained by the linked module files.
+> Active Acceptance registry for the M01-M13 modular PRD Source of Truth. Stable IDs, priorities and source-governance history remain traceable; the global current set is maintained by the linked module files.
 
 - [M01](./M01.md)
 - [M02](./M02.md)
@@ -14,6 +14,7 @@
 - [M10](./M10.md)
 - [M11](./M11.md)
 - [M12](./M12.md)
+- [M13](./M13.md)
 - [P01](./P01.md)
 - [AI](./AI.md)
 

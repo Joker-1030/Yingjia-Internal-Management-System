@@ -165,11 +165,17 @@
       function applyCityResponsibilityTransfer(handover) {
         const cityIds = cityIdsForHandover(handover);
         const owners = cityOwners.filter((owner) => cityIds.includes(Number(owner.id)));
-        const region = regionForName(handover.region);
-        const targetValid = regionPmEmployees(region).some(
+        const region = handover.sourceRegionId
+          ? regionsData.find((item) => Number(item.id) === Number(handover.sourceRegionId))
+          : regionForName(handover.region);
+        const targetRegion = handover.targetRegionId
+          ? regionsData.find((item) => Number(item.id) === Number(handover.targetRegionId))
+          : region;
+        const targetValid = targetRegion && targetRegion.status !== "停用" && regionPmEmployees(targetRegion).some(
           (employee) => employee.name === handover.targetPm && employee.accountStatus !== "停用",
         );
         if (
+          !region ||
           !owners.length ||
           owners.length !== cityIds.length ||
           !targetValid ||
@@ -287,6 +293,88 @@
           handover.notificationError = "责任已生效，交接消息待重试";
         }
         return true;
+      }
+
+      function applyProvinceResponsibilityTransfer(sourceRegion, targetRegion, province, cityTransfers, reason) {
+        if (
+          !sourceRegion ||
+          !targetRegion ||
+          sourceRegion.id === targetRegion.id ||
+          sourceRegion.status === "停用" ||
+          targetRegion.status === "停用" ||
+          !regionProvinceList(sourceRegion).includes(province) ||
+          regionProvinceList(targetRegion).includes(province)
+        ) {
+          return { ok: false, error: `${province} 的区域归属已变化，请刷新后重试` };
+        }
+        const owners = cityOwners.filter((owner) => owner.province === province && owner.pm);
+        if (!owners.length) return { ok: true, handovers: [] };
+        const assignments = (cityTransfers || []).map((transfer) => ({ cityId: Number(transfer.cityId), targetPm: transfer.targetPm }));
+        const assignmentIds = assignments.map((assignment) => assignment.cityId);
+        if (assignmentIds.length !== owners.length || new Set(assignmentIds).size !== owners.length || owners.some((owner) => !assignmentIds.includes(Number(owner.id))) || assignments.some((assignment) => !assignment.targetPm)) {
+          return { ok: false, error: `${province} 的地市交接信息不完整，请重新选择` };
+        }
+        const groups = [...new Set(assignments.map((assignment) => {
+          const owner = owners.find((item) => Number(item.id) === assignment.cityId);
+          return `${owner.pm}::${assignment.targetPm}`;
+        }))].map((groupKey) => {
+          const [originalPm, targetPm] = groupKey.split("::");
+          return {
+            originalPm,
+            targetPm,
+            owners: assignments.filter((assignment) => {
+              const owner = owners.find((item) => Number(item.id) === assignment.cityId);
+              return owner?.pm === originalPm && assignment.targetPm === targetPm;
+            }).map((assignment) => owners.find((item) => Number(item.id) === assignment.cityId)),
+          };
+        });
+        const mutationState = captureResponsibilityMutationState([
+          cityResponsibilityChanges,
+          notificationMessages,
+          cityOwners,
+          customers,
+          contacts,
+          tasks,
+          projects,
+          opportunities,
+          employees,
+          accounts,
+          ...salesTargetMutationLists(),
+        ]);
+        const handovers = [];
+        try {
+          groups.forEach((group) => {
+            const handover = {
+              id: Date.now() + handovers.length,
+              code: nextBusinessCode("RC"),
+              source: "province_transfer",
+              type: "省份迁移地市交接",
+              title: `${province}地市由${group.originalPm}转交${targetPm}`,
+              operator: currentUser.name,
+              region: regionScopeName(sourceRegion),
+              regionDirector: sourceRegion.director,
+              sourceRegionId: sourceRegion.id,
+              targetRegionId: targetRegion.id,
+              status: "effective",
+              createdAt: recordCreatedAt(),
+              updatedAt: recordCreatedAt(),
+              reason,
+              originalPm: group.originalPm,
+              targetPm: group.targetPm,
+              targetCityIds: group.owners.map((owner) => owner.id),
+              targetCitySnapshots: group.owners.map((owner) => ({ id: owner.id, province: owner.province, city: owner.city, originalPm: owner.pm })),
+              plannedEffectiveDate: DEMO_TODAY,
+              impactSnapshot: cityHandoverImpact(group.owners.map((owner) => owner.id)),
+            };
+            if (!applyCityResponsibilityTransfer(handover)) throw new Error(handover.businessError || "地市责任迁移失败");
+            cityResponsibilityChanges.unshift(handover);
+            handovers.push(handover);
+          });
+        } catch (error) {
+          restoreResponsibilityMutationState(mutationState);
+          return { ok: false, error: error?.message || "省份地市交接失败，原责任保持不变" };
+        }
+        return { ok: true, handovers };
       }
 
       function createDirectCityAssignment(region, cities, pm, remark) {

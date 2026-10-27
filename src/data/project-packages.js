@@ -12,8 +12,8 @@
           createdAt: "2026-01-05 09:30:00",
           lastEditedAt: "2026-08-18 14:20:00",
           directions: [
-            { intro: "面向中基层管理者的管理沟通课程", untaxedPrice: 800, taxRate: 6, taxedPrice: 848 },
-            { intro: "面向新任管理者的领导力课程", untaxedPrice: 1200, taxRate: 7.5, taxedPrice: 1290 },
+            { directionId: "DIR01", intro: "面向中基层管理者的管理沟通课程", untaxedPrice: 800, taxRate: 6, taxedPrice: 848 },
+            { directionId: "DIR02", intro: "面向新任管理者的领导力课程", untaxedPrice: 1200, taxRate: 7.5, taxedPrice: 1290 },
           ],
         },
         {
@@ -25,8 +25,8 @@
           createdAt: "2026-02-12 10:15:00",
           lastEditedAt: "",
           directions: [
-            { intro: "面向业务骨干的 AI 应用课程", untaxedPrice: 1500, taxRate: 6, taxedPrice: 1590 },
-            { intro: "面向运营人员的数据分析课程", untaxedPrice: 1600, taxRate: 9, taxedPrice: 1744 },
+            { directionId: "DIR03", intro: "面向业务骨干的 AI 应用课程", untaxedPrice: 1500, taxRate: 6, taxedPrice: 1590 },
+            { directionId: "DIR04", intro: "面向运营人员的数据分析课程", untaxedPrice: 1600, taxRate: 9, taxedPrice: 1744 },
           ],
         },
         {
@@ -38,7 +38,7 @@
           createdAt: "2026-03-20 16:45:00",
           lastEditedAt: "2026-05-10 11:05:00",
           directions: [
-            { intro: "面向一线服务人员的服务礼仪课程", untaxedPrice: 900, taxRate: 7, taxedPrice: 963 },
+            { directionId: "DIR05", intro: "面向一线服务人员的服务礼仪课程", untaxedPrice: 900, taxRate: 7, taxedPrice: 963 },
           ],
         },
         {
@@ -50,7 +50,7 @@
           createdAt: "",
           lastEditedAt: "",
           directions: [
-            { intro: "面向新入职员工的企业文化课程", untaxedPrice: 700, taxRate: 5, taxedPrice: 735 },
+            { directionId: "DIR06", intro: "面向新入职员工的企业文化课程", untaxedPrice: 700, taxRate: 5, taxedPrice: 735 },
           ],
         },
       ];

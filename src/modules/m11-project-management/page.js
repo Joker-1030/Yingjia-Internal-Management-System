@@ -1358,8 +1358,9 @@
           ...(project.packageId
             ? [["采购包", `${packageName}（${project.packageId}）`]]
             : []),
+          ...(project.teachingDirectionId && project.resourceType === "平台师资合作" && !project.directionIntro ? [["课程", teacherDirectionName(project.teachingDirectionId)]] : []),
           ...(project.directionIntro
-            ? [["课程方向", project.directionIntro]]
+            ? [["课程", project.directionIntro]]
             : []),
           ...(project.companyId
             ? [["平台公司", `${project.companyName}（${project.companyId}）`]]
@@ -1980,33 +1981,20 @@
           : "";
         return `<div class="form-group"><label class="form-label${hasFormula ? " project-money-label" : ""}">${requiredLabel ? '<span class="required-marker" aria-hidden="true">*</span>' : ""}${label}${formula}</label>${innerHtml}<div class="field-error" id="err-${id}"></div></div>`;
       }
-      function instructorSelectHtml(id, roleLabel, selectedNames) {
-        const selected = [
-          ...new Set(
-            (selectedNames || []).filter((name) =>
-              projectInstructors.includes(name),
-            ),
-          ),
-        ];
-        const optionHtml = projectInstructors
-          .map(
-            (name) =>
-              `<label class="multi-select-option" data-instructor-option><input type="checkbox" data-instructor value="${escapeHtml(name)}" ${selected.includes(name) ? "checked" : ""}><span>${escapeHtml(name)}</span></label>`,
-          )
-          .join("");
-        const selectedHtml = selected
-          .map(
-            (name) =>
-              `<span class="instructor-selected-item"><span>${escapeHtml(name)}</span><button class="instructor-selected-remove" type="button" data-instructor-remove="${escapeHtml(name)}" title="移除${escapeHtml(name)}" aria-label="移除${escapeHtml(name)}">×</button></span>`,
-          )
-          .join("");
-        return (
-          `<div class="instructor-picker" id="${id}" data-instructor-picker data-instructor-label="${escapeHtml(roleLabel)}">` +
-          `<div class="multi-select instructor-select" data-instructor-select>` +
-          `<button class="multi-select-trigger" type="button" data-instructor-trigger aria-haspopup="listbox" aria-expanded="false"><span>搜索并选择${escapeHtml(roleLabel)}</span><span aria-hidden="true">⌄</span></button>` +
-          `<div class="multi-select-menu hidden" data-instructor-menu><input class="input" type="search" data-instructor-search placeholder="搜索${escapeHtml(roleLabel)}" aria-label="搜索${escapeHtml(roleLabel)}"><div data-instructor-options>${optionHtml}</div></div>` +
-          `</div><div class="instructor-selected-list" data-instructor-selected aria-live="polite">${selectedHtml}</div></div>`
-        );
+      function projectStaffRole(id) { return /Helpers$/.test(id) ? "teachingAssistants" : /Assistants$/.test(id) ? "assistantLecturers" : "lecturers"; }
+      function projectSelectedTokens(project, role, names) { return project?.teacherAssignments?.[role] || (names || []).map((name) => "legacy:" + name); }
+      function projectTeacherTokenName(token) { return teacherById(token) ? teacherName(teacherById(token)) : String(token).replace(/^legacy:/, ""); }
+      function projectTeacherOptionHtml(tokens, context, helper) {
+        const candidates = teacherSelectionCandidates(context.directionId, context.start, context.end, helper, context.excludeId);
+        const ids = [...new Set([...candidates.map((teacher) => teacher.id), ...tokens])];
+        return ids.map((id) => { const teacher = teacherById(id), selected = tokens.includes(id); const reason = teacher ? teacherEligibility(id, context.directionId, context.start, context.end, helper, context.excludeId) : "历史人员未关联档案，请重新选择";
+          return `<div class="multi-select-option" data-instructor-option><label><input type="checkbox" data-instructor value="${escapeHtml(id)}" ${selected ? "checked" : ""} ${reason ? "disabled" : ""}><span>${escapeHtml(projectTeacherTokenName(id))}</span></label>${reason ? `<span class="list-sub">${escapeHtml(reason)}</span>` : `<button type="button" class="btn btn-sm" data-project-teacher-profile="${teacher.id}">资料</button>`}</div>`;
+        }).join("") || '<div class="list-sub">请先选择采购包课程和日期；暂无符合条件的老师时请调整条件。</div>';
+      }
+      function instructorSelectHtml(id, roleLabel, selectedNames, project = null) {
+        const tokens = projectSelectedTokens(project, projectStaffRole(id), selectedNames);
+        const context = { directionId: project?.teachingDirectionId || "", start: project?.startTime || "", end: project?.endTime || "", excludeId: project?.id || "" };
+        return `<div class="instructor-picker" id="${id}" data-instructor-picker data-instructor-label="${escapeHtml(roleLabel)}"><div class="multi-select instructor-select"><button class="multi-select-trigger" type="button" data-instructor-trigger aria-haspopup="listbox" aria-expanded="false"><span>搜索并选择${escapeHtml(roleLabel)}</span><span aria-hidden="true">⌄</span></button><div class="multi-select-menu hidden" data-instructor-menu><input class="input" type="search" data-instructor-search placeholder="搜索${escapeHtml(roleLabel)}" aria-label="搜索${escapeHtml(roleLabel)}"><div data-instructor-options>${projectTeacherOptionHtml(tokens, context, projectStaffRole(id) === "teachingAssistants")}</div></div></div><div class="instructor-selected-list" data-instructor-selected aria-live="polite">${tokens.map((token) => `<span class="instructor-selected-item"><span>${escapeHtml(projectTeacherTokenName(token))}</span><button type="button" class="instructor-selected-remove" data-instructor-remove="${escapeHtml(token)}" aria-label="移除${escapeHtml(projectTeacherTokenName(token))}">×</button></span>`).join("")}</div></div>`;
       }
       function projectOpportunityFieldHtml(project) {
         return `<div class="form-group"><label class="form-label project-opportunity-label" for="pfOpportunity">所属商机编号${!project?.opportunityId ? '<span class="project-opportunity-note" id="pfOpportunityHint">暂不填写</span>' : ""}</label><input class="input" id="pfOpportunity" value="${escapeHtml(project?.opportunityId || "—")}" readonly${!project?.opportunityId ? ' aria-describedby="pfOpportunityHint"' : ""}></div>`;
@@ -2087,10 +2075,10 @@
         ) {
           directionList.push({ intro: project.directionIntro });
         }
-        const directionOptions = `<option value="">请选择课程方向</option>${directionList
+        const directionOptions = `<option value="">请选择课程</option>${directionList
           .map(
             (direction) =>
-              `<option value="${direction.intro}" ${project?.directionIntro === direction.intro ? "selected" : ""}>${direction.intro}</option>`,
+              `<option value="${direction.intro}" ${project?.directionIntro === direction.intro ? "selected" : ""}>${escapeHtml(direction.label || direction.intro)}</option>`,
           )
           .join("")}`;
         const companyOptions = `<option value="">请选择平台公司</option>${companyCandidates
@@ -2110,9 +2098,9 @@
           ? `<input class="input" id="pfAmount" value="${project ? wanMoneyInput(project.amount) : ""}" disabled>`
           : `<input class="input" id="pfAmount" type="number" min="0.000001" step="0.000001" value="${project ? wanMoneyInput(project.amount) : ""}">`;
         const personnelHtml =
-          `<div class="form-group full"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>主讲师</label>${instructorSelectHtml("pfLecturers", "主讲师", project?.lecturers || [])}<div class="field-error" id="err-pfLecturers"></div></div>` +
-          `<div class="form-group full"><label class="form-label">辅讲师</label>${instructorSelectHtml("pfAssistants", "辅讲师", project?.assistantLecturers || [])}</div>` +
-          `<div class="form-group full"><label class="form-label">项目助教</label>${instructorSelectHtml("pfHelpers", "项目助教", project?.teachingAssistants || [])}</div>`;
+          `<div class="form-group full"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>主讲师</label>${instructorSelectHtml("pfLecturers", "主讲师", project?.lecturers || [], project)}<div class="field-error" id="err-pfLecturers"></div></div>` +
+          `<div class="form-group full"><label class="form-label">辅讲师</label>${instructorSelectHtml("pfAssistants", "辅讲师", project?.assistantLecturers || [], project)}</div>` +
+          `<div class="form-group full"><label class="form-label">项目助教</label>${instructorSelectHtml("pfHelpers", "项目助教", project?.teachingAssistants || [], project)}</div>`;
         return (
           `<div class="form-grid">` +
           projectFormFieldHtml(
@@ -2182,7 +2170,7 @@
           ) +
           projectFormFieldHtml(
             "pfDirection",
-            "课程方向",
+            "课程",
             `<select class="input" id="pfDirection">${directionOptions}</select>`,
           ) +
           projectFormFieldHtml(
@@ -2238,9 +2226,9 @@
             : `<div class="form-group"><label class="form-label">结束时间</label><div class="input">${project.endTime}</div></div>`;
         const personnelHtml = isTraining
           ? `<div class="section-title">项目人员</div>` +
-            `<div class="form-group full"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>主讲师</label>${instructorSelectHtml("pfStageLecturers", "主讲师", project.lecturers)}<div class="field-error" id="err-pfStageLecturers"></div></div>` +
-            `<div class="form-group full"><label class="form-label">辅讲师</label>${instructorSelectHtml("pfStageAssistants", "辅讲师", project.assistantLecturers)}</div>` +
-            `<div class="form-group full"><label class="form-label">项目助教</label>${instructorSelectHtml("pfStageHelpers", "项目助教", project.teachingAssistants)}</div>` +
+            `<div class="form-group full"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>主讲师</label>${instructorSelectHtml("pfStageLecturers", "主讲师", project.lecturers, project)}<div class="field-error" id="err-pfStageLecturers"></div></div>` +
+            `<div class="form-group full"><label class="form-label">辅讲师</label>${instructorSelectHtml("pfStageAssistants", "辅讲师", project.assistantLecturers, project)}</div>` +
+            `<div class="form-group full"><label class="form-label">项目助教</label>${instructorSelectHtml("pfStageHelpers", "项目助教", project.teachingAssistants, project)}</div>` +
             projectFormFieldHtml(
               "pfChangeReason",
               "人员调整原因",

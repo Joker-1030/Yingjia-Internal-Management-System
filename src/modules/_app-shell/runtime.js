@@ -181,6 +181,8 @@
         pm: "PM",
         hr: "HR/人事",
         ecology: "生态合作员",
+        teacher: "老师",
+        teachingManager: "教学管理人员",
         support: "商机支撑",
         admin: "系统管理员",
       };
@@ -206,7 +208,7 @@
       const isProjectConfigAdmin = () =>
         Boolean(currentUser?.username === "admin" && currentUser?.role === "admin" && currentUser?.fullAccess);
       const templatePagePermissionAllowed = (template, permission) =>
-        template.name !== "生态合作员" || ["dashboard", "projects", "opportunities"].includes(permission);
+        (["老师", "教学管理人员"].includes(template.name) ? permission === "teachers" : template.name !== "生态合作员" || ["dashboard", "projects", "opportunities"].includes(permission));
       const hasPermission = (permission) =>
         (!isAdminOnlyProjectConfigPage(permission) || isProjectConfigAdmin()) &&
         currentRoleTemplates().some((template) =>
@@ -230,6 +232,7 @@
       const roleCanSeeBusiness = () => hasDataObject("客户单位");
       const canAccessPage = (page) => {
         if (["approvals", "archive", "sales-dashboard"].includes(page)) return false;
+        if (["teachers", "teacher-schedule"].includes(page)) return (typeof teacherIsFacultySupervisor === "function" && teacherIsFacultySupervisor()) || (hasPermission("teachers") && currentRoleTemplateNames().some((role) => ["系统管理员", "老师", "教学管理人员", ...(page === "teacher-schedule" ? ["总裁"] : [])].includes(role)));
         if (page === "operations") return roleCanSeeBusiness();
         if (page === "city-management")
           return isPmCityManagementUser() && hasPermission(page);
@@ -250,21 +253,21 @@
         Boolean(
           (operation !== "opportunities.support" || currentUser?.fullAccess || salesCurrentSupportEmployee() !== null) &&
           (!isAdminOnlyProjectConfigPage(operation.split(".")[0]) || isProjectConfigAdmin()) &&
-          (currentUser?.fullAccess ||
+          ((operation.startsWith("teachers.") && typeof teacherIsFacultySupervisor === "function" && teacherIsFacultySupervisor()) || currentUser?.fullAccess ||
             currentRoleTemplateNames().some((roleName) =>
-              (roleName !== "生态合作员" || ["dashboard.view", "projects.view", "projects.create", "projects.edit", "opportunities.view", "opportunities.create", "opportunities.progress"].includes(operation)) && roleOperationPermissions?.[roleName]?.includes(operation),
+              (!["老师", "教学管理人员"].includes(roleName) || operation.startsWith("teachers.")) && (roleName !== "生态合作员" || ["dashboard.view", "projects.view", "projects.create", "projects.edit", "opportunities.view", "opportunities.create", "opportunities.progress"].includes(operation)) && roleOperationPermissions?.[roleName]?.includes(operation),
             )),
         );
       const hasFieldPermission = (permission) =>
         Boolean(
-          currentUser?.fullAccess ||
+          (permission.startsWith("teacher_") && typeof teacherIsFacultySupervisor === "function" && teacherIsFacultySupervisor()) || currentUser?.fullAccess ||
             currentRoleTemplateNames().some((roleName) =>
               roleFieldPermissions?.[roleName]?.includes(permission),
             ),
         );
       const hasAttachmentPermission = (permission) =>
         Boolean(
-          currentUser?.fullAccess ||
+          (permission.startsWith("teacher_") && typeof teacherIsFacultySupervisor === "function" && teacherIsFacultySupervisor()) || currentUser?.fullAccess ||
             currentRoleTemplateNames().some((roleName) =>
               roleAttachmentPermissions?.[roleName]?.includes(permission),
             ),
@@ -338,6 +341,8 @@
         PM: "pm",
         "HR/人事": "hr",
         生态合作员: "ecology",
+        老师: "teacher",
+        教学管理人员: "teachingManager",
         商机支撑: "support",
         系统管理员: "admin",
       };
@@ -392,6 +397,8 @@
           "生态合作员",
           "HR/人事",
           "商机支撑",
+          "教学管理人员",
+          "老师",
         ].find((roleName) => effectiveRoles.includes(roleName));
         account.roles = effectiveRoles;
         account.role = employeeRoleAccountMap[primaryEffectiveRole];
@@ -1055,6 +1062,7 @@
         )
           return "employees";
         if (hasPermission("dashboard")) return "dashboard";
+        if (canAccessPage("teachers")) return teacherPersonalScheduleView() ? "teacher-schedule" : "teachers";
         return currentRoleTemplate()?.permissions.find(canAccessPage) || "employees";
       }
 
@@ -1261,7 +1269,11 @@
             return `<div class="nav-group"><div class="nav-title">${g.title}</div>${items
               .map((i) => {
                 const label =
-                  i.id === "sales-supports" && currentUser?.fullAccess
+                  i.id === "teachers" && teacherPersonalScheduleView()
+                    ? "我的信息"
+                    : i.id === "teacher-schedule" && teacherPersonalScheduleView() && !teacherHasCompanyScheduleAccess()
+                    ? "我的排期"
+                    : i.id === "sales-supports" && currentUser?.fullAccess
                     ? "方案支撑管理"
                     : i.id === "sales-targets" &&
                         currentRoleTemplateNames().includes("PM") &&
@@ -1312,6 +1324,8 @@
         "city-management": "地市管理",
         settings: "客户基础配置",
         imports: "数据导入",
+        teachers: "老师管理",
+        "teacher-schedule": "老师排期",
         projects: "项目管理",
         "project-detail": "项目详情",
         "project-create": "创建项目",
@@ -1360,6 +1374,8 @@
           "city-management": renderPmCityManagement,
           settings: renderSettings,
           imports: renderImports,
+          teachers: renderTeachers,
+          "teacher-schedule": renderTeacherSchedule,
           projects: renderProjects,
           "project-detail": renderProjectDetail,
           "project-create": renderProjectCreate,

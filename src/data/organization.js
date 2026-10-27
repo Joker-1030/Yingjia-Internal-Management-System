@@ -77,9 +77,9 @@
         { code: "YJ018", name: "李娜", dept: "综合运营部", job: "HR/人事", role: "HR/人事", scope: "公司组织", status: "在职" },
         { code: "YJ019", name: "周琳", dept: "财务部", job: "财务经理", role: "普通员工", status: "在职" },
         { code: "YJ020", name: "唐婧", dept: "咨询产品部", job: "咨询产品总监", role: "普通员工", status: "在职" },
-        { code: "YJ021", name: "张伟", dept: "能源事业部", job: "事业部总监", role: "普通员工", status: "在职" },
+        { code: "YJ021", name: "张伟", dept: "能源事业部", job: "事业部总监", role: "老师", status: "在职" },
         { code: "YJ022", name: "何晨", dept: "软件研发部", job: "研发总监", role: "普通员工", status: "在职" },
-        { code: "YJ023", name: "韩雪", dept: "师资管理部", job: "师资经理", role: "普通员工", status: "在职" },
+        { code: "YJ023", name: "韩雪", dept: "师资管理部", job: "师资经理", role: "教学管理人员", status: "在职" },
         { code: "YJ024", name: "郭凯", dept: "财务部", job: "财务经理", role: "普通员工", scope: "已停用", status: "停用" },
         { code: "YJ025", name: "华北总监", dept: "华北区域运营中心", job: "区域总监", role: "区域总监", scope: "华北区域", status: "停用" },
         { code: "YJ026", name: "华中主管", dept: "华中区域运营中心", job: "项目经理", role: "PM", scope: "华中区域", status: "在职" },
@@ -294,7 +294,7 @@
         department.sort = department.sort || (index + 1) * 10;
         department.updatedAt = department.updatedAt || "2026-08-17 09:30";
       });
-      const businessSystemRoles = ["总裁", "市场副总", "区域总监", "PM", "生态合作员", "HR/人事", "商机支撑"];
+      const businessSystemRoles = ["总裁", "市场副总", "区域总监", "PM", "生态合作员", "HR/人事", "商机支撑", "老师", "教学管理人员"];
       employees.forEach((employee) => {
         employee.roles = businessSystemRoles.includes(employee.role)
           ? [employee.role]

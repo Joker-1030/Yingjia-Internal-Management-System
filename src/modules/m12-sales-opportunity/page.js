@@ -67,6 +67,10 @@
             opportunity.owner === currentUser.name && salesVisibleOpportunities().includes(opportunity)));
       }
 
+      function salesCanInitiateSupport(item) {
+        return salesCanProgress(item) && ["方案支撑", "比选", "中选"].includes(item.stage);
+      }
+
       function salesCanCorrect(item) {
         if (salesCanProgress(item)) return true;
         return Boolean(currentUser?.fullAccess && salesSupportActorActive() && opportunities.includes(item) && item.stage === "落选");
@@ -338,8 +342,12 @@
         }[stage] || "";
       }
 
+      function salesStageLabel(stage) {
+        return stage === "方案支撑" ? "方案准备" : stage;
+      }
+
       function salesStageTag(stage) {
-        return `<span class="tag ${salesStageTone(stage)}">${stage}</span>`;
+        return `<span class="tag ${salesStageTone(stage)}">${salesStageLabel(stage)}</span>`;
       }
 
       function salesPriorityTag(priority) {
@@ -357,12 +365,14 @@
       }
 
       let salesOverviewRegion = "";
+      let salesOverviewProvince = "";
       let salesOverviewDimension = "stage";
       let salesOverviewFilter = "";
       let salesOverviewMeasure = "count";
 
       function resetSalesOverview() {
         salesOverviewRegion = "";
+        salesOverviewProvince = "";
         salesOverviewDimension = "stage";
         salesOverviewFilter = "";
         salesOverviewMeasure = "count";
@@ -430,7 +440,7 @@
           created: "创建日期在所选周期内的商机数量，后来落选仍计入该周期。",
           difference: "周期成交金额－目标金额（含税，万元）；正数超额，负数尚差；金额不可用或目标未分配时不计算。",
           rate: "周期成交金额÷成交金额目标×100%，保留1位小数；目标0、未分配或成交金额不可用时显示—。",
-          active: "当前处于商机录入、需求确认、方案支撑、比选或中选阶段的商机数量，不包含落选；不受年/季/月筛选影响。",
+          active: "当前处于商机录入、需求确认、方案准备、比选或中选阶段的商机数量，不包含落选；不受年/季/月筛选影响。",
           activeAmount: "当前活跃商机的含税金额合计：中选取成交金额，其他活跃阶段取预估金额。不受周期筛选影响，不代表签约或回款金额。",
           selected: "当前处于中选阶段的商机数量，不受年/季/月筛选影响。",
           selectedRate: "当前中选数÷（当前中选数＋当前落选数）×100%；其他阶段不计入分母，无结果时为0%。",
@@ -447,7 +457,7 @@
           regionActive: "本行运营中心当前有权商机中，商机录入至中选阶段的商机数，不包含落选。",
           regionAmount: "本行运营中心当前有权活跃商机含税金额；中选取成交金额，其他活跃阶段取预估金额。",
           regionSelected: "本行运营中心当前有权商机中，处于中选阶段的商机数。",
-          pipeline: "当前处于商机录入、需求确认、方案支撑、比选阶段的商机数量，排除中选和落选；当前快照，不受周期筛选影响。",
+          pipeline: "当前处于商机录入、需求确认、方案准备、比选阶段的商机数量，排除中选和落选；当前快照，不受周期筛选影响。",
           pipelineAmount: "当前推进中四个阶段商机的预估金额合计（含税，万元）；排除中选和落选，不受周期筛选影响，不代表合同收入。",
           periodWon: "中选日期在所选周期内的商机数量；后来落选不冲销该中选事件。",
           periodWonAmount: "中选日期在所选周期内的商机成交金额合计（含税，万元）；0是有效金额，不代表财务收入或回款。",
@@ -514,15 +524,29 @@
           (salesIsRole("PM") && cityOwners.some(city => city.pm === currentUser.name && regionProvinceList(region).includes(city.province))));
       }
 
+      function salesOverviewProvinces() {
+        if (!salesWorkbenchAllowed()) return [];
+        const centers = salesOverviewCenters();
+        const selected = salesOverviewRegion ? centers.find(region => String(region.id) === salesOverviewRegion) : null;
+        if (salesOverviewRegion && !selected) return [];
+        return [...new Set((selected ? [selected] : centers).flatMap(region => regionProvinceList(region)))].sort((a, b) => a.localeCompare(b, "zh-CN"));
+      }
+
+      function salesStatisticsProvince(item) {
+        return isEcosystemOpportunity(item) ? null : salesOpportunityCustomer(item)?.province || salesOpportunityCustomer(item)?.businessResponsibilityProvince || "";
+      }
+
       function salesOverviewAnalysis() {
         if (!salesWorkbenchAllowed()) return null;
         const center = salesOverviewRegion ? salesOverviewCenters().find(region => String(region.id) === salesOverviewRegion) : null;
         if (salesOverviewRegion && !center) return null; // Never widen a stale or forged center selection.
+        if (salesOverviewProvince && !salesOverviewProvinces().includes(salesOverviewProvince)) return null;
         if (!["stage", "type"].includes(salesOverviewDimension) || !["count", "amount"].includes(salesOverviewMeasure)) return null;
         const byStage = salesOverviewDimension === "stage";
         if (salesOverviewFilter && !(byStage ? SALES_TYPES : SALES_STAGES).includes(salesOverviewFilter)) return null;
         const rows = salesWorkbenchOpportunities().filter(item =>
           (!center || salesStatisticsRegion(item)?.id === center.id) &&
+          (!salesOverviewProvince || salesStatisticsProvince(item) === salesOverviewProvince) &&
           (!salesOverviewFilter || item[byStage ? "type" : "stage"] === salesOverviewFilter));
         if (rows.some(item => !SALES_STAGES.includes(item.stage) || !SALES_TYPES.includes(item.type))) return null;
         const money = salesOverviewMeasure === "amount";
@@ -542,8 +566,9 @@
         const byStage = salesOverviewDimension === "stage";
         return '<div class="workbench-analysis-controls" id="salesOverviewControls">' +
           select("region", salesOverviewRegion, "运营中心", [["", "全部运营中心"], ...salesOverviewCenters().map(region => [String(region.id), region.name])]) +
+          select("province", salesOverviewProvince, "省份", [["", "全部省份"], ...salesOverviewProvinces().map(province => [province, province])]) +
           select("dimension", salesOverviewDimension, "分析方式", [["stage", "按商机阶段"], ["type", "按商机类型"]]) +
-          select("filter", salesOverviewFilter, byStage ? "商机类型" : "商机阶段", [["", byStage ? "全部类型" : "全部阶段"], ...(byStage ? SALES_TYPES : SALES_STAGES).map(label => [label, label])]) +
+          select("filter", salesOverviewFilter, byStage ? "商机类型" : "商机阶段", [["", byStage ? "全部类型" : "全部阶段"], ...(byStage ? SALES_TYPES : SALES_STAGES).map(label => [label, salesStageLabel(label)])]) +
           select("measure", salesOverviewMeasure, "统计指标", [["count", "商机数量"], ["amount", "商机金额（含税，万元）"]]) + '</div>';
       }
 
@@ -559,7 +584,7 @@
             type: "pie", radius: ["76%", "94%"], center: ["50%", "50%"], silent: true,
             selectedMode: false, stillShowZeroSum: false, label: { show: false }, labelLine: { show: false },
             emphasis: { disabled: true }, itemStyle: { borderRadius: 4, borderWidth: 3, borderColor: "#fff" },
-            data: analysis.total ? analysis.groups.map((group, i) => ({ name: group.label, value: group.value, itemStyle: { color: colors[i] } })) : [],
+            data: analysis.total ? analysis.groups.map((group, i) => ({ name: salesStageLabel(group.label), value: group.value, itemStyle: { color: colors[i] } })) : [],
             emptyCircleStyle: { color: "#edf1f5", borderWidth: 0 },
           }] });
           svg = chart.renderToSVGString();
@@ -568,7 +593,7 @@
         const valueLabel = analysis.money ? "金额（含税，万元）" : "数量（个）";
         const key = analysis.money ? "amount" : "count";
         const format = value => analysis.money ? salesStatsMoney(value) : String(value);
-        const rows = analysis.groups.map((group, i) => `<li><span class="workbench-group-name"><i aria-hidden="true" style="background:${colors[i]}"></i>${escapeHtml(group.label)}</span><strong>${format(group.value)}</strong><span class="workbench-share">${group.share === null ? "—" : group.share.toFixed(1) + "%"}</span></li>`).join("");
+        const rows = analysis.groups.map((group, i) => `<li><span class="workbench-group-name"><i aria-hidden="true" style="background:${colors[i]}"></i>${escapeHtml(salesStageLabel(group.label))}</span><strong>${format(group.value)}</strong><span class="workbench-share">${group.share === null ? "—" : group.share.toFixed(1) + "%"}</span></li>`).join("");
         return `<div class="workbench-project-chart"><div class="workbench-donut"><div class="workbench-chart-svg" aria-hidden="true">${svg}</div><div class="workbench-donut-center${analysis.money ? " workbench-money" : ""}"><span>${totalLabel}${salesStatisticsHelp(key, totalLabel)}</span><strong data-sales-overview-total>${format(analysis.total)}</strong><small>${analysis.money ? "含税，万元" : "个"}</small>${analysis.count ? "" : "<small>暂无商机</small>"}</div></div><div class="workbench-project-detail sales-overview-detail" tabindex="0" role="region" aria-label="商机分组明细"><div class="workbench-legend-head"><span>${analysis.dimension === "stage" ? "商机阶段" : "商机类型"}</span><span>${valueLabel}${salesStatisticsHelp(key, valueLabel)}</span><span>占比${salesStatisticsHelp(key + "Share", "占比")}</span></div><ul class="workbench-stage-legend">${rows}</ul></div></div>`;
       }
 
@@ -576,7 +601,10 @@
         if (currentPage !== "dashboard" || !salesWorkbenchAllowed()) return;
         const key = target.dataset.salesOverview;
         const value = target.value;
-        if (key === "region" && (value === "" || salesOverviewCenters().some(region => String(region.id) === value))) salesOverviewRegion = value;
+        if (key === "region" && (value === "" || salesOverviewCenters().some(region => String(region.id) === value))) {
+          salesOverviewRegion = value;
+          if (salesOverviewProvince && !salesOverviewProvinces().includes(salesOverviewProvince)) salesOverviewProvince = "";
+        } else if (key === "province" && (value === "" || salesOverviewProvinces().includes(value))) salesOverviewProvince = value;
         else if (key === "dimension" && ["stage", "type"].includes(value)) {
           salesOverviewDimension = value;
           salesOverviewFilter = "";
@@ -1059,7 +1087,7 @@
           `<select class="input" id="opportunityTypeFilter"><option value="">全部类型</option>${SALES_TYPES.map((value) => `<option value="${value}" ${option(value, appliedOpportunityFilters.type)}>${value}</option>`).join("")}</select>`,
         )}${filterField(
           "阶段",
-          `<select class="input" id="opportunityStageFilter"><option value="">全部阶段</option>${SALES_STAGES.map((value) => `<option value="${value}" ${option(value, appliedOpportunityFilters.stage)}>${value}</option>`).join("")}</select>`,
+          `<select class="input" id="opportunityStageFilter"><option value="">全部阶段</option>${SALES_STAGES.map((value) => `<option value="${value}" ${option(value, appliedOpportunityFilters.stage)}>${salesStageLabel(value)}</option>`).join("")}</select>`,
         )}${filterField(
           "客户单位",
           `<select class="input" id="opportunityCustomerFilter"><option value="">全部客户</option>${[...new Set(rows.map((item) => item.customer))].map((value) => `<option value="${value}" ${option(value, appliedOpportunityFilters.customer)}>${value}</option>`).join("")}</select>`,
@@ -1093,22 +1121,46 @@
         return `${delivered}/${requests.length}`;
       }
 
+      const salesOpportunityReadAtByUser = new Map();
+      function salesOpportunityReadUserKey() {
+        return currentUser?.employeeCode || currentUser?.username || currentUser?.name || "";
+      }
+      function salesOpportunityUnreadEnabled() {
+        return ["president", "vp", "director"].includes(currentUser?.role);
+      }
+      function salesOpportunityReadKey(item) {
+        const userKey = salesOpportunityReadUserKey();
+        return userKey && item?.id ? `${userKey}:${item.id}` : "";
+      }
+      function salesOpportunityIsUnread(item) {
+        if (!salesOpportunityUnreadEnabled()) return false;
+        const key = salesOpportunityReadKey(item);
+        if (!key) return false;
+        const readAt = salesOpportunityReadAtByUser.get(key);
+        return !readAt || String(item.updatedAt || "") > String(readAt);
+      }
+      function markSalesOpportunityRead(item) {
+        if (!salesOpportunityUnreadEnabled() || !item?.id) return;
+        const key = salesOpportunityReadKey(item);
+        if (key) salesOpportunityReadAtByUser.set(key, item.updatedAt || salesNow());
+      }
+
       function renderOpportunities() {
         const rows = salesVisibleOpportunities().filter(opportunityMatchesFilters);
         const body = rows
-          .sort((left, right) => right.updatedAt.localeCompare(left.updatedAt) || right.id.localeCompare(left.id))
+          .sort((left, right) => Number(salesOpportunityIsUnread(right)) - Number(salesOpportunityIsUnread(left)) || right.updatedAt.localeCompare(left.updatedAt) || right.id.localeCompare(left.id))
           .map(
             (item) =>
-              `<tr data-page-row><td>${item.id}</td><td>${item.name}</td><td>${item.type}</td><td>${salesStageTag(item.stage)}</td><td>${item.supports?.length ? "是" : "否"}</td><td>${salesOpportunitySupportProgress(item)}</td><td>${item.customer}</td><td>${salesMoney(item.estimateAmount)}</td><td>${salesPriorityTag(item.priority)}</td><td>${salesStageDays(item)} 天</td><td>${escapeHtml(salesOpportunityOwnerName(item))}</td><td>${item.createdDate}</td><td>${item.updatedAt}</td><td>${item.createdBy}</td><td><button class="link" type="button" data-opportunity-open="${item.id}">详情</button></td></tr>`,
+              `<tr data-page-row><td>${item.id}</td><td>${salesOpportunityIsUnread(item) ? '<span class="opportunity-unread-dot" title="有更新未读" aria-label="有更新未读"></span>' : ""}${item.name}</td><td>${item.type}</td><td>${salesStageTag(item.stage)}</td><td>${item.customer}</td><td>${salesMoney(item.estimateAmount)}</td><td>${salesPriorityTag(item.priority)}</td><td>${salesStageDays(item)} 天</td><td>${escapeHtml(salesOpportunityOwnerName(item))}</td><td>${item.createdDate}</td><td>${item.updatedAt}</td><td>${item.createdBy}</td><td><button class="link" type="button" data-opportunity-open="${item.id}">详情</button></td></tr>`,
           )
           .join("");
-        const emptyRow = '<tr data-empty-row><td colspan="15"><div class="empty">暂无数据</div></td></tr>';
+        const emptyRow = '<tr data-empty-row><td colspan="13"><div class="empty">暂无数据</div></td></tr>';
         const tableHtml = [
           '<section class="panel">',
           opportunityFiltersHtml(),
           '<div class="table-wrap"><table style="min-width:1740px" data-paged-table="m12-opportunities">',
-          '<thead><tr><th>商机编号</th><th>商机名称</th><th>商机类型</th><th>阶段</th><th>是否方案支撑</th><th>交付进度</th><th>客户单位</th><th>当前预估金额（含税，万元）</th><th>优先级</th><th>当前阶段停留时间</th><th>负责人</th><th>创建时间</th><th>最近更新时间</th><th>创建人</th><th>操作</th></tr></thead>',
-          `<tbody>${body || emptyRow}<tr data-filter-empty style="display:none"><td colspan="15"><div class="empty">暂无数据</div></td></tr></tbody>`,
+          '<thead><tr><th>商机编号</th><th>商机名称</th><th>商机类型</th><th>阶段</th><th>客户单位</th><th>当前预估金额（含税，万元）</th><th>优先级</th><th>当前阶段停留时间</th><th>负责人</th><th>创建时间</th><th>最近更新时间</th><th>创建人</th><th>操作</th></tr></thead>',
+          `<tbody>${body || emptyRow}<tr data-filter-empty style="display:none"><td colspan="13"><div class="empty">暂无数据</div></td></tr></tbody>`,
           `</table></div>${tablePagination("m12-opportunities")}</section>`,
         ].join("");
         return (
@@ -1192,15 +1244,15 @@
           )
           .join("");
         const action =
-          salesCanProgress(item) && item.stage !== "落选"
+          salesCanInitiateSupport(item)
             ? '<div class="sales-tab-toolbar"><button class="btn btn-primary" type="button" data-sales-support-add>发起支撑</button></div>'
             : "";
         return `${action}<div class="table-wrap"><table style="min-width:1180px"><thead><tr><th>请求编号</th><th>支撑人员</th><th>交付截止时间</th><th>支撑需求</th><th>状态</th><th>操作</th></tr></thead><tbody>${rows || '<tr><td colspan="6"><div class="empty">暂无方案支撑请求</div></td></tr>'}</tbody></table></div>`;
       }
 
       function opportunityHistoryHtml(item) {
-        const resultText=value=>value ? `${value.stage}；中选日期：${value.selectedDate || "—"}；成交金额（含税，万元）：${value.expectedContractAmount == null ? "—" : salesStatsMoney(value.expectedContractAmount)}${value.lossReason ? `；落选原因：${value.lossReason}；竞争对手：${value.competitor}；复盘说明：${value.review}` : ""}` : "";
-        return `<div class="section-title">阶段历史</div><div class="table-wrap"><table><thead><tr><th>生效时间</th><th>原阶段</th><th>新阶段</th><th>操作人</th><th>说明与材料</th></tr></thead><tbody>${item.histories.slice().reverse().map(record=>`<tr><td>${escapeHtml(record.time)}</td><td>${escapeHtml(record.from)}</td><td>${escapeHtml(record.to)}${record.action === "纠错" ? " · 纠错" : ""}</td><td>${escapeHtml(record.operator)}</td><td>${escapeHtml(record.description || record.reason || "—")}${record.before ? `<div>纠错前：${escapeHtml(resultText(record.before))}</div><div>纠错后：${escapeHtml(resultText(record.after))}</div>` : ""}${record.result ? `<div>${escapeHtml(resultText(record.result))}</div>` : ""}${salesStageFilesHtml(item,record)}</td></tr>`).join("")}</tbody></table></div><div class="section-title sales-history-subtitle">负责人责任交接历史</div><div class="table-wrap"><table><thead><tr><th>生效时间</th><th>原负责人</th><th>新负责人</th><th>原因</th><th>操作人</th></tr></thead><tbody>${(item.reassignments || []).slice().reverse().map(record=>`<tr><td>${escapeHtml(record.time)}</td><td>${escapeHtml(record.before)}</td><td>${escapeHtml(record.after)}</td><td>${escapeHtml(record.reason)}</td><td>${escapeHtml(record.operator)}</td></tr>`).join("") || '<tr><td colspan="5"><div class="empty">暂无改派记录</div></td></tr>'}</tbody></table></div><div class="section-title sales-history-subtitle">基本信息变更历史</div><div class="table-wrap"><table><thead><tr><th>变更时间</th><th>字段</th><th>变更前</th><th>变更后</th><th>操作人</th></tr></thead><tbody>${(item.editHistories || []).slice().reverse().map(record=>`<tr><td>${escapeHtml(record.time)}</td><td>${escapeHtml(amountHistoryField(record.field))}</td><td>${escapeHtml(amountHistoryValue(record.field,record.before))}</td><td>${escapeHtml(amountHistoryValue(record.field,record.after))}</td><td>${escapeHtml(record.operator)}</td></tr>`).join("") || '<tr><td colspan="5"><div class="empty">暂无编辑记录</div></td></tr>'}</tbody></table></div>`;
+        const resultText=value=>value ? `${salesStageLabel(value.stage)}；中选日期：${value.selectedDate || "—"}；成交金额（含税，万元）：${value.expectedContractAmount == null ? "—" : salesStatsMoney(value.expectedContractAmount)}${value.lossReason ? `；落选原因：${value.lossReason}；竞争对手：${value.competitor}；复盘说明：${value.review}` : ""}` : "";
+        return `<div class="section-title">阶段历史</div><div class="table-wrap"><table><thead><tr><th>生效时间</th><th>原阶段</th><th>新阶段</th><th>操作人</th><th>说明与材料</th></tr></thead><tbody>${item.histories.slice().reverse().map(record=>`<tr><td>${escapeHtml(record.time)}</td><td>${escapeHtml(salesStageLabel(record.from))}</td><td>${escapeHtml(salesStageLabel(record.to))}${record.action === "纠错" ? " · 纠错" : ""}</td><td>${escapeHtml(record.operator)}</td><td>${escapeHtml(record.description || record.reason || "—")}${record.before ? `<div>纠错前：${escapeHtml(resultText(record.before))}</div><div>纠错后：${escapeHtml(resultText(record.after))}</div>` : ""}${record.result ? `<div>${escapeHtml(resultText(record.result))}</div>` : ""}${salesStageFilesHtml(item,record)}</td></tr>`).join("")}</tbody></table></div><div class="section-title sales-history-subtitle">负责人责任交接历史</div><div class="table-wrap"><table><thead><tr><th>生效时间</th><th>原负责人</th><th>新负责人</th><th>原因</th><th>操作人</th></tr></thead><tbody>${(item.reassignments || []).slice().reverse().map(record=>`<tr><td>${escapeHtml(record.time)}</td><td>${escapeHtml(record.before)}</td><td>${escapeHtml(record.after)}</td><td>${escapeHtml(record.reason)}</td><td>${escapeHtml(record.operator)}</td></tr>`).join("") || '<tr><td colspan="5"><div class="empty">暂无改派记录</div></td></tr>'}</tbody></table></div><div class="section-title sales-history-subtitle">基本信息变更历史</div><div class="table-wrap"><table><thead><tr><th>变更时间</th><th>字段</th><th>变更前</th><th>变更后</th><th>操作人</th></tr></thead><tbody>${(item.editHistories || []).slice().reverse().map(record=>`<tr><td>${escapeHtml(record.time)}</td><td>${escapeHtml(amountHistoryField(record.field))}</td><td>${escapeHtml(amountHistoryValue(record.field,record.before))}</td><td>${escapeHtml(amountHistoryValue(record.field,record.after))}</td><td>${escapeHtml(record.operator)}</td></tr>`).join("") || '<tr><td colspan="5"><div class="empty">暂无编辑记录</div></td></tr>'}</tbody></table></div>`;
       }
 
       function renderOpportunityDetail() {
@@ -1235,7 +1287,7 @@
           pageHead(
             item.name,
             "查看商机信息、跟进记录与方案支撑。",
-            `<button class="btn" id="backToOpportunities">返回列表</button>${canOperate ? '<button class="btn" data-sales-edit>编辑</button>' : ""}${canOperate ? '<button class="btn btn-primary" data-sales-stage-open>推进阶段</button>' : ""}${salesCanCorrect(item) ? '<button class="btn" data-sales-correct>纠错</button>' : ""}`,
+            `<button class="btn" id="backToOpportunities">返回列表</button>${canOperate ? '<button class="btn" data-sales-edit>编辑</button>' : ""}${salesCanCorrect(item) ? '<button class="btn btn-primary" data-sales-stage-open>推进阶段</button>' : ""}`,
           ) +
           `<section class="panel sales-detail-panel"><div class="sales-detail-identity"><div><span class="list-sub">当前阶段</span><div class="sales-detail-stage">${salesStageTag(item.stage)}</div></div><div><span class="list-sub">负责人</span><strong>${escapeHtml(salesOpportunityOwnerName(item))}</strong></div><div><span class="list-sub">下次跟进日期</span><strong>${item.nextFollowDate || "—"}</strong></div></div><div class="tabs detail-tabs">${tabs
             .map(
@@ -1319,10 +1371,6 @@
           salesFormField("salesOwner", "商机负责人", `<div class="input sales-readonly" id="salesOwner" data-owner="">${fixedType === SALES_ECOSYSTEM_TYPE ? escapeHtml(currentUser.name) : "选择客户后自动匹配"}</div>${currentUser.fullAccess ? `<select class="input" id="salesEcosystemOwner" hidden><option value="">请选择生态合作员</option>${employees.filter(validEcosystemEmployee).map(employee => `<option value="${employee.code}">${escapeHtml(employee.name)} · ${employee.code}</option>`).join("")}</select>` : ""}`, true),
           salesFormField("salesFirstFollow", "首次跟进日期", `<input class="input" id="salesFirstFollow" type="date" min="${salesNextBusinessDate()}">`, true),
           salesFormField("salesRequirement", "商机需求描述", '<textarea class="input" id="salesRequirement" rows="4" maxlength="1000"></textarea>', true, true),
-          salesFormField("salesCreateSupport", "同时创建方案支撑", '<select class="input" id="salesCreateSupport"><option value="否">否</option><option value="是">是</option></select>', true),
-          `<div class="form-group" id="salesSupportPeopleGroup" hidden><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>支撑人员</label>${salesSupportPeoplePickerHtml("salesSupportPeoplePicker")}<div class="field-error" id="err-salesSupportPeople"></div></div>`,
-          '<div class="form-group full" id="salesSupportRequirementGroup" hidden><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>支撑需求</label><textarea class="input" id="salesSupportRequirement" rows="3" maxlength="500"></textarea><div class="field-error" id="err-salesSupportRequirement"></div></div>',
-          `<div class="form-group" id="salesSupportDeadlineGroup" hidden><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>交付截止时间</label><input class="input" id="salesSupportDeadline" type="datetime-local" value=""><div class="field-error" id="err-salesSupportDeadline"></div></div>`,
         ].join("");
         return (
           pageHead("新建商机", "填写客户与需求信息，建立商机档案。") +

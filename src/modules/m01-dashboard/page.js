@@ -262,14 +262,37 @@
             sortId: String(task.id),
             command: currentUser.role === "pm" && task.status !== "expired" ? "处理" : "查看",
           }));
+        const opportunityItems = hasPermission("opportunities") && typeof salesVisibleOpportunities === "function"
+          ? salesVisibleOpportunities()
+            .filter((item) => {
+              if (!item || item.stage === "落选" || !item.nextFollowDate) return false;
+              const isOwner = isEcosystemOpportunity(item)
+                ? currentEcosystemEmployee()?.code === salesEcosystemOwnerCode(item)
+                : item.owner === currentUser.name;
+              return isOwner;
+            })
+            .map((item) => ({
+              icon: "商",
+              title: "商机跟进提醒",
+              detail: `${item.name} · ${item.customer} · ${item.nextFollowDate < DEMO_TODAY ? "已逾期" : "下次跟进"} ${item.nextFollowDate}`,
+              tone: item.nextFollowDate < DEMO_TODAY ? "red" : "yellow",
+              opportunityId: item.id,
+              category: "opportunity",
+              due: item.nextFollowDate,
+              overdue: item.nextFollowDate < DEMO_TODAY,
+              createdAt: item.updatedAt || item.createdDate || "",
+              sortId: String(item.id),
+              command: "查看",
+            }))
+          : [];
         const projectItems = projectActionTodoItemsForCurrentUser().map(item => ({
           ...item, category: "project", due: "", overdue: false,
           createdAt: item.createdAt || "", sortId: item.projectId,
         }));
         const items =
           currentUser.role === "pm"
-            ? [...projectItems, ...taskItems]
-            : [...projectItems, ...taskItems];
+            ? [...projectItems, ...taskItems, ...opportunityItems]
+            : [...projectItems, ...taskItems, ...opportunityItems];
         const timeCompare = (a, b) => a ? b ? a.localeCompare(b) : -1 : b ? 1 : 0;
         return items.sort((a,b) => Number(b.overdue) - Number(a.overdue) || timeCompare(a.due,b.due) || timeCompare(a.createdAt,b.createdAt) || a.sortId.localeCompare(b.sortId, "en", { numeric: true }) || a.title.localeCompare(b.title, "zh-CN"));
       }
@@ -339,6 +362,8 @@
               .map((item) => {
                 const attrs = item.projectId
                   ? `data-project-open="${escapeDashboardHtml(item.projectId)}"`
+                  : item.opportunityId
+                    ? `data-opportunity-open="${escapeDashboardHtml(item.opportunityId)}"`
                   : item.nav
                     ? `data-dashboard-nav="${escapeDashboardHtml(item.nav)}" data-task-view="mine" data-task-group="${escapeDashboardHtml(item.group || "")}"`
                     : `data-action="${escapeDashboardHtml(item.action)}" data-id="${escapeDashboardHtml(item.id)}"`;
@@ -603,19 +628,20 @@
 
       function dashboardOverviewTodos() {
         const items = dashboardTodoItems().filter((item) =>
-          item.projectId ? hasPermission("projects") : hasPermission("tasks"));
+          item.projectId ? hasPermission("projects") : item.opportunityId ? hasPermission("opportunities") : hasPermission("tasks"));
         return items.map((item) => {
           if (item.projectId) {
             const project = projectById(item.projectId);
             return { ...item, title: project?.name || item.title, detail: item.title, command: "查看" };
           }
+          if (item.opportunityId) return item;
           const task = tasks.find((row) => row.id === item.id);
           return task ? { ...item, title: `${task.company} · ${task.person}`,
             detail: `${task.title} · ${taskStatusName(task.status, task)}${task.due ? ` · 截止 ${task.due}` : ""}` } : item;
         });
       }
 
-      const WORKBENCH_TODO_CATEGORIES = [["all", "全部"], ["regular", "常规维系"], ["seasonal", "生日/节假日"], ["campaign", "专项"], ["project", "项目"]];
+      const WORKBENCH_TODO_CATEGORIES = [["all", "全部"], ["regular", "常规维系"], ["opportunity", "商机跟进"], ["seasonal", "生日/节假日"], ["campaign", "专项"], ["project", "项目"]];
       let dashboardTodoCategory = "all";
       let dashboardTodoPage = 1;
       function dashboardTodoPageData() {

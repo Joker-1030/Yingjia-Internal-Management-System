@@ -1,4 +1,5 @@
       function bindPageEvents() {
+        bindTeacherEvents();
         bindSalesEvents();
         bindProjectEvents();
         bindProjectConfigEvents();

@@ -31,7 +31,8 @@
     "data/platform-companies.js",
     "data/customers.js",
     "data/regions.js",
-    "data/organization.js"
+    "data/organization.js",
+    "data/teachers.js"
   ],
   "sourceFiles": [
     "modules/m11-project-management/page.js",

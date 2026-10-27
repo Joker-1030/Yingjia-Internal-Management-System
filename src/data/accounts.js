@@ -1,4 +1,6 @@
       const accounts = [
+        { username: "teacher", phone: "13900000121", password: "123456", name: "张伟", role: "teacher", roleName: "老师", region: "本人排期" },
+        { username: "teaching-manager", phone: "13900000123", password: "123456", name: "韩雪", role: "teachingManager", roleName: "教学管理人员", region: "教学管理范围" },
         { username: "ecology", phone: "13900000031", password: "123456", name: "生态专员甲", role: "ecology", roleName: "生态合作员", region: "本人项目" },
         {
           username: "support", phone: "13900000030", password: "123456",

@@ -132,13 +132,13 @@
       seedTaskHierarchy();
       seedBusinessCodes(approvals, "WF", "manual");
       const expandedCustomerNodes = new Set([
-        "group:中国移动",
-        "province:中国移动:山东",
-        "city:中国移动:济南",
-        "group:中国电信",
-        "group:中国联通",
-        "city:中国移动:烟台",
-        "city:中国移动:泰安",
+        "group:齐鲁数科集团",
+        "province:齐鲁数科集团:山东",
+        "city:齐鲁数科集团:济南",
+        "group:华北云网集团",
+        "group:华信通信集团",
+        "city:齐鲁数科集团:烟台",
+        "city:齐鲁数科集团:泰安",
       ]);
       const customerAreaFilter = {
         provinces: new Set(),

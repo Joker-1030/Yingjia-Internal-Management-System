@@ -4793,6 +4793,13 @@
       .sales-opportunity-filters {
         align-items: end;
       }
+      .sales-support-status-tabs {
+        margin-bottom: var(--space-4);
+        overflow-x: auto;
+      }
+      .sales-support-status-tabs .tab {
+        white-space: nowrap;
+      }
       [data-paged-table="m12-opportunities"] th:nth-child(2),
       [data-paged-table="m12-opportunities"] tr[data-page-row] > td:nth-child(2) {
         position: sticky;
@@ -5775,439 +5782,39 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
         },
       ];
       const customers = [
-        {
-          id: 1,
-          group: "中国移动",
-          name: "中国移动山东有限公司",
-          level: "省公司",
-          region: "山东区域",
-          province: "山东",
-          city: "",
-          district: "",
-          industry: "通信",
-          owner: "赵磊",
-          pm: "陈经理",
-          contacts: 3,
-          health: "健康",
-        },
-        {
-          id: 2,
-          group: "中国移动",
-          name: "中国移动济南分公司",
-          level: "市公司",
-          region: "山东区域",
-          province: "山东",
-          city: "济南",
-          district: "",
-          industry: "通信",
-          owner: "陈经理",
-          pm: "陈经理",
-          contacts: 4,
-          health: "逾期",
-        },
-        {
-          id: 3,
-          group: "中国联通",
-          name: "中国联通泰安分公司",
-          level: "市公司",
-          region: "山东区域",
-          province: "山东",
-          city: "泰安",
-          district: "",
-          industry: "通信",
-          owner: "陈经理",
-          pm: "陈经理",
-          contacts: 2,
-          health: "健康",
-        },
-        {
-          id: 4,
-          group: "中国电信",
-          name: "中国电信青岛分公司",
-          level: "市公司",
-          region: "山东区域",
-          province: "山东",
-          city: "青岛",
-          district: "",
-          industry: "通信",
-          owner: "刘经理",
-          pm: "刘经理",
-          contacts: 3,
-          health: "健康",
-        },
-        {
-          id: 5,
-          group: "华电集团",
-          name: "华电山东新能源有限公司",
-          level: "省公司",
-          region: "山东区域",
-          province: "山东",
-          city: "",
-          district: "",
-          industry: "能源",
-          owner: "赵磊",
-          pm: "刘经理",
-          contacts: 2,
-          health: "健康",
-        },
-        {
-          id: 6,
-          group: "中国移动",
-          name: "中国移动江苏有限公司",
-          level: "省公司",
-          region: "江苏区域",
-          province: "江苏",
-          city: "",
-          district: "",
-          industry: "通信",
-          owner: "孙倩",
-          pm: "周经理",
-          contacts: 5,
-          health: "健康",
-        },
-        {
-          id: 7,
-          group: "中国电信",
-          name: "中国电信南京分公司",
-          level: "市公司",
-          region: "江苏区域",
-          province: "江苏",
-          city: "南京",
-          district: "",
-          industry: "通信",
-          owner: "周经理",
-          pm: "周经理",
-          contacts: 3,
-          health: "逾期",
-        },
-        {
-          id: 8,
-          group: "华电集团",
-          name: "华电浙江能源有限公司",
-          level: "省公司",
-          region: "浙江区域",
-          province: "浙江",
-          city: "",
-          district: "",
-          industry: "能源",
-          owner: "钱峰",
-          pm: "吴经理",
-          contacts: 1,
-          health: "待分配",
-        },
-        {
-          id: 9,
-          group: "中国移动",
-          name: "中国移动历下分公司",
-          level: "区县公司",
-          region: "山东区域",
-          province: "山东",
-          city: "济南",
-          district: "历下",
-          industry: "通信",
-          owner: "陈经理",
-          pm: "陈经理",
-          contacts: 1,
-          health: "健康",
-        },
-        {
-          id: 10,
-          group: "中国移动",
-          name: "中国移动烟台分公司",
-          level: "市公司",
-          region: "山东区域",
-          province: "山东",
-          city: "烟台",
-          district: "",
-          industry: "通信",
-          owner: "刘经理",
-          pm: "刘经理",
-          contacts: 2,
-          health: "健康",
-        },
-        {
-          id: 11,
-          group: "中国联通",
-          name: "中国联通烟台分公司",
-          level: "市公司",
-          region: "山东区域",
-          province: "山东",
-          city: "烟台",
-          district: "",
-          industry: "通信",
-          owner: "刘经理",
-          pm: "刘经理",
-          contacts: 1,
-          health: "逾期",
-        },
-        {
-          id: 12,
-          group: "中国电信",
-          name: "中国电信济南分公司",
-          level: "市公司",
-          region: "山东区域",
-          province: "山东",
-          city: "济南",
-          district: "",
-          industry: "通信",
-          owner: "陈经理",
-          pm: "陈经理",
-          contacts: 2,
-          health: "健康",
-        },
-        {
-          id: 13,
-          group: "中国移动",
-          name: "中国移动泰安分公司",
-          level: "市公司",
-          region: "山东区域",
-          province: "山东",
-          city: "泰安",
-          district: "",
-          industry: "通信",
-          owner: "陈经理",
-          pm: "陈经理",
-          contacts: 2,
-          health: "健康",
-        },
-        {
-          id: 14,
-          group: "中国移动",
-          name: "中国移动市中分公司",
-          level: "区县公司",
-          region: "山东区域",
-          province: "山东",
-          city: "济南",
-          district: "市中",
-          industry: "通信",
-          owner: "陈经理",
-          pm: "陈经理",
-          contacts: 1,
-          health: "健康",
-        },
-        {
-          id: 15,
-          group: "中国移动",
-          name: "中国移动福山分公司",
-          level: "区县公司",
-          region: "山东区域",
-          province: "山东",
-          city: "烟台",
-          district: "福山",
-          industry: "通信",
-          owner: "刘经理",
-          pm: "刘经理",
-          contacts: 2,
-          health: "逾期",
-        },
+        { id: 1, group: "华北云网集团", name: "华北云网集团山东有限公司", level: "省公司", region: "山东区域", province: "山东", city: "", district: "", industry: "数字服务", owner: "赵磊", pm: "刘经理", contacts: 1, health: "健康" },
+        { id: 2, group: "华北云网集团", name: "华北云网集团济南分公司", level: "市公司", region: "山东区域", province: "山东", city: "济南", district: "", industry: "能源", owner: "刘经理", pm: "陈经理", contacts: 5, health: "逾期" },
+        { id: 3, group: "华信通信集团", name: "华信通信集团泰安分公司", level: "市公司", region: "山东区域", province: "山东", city: "泰安", district: "", industry: "通信", owner: "陈经理", pm: "陈经理", contacts: 3, health: "健康" },
+        { id: 4, group: "国网产业协同集团", name: "国网产业协同集团青岛分公司", level: "市公司", region: "山东区域", province: "山东", city: "青岛", district: "", industry: "制造", owner: "刘经理", pm: "刘经理", contacts: 1, health: "健康" },
+        { id: 5, group: "华东能源控股", name: "华东能源控股山东有限公司", level: "省公司", region: "山东区域", province: "山东", city: "", district: "", industry: "能源", owner: "赵磊", pm: "刘经理", contacts: 0, health: "健康" },
+        { id: 6, group: "齐鲁数科集团", name: "齐鲁数科集团江苏有限公司", level: "省公司", region: "江苏区域", province: "江苏", city: "", district: "", industry: "数字服务", owner: "孙倩", pm: "周经理", contacts: 1, health: "健康" },
+        { id: 7, group: "华北云网集团", name: "华北云网集团南京分公司", level: "市公司", region: "江苏区域", province: "江苏", city: "南京", district: "", industry: "能源", owner: "周经理", pm: "周经理", contacts: 1, health: "逾期" },
+        { id: 8, group: "华东能源控股", name: "华东能源控股浙江有限公司", level: "省公司", region: "浙江区域", province: "浙江", city: "", district: "", industry: "能源", owner: "钱峰", pm: "吴经理", contacts: 0, health: "待分配" },
+        { id: 9, group: "齐鲁数科集团", name: "齐鲁数科集团历下分公司", level: "区县公司", region: "山东区域", province: "山东", city: "济南", district: "历下", industry: "数字服务", owner: "刘经理", pm: "刘经理", contacts: 0, health: "健康" },
+        { id: 10, group: "齐鲁数科集团", name: "齐鲁数科集团烟台分公司", level: "市公司", region: "山东区域", province: "山东", city: "烟台", district: "", industry: "数字服务", owner: "刘经理", pm: "刘经理", contacts: 2, health: "健康" },
+        { id: 11, group: "华信通信集团", name: "华信通信集团烟台分公司", level: "市公司", region: "山东区域", province: "山东", city: "烟台", district: "", industry: "通信", owner: "刘经理", pm: "刘经理", contacts: 1, health: "逾期" },
+        { id: 12, group: "齐鲁数科集团", name: "齐鲁数科集团济南分公司", level: "市公司", region: "山东区域", province: "山东", city: "济南", district: "", industry: "能源", owner: "刘经理", pm: "刘经理", contacts: 2, health: "健康" },
+        { id: 13, group: "华信通信集团", name: "华信通信集团济南分公司", level: "市公司", region: "山东区域", province: "山东", city: "济南", district: "", industry: "通信", owner: "陈经理", pm: "陈经理", contacts: 0, health: "健康" },
+        { id: 14, group: "华信通信集团", name: "华信通信集团市中分公司", level: "区县公司", region: "山东区域", province: "山东", city: "济南", district: "市中", industry: "通信", owner: "刘经理", pm: "刘经理", contacts: 1, health: "健康" },
+        { id: 15, group: "国网产业协同集团", name: "国网产业协同集团福山分公司", level: "区县公司", region: "山东区域", province: "山东", city: "烟台", district: "福山", industry: "制造", owner: "刘经理", pm: "刘经理", contacts: 2, health: "逾期" },
+        { id: 16, group: "齐鲁数科集团", name: "齐鲁数科集团无锡分公司", level: "市公司", region: "江苏区域", province: "江苏", city: "无锡", district: "", industry: "数字服务", owner: "徐经理", pm: "徐经理", contacts: 1, health: "健康" },
+        { id: 17, group: "华信通信集团", name: "华信通信集团合肥分公司", level: "市公司", region: "江苏区域", province: "安徽", city: "合肥", district: "", industry: "通信", owner: "徐经理", pm: "徐经理", contacts: 1, health: "逾期" },
+        { id: 18, group: "齐鲁数科集团", name: "齐鲁数科集团浙江有限公司", level: "省公司", region: "浙江区域", province: "浙江", city: "", district: "", industry: "数字服务", owner: "钱峰", pm: "", contacts: 1, health: "健康" },
+        { id: 19, group: "齐鲁数科集团", name: "齐鲁数科集团杭州分公司", level: "市公司", region: "浙江区域", province: "浙江", city: "杭州", district: "", industry: "数字服务", owner: "吴经理", pm: "吴经理", contacts: 1, health: "健康" },
+        { id: 20, group: "华北云网集团", name: "华北云网集团宁波分公司", level: "市公司", region: "浙江区域", province: "浙江", city: "宁波", district: "", industry: "能源", owner: "吴经理", pm: "吴经理", contacts: 1, health: "健康" },
+        { id: 21, group: "华东能源控股", name: "华东能源控股温州分公司", level: "市公司", region: "浙江区域", province: "浙江", city: "温州", district: "", industry: "能源", owner: "叶经理", pm: "叶经理", contacts: 1, health: "逾期" },
+        { id: 22, group: "齐鲁数科集团", name: "齐鲁数科集团福建有限公司", level: "省公司", region: "福建华南区域", province: "福建", city: "", district: "", industry: "数字服务", owner: "林哲", pm: "", contacts: 1, health: "健康" },
+        { id: 23, group: "齐鲁数科集团", name: "齐鲁数科集团福州分公司", level: "市公司", region: "福建华南区域", province: "福建", city: "福州", district: "", industry: "数字服务", owner: "林经理", pm: "林经理", contacts: 1, health: "健康" },
+        { id: 24, group: "华北云网集团", name: "华北云网集团广州分公司", level: "市公司", region: "福建华南区域", province: "广东", city: "广州", district: "", industry: "能源", owner: "梁经理", pm: "梁经理", contacts: 1, health: "逾期" },
+        { id: 25, group: "华信通信集团", name: "华信通信集团南宁分公司", level: "市公司", region: "福建华南区域", province: "广西", city: "南宁", district: "", industry: "通信", owner: "梁经理", pm: "梁经理", contacts: 0, health: "健康" },
+        { id: 26, group: "国网产业协同集团", name: "国网产业协同集团山东省公司", level: "省公司", region: "山东区域", province: "山东", city: "", district: "", industry: "制造", owner: "赵磊", pm: "", contacts: 0, health: "健康", companyCode: "CC00000026" },
+        { id: 27, group: "国网产业协同集团", name: "国网产业协同集团济南市公司", level: "市公司", region: "山东区域", province: "山东", city: "济南", district: "", industry: "制造", owner: "刘经理", pm: "刘经理", contacts: 0, health: "健康", companyCode: "CC00000027" },
+        { id: 28, group: "国网产业协同集团", name: "国网产业协同集团历下区县公司", level: "区县公司", region: "山东区域", province: "山东", city: "济南", district: "历下", industry: "能源", owner: "刘经理", pm: "刘经理", contacts: 0, health: "健康", companyCode: "CC00000028" },
       ];
-      customers.push(
-        {
-          id: 16,
-          group: "中国移动",
-          name: "中国移动无锡分公司",
-          level: "市公司",
-          region: "江苏区域",
-          province: "江苏",
-          city: "无锡",
-          district: "",
-          industry: "通信",
-          owner: "徐经理",
-          pm: "徐经理",
-          contacts: 1,
-          health: "健康",
-        },
-        {
-          id: 17,
-          group: "中国联通",
-          name: "中国联通合肥分公司",
-          level: "市公司",
-          region: "江苏区域",
-          province: "安徽",
-          city: "合肥",
-          district: "",
-          industry: "通信",
-          owner: "徐经理",
-          pm: "徐经理",
-          contacts: 1,
-          health: "逾期",
-        },
-        {
-          id: 18,
-          group: "中国移动",
-          name: "中国移动浙江有限公司",
-          level: "省公司",
-          region: "浙江区域",
-          province: "浙江",
-          city: "",
-          district: "",
-          industry: "通信",
-          owner: "钱峰",
-          pm: "",
-          contacts: 1,
-          health: "健康",
-        },
-        {
-          id: 19,
-          group: "中国移动",
-          name: "中国移动杭州分公司",
-          level: "市公司",
-          region: "浙江区域",
-          province: "浙江",
-          city: "杭州",
-          district: "",
-          industry: "通信",
-          owner: "吴经理",
-          pm: "吴经理",
-          contacts: 1,
-          health: "健康",
-        },
-        {
-          id: 20,
-          group: "中国电信",
-          name: "中国电信宁波分公司",
-          level: "市公司",
-          region: "浙江区域",
-          province: "浙江",
-          city: "宁波",
-          district: "",
-          industry: "通信",
-          owner: "吴经理",
-          pm: "吴经理",
-          contacts: 1,
-          health: "健康",
-        },
-        {
-          id: 21,
-          group: "中国电信",
-          name: "中国电信温州分公司",
-          level: "市公司",
-          region: "浙江区域",
-          province: "浙江",
-          city: "温州",
-          district: "",
-          industry: "通信",
-          owner: "叶经理",
-          pm: "叶经理",
-          contacts: 1,
-          health: "逾期",
-        },
-        {
-          id: 22,
-          group: "中国移动",
-          name: "中国移动福建有限公司",
-          level: "省公司",
-          region: "福建华南区域",
-          province: "福建",
-          city: "",
-          district: "",
-          industry: "通信",
-          owner: "林哲",
-          pm: "",
-          contacts: 1,
-          health: "健康",
-        },
-        {
-          id: 23,
-          group: "中国移动",
-          name: "中国移动福州分公司",
-          level: "市公司",
-          region: "福建华南区域",
-          province: "福建",
-          city: "福州",
-          district: "",
-          industry: "通信",
-          owner: "林经理",
-          pm: "林经理",
-          contacts: 1,
-          health: "健康",
-        },
-        {
-          id: 24,
-          group: "中国电信",
-          name: "中国电信广州分公司",
-          level: "市公司",
-          region: "福建华南区域",
-          province: "广东",
-          city: "广州",
-          district: "",
-          industry: "通信",
-          owner: "梁经理",
-          pm: "梁经理",
-          contacts: 1,
-          health: "逾期",
-        },
-        {
-          id: 25,
-          group: "中国联通",
-          name: "中国联通南宁分公司",
-          level: "市公司",
-          region: "福建华南区域",
-          province: "广西",
-          city: "南宁",
-          district: "",
-          industry: "通信",
-          owner: "梁经理",
-          pm: "梁经理",
-          contacts: 0,
-          health: "健康",
-        },
-        {
-          id: 26,
-          group: "国家电网",
-          name: "国家电网山东省公司",
-          level: "省公司",
-          region: "山东区域",
-          province: "山东",
-          city: "",
-          district: "",
-          industry: "制造",
-          owner: "赵磊",
-          pm: "",
-          contacts: 0,
-          health: "健康",
-          companyCode: "CC00000026",
-        },
-        {
-          id: 27,
-          group: "国家电网",
-          name: "国家电网济南市公司",
-          level: "市公司",
-          region: "山东区域",
-          province: "山东",
-          city: "济南",
-          district: "",
-          industry: "制造",
-          owner: "陈经理",
-          pm: "陈经理",
-          contacts: 0,
-          health: "健康",
-          companyCode: "CC00000027",
-        },
-        {
-          id: 28,
-          group: "国家电网",
-          name: "国家电网历下区县公司",
-          level: "区县公司",
-          region: "山东区域",
-          province: "山东",
-          city: "济南",
-          district: "历下",
-          industry: "制造",
-          owner: "陈经理",
-          pm: "陈经理",
-          contacts: 0,
-          health: "健康",
-          companyCode: "CC00000028",
-        },
-      );
-
       const customerOrganizationParentIds = new Map([
         [2, 1],
-        [9, 2],
-        [13, 1],
-        [14, 2],
-        [15, 10],
+        [9, 12],
+        [14, 13],
         [19, 18],
         [23, 22],
         [27, 26],
@@ -6234,7 +5841,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
         {
           id: 101,
           name: "李雪",
-          company: "中国移动山东有限公司",
+          company: "华北云网集团山东有限公司",
           department: "人力资源部",
           title: "副总经理",
           positionSource: "standard",
@@ -6254,7 +5861,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
         {
           id: 102,
           name: "王建国",
-          company: "中国移动济南分公司",
+          company: "华北云网集团济南分公司",
           department: "人力资源部",
           title: "总经理",
           level: "二级",
@@ -6271,7 +5878,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
         {
           id: 103,
           name: "林静",
-          company: "中国移动济南分公司",
+          company: "华北云网集团济南分公司",
           department: "培训发展中心",
           title: "主任",
           level: "四级",
@@ -6288,7 +5895,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
         {
           id: 104,
           name: "马骏",
-          company: "中国联通泰安分公司",
+          company: "华信通信集团泰安分公司",
           department: "组织人事部",
           title: "副主任",
           level: "三级",
@@ -6305,7 +5912,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
         {
           id: 105,
           name: "周明远",
-          company: "中国电信青岛分公司",
+          company: "国网产业协同集团青岛分公司",
           department: "人力资源部",
           title: "总经理",
           level: "二级",
@@ -6322,7 +5929,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
         {
           id: 106,
           name: "许航",
-          company: "中国移动江苏有限公司",
+          company: "齐鲁数科集团江苏有限公司",
           department: "人才发展部",
           title: "副总经理",
           positionSource: "standard",
@@ -6342,7 +5949,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
         {
           id: 107,
           name: "张海",
-          company: "中国移动济南分公司",
+          company: "华北云网集团济南分公司",
           department: "人力资源部",
           title: "副总经理",
           level: "二级",
@@ -6359,7 +5966,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
         {
           id: 108,
           name: "孙立",
-          company: "华电山东新能源有限公司",
+          company: "华东能源控股山东有限公司",
           department: "人力资源部",
           title: "原部门主任",
           level: "三级",
@@ -6377,7 +5984,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
         {
           id: 109,
           name: "赵倩",
-          company: "中国移动烟台分公司",
+          company: "齐鲁数科集团烟台分公司",
           department: "人力资源部",
           title: "总经理",
           level: "二级",
@@ -6394,7 +6001,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
         {
           id: 110,
           name: "孙鹏",
-          company: "中国移动烟台分公司",
+          company: "齐鲁数科集团烟台分公司",
           department: "培训发展中心",
           title: "培训主任",
           level: "二级",
@@ -6411,7 +6018,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
         {
           id: 111,
           name: "郑伟",
-          company: "中国联通烟台分公司",
+          company: "华信通信集团烟台分公司",
           department: "组织人事部",
           title: "总经理",
           level: "二级",
@@ -6428,7 +6035,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
         {
           id: 112,
           name: "吴敏",
-          company: "中国电信济南分公司",
+          company: "齐鲁数科集团济南分公司",
           department: "人力资源部",
           title: "总经理",
           level: "二级",
@@ -6445,7 +6052,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
         {
           id: 113,
           name: "冯军",
-          company: "中国电信济南分公司",
+          company: "齐鲁数科集团济南分公司",
           department: "人力资源部",
           title: "副经理",
           level: "二级",
@@ -6462,7 +6069,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
         {
           id: 114,
           name: "高媛",
-          company: "中国移动泰安分公司",
+          company: "华信通信集团泰安分公司",
           department: "人力资源部",
           title: "总经理",
           level: "二级",
@@ -6479,7 +6086,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
         {
           id: 115,
           name: "韩磊",
-          company: "中国移动泰安分公司",
+          company: "华信通信集团泰安分公司",
           department: "培训发展中心",
           title: "培训主任",
           level: "二级",
@@ -6496,7 +6103,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
         {
           id: 116,
           name: "曹雪",
-          company: "中国移动市中分公司",
+          company: "华信通信集团市中分公司",
           department: "人力资源部",
           title: "主任",
           level: "三级",
@@ -6513,7 +6120,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
         {
           id: 117,
           name: "谢东",
-          company: "中国移动福山分公司",
+          company: "国网产业协同集团福山分公司",
           department: "人力资源部",
           title: "主任",
           level: "三级",
@@ -6530,7 +6137,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
         {
           id: 118,
           name: "何琳",
-          company: "中国移动福山分公司",
+          company: "国网产业协同集团福山分公司",
           department: "培训发展中心",
           title: "专员",
           level: "三级",
@@ -6603,7 +6210,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
         {
           id: 119,
           name: "宋楠",
-          company: "中国移动济南分公司",
+          company: "华北云网集团济南分公司",
           department: "培训发展中心",
           title: "项目主管",
           level: "二级",
@@ -6624,7 +6231,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
         {
           id: 120,
           name: "杜晨",
-          company: "中国移动济南分公司",
+          company: "华北云网集团济南分公司",
           department: "人力资源部",
           title: "副主任",
           level: "二级",
@@ -6645,7 +6252,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
         {
           id: 121,
           name: "沈宁",
-          company: "中国电信南京分公司",
+          company: "华北云网集团南京分公司",
           department: "人力资源部",
           title: "总经理",
           level: "二级",
@@ -6666,7 +6273,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
         {
           id: 122,
           name: "顾欣",
-          company: "中国移动无锡分公司",
+          company: "齐鲁数科集团无锡分公司",
           department: "培训发展中心",
           title: "主任",
           level: "三级",
@@ -6687,7 +6294,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
         {
           id: 123,
           name: "方启明",
-          company: "中国联通合肥分公司",
+          company: "华信通信集团合肥分公司",
           department: "组织人事部",
           title: "副总经理",
           level: "二级",
@@ -6708,7 +6315,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
         {
           id: 124,
           name: "陆文清",
-          company: "中国移动浙江有限公司",
+          company: "齐鲁数科集团浙江有限公司",
           department: "人力资源部",
           title: "副总经理",
           level: "一级",
@@ -6729,7 +6336,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
         {
           id: 125,
           name: "何超",
-          company: "中国移动杭州分公司",
+          company: "齐鲁数科集团杭州分公司",
           department: "人力资源部",
           title: "总经理",
           level: "二级",
@@ -6750,7 +6357,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
         {
           id: 126,
           name: "姚静",
-          company: "中国电信宁波分公司",
+          company: "华北云网集团宁波分公司",
           department: "人力资源部",
           title: "培训经理",
           level: "三级",
@@ -6771,7 +6378,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
         {
           id: 127,
           name: "周启航",
-          company: "中国电信温州分公司",
+          company: "华东能源控股温州分公司",
           department: "人力资源部",
           title: "总经理",
           level: "二级",
@@ -6792,7 +6399,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
         {
           id: 128,
           name: "郑岚",
-          company: "中国移动福建有限公司",
+          company: "齐鲁数科集团福建有限公司",
           department: "人才发展部",
           title: "副总经理",
           level: "一级",
@@ -6813,7 +6420,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
         {
           id: 129,
           name: "陈海峰",
-          company: "中国移动福州分公司",
+          company: "齐鲁数科集团福州分公司",
           department: "人力资源部",
           title: "总经理",
           level: "二级",
@@ -6834,7 +6441,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
         {
           id: 130,
           name: "梁慧",
-          company: "中国电信广州分公司",
+          company: "华北云网集团广州分公司",
           department: "人力资源部",
           title: "培训主任",
           level: "三级",
@@ -6859,7 +6466,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
           type: "常规维系",
           title: "联系王建国，跟进年度培训计划",
           person: "王建国",
-          company: "中国移动济南分公司",
+          company: "华北云网集团济南分公司",
           pm: "陈经理",
           region: "山东区域",
           due: "2026-08-09",
@@ -6872,7 +6479,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
           type: "专项维系",
           title: "推广AI岗位能力实训课程",
           person: "林静",
-          company: "中国移动济南分公司",
+          company: "华北云网集团济南分公司",
           pm: "陈经理",
           region: "山东区域",
           due: "2026-09-30",
@@ -6886,7 +6493,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
           birthdayMonth: "2026-08",
           title: "马骏生日关怀",
           person: "马骏",
-          company: "中国联通泰安分公司",
+          company: "华信通信集团泰安分公司",
           pm: "陈经理",
           region: "山东区域",
           due: "2026-08-25",
@@ -6900,7 +6507,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
           birthdayMonth: "2026-09",
           title: "吴敏生日关怀",
           person: "吴敏",
-          company: "中国电信济南分公司",
+          company: "齐鲁数科集团济南分公司",
           pm: "陈经理",
           region: "山东区域",
           due: "2026-09-03",
@@ -6912,7 +6519,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
           type: "常规维系",
           title: "联系周明远，了解三季度需求",
           person: "周明远",
-          company: "中国电信青岛分公司",
+          company: "国网产业协同集团青岛分公司",
           pm: "刘经理",
           region: "山东区域",
           due: "2026-08-13",
@@ -6924,7 +6531,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
           type: "常规维系",
           title: "联系许航，确认课程验收反馈",
           person: "许航",
-          company: "中国移动江苏有限公司",
+          company: "齐鲁数科集团江苏有限公司",
           pm: "周经理",
           region: "江苏区域",
           due: "2026-08-08",
@@ -6941,7 +6548,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
           holidayName: "中秋节",
           title: "中秋节客户关怀",
           person: "李雪",
-          company: "中国移动山东有限公司",
+          company: "华北云网集团山东有限公司",
           pm: "陈经理",
           region: "山东区域",
           due: "2026-09-27",
@@ -6956,7 +6563,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
           holidayName: "端午节",
           title: "端午节客户关怀",
           person: "杜晨",
-          company: "中国移动济南分公司",
+          company: "华北云网集团济南分公司",
           pm: "陈经理",
           region: "山东区域",
           due: "2026-06-19",
@@ -6968,7 +6575,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
           type: "常规维系",
           title: "联系张海，跟进省公司新任职安排",
           person: "张海",
-          company: "中国移动济南分公司",
+          company: "华北云网集团济南分公司",
           pm: "陈经理",
           region: "山东区域",
           due: "2026-08-16",
@@ -6980,7 +6587,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
           type: "常规维系",
           title: "联系赵倩，确认烟台移动年度培训计划",
           person: "赵倩",
-          company: "中国移动烟台分公司",
+          company: "齐鲁数科集团烟台分公司",
           pm: "刘经理",
           region: "山东区域",
           due: "2026-08-10",
@@ -6992,7 +6599,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
           type: "常规维系",
           title: "联系孙鹏，跟进AI课程试点反馈",
           person: "孙鹏",
-          company: "中国移动烟台分公司",
+          company: "齐鲁数科集团烟台分公司",
           pm: "刘经理",
           region: "山东区域",
           due: "2026-08-18",
@@ -7004,7 +6611,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
           type: "常规维系",
           title: "联系郑伟，确认联通烟台预算方向",
           person: "郑伟",
-          company: "中国联通烟台分公司",
+          company: "华信通信集团烟台分公司",
           pm: "刘经理",
           region: "山东区域",
           due: "2026-08-06",
@@ -7016,7 +6623,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
           type: "常规维系",
           title: "联系吴敏，推进济南电信课程方案",
           person: "吴敏",
-          company: "中国电信济南分公司",
+          company: "齐鲁数科集团济南分公司",
           pm: "陈经理",
           region: "山东区域",
           due: "2026-08-16",
@@ -7028,7 +6635,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
           type: "常规维系",
           title: "联系冯军，补充培训需求清单",
           person: "冯军",
-          company: "中国电信济南分公司",
+          company: "齐鲁数科集团济南分公司",
           pm: "陈经理",
           region: "山东区域",
           due: "2026-08-20",
@@ -7040,7 +6647,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
           type: "常规维系",
           title: "联系高媛，确认泰安移动三季度排课",
           person: "高媛",
-          company: "中国移动泰安分公司",
+          company: "华信通信集团泰安分公司",
           pm: "陈经理",
           region: "山东区域",
           due: "2026-08-14",
@@ -7052,7 +6659,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
           type: "常规维系",
           title: "联系韩磊，催收培训方案确认",
           person: "韩磊",
-          company: "中国移动泰安分公司",
+          company: "华信通信集团泰安分公司",
           pm: "陈经理",
           region: "山东区域",
           due: "2026-08-02",
@@ -7064,7 +6671,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
           type: "常规维系",
           title: "联系曹雪，跟进市中分公司内训需求",
           person: "曹雪",
-          company: "中国移动市中分公司",
+          company: "华信通信集团市中分公司",
           pm: "陈经理",
           region: "山东区域",
           due: "2026-08-19",
@@ -7076,7 +6683,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
           type: "常规维系",
           title: "联系谢东，确认福山分公司培训意向",
           person: "谢东",
-          company: "中国移动福山分公司",
+          company: "国网产业协同集团福山分公司",
           pm: "刘经理",
           region: "山东区域",
           due: "2026-08-01",
@@ -7088,7 +6695,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
           type: "常规维系",
           title: "联系何琳，首次拜访建立联系",
           person: "何琳",
-          company: "中国移动福山分公司",
+          company: "国网产业协同集团福山分公司",
           pm: "刘经理",
           region: "山东区域",
           due: "2026-08-22",
@@ -7101,7 +6708,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
           type: "专项维系",
           title: "运营商数字化课程年度需求摸排",
           person: "张海",
-          company: "中国移动济南分公司",
+          company: "华北云网集团济南分公司",
           pm: "陈经理",
           region: "山东区域",
           due: "2026-08-31",
@@ -7114,7 +6721,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
           type: "专项维系",
           title: "推广AI岗位能力实训课程",
           person: "李雪",
-          company: "中国移动山东有限公司",
+          company: "华北云网集团山东有限公司",
           pm: "陈经理",
           region: "山东区域",
           due: "2026-09-30",
@@ -7133,7 +6740,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
           type: "专项维系",
           title: "推广AI岗位能力实训课程",
           person: "王建国",
-          company: "中国移动济南分公司",
+          company: "华北云网集团济南分公司",
           pm: "陈经理",
           region: "山东区域",
           due: "2026-09-30",
@@ -7147,7 +6754,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
           type: "常规维系",
           title: "联系沈宁，复盘年度培训计划",
           person: "沈宁",
-          company: "中国电信南京分公司",
+          company: "华北云网集团南京分公司",
           pm: "周经理",
           region: "江苏区域",
           due: "2026-08-04",
@@ -7159,7 +6766,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
           type: "常规维系",
           title: "联系顾欣，确认课程试点名单",
           person: "顾欣",
-          company: "中国移动无锡分公司",
+          company: "齐鲁数科集团无锡分公司",
           pm: "徐经理",
           region: "江苏区域",
           due: "2026-08-15",
@@ -7171,7 +6778,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
           type: "常规维系",
           title: "联系方启明，补充预算决策信息",
           person: "方启明",
-          company: "中国联通合肥分公司",
+          company: "华信通信集团合肥分公司",
           pm: "徐经理",
           region: "江苏区域",
           due: "2026-07-31",
@@ -7189,7 +6796,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
           birthdayMonth: "2026-08",
           title: "姚静生日关怀",
           person: "姚静",
-          company: "中国电信宁波分公司",
+          company: "华北云网集团宁波分公司",
           pm: "吴经理",
           region: "浙江区域",
           due: "2026-08-25",
@@ -7201,7 +6808,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
           type: "常规维系",
           title: "联系何超，确认AI人才项目范围",
           person: "何超",
-          company: "中国移动杭州分公司",
+          company: "齐鲁数科集团杭州分公司",
           pm: "吴经理",
           region: "浙江区域",
           due: "2026-08-10",
@@ -7217,7 +6824,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
           type: "常规维系",
           title: "联系周启航，确认需求评审结果",
           person: "周启航",
-          company: "中国电信温州分公司",
+          company: "华东能源控股温州分公司",
           pm: "叶经理",
           region: "浙江区域",
           due: "2026-07-25",
@@ -7231,7 +6838,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
           type: "常规维系",
           title: "联系陈海峰，跟进福建移动试点",
           person: "陈海峰",
-          company: "中国移动福州分公司",
+          company: "齐鲁数科集团福州分公司",
           pm: "林经理",
           region: "福建华南区域",
           due: "2026-08-14",
@@ -7247,7 +6854,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
           type: "常规维系",
           title: "联系梁慧，补充广州电信培训需求",
           person: "梁慧",
-          company: "中国电信广州分公司",
+          company: "华北云网集团广州分公司",
           pm: "梁经理",
           region: "福建华南区域",
           due: "2026-08-03",
@@ -7260,7 +6867,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
           type: "专项维系",
           title: "推广AI岗位能力实训课程",
           person: "顾欣",
-          company: "中国移动无锡分公司",
+          company: "齐鲁数科集团无锡分公司",
           pm: "徐经理",
           region: "江苏区域",
           due: "2026-09-30",
@@ -7273,7 +6880,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
           type: "专项维系",
           title: "推广AI岗位能力实训课程",
           person: "何超",
-          company: "中国移动杭州分公司",
+          company: "齐鲁数科集团杭州分公司",
           pm: "吴经理",
           region: "浙江区域",
           due: "2026-09-30",
@@ -7286,7 +6893,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
           type: "专项维系",
           title: "运营商数字化课程年度需求摸排",
           person: "陈海峰",
-          company: "中国移动福州分公司",
+          company: "齐鲁数科集团福州分公司",
           pm: "林经理",
           region: "福建华南区域",
           due: "2026-08-31",
@@ -7305,7 +6912,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
           holidayName: "端午节",
           title: "端午节客户关怀",
           person: "梁慧",
-          company: "中国电信广州分公司",
+          company: "华北云网集团广州分公司",
           pm: "梁经理",
           region: "福建华南区域",
           due: "2026-06-19",
@@ -7322,7 +6929,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
           type: "常规维系",
           title: "联系李雪，确认省公司年度人才培养计划",
           person: "李雪",
-          company: "中国移动山东有限公司",
+          company: "华北云网集团山东有限公司",
           pm: "赵磊",
           executorRole: "区域总监",
           region: "山东区域",
@@ -7337,7 +6944,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
           birthdayMonth: "2026-09",
           title: "李雪生日关怀",
           person: "李雪",
-          company: "中国移动山东有限公司",
+          company: "华北云网集团山东有限公司",
           pm: "赵磊",
           executorRole: "区域总监",
           region: "山东区域",
@@ -7351,7 +6958,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
           type: "专项维系",
           title: "运营商数字化课程年度需求摸排",
           person: "李雪",
-          company: "中国移动山东有限公司",
+          company: "华北云网集团山东有限公司",
           pm: "赵磊",
           executorRole: "区域总监",
           region: "山东区域",
@@ -7366,7 +6973,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
           birthdayMonth: "2026-08",
           title: "王建国生日关怀",
           person: "王建国",
-          company: "中国移动济南分公司",
+          company: "华北云网集团济南分公司",
           pm: "陈经理",
           region: "山东区域",
           due: "2026-08-15",
@@ -7379,7 +6986,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
           title: "联系林静，确认培训计划恢复安排",
           person: "林静",
           personId: 103,
-          company: "中国移动济南分公司",
+          company: "华北云网集团济南分公司",
           pm: "高经理",
           region: "山东区域",
           originalDue: "2026-07-30",
@@ -7407,7 +7014,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
           title: "联系林静，确认培训计划恢复安排",
           person: "林静",
           personId: 103,
-          company: "中国移动济南分公司",
+          company: "华北云网集团济南分公司",
           pm: "陈经理",
           region: "山东区域",
           originalDue: "2026-08-05",
@@ -7452,7 +7059,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
           date: "2026-08-10 15:40",
           reason: "客户已确认新的任职安排",
           transferContactId: 107,
-          targetCompany: "中国电信南京分公司",
+          targetCompany: "华北云网集团南京分公司",
           targetDepartment: "人才发展部",
           targetTitle: "副总经理",
           targetLevel: "一级",
@@ -7614,7 +7221,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
           status: "rejected",
           date: "2026-08-04 14:25",
           reason: "客户反馈已调整至青岛电信人才发展部。",
-          targetCompany: "中国电信南京分公司",
+          targetCompany: "华北云网集团南京分公司",
           targetDepartment: "人才发展部",
           targetTitle: "培训经理",
           targetLevel: "三级",
@@ -7667,10 +7274,10 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
           taskTitleTemplate: "{{专项标题}} - {{关键人姓名}}",
           description: "面向目标关键人完成专项要求，并按时提交执行结果。",
           owner: "刘总",
-          scope: "中国移动 · 全国",
+          scope: "齐鲁数科集团 · 全国",
           targets: {
             industries: [],
-            groups: ["中国移动"],
+            groups: ["齐鲁数科集团"],
             regions: [],
             levels: [],
           },
@@ -7721,19 +7328,19 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
           id: 404,
           createdAt: "2026-08-09 10:00",
           category: "关键人覆盖 KPI",
-          name: "中国移动省公司关键决策人岗位覆盖提升",
+          name: "齐鲁数科集团省公司关键决策人岗位覆盖提升",
           description: "按目标公司、关键人职级、目标部门与目标岗位组合完成客户覆盖。",
           owner: "刘总",
           scope:
-            "通信 · 中国移动 · 省公司 · 中国移动山东有限公司 · 人力资源部 · 关键决策人 · 一级",
+            "通信 · 齐鲁数科集团 · 省公司 · 华北云网集团山东有限公司 · 人力资源部 · 关键决策人 · 一级",
           targets: {
             industries: ["通信"],
-            groups: ["中国移动"],
+            groups: ["齐鲁数科集团"],
             regions: [],
             levels: ["一级"],
             companyLevels: ["省公司"],
           },
-          targetCompany: "中国移动山东有限公司",
+          targetCompany: "华北云网集团山东有限公司",
           targetCompanyId: 1,
           positionSource: "标准岗位",
           targetPositionId: "POS-ATOM-0004",
@@ -7775,7 +7382,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
           type: "关键人覆盖 KPI",
           title: "山东区域关键决策人岗位覆盖达标",
           person: "公司 + 职级 + 部门 + 岗位覆盖 KPI",
-          company: "中国移动山东有限公司",
+          company: "华北云网集团山东有限公司",
           pm: "赵磊",
           region: "山东区域",
           due: "2026-10-31",
@@ -8505,13 +8112,13 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
       seedTaskHierarchy();
       seedBusinessCodes(approvals, "WF", "manual");
       const expandedCustomerNodes = new Set([
-        "group:中国移动",
-        "province:中国移动:山东",
-        "city:中国移动:济南",
-        "group:中国电信",
-        "group:中国联通",
-        "city:中国移动:烟台",
-        "city:中国移动:泰安",
+        "group:齐鲁数科集团",
+        "province:齐鲁数科集团:山东",
+        "city:齐鲁数科集团:济南",
+        "group:华北云网集团",
+        "group:华信通信集团",
+        "city:齐鲁数科集团:烟台",
+        "city:齐鲁数科集团:泰安",
       ]);
       const customerAreaFilter = {
         provinces: new Set(),
@@ -8723,7 +8330,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
           id: 501,
           taskId: 220,
           person: "李雪",
-          company: "中国移动山东有限公司",
+          company: "华北云网集团山东有限公司",
           method: "线下拜访",
           date: "2026-08-09",
           createdAt: "2026-08-09 09:30",
@@ -8737,7 +8344,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
         {
           id: 502,
           person: "王建国",
-          company: "中国移动济南分公司",
+          company: "华北云网集团济南分公司",
           method: "微信",
           date: "2026-08-08",
           createdAt: "2026-08-08 09:30",
@@ -8751,7 +8358,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
         {
           id: 503,
           person: "马骏",
-          company: "中国联通泰安分公司",
+          company: "华信通信集团泰安分公司",
           method: "电话",
           date: "2026-08-07",
           createdAt: "2026-08-07 09:30",
@@ -8765,7 +8372,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
         {
           id: 504,
           person: "周明远",
-          company: "中国电信青岛分公司",
+          company: "国网产业协同集团青岛分公司",
           method: "线下拜访",
           date: "2026-08-06",
           createdAt: "2026-08-06 09:30",
@@ -8780,7 +8387,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
           id: 505,
           taskId: 205,
           person: "许航",
-          company: "中国移动江苏有限公司",
+          company: "齐鲁数科集团江苏有限公司",
           method: "邮件",
           date: "2026-08-05",
           createdAt: "2026-08-05 09:30",
@@ -8794,7 +8401,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
         {
           id: 506,
           person: "张海",
-          company: "中国移动济南分公司",
+          company: "华北云网集团济南分公司",
           method: "线下拜访",
           date: "2026-08-01",
           createdAt: "2026-08-01 09:30",
@@ -8808,7 +8415,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
         {
           id: 507,
           person: "赵倩",
-          company: "中国移动烟台分公司",
+          company: "齐鲁数科集团烟台分公司",
           method: "电话",
           date: "2026-08-05",
           createdAt: "2026-08-05 09:30",
@@ -8822,7 +8429,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
         {
           id: 508,
           person: "孙鹏",
-          company: "中国移动烟台分公司",
+          company: "齐鲁数科集团烟台分公司",
           method: "微信",
           date: "2026-08-02",
           createdAt: "2026-08-02 09:30",
@@ -8836,7 +8443,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
         {
           id: 509,
           person: "郑伟",
-          company: "中国联通烟台分公司",
+          company: "华信通信集团烟台分公司",
           method: "电话",
           date: "2026-07-28",
           createdAt: "2026-07-28 09:30",
@@ -8850,7 +8457,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
         {
           id: 510,
           person: "吴敏",
-          company: "中国电信济南分公司",
+          company: "齐鲁数科集团济南分公司",
           method: "微信",
           date: "2026-08-07",
           createdAt: "2026-08-07 09:30",
@@ -8864,7 +8471,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
         {
           id: 511,
           person: "高媛",
-          company: "中国移动泰安分公司",
+          company: "华信通信集团泰安分公司",
           method: "线下拜访",
           date: "2026-08-04",
           createdAt: "2026-08-04 09:30",
@@ -8878,7 +8485,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
         {
           id: 512,
           person: "曹雪",
-          company: "中国移动市中分公司",
+          company: "华信通信集团市中分公司",
           method: "电话",
           date: "2026-08-08",
           createdAt: "2026-08-08 09:30",
@@ -8892,7 +8499,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
         {
           id: 513,
           person: "王建国",
-          company: "中国移动济南分公司",
+          company: "华北云网集团济南分公司",
           method: "电话",
           date: "2026-08-06",
           createdAt: "2026-08-06 16:20",
@@ -8906,7 +8513,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
         {
           id: 514,
           person: "王建国",
-          company: "中国移动济南分公司",
+          company: "华北云网集团济南分公司",
           method: "线下拜访",
           date: "2026-08-03",
           createdAt: "2026-08-03 14:10",
@@ -8920,7 +8527,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
         {
           id: 515,
           person: "王建国",
-          company: "中国移动济南分公司",
+          company: "华北云网集团济南分公司",
           method: "微信",
           date: "2026-07-28",
           createdAt: "2026-07-28 10:45",
@@ -8934,7 +8541,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
         {
           id: 516,
           person: "林静",
-          company: "中国移动济南分公司",
+          company: "华北云网集团济南分公司",
           method: "电话",
           date: "2026-08-09",
           createdAt: "2026-08-09 11:05",
@@ -8948,7 +8555,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
         {
           id: 517,
           person: "林静",
-          company: "中国移动济南分公司",
+          company: "华北云网集团济南分公司",
           method: "邮件",
           date: "2026-08-04",
           createdAt: "2026-08-04 17:30",
@@ -8963,7 +8570,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
           id: 518,
           taskId: 227,
           person: "何超",
-          company: "中国移动杭州分公司",
+          company: "齐鲁数科集团杭州分公司",
           method: "线下拜访",
           date: "2026-08-08",
           createdAt: "2026-08-08 16:20",
@@ -8978,7 +8585,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
           id: 519,
           taskId: 233,
           person: "陈海峰",
-          company: "中国移动福州分公司",
+          company: "齐鲁数科集团福州分公司",
           method: "电话",
           date: "2026-08-07",
           createdAt: "2026-08-07 14:35",
@@ -8993,7 +8600,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
           id: 520,
           taskId: 234,
           person: "梁慧",
-          company: "中国电信广州分公司",
+          company: "华北云网集团广州分公司",
           method: "微信",
           date: "2026-06-18",
           createdAt: "2026-06-22 09:15",
@@ -9008,7 +8615,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
           id: 9001,
           taskId: 225,
           person: "方启明",
-          company: "中国联通合肥分公司",
+          company: "华信通信集团合肥分公司",
           method: "电话",
           date: "2026-07-30",
           createdAt: "2026-08-11 10:05",
@@ -9028,7 +8635,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
           id: 601,
           name: "原培训管理办公室",
           type: "客户部门",
-          parent: "中国移动",
+          parent: "齐鲁数科集团",
           reason: "集团部门已撤并",
           date: "2026-08-08",
           operator: "王静",
@@ -9062,15 +8669,18 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
         },
         {
           id: 603,
-          name: "中国移动历下分公司",
+          name: "齐鲁数科集团历下分公司",
           type: "客户单位",
-          parent: "中国移动",
+          parent: "齐鲁数科集团",
           reason: "单位合并，客户关系已迁移至济南分公司",
           date: "2026-08-12",
           operator: "陈经理",
           status: "已停用",
           targetKind: "customer",
-          targetId: 9,
+          // This archive record predates the current demo customer fixtures.
+          // Keep the historical record without archiving the current fixture
+          // that now reuses numeric id 9.
+          targetId: "ARCHIVED-CUSTOMER-OLD-009",
           region: "山东区域",
           effectiveAt: "2026-08-12 17:10",
           recoveryResult: "未恢复",
@@ -9080,7 +8690,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
         },
         {
           id: 604,
-          name: "华东通信试点集团",
+          name: "华信通信集团",
           type: "集团公司",
           parent: "客户组织",
           reason: "试点集团主体注销，全部下属单位已完成级联停用",
@@ -9104,9 +8714,9 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
         },
         {
           id: 605,
-          name: "华东通信试点集团济南分公司",
+          name: "华信通信集团济南分公司",
           type: "客户单位",
-          parent: "华东通信试点集团",
+          parent: "华信通信集团",
           reason: "随集团主体注销完成级联停用",
           date: "2026-08-15",
           operator: "王静",
@@ -9123,7 +8733,6 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
           upperDisabledReason: "所属集团当前处于停用状态，须先恢复集团公司",
         },
       ];
-      customers.find((customer) => customer.id === 9).archived = true;
       const regionsData = [
         {
           id: 701,
@@ -9203,9 +8812,9 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
           id: 801,
           province: "山东",
           city: "济南",
-          pm: "陈经理",
-          customers: 10,
-          contacts: 19,
+          pm: "刘经理",
+          customers: 7,
+          contacts: 8,
           effective: "2026-01-01",
         },
         {
@@ -9213,8 +8822,8 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
           province: "山东",
           city: "泰安",
           pm: "陈经理",
-          customers: 6,
-          contacts: 11,
+          customers: 1,
+          contacts: 3,
           effective: "2026-03-15",
         },
         {
@@ -9222,8 +8831,8 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
           province: "山东",
           city: "青岛",
           pm: "刘经理",
-          customers: 8,
-          contacts: 14,
+          customers: 1,
+          contacts: 1,
           effective: "2026-01-01",
         },
         {
@@ -9231,8 +8840,8 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
           province: "山东",
           city: "烟台",
           pm: "刘经理",
-          customers: 9,
-          contacts: 15,
+          customers: 3,
+          contacts: 5,
           effective: "2026-02-01",
         },
         {
@@ -9240,28 +8849,96 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
           province: "山东",
           city: "临沂",
           pm: "",
-          customers: 4,
-          contacts: 6,
+          customers: 0,
+          contacts: 0,
         },
         {
           id: 805,
           province: "江苏",
           city: "南京",
           pm: "周经理",
-          customers: 6,
-          contacts: 14,
+          customers: 1,
+          contacts: 1,
           effective: "2026-01-01",
         },
-        { id: 806, province: "江苏", city: "无锡", pm: "徐经理", effective: "2026-04-01" },
-        { id: 807, province: "安徽", city: "合肥", pm: "徐经理", effective: "2026-04-01" },
-        { id: 808, province: "浙江", city: "杭州", pm: "吴经理", effective: "2026-02-15" },
-        { id: 809, province: "浙江", city: "宁波", pm: "吴经理", effective: "2026-02-15" },
-        { id: 810, province: "浙江", city: "温州", pm: "叶经理", effective: "2026-05-01" },
-        { id: 811, province: "福建", city: "福州", pm: "林经理", effective: "2026-03-01" },
-        { id: 812, province: "广东", city: "广州", pm: "梁经理", effective: "2026-03-01" },
-        { id: 813, province: "广西", city: "南宁", pm: "梁经理", effective: "2026-06-01" },
-        { id: 814, province: "辽宁", city: "沈阳", pm: "沈阳原PM", customers: 3, contacts: 5, effective: "2026-02-01" },
+        { id: 806, province: "江苏", city: "无锡", pm: "徐经理", customers: 1, contacts: 1, effective: "2026-04-01" },
+        { id: 807, province: "安徽", city: "合肥", pm: "徐经理", customers: 1, contacts: 1, effective: "2026-04-01" },
+        { id: 808, province: "浙江", city: "杭州", pm: "吴经理", customers: 1, contacts: 1, effective: "2026-02-15" },
+        { id: 809, province: "浙江", city: "宁波", pm: "吴经理", customers: 1, contacts: 1, effective: "2026-02-15" },
+        { id: 810, province: "浙江", city: "温州", pm: "叶经理", customers: 1, contacts: 1, effective: "2026-05-01" },
+        { id: 811, province: "福建", city: "福州", pm: "林经理", customers: 1, contacts: 1, effective: "2026-03-01" },
+        { id: 812, province: "广东", city: "广州", pm: "梁经理", customers: 1, contacts: 1, effective: "2026-03-01" },
+        { id: 813, province: "广西", city: "南宁", pm: "梁经理", customers: 1, contacts: 0, effective: "2026-06-01" },
+        { id: 814, province: "辽宁", city: "沈阳", pm: "沈阳经理", customers: 0, contacts: 0, effective: "2026-02-01" },
       ];
+
+      // A city keeps one default PM, while optional group/industry rules can
+      // route newly created customer companies to another PM in the same region.
+      // Existing customer responsibility remains stored on the customer until an
+      // authorized administrator explicitly adjusts it.
+      const cityResponsibilityRules = [
+        {
+          id: 901,
+          province: "山东",
+          city: "济南",
+          dimension: "集团",
+          value: "华北云网集团",
+          pm: "陈经理",
+          effective: "2026-10-28",
+          status: "启用",
+        },
+        {
+          id: 902,
+          province: "山东",
+          city: "济南",
+          dimension: "行业",
+          value: "能源",
+          pm: "刘经理",
+          effective: "2026-10-28",
+          status: "启用",
+        },
+        {
+          id: 903,
+          province: "浙江",
+          city: "宁波",
+          dimension: "集团",
+          value: "国网产业协同集团",
+          pm: "叶经理",
+          effective: "2026-10-28",
+          status: "启用",
+        },
+      ];
+
+      function cityDefaultOwner(province, city) {
+        return cityOwners.find((item) => item.province === province && item.city === city) || null;
+      }
+
+      function cityResponsibilityRulesFor(province, city) {
+        return cityResponsibilityRules.filter(
+          (rule) => rule.status !== "停用" && rule.province === province && rule.city === city,
+        );
+      }
+
+      function cityResponsibilityRuleForCustomer(customer) {
+        if (!customer) return null;
+        const rules = cityResponsibilityRulesFor(
+          customerBusinessProvince(customer),
+          customerBusinessCity(customer),
+        );
+        return rules.find((rule) => rule.dimension === "集团" && rule.value === customer.group) ||
+          rules.find((rule) => rule.dimension === "行业" && rule.value === customer.industry) ||
+          null;
+      }
+
+      function cityPmForNewCustomer({ province, city, group, industry } = {}) {
+        const rules = cityResponsibilityRulesFor(province, city);
+        return (
+          rules.find((rule) => rule.dimension === "集团" && rule.value === group)?.pm ||
+          rules.find((rule) => rule.dimension === "行业" && rule.value === industry)?.pm ||
+          cityDefaultOwner(province, city)?.pm ||
+          ""
+        );
+      }
       const ruleData = [
         {
           id: 901,
@@ -9696,12 +9373,12 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
       const projects = [
         {
           id: "XM2026000001",
-          name: "中国移动济南分公司新员工 AI 素养培训",
+          name: "华北云网集团济南分公司新员工 AI 素养培训",
           type: "培训项目",
           customerId: 2,
           customerSnapshot: {
             customerCode: "2",
-            name: "中国移动济南分公司",
+            name: "华北云网集团济南分公司",
             level: "市公司",
             province: "山东",
             city: "济南",
@@ -9779,7 +9456,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
               title: "编辑项目",
               categories: ["基本信息"],
               changes: [
-                { category: "基本信息", field: "项目名称", before: "中国移动济南分公司新员工培训", after: "中国移动济南分公司新员工 AI 素养培训" },
+                { category: "基本信息", field: "项目名称", before: "华北云网集团济南分公司新员工培训", after: "华北云网集团济南分公司新员工 AI 素养培训" },
               ],
               operator: "陈经理",
               time: "2026-07-20 10:30:00",
@@ -9820,7 +9497,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
               title: "编辑项目",
               categories: ["基本信息", "时间与金额", "商业资源"],
               changes: [
-                { category: "基本信息", field: "项目名称", before: "中国移动济南分公司新员工 AI 培训", after: "中国移动济南分公司新员工 AI 素养培训" },
+                { category: "基本信息", field: "项目名称", before: "华北云网集团济南分公司新员工 AI 培训", after: "华北云网集团济南分公司新员工 AI 素养培训" },
                 { category: "时间与金额", field: "结束时间", before: "2026-08-25 18:00", after: "2026-08-26 18:00" },
                 { category: "商业资源", field: "资源类型", before: "自定义课程", after: "采购包课程" },
               ],
@@ -9909,12 +9586,12 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
         },
         {
           id: "XM2026000002",
-          name: "中国联通泰安分公司服务礼仪培训",
+          name: "华信通信集团泰安分公司服务礼仪培训",
           type: "培训项目",
           customerId: 3,
           customerSnapshot: {
             customerCode: "3",
-            name: "中国联通泰安分公司",
+            name: "华信通信集团泰安分公司",
             level: "市公司",
             province: "山东",
             city: "泰安",
@@ -9953,12 +9630,12 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
         },
         {
           id: "XM2026000003",
-          name: "中国移动济南分公司中层管理能力培训",
+          name: "华北云网集团济南分公司中层管理能力培训",
           type: "培训项目",
           customerId: 2,
           customerSnapshot: {
             customerCode: "2",
-            name: "中国移动济南分公司",
+            name: "华北云网集团济南分公司",
             level: "市公司",
             province: "山东",
             city: "济南",
@@ -9996,12 +9673,12 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
         },
         {
           id: "XM2026000004",
-          name: "中国电信青岛分公司客户服务培训",
+          name: "国网产业协同集团青岛分公司客户服务培训",
           type: "培训项目",
           customerId: 4,
           customerSnapshot: {
             customerCode: "4",
-            name: "中国电信青岛分公司",
+            name: "国网产业协同集团青岛分公司",
             level: "市公司",
             province: "山东",
             city: "青岛",
@@ -10046,12 +9723,12 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
         },
         {
           id: "XM2026000005",
-          name: "中国移动烟台分公司数字化转型培训",
+          name: "齐鲁数科集团烟台分公司数字化转型培训",
           type: "培训项目",
           customerId: 10,
           customerSnapshot: {
             customerCode: "10",
-            name: "中国移动烟台分公司",
+            name: "齐鲁数科集团烟台分公司",
             level: "市公司",
             province: "山东",
             city: "烟台",
@@ -10106,12 +9783,12 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
         },
         {
           id: "XM2026000006",
-          name: "国家电网济南市公司智能巡检平台项目",
+          name: "国网产业协同集团济南市公司智能巡检平台项目",
           type: "AI软件项目",
           customerId: 27,
           customerSnapshot: {
             customerCode: "CC00000027",
-            name: "国家电网济南市公司",
+            name: "国网产业协同集团济南市公司",
             level: "市公司",
             province: "山东",
             city: "济南",
@@ -10149,12 +9826,12 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
         },
         {
           id: "XM2026000007",
-          name: "中国电信南京分公司数据分析平台项目",
+          name: "华北云网集团南京分公司数据分析平台项目",
           type: "AI软件项目",
           customerId: 7,
           customerSnapshot: {
             customerCode: "7",
-            name: "中国电信南京分公司",
+            name: "华北云网集团南京分公司",
             level: "市公司",
             province: "江苏",
             city: "南京",
@@ -10192,12 +9869,12 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
         },
         {
           id: "XM2026000008",
-          name: "中国移动杭州分公司智能客服平台项目",
+          name: "齐鲁数科集团杭州分公司智能客服平台项目",
           type: "AI软件项目",
           customerId: 19,
           customerSnapshot: {
             customerCode: "19",
-            name: "中国移动杭州分公司",
+            name: "齐鲁数科集团杭州分公司",
             level: "市公司",
             province: "浙江",
             city: "杭州",
@@ -10238,12 +9915,12 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
         },
         {
           id: "XM2026000009",
-          name: "华电山东新能源有限公司设备预测性维护平台项目",
+          name: "华东能源控股山东有限公司设备预测性维护平台项目",
           type: "AI软件项目",
           customerId: 5,
           customerSnapshot: {
             customerCode: "5",
-            name: "华电山东新能源有限公司",
+            name: "华东能源控股山东有限公司",
             level: "省公司",
             province: "山东",
             city: "",
@@ -10292,12 +9969,12 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
         },
         {
           id: "XM2026000010",
-          name: "中国移动江苏有限公司省级管理培训",
+          name: "齐鲁数科集团江苏有限公司省级管理培训",
           type: "培训项目",
           customerId: 6,
           customerSnapshot: {
             customerCode: "6",
-            name: "中国移动江苏有限公司",
+            name: "齐鲁数科集团江苏有限公司",
             level: "省公司",
             province: "江苏",
             city: "",
@@ -10335,12 +10012,12 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
         },
         {
           id: "XM2026000011",
-          name: "中国移动济南分公司网格经理服务培训",
+          name: "华北云网集团济南分公司网格经理服务培训",
           type: "培训项目",
           customerId: 2,
           customerSnapshot: {
             customerCode: "2",
-            name: "中国移动济南分公司",
+            name: "华北云网集团济南分公司",
             level: "市公司",
             province: "山东",
             city: "济南",
@@ -10382,12 +10059,12 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
         },
         {
           id: "XM2026000012",
-          name: "中国电信济南分公司新员工服务培训",
+          name: "齐鲁数科集团济南分公司新员工服务培训",
           type: "培训项目",
           customerId: 12,
           customerSnapshot: {
             customerCode: "12",
-            name: "中国电信济南分公司",
+            name: "齐鲁数科集团济南分公司",
             level: "市公司",
             province: "山东",
             city: "济南",
@@ -10640,9 +10317,9 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
           name: "济南移动人才发展平台升级",
           type: "AI 项目商机",
           stage: "需求确认",
-          customer: "中国移动济南分公司",
+          customer: "华北云网集团济南分公司",
           customerCode: "CU-0002",
-          group: "中国移动",
+          group: "齐鲁数科集团",
           industry: "通信",
           region: "山东区域",
           city: "济南",
@@ -10683,9 +10360,9 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
           name: "山东移动干部培养项目",
           type: "培训商机",
           stage: "方案支撑",
-          customer: "中国移动山东有限公司",
+          customer: "华北云网集团山东有限公司",
           customerCode: "CU-0001",
-          group: "中国移动",
+          group: "齐鲁数科集团",
           industry: "通信",
           region: "山东区域",
           city: "",
@@ -10766,9 +10443,9 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
           name: "泰安联通项目管理培训",
           type: "培训商机",
           stage: "比选",
-          customer: "中国联通泰安分公司",
+          customer: "华信通信集团泰安分公司",
           customerCode: "CU-0003",
-          group: "中国联通",
+          group: "华信通信集团",
           industry: "通信",
           region: "山东区域",
           city: "泰安",
@@ -10798,9 +10475,9 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
           name: "青岛电信知识库建设",
           type: "AI 项目商机",
           stage: "中选",
-          customer: "中国电信青岛分公司",
+          customer: "国网产业协同集团青岛分公司",
           customerCode: "CU-0004",
-          group: "中国电信",
+          group: "华北云网集团",
           industry: "通信",
           region: "山东区域",
           city: "青岛",
@@ -10831,9 +10508,9 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
           name: "江苏移动新员工训练营",
           type: "培训商机",
           stage: "商机录入",
-          customer: "中国移动江苏有限公司",
+          customer: "齐鲁数科集团江苏有限公司",
           customerCode: "CU-0006",
-          group: "中国移动",
+          group: "齐鲁数科集团",
           industry: "通信",
           region: "江苏区域",
           city: "",
@@ -10856,9 +10533,9 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
           name: "浙江能源智能问答项目",
           type: "AI 项目商机",
           stage: "落选",
-          customer: "华电浙江能源有限公司",
+          customer: "华东能源控股浙江有限公司",
           customerCode: "CU-0008",
-          group: "华电集团",
+          group: "华东能源控股",
           industry: "能源",
           region: "浙江区域",
           city: "",
@@ -11629,17 +11306,17 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
       const normalizePositionText = (value) =>
         String(value || "").trim().replace(/\s+/g, " ");
       const contactPositionCatalog = [
-        { id: "POS-CM-001", group: "中国移动", company: "中国移动济南分公司", departmentId: 1001, code: "POS00000001", name: "人力资源分管领导", aliases: ["人力副总"] },
-        { id: "POS-CM-002", group: "中国移动", company: "中国移动济南分公司", departmentId: 1002, code: "POS00000002", name: "培训发展负责人", aliases: ["培训负责人", "培训主任"] },
-        { id: "POS-CM-003", group: "中国移动", company: "中国移动济南分公司", departmentId: 1003, code: "POS00000003", name: "数字化负责人", aliases: ["信息化负责人"] },
-        { id: "POS-CM-004", group: "中国移动", company: "中国移动济南分公司", departmentId: 1001, code: "POS00000004", name: "关键决策人", aliases: ["采购负责人"] },
-        { id: "POS-CM-005", group: "中国移动", company: "中国移动济南分公司", departmentId: 1010, code: "POS00000005", name: "原培训管理岗", aliases: [], status: "已停用" },
-        { id: "POS-CT-001", group: "中国电信", company: "中国电信青岛分公司", departmentId: 1005, code: "POS00000006", name: "人力资源负责人", aliases: ["人力负责人"] },
-        { id: "POS-CT-002", group: "中国电信", company: "中国电信青岛分公司", departmentId: 1005, code: "POS00000007", name: "培训负责人", aliases: ["培训主任"] },
-        { id: "POS-CU-001", group: "中国联通", company: "中国联通泰安分公司", departmentId: 1004, code: "POS00000008", name: "组织人事负责人", aliases: ["人力负责人"] },
-        { id: "POS-HD-001", group: "华电集团", company: "华电山东新能源有限公司", departmentId: 1006, code: "POS00000009", name: "人力资源负责人", aliases: [] },
-        { id: "POS-SG-001", group: "国家电网", company: "国家电网山东省公司", departmentId: 1101, code: "POS00000021", name: "运营总监", aliases: ["运营负责人"] },
-        { id: "POS-SG-002", group: "国家电网", company: "国家电网济南市公司", departmentId: 1103, code: "POS00000022", name: "客户运营经理", aliases: [] },
+        { id: "POS-CM-001", group: "华北云网集团", company: "华北云网集团济南分公司", departmentId: 1001, code: "POS00000001", name: "人力资源分管领导", aliases: ["人力副总"] },
+        { id: "POS-CM-002", group: "华北云网集团", company: "华北云网集团济南分公司", departmentId: 1002, code: "POS00000002", name: "培训发展负责人", aliases: ["培训负责人", "培训主任"] },
+        { id: "POS-CM-003", group: "华北云网集团", company: "华北云网集团济南分公司", departmentId: 1003, code: "POS00000003", name: "数字化负责人", aliases: ["信息化负责人"] },
+        { id: "POS-CM-004", group: "华北云网集团", company: "华北云网集团济南分公司", departmentId: 1001, code: "POS00000004", name: "关键决策人", aliases: ["采购负责人"] },
+        { id: "POS-CM-005", group: "华北云网集团", company: "华北云网集团济南分公司", departmentId: 1010, code: "POS00000005", name: "原培训管理岗", aliases: [], status: "已停用" },
+        { id: "POS-CT-001", group: "华北云网集团", company: "国网产业协同集团青岛分公司", departmentId: 1005, code: "POS00000006", name: "人力资源负责人", aliases: ["人力负责人"] },
+        { id: "POS-CT-002", group: "华北云网集团", company: "国网产业协同集团青岛分公司", departmentId: 1005, code: "POS00000007", name: "培训负责人", aliases: ["培训主任"] },
+        { id: "POS-CU-001", group: "华信通信集团", company: "华信通信集团泰安分公司", departmentId: 1004, code: "POS00000008", name: "组织人事负责人", aliases: ["人力负责人"] },
+        { id: "POS-HD-001", group: "华东能源控股", company: "华东能源控股山东有限公司", departmentId: 1006, code: "POS00000009", name: "人力资源负责人", aliases: [] },
+        { id: "POS-SG-001", group: "国网产业协同集团", company: "国网产业协同集团山东省公司", departmentId: 1101, code: "POS00000021", name: "运营总监", aliases: ["运营负责人"] },
+        { id: "POS-SG-002", group: "国网产业协同集团", company: "国网产业协同集团济南市公司", departmentId: 1103, code: "POS00000022", name: "客户运营经理", aliases: [] },
       ];
       contactPositionCatalog.forEach((position, index) => {
         position.status = position.status || "正常";
@@ -11804,7 +11481,11 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
             (item) =>
               item.province === company.province && item.city === company.city,
           );
-          company.owner = cityOwner?.pm || company.owner || company.pm || "待分配";
+          // Existing customer responsibility is authoritative. Responsibility
+          // rules apply when a customer is created; they must not migrate
+          // existing companies merely because the rule set changed.
+          const retainedPm = [company.pm, company.owner].find((value) => value && value !== "待分配");
+          company.owner = retainedPm || cityOwner?.pm || "待分配";
           company.pm = company.owner;
         });
         contacts.forEach((person) => {
@@ -14167,56 +13848,56 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
       const customerDepartments = [
         {
           id: 1001,
-          group: "中国移动",
-          company: "中国移动济南分公司",
+          group: "华北云网集团",
+          company: "华北云网集团济南分公司",
           name: "人力资源部",
           parent: "无",
           duty: "人才发展与培训管理",
         },
         {
           id: 1002,
-          group: "中国移动",
-          company: "中国移动济南分公司",
+          group: "华北云网集团",
+          company: "华北云网集团济南分公司",
           name: "培训发展中心",
           parent: "人力资源部",
           duty: "培训项目执行",
         },
         {
           id: 1003,
-          group: "中国移动",
-          company: "中国移动济南分公司",
+          group: "华北云网集团",
+          company: "华北云网集团济南分公司",
           name: "人才发展部",
           parent: "人力资源部",
           duty: "人才梯队与能力建设",
         },
         {
           id: 1004,
-          group: "中国联通",
-          company: "中国联通泰安分公司",
+          group: "华信通信集团",
+          company: "华信通信集团泰安分公司",
           name: "组织人事部",
           parent: "无",
           duty: "组织与人才发展",
         },
         {
           id: 1005,
-          group: "中国电信",
-          company: "中国电信青岛分公司",
+          group: "华北云网集团",
+          company: "国网产业协同集团青岛分公司",
           name: "人力资源部",
           parent: "无",
           duty: "人才发展与培训管理",
         },
         {
           id: 1006,
-          group: "华电集团",
-          company: "华电山东新能源有限公司",
+          group: "华东能源控股",
+          company: "华东能源控股山东有限公司",
           name: "人力资源部",
           parent: "无",
           duty: "干部与人才培养",
         },
         {
           id: 1010,
-          group: "中国移动",
-          company: "中国移动济南分公司",
+          group: "华北云网集团",
+          company: "华北云网集团济南分公司",
           name: "原培训管理办公室",
           parent: "人力资源部",
           duty: "历史培训管理职能",
@@ -14224,24 +13905,24 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
         },
         {
           id: 1101,
-          group: "国家电网",
-          company: "国家电网山东省公司",
+          group: "国网产业协同集团",
+          company: "国网产业协同集团山东省公司",
           name: "运营管理部",
           parent: "无",
           duty: "集团运营统筹与区域协同",
         },
         {
           id: 1102,
-          group: "国家电网",
-          company: "国家电网济南市公司",
+          group: "国网产业协同集团",
+          company: "国网产业协同集团济南市公司",
           name: "客户运营组",
           parent: "无",
           duty: "客户运营体系与重点客户协同",
         },
         {
           id: 1103,
-          group: "国家电网",
-          company: "国家电网济南市公司",
+          group: "国网产业协同集团",
+          company: "国网产业协同集团济南市公司",
           name: "华东客户组",
           parent: "客户运营组",
           duty: "华东区域客户日常运营",
@@ -14468,23 +14149,20 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
       });
 
       const customerGroupNames = [
-        "中国移动",
-        "中国联通",
-        "中国电信",
-        "华电集团",
-        "国家电网",
-        "中粮集团",
+        "齐鲁数科集团",
+        "华信通信集团",
+        "华北云网集团",
+        "华东能源控股",
+        "国网产业协同集团",
       ];
       const pendingGroupStops = new Set();
       const customerGroupCreditCodes = {};
       const customerGroupNumbers = {
-        中国移动: "CG00000001",
-        中国联通: "CG00000002",
-        中国电信: "CG00000003",
-        华电集团: "CG00000004",
-        国家电网: "CG00000005",
-        中粮集团: "CG00000006",
-        华东通信试点集团: "CG00000007",
+        齐鲁数科集团: "CG00000001",
+        华信通信集团: "CG00000002",
+        华北云网集团: "CG00000003",
+        华东能源控股: "CG00000004",
+        国网产业协同集团: "CG00000005",
       };
       function nextCustomerGroupNumber() {
         const usedNumbers = new Set(Object.values(customerGroupNumbers));
@@ -14502,8 +14180,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
           customers.find((customer) => customer.group === group)?.industry || "",
         ]),
       );
-      customerGroupIndustries['国家电网'] = '制造';
-      customerGroupIndustries['中粮集团'] = '制造';
+      customerGroupIndustries['国网产业协同集团'] = '制造';
 
       function customerBusinessResponsibilityLevel(company) {
         return (
@@ -16375,6 +16052,8 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
         "进行中",
         "已交付",
         "已完成",
+        "已取消",
+        "已中止",
       ]);
       function projectResponsibilityTransferCandidates(spec) {
         const provinceNames = new Set(
@@ -18664,16 +18343,12 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
             ? { ok: true, owner: candidates[0], role: "区域总监" }
             : { ok: false, message: "该省级客户没有唯一有效区域总监，暂不能创建商机" };
         }
-        const responsibilities = cityOwners.filter(
-          (item) =>
-            item.province === customer.province && item.city === customer.city,
-        );
-        if (responsibilities.length !== 1)
+        const currentPm = customer.pm || cityDefaultOwner(customer.province, customer.city)?.pm || "";
+        if (!currentPm)
           return { ok: false, message: "该客户责任地市没有唯一有效 PM 负责人，暂不能创建商机" };
-        const responsibility = responsibilities[0];
         const candidates = employees.filter(
           (employee) =>
-            employee.name === responsibility?.pm &&
+            employee.name === currentPm &&
             employee.status === "在职" &&
             employee.accountStatus !== "停用" &&
             employeeHasRole(employee, "PM") &&
@@ -19529,6 +19204,8 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
           (!filter.deadlineTo || (validDeadline && day <= filter.deadlineTo));
       }
 
+      const SALES_SUPPORT_STATUS_TABS = ["全部", "待响应", "进行中", "已交付", "已关闭"];
+
       function salesCompareSupportRequests(left, right) {
         const group = (support) => !Number.isFinite(salesSupportDeadlineTime(support)) ? 2 : ["待响应", "进行中"].includes(support.status) ? 0 : 1;
         const leftGroup = group(left.support), rightGroup = group(right.support);
@@ -19538,10 +19215,14 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
       function salesSupportFiltersHtml(requests) {
         const filter = appliedSupportFilters;
         const options = (values, selected) => values.map((value) => `<option value="${escapeHtml(value)}" ${value === selected ? "selected" : ""}>${escapeHtml(value)}</option>`).join("");
-        return `<div class="toolbar filter-toolbar sales-opportunity-filters">${filterField("商机名称",
+        const statusTabs = SALES_SUPPORT_STATUS_TABS.map((status) => {
+          const value = status === "全部" ? "" : status;
+          const active = filter.status === value;
+          return `<button class="tab${active ? " active" : ""}" type="button" role="tab" aria-selected="${active}" data-sales-support-status="${escapeHtml(value)}">${status}</button>`;
+        }).join("");
+        return `<div class="tabs sales-support-status-tabs" role="tablist" aria-label="方案支撑状态">${statusTabs}</div><div class="toolbar filter-toolbar sales-opportunity-filters">${filterField("商机名称",
           `<input class="input" id="supportNameFilter" value="${escapeHtml(filter.name)}" placeholder="请输入商机名称">`)}${filterField("客户单位",
-          `<select class="input" id="supportCustomerFilter"><option value="">全部客户</option>${options([...new Set(requests.map(({ opportunity }) => opportunity.customer))], filter.customer)}</select>`)}${filterField("状态",
-          `<select class="input" id="supportStatusFilter"><option value="">全部状态</option>${options(["待响应", "进行中", "已交付", "已关闭"], filter.status)}</select>`)}${filterField("交付截止日期",
+          `<select class="input" id="supportCustomerFilter"><option value="">全部客户</option>${options([...new Set(requests.map(({ opportunity }) => opportunity.customer))], filter.customer)}</select>`)}${filterField("交付截止日期",
           `<span class="date-range"><input class="input" id="supportDeadlineFromFilter" type="date" value="${escapeHtml(filter.deadlineFrom)}"><span>至</span><input class="input" id="supportDeadlineToFilter" type="date" value="${escapeHtml(filter.deadlineTo)}"></span>`)}${filterActions(
           '<button class="btn btn-primary" id="applySupportFilters" type="button">筛选</button><button class="btn" id="resetSupportFilters" type="button">重置</button>')}</div>`;
       }
@@ -20400,16 +20081,14 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
           const region = regionScopeName(regionMatch);
           const director = regionMatch.director;
           if (!director) return toast("所属区域中心未设置区域总监，不能创建客户");
-          const ownerInfo = cityOwners.find(
-            (item) => item.province === province && item.city === city,
-          );
-          if (level !== "省级" && !ownerInfo?.pm)
-            return toast("该城市尚未配置地市负责人，不能创建客户");
-          const owner = level === "省级" ? director : ownerInfo.pm;
-          const pm = level === "省级" ? "" : ownerInfo.pm;
           const group = $("#cfGroup").value;
           const industry = customerGroupIndustries[group];
           if (!industry) return toast("所属集团行业未配置，不能创建客户");
+          const defaultPm = level === "省级" ? "" : cityPmForNewCustomer({ province, city, group, industry });
+          if (level !== "省级" && !defaultPm)
+            return toast("该城市尚未配置地市负责人，不能创建客户");
+          const owner = level === "省级" ? director : defaultPm;
+          const pm = level === "省级" ? "" : defaultPm;
           const data = {
             group,
             industry,
@@ -24145,6 +23824,92 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
         openDrawer(
           `<div class="drawer-head"><div class="modal-title">地市责任交接</div><button class="icon-btn close" data-close>×</button></div><div class="drawer-body"><div class="detail-hero"><div class="avatar">交</div><div><div class="detail-name">${cityNames || handover.title}</div><div class="detail-sub">${handover.code}</div></div><div class="spacer"></div><span class="tag ${statusTone}">${statusName}</span></div><div class="detail-grid"><div class="detail-item"><label>原负责人</label><div>${handover.originalPm}</div></div><div class="detail-item"><label>目标负责人</label><div>${handover.targetPm}</div></div><div class="detail-item"><label>计划生效日期</label><div>${handover.plannedEffectiveDate}</div></div><div class="detail-item"><label>确认人</label><div>${handover.operator}</div></div><div class="detail-item"><label>确认时间</label><div>${handover.createdAt}</div></div><div class="detail-item"><label>实际生效时间</label><div>${handover.effectiveAt || "—"}</div></div><div class="detail-item full"><label>交接原因</label><div>${handover.reason}</div></div>${handover.businessError ? `<div class="detail-item full"><label>失败结果</label><div>${handover.businessError}</div></div>` : ""}</div><div class="section-title">影响快照</div><div class="metrics compact-metrics">${metric("客户单位", impact.customers || 0, "交接确认时")}${metric("关键人", impact.people || 0, "交接确认时", "blue")}${metric("未完成任务", impact.tasks || 0, "交接确认时", "yellow")}${metric("覆盖 KPI 待办", impact.coverageKpis || 0, "交接确认时", "orange")}${impact.opportunities !== undefined ? metric("未落选商机", impact.opportunities, "交接确认时") : ""}</div>${handover.status === "pending_effective" ? '<div class="role-note">计划生效日前仍由原 PM 负责。</div>' : ""}</div><div class="drawer-foot"><button class="btn" data-close>关闭</button></div>`,
         );
+      }
+
+      function cityResponsibilityRuleRegion(rule) {
+        return regionsData.find((region) => regionProvinceList(region).includes(rule?.province));
+      }
+
+      function canEditCityResponsibilityRules(region) {
+        if (!region) return false;
+        if (currentUser?.fullAccess) return true;
+        const employee = employees.find((item) => item.code === currentUser?.employeeCode || item.name === currentUser?.name);
+        if (!employee || employee.status !== "在职" || employee.accountStatus === "停用") return false;
+        if (employeeHasRole(employee, "市场副总")) return hasOperationPermission("regions.edit");
+        return employeeHasRole(employee, "区域总监") && organizationRegionsForEmployee(employee).some((item) => item.id === region.id);
+      }
+
+      function cityResponsibilityRuleValues(dimension, region) {
+        const provinces = new Set(regionProvinceList(region));
+        const values = customers
+          .filter((customer) => customer && !customer.archived && provinces.has(customerBusinessProvince(customer)))
+          .map((customer) => dimension === "集团" ? customer.group : customer.industry)
+          .filter(Boolean);
+        return [...new Set(values)].sort((a, b) => String(a).localeCompare(String(b), "zh-CN"));
+      }
+
+      function openCityResponsibilityRuleForm(ruleId = null) {
+        const region = regionsData.find((item) => item.id === selectedRegionId) || regionsData[0];
+        if (!region) return toast("当前没有可维护的区域中心");
+        if (!canEditCityResponsibilityRules(region)) return toast("当前角色无权维护集团 / 行业责任规则");
+        const existing = ruleId == null ? null : cityResponsibilityRules.find((item) => Number(item.id) === Number(ruleId));
+        if (existing && !regionProvinceList(region).includes(existing.province)) return toast("无权维护其他区域的责任规则");
+        const cityRows = regionCityRows(region);
+        const pms = regionPmEmployees(region).filter((employee) => employee.status === "在职" && employee.accountStatus !== "停用");
+        if (!pms.length) return toast("当前区域暂无有效 PM，不能配置责任规则");
+        const dimension = existing?.dimension || "集团";
+        const renderValues = (selectedDimension, selectedValue) => {
+          const values = cityResponsibilityRuleValues(selectedDimension, region);
+          return `<option value="">请选择${selectedDimension}</option>${values.map((value) => `<option value="${escapeHtml(value)}" ${value === selectedValue ? "selected" : ""}>${escapeHtml(value)}</option>`).join("")}`;
+        };
+        openModal(`<div class="modal-head"><div><div class="modal-title">${existing ? "编辑" : "新增"}集团 / 行业责任规则</div><div class="modal-subtitle">集团规则优先于行业规则；未命中时沿用地市默认 PM</div></div><button class="icon-btn close" data-close>×</button></div><form id="cityResponsibilityRuleForm"><div class="modal-body"><div class="role-note">规则只影响新建客户时的默认 PM；已有客户不会自动迁移。</div><div class="form-grid"><div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>省份</label><select class="input" id="cityRuleProvince" required>${regionProvinceList(region).map((province) => `<option value="${escapeHtml(province)}" ${province === existing?.province ? "selected" : ""}>${escapeHtml(province)}</option>`).join("")}</select></div><div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>地市</label><select class="input" id="cityRuleCity" required>${cityRows.map((city) => `<option value="${escapeHtml(city.city)}" data-province="${escapeHtml(city.province)}" ${city.city === existing?.city && city.province === existing?.province ? "selected" : ""}>${escapeHtml(city.province)} · ${escapeHtml(city.city)}</option>`).join("")}</select></div><div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>规则维度</label><select class="input" id="cityRuleDimension" required><option value="集团" ${dimension === "集团" ? "selected" : ""}>集团</option><option value="行业" ${dimension === "行业" ? "selected" : ""}>行业</option></select></div><div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>匹配值</label><select class="input" id="cityRuleValue" required>${renderValues(dimension, existing?.value || "")}</select></div><div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>规则 PM</label><select class="input" id="cityRulePm" required>${pms.map((employee) => `<option value="${escapeHtml(employee.name)}" ${employee.name === existing?.pm ? "selected" : ""}>${escapeHtml(employee.name)} · ${escapeHtml(employee.code)}</option>`).join("")}</select></div><div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>生效日期</label><input class="input" id="cityRuleEffective" type="date" value="${existing?.effective || DEMO_TODAY}" required></div><div class="form-group full"><label class="form-label">规则说明</label><div class="list-sub">同一地市、同一维度、同一匹配值只能保留一条启用规则。停用规则不参与负责人解析。</div></div></div><div class="field-error" id="cityRuleError" role="alert"></div></div><div class="modal-foot"><button class="btn" type="button" data-close>取消</button><button class="btn btn-primary" type="submit">保存规则</button></div></form>`);
+        const refreshCities = () => {
+          const province = $("#cityRuleProvince")?.value || "";
+          const current = $("#cityRuleCity")?.value || "";
+          $("#cityRuleCity").innerHTML = cityRows.filter((city) => city.province === province).map((city) => `<option value="${escapeHtml(city.city)}" ${city.city === current || (!current && city.city === existing?.city) ? "selected" : ""}>${escapeHtml(city.city)}</option>`).join("");
+        };
+        const refreshValues = () => {
+          const selectedDimension = $("#cityRuleDimension").value;
+          const currentValue = existing?.dimension === selectedDimension ? existing?.value : "";
+          $("#cityRuleValue").innerHTML = renderValues(selectedDimension, currentValue);
+        };
+        $("#cityRuleProvince").onchange = refreshCities;
+        $("#cityRuleDimension").onchange = refreshValues;
+        refreshCities();
+        $("#cityResponsibilityRuleForm").onsubmit = (event) => {
+          event.preventDefault();
+          const province = $("#cityRuleProvince").value;
+          const city = $("#cityRuleCity").value;
+          const nextRule = { province, city, dimension: $("#cityRuleDimension").value, value: $("#cityRuleValue").value, pm: $("#cityRulePm").value, effective: $("#cityRuleEffective").value, status: existing?.status || "启用" };
+          const error = $("#cityRuleError");
+          const duplicate = cityResponsibilityRules.find((item) => Number(item.id) !== Number(existing?.id) && item.status === "启用" && item.province === nextRule.province && item.city === nextRule.city && item.dimension === nextRule.dimension && item.value === nextRule.value);
+          if (!nextRule.city || !nextRule.value || !nextRule.pm || !nextRule.effective) return error.textContent = "请完整填写规则条件、PM 和生效日期";
+          if (!canEditCityResponsibilityRules(region)) return error.textContent = "当前账号已无权维护该区域，请刷新后重试";
+          if (!regionProvinceList(region).includes(nextRule.province) || !regionCityRows(region).some((item) => item.province === nextRule.province && item.city === nextRule.city)) return error.textContent = "地市已不属于当前区域，请刷新后重试";
+          if (!regionPmEmployees(region).some((employee) => employee.name === nextRule.pm && employee.status === "在职" && employee.accountStatus !== "停用")) return error.textContent = "规则 PM 已失效，请重新选择在职 PM";
+          if (duplicate) return error.textContent = "同一地市、同一维度、同一匹配值已有启用规则，请编辑原规则或先停用它";
+          if (existing) Object.assign(existing, nextRule, { updatedAt: recordCreatedAt(), updatedBy: currentUser.name });
+          else cityResponsibilityRules.push({ id: Date.now(), ...nextRule, createdAt: recordCreatedAt(), updatedAt: recordCreatedAt(), createdBy: currentUser.name });
+          closeAllOverlays();
+          renderPage();
+          toast(existing ? "责任规则已更新" : "责任规则已新增");
+        };
+      }
+
+      function toggleCityResponsibilityRule(ruleId) {
+        const rule = cityResponsibilityRules.find((item) => Number(item.id) === Number(ruleId));
+        if (!rule) return toast("责任规则不存在");
+        const region = cityResponsibilityRuleRegion(rule);
+        if (!region || !canEditCityResponsibilityRules(region) || !regionProvinceList(region).includes(rule.province)) return toast("无权维护其他区域的责任规则");
+        if (rule.status !== "启用") {
+          const duplicate = cityResponsibilityRules.find((item) => item !== rule && item.status === "启用" && item.province === rule.province && item.city === rule.city && item.dimension === rule.dimension && item.value === rule.value);
+          if (duplicate) return toast("同一地市、同一维度、同一匹配值已有启用规则");
+        }
+        rule.status = rule.status === "启用" ? "停用" : "启用";
+        rule.updatedAt = recordCreatedAt();
+        rule.updatedBy = currentUser.name;
+        renderPage();
+        toast(rule.status === "启用" ? "责任规则已启用" : "责任规则已停用");
       }
       function saveLevelConfig(level) {
         if (!hasOperationPermission("settings.edit"))
@@ -30277,12 +30042,23 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
       }
 
       function bindSalesSupportFilters() {
+        document.querySelectorAll("[data-sales-support-status]").forEach((button) => {
+          button.onclick = () => {
+            appliedSupportFilters = {
+              ...appliedSupportFilters,
+              status: button.dataset.salesSupportStatus || "",
+            };
+            const state = unifiedTablePaginationStates["m12-supports"];
+            if (state) state.page = 1;
+            renderPage();
+          };
+        });
         const apply = $("#applySupportFilters");
         if (apply) apply.onclick = () => {
           const next = {
             name: $("#supportNameFilter").value.trim(),
             customer: $("#supportCustomerFilter").value,
-            status: $("#supportStatusFilter").value,
+            status: appliedSupportFilters.status,
             deadlineFrom: $("#supportDeadlineFromFilter").value,
             deadlineTo: $("#supportDeadlineToFilter").value,
           };
@@ -31300,6 +31076,13 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
         return `<div class="panel-head" style="padding:var(--space-3) 0"><div><div class="panel-title">地市负责人配置</div><div class="panel-sub">全部 ${regionCities.length} 个地市 · PM 已分配 ${pmAssignedCount}</div></div><div class="spacer"></div>${viewSwitch}${canAssignCities ? '<button class="btn btn-primary" type="button" id="openInitialCityAssignment">分配 PM</button>' : ""}</div><div class="toolbar" style="padding-left:0;padding-right:0"><select class="input" id="regionCityProvince"><option value="">全部省份</option>${provinces.map((province) => `<option>${province}</option>`).join("")}</select><input class="input" id="regionCityKeyword" maxlength="100" placeholder="城市 / PM"><select class="input" id="regionCityPmStatus"><option value="">全部 PM 状态</option><option value="assigned">PM 已分配</option><option value="pending">PM 待分配</option></select>${filterActions('<button class="btn btn-primary" type="button" id="queryRegionCities">筛选</button><button class="btn" type="button" id="resetRegionCities">重置</button>')}<span class="spacer"></span></div><div class="table-wrap"><table data-paged-table="m08-cities" style="min-width:1120px"><thead><tr><th>省份</th><th>城市</th><th>客户</th><th>关键人</th><th>PM 负责人</th><th>PM 工号</th><th>PM 负责起始时间</th><th>PM 状态</th><th>操作</th></tr></thead><tbody id="regionCityBody">${rows || '<tr data-empty-row><td colspan="9"><div class="empty">当前账号没有可查看的地市责任</div></td></tr>'}<tr data-filter-empty style="display:none"><td colspan="9"><div class="empty">未找到符合条件的地市责任，请调整条件或重置筛选</div></td></tr></tbody></table></div>${tablePagination("m08-cities")}`;
       }
 
+      function renderCityResponsibilityRules(region, canEdit) {
+        const provinces = new Set(regionProvinceList(region));
+        const rules = cityResponsibilityRules.filter((rule) => provinces.has(rule.province));
+        const rows = rules.map((rule) => `<tr data-page-row><td>${escapeHtml(rule.province)} · ${escapeHtml(rule.city)}</td><td><span class="tag blue">${escapeHtml(rule.dimension)}</span></td><td>${escapeHtml(rule.value)}</td><td>${escapeHtml(rule.pm)}</td><td>${escapeHtml(rule.effective || "—")}</td><td><span class="tag ${rule.status === "启用" ? "green" : "yellow"}">${escapeHtml(rule.status)}</span></td><td>${canEdit ? `<button class="link" type="button" data-city-rule-edit="${rule.id}">编辑</button> · <button class="link" type="button" data-city-rule-toggle="${rule.id}">${rule.status === "启用" ? "停用" : "启用"}</button>` : "—"}</td></tr>`).join("");
+        return `<div class="panel region-responsibility-rules"><div class="panel-head"><div><div class="panel-title">集团 / 行业责任规则</div><div class="panel-sub">集团规则优先于行业规则；未命中时沿用地市默认 PM</div></div><div class="spacer"></div>${canEdit ? '<button class="btn btn-primary" type="button" data-city-rule-add>新增责任规则</button>' : '<span class="tag blue">只读</span>'}</div><div class="table-wrap"><table style="min-width:980px"><thead><tr><th>地市</th><th>维度</th><th>集团 / 行业</th><th>规则 PM</th><th>生效日期</th><th>状态</th><th>操作</th></tr></thead><tbody>${rows || '<tr data-empty-row><td colspan="7"><div class="empty">当前区域暂无集团 / 行业责任规则</div></td></tr>'}</tbody></table></div></div>`;
+      }
+
       function renderRegions() {
         if (isPmCityManagementUser())
           return forbiddenPage(
@@ -31317,6 +31100,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
           rows.find((item) => item.id === selectedRegionId) || rows[0];
         if (!region) return pageHead("区域中心与地市配置", "暂无可查看区域中心。");
         const canEditRegion = hasOperationPermission("regions.edit");
+        const canEditCityRules = canEditCityResponsibilityRules(region);
         const canAssignCities = hasOperationPermission("regions.batch_assign");
         const canHandoverCities = hasOperationPermission("regions.handover");
         const provinces = regionProvinceList(region);
@@ -31370,7 +31154,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
             const department = organizationDepartments.find((entry) => entry.regionId === item.id);
             const status = regionConfigurationStatus(item);
             return `<button class="master-item ${item.id === region.id ? "active" : ""}" data-region-select="${item.id}" data-search="${item.name}${department?.code || ""}${item.director}" data-provinces="${regionProvinceList(item).join("|")}"><div class="avatar">区</div><div class="master-item-main"><div class="master-item-title">${item.name}</div><div class="master-item-sub">${department?.code || "待同步编码"} · ${item.director || "主管待配置"}</div><div class="master-item-sub">${regionProvinceList(item).length} 省 · 驻地 ${item.base || "待配置"} · <span class="tag ${status === "已配置" ? "green" : status === "配置异常" ? "red" : "yellow"}">${status}</span></div></div><span>›</span></button>`;
-          }).join("")}</div></aside><div class="detail-pane"><div class="region-detail-head"><div class="region-detail-head-main"><div class="region-detail-name">${region.name}</div><div class="region-detail-director">区域总监 ${region.director || "待配置"} · 部门编码 ${organizationDepartments.find((item) => item.regionId === region.id)?.code || "待同步"}</div></div><div class="region-detail-actions">${canEditRegion ? `<button class="btn${canAssignCities ? "" : " btn-primary"}" data-action="edit-region" data-id="${region.id}">编辑区域配置</button>` : ""}</div></div>${anomalyHtml}<div class="region-detail-summary"><div class="overview-item"><label>关联省份</label><div>${provinces.length}</div></div><div class="overview-item"><label>驻地</label><div>${region.base || "待配置"}</div></div><div class="overview-item"><label>已分配地市</label><div>${currentUser.role === "pm" ? regionCities.length : `${assignedCount}/${regionCities.length}`}</div></div><div class="overview-item"><label>地市客户</label><div>${customerCount}</div></div><div class="overview-item"><label>关键人</label><div>${contactCount}</div></div></div><div class="region-provinces"><span class="region-provinces-label">关联省份</span>${provinces.map((province) => `<span class="tag blue">${province}</span>`).join("") || '<span class="tag yellow">待配置</span>'}</div>${regionAssignmentView === "pm" ? pmView : renderRegionCityResponsibilities({ region, regionCities, provinces, canAssignCities, canHandoverCities, viewSwitch, validPmNames })}</div></div></section>`
+          }).join("")}</div></aside><div class="detail-pane"><div class="region-detail-head"><div class="region-detail-head-main"><div class="region-detail-name">${region.name}</div><div class="region-detail-director">区域总监 ${region.director || "待配置"} · 部门编码 ${organizationDepartments.find((item) => item.regionId === region.id)?.code || "待同步"}</div></div><div class="region-detail-actions">${canEditRegion ? `<button class="btn${canAssignCities ? "" : " btn-primary"}" data-action="edit-region" data-id="${region.id}">编辑区域配置</button>` : ""}</div></div>${anomalyHtml}<div class="region-detail-summary"><div class="overview-item"><label>关联省份</label><div>${provinces.length}</div></div><div class="overview-item"><label>驻地</label><div>${region.base || "待配置"}</div></div><div class="overview-item"><label>已分配地市</label><div>${currentUser.role === "pm" ? regionCities.length : `${assignedCount}/${regionCities.length}`}</div></div><div class="overview-item"><label>地市客户</label><div>${customerCount}</div></div><div class="overview-item"><label>关键人</label><div>${contactCount}</div></div></div><div class="region-provinces"><span class="region-provinces-label">关联省份</span>${provinces.map((province) => `<span class="tag blue">${province}</span>`).join("") || '<span class="tag yellow">待配置</span>'}</div>${regionAssignmentView === "pm" ? pmView : renderRegionCityResponsibilities({ region, regionCities, provinces, canAssignCities, canHandoverCities, viewSwitch, validPmNames })}${renderCityResponsibilityRules(region, canEditCityRules)}</div></div></section>`
         );
       }
       function customerFilterOptions() {
@@ -34548,7 +34332,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
           ),
         ).size + ecologyOpportunityIds.length;
         openModal(
-          `<div class="modal-head"><div class="modal-title">确认员工${mode}</div><button class="icon-btn close" data-close>×</button></div><form id="employeeStatusForm"><div class="modal-body"><div class="role-note ${mode === "停用" ? "danger-note" : ""}"><strong>${employee.name} · ${employee.code}</strong></div>${mode === "停用" ? `<div class="impact-summary"><div class="impact-grid"><div><label>责任交接组</label><strong>${groups.length}</strong></div><div><label>未完成任务</label><strong>${openTasks.length}</strong></div><div><label>随责任迁移项目</label><strong>${projectCount}</strong></div><div><label>迁移未落选商机</label><strong>${opportunityCount}</strong></div></div></div>${ecologyIds.length || ecologyOpportunityIds.length ? ecosystemTransferFieldHtml(employee.code, "esEcologyReceiver") : ""}${supportRequests.length ? `<div class="section-title">方案支撑接替人</div><div class="form-grid">${supportFields}</div>` : ""}${targetRegions.length ? `<div class="section-title">个人目标承接</div><div class="role-note">本月未完成额度及未来目标交给所选人员，历史月份目标和已发生业绩保留。</div><div class="form-grid">${targetFields}</div>` : ""}${groups.length ? `<div class="section-title">责任组接收人</div><div class="form-grid">${receiverFields}</div>` : '<div class="role-note">该员工当前没有 PM 地市或区域总监区域中心责任。</div>'}<div class="role-note">请先为需交接事项选好有效接替人。确认后员工将立即停用并无法登录，再由系统自动交接，开始后不可中途结束。任务、适用项目和未落选商机按所选接替人转交；已取消或已中止项目、已落选商机及已关闭支撑不转交。原部门及系统角色保留。若部分交接失败，员工仍停用，已完成的交接不撤销，失败项由有权管理者继续处理。</div>` : `<div class="role-note">恢复后可登录，保留原部门及系统角色；已关闭任务不会重新打开，已交出的责任不会取回。</div>`}<div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>${mode}原因</label><textarea class="input" id="esReason" minlength="5" maxlength="500" required></textarea></div></div><div class="modal-foot"><button class="btn" type="button" data-close>取消</button><button class="btn ${mode === "停用" ? "btn-danger" : "btn-primary"}" type="submit">确认并立即${mode}</button></div></form>`,
+          `<div class="modal-head"><div class="modal-title">确认员工${mode}</div><button class="icon-btn close" data-close>×</button></div><form id="employeeStatusForm"><div class="modal-body"><div class="role-note ${mode === "停用" ? "danger-note" : ""}"><strong>${employee.name} · ${employee.code}</strong></div>${mode === "停用" ? `<div class="impact-summary"><div class="impact-grid"><div><label>责任交接组</label><strong>${groups.length}</strong></div><div><label>未完成任务</label><strong>${openTasks.length}</strong></div><div><label>随责任迁移项目</label><strong>${projectCount}</strong></div><div><label>迁移未落选商机</label><strong>${opportunityCount}</strong></div></div></div>${ecologyIds.length || ecologyOpportunityIds.length ? ecosystemTransferFieldHtml(employee.code, "esEcologyReceiver") : ""}${supportRequests.length ? `<div class="section-title">方案支撑接替人</div><div class="form-grid">${supportFields}</div>` : ""}${targetRegions.length ? `<div class="section-title">个人目标承接</div><div class="role-note">本月未完成额度及未来目标交给所选人员，历史月份目标和已发生业绩保留。</div><div class="form-grid">${targetFields}</div>` : ""}${groups.length ? `<div class="section-title">责任组接收人</div><div class="form-grid">${receiverFields}</div>` : '<div class="role-note">该员工当前没有 PM 地市或区域总监区域中心责任。</div>'}<div class="role-note">请先为需交接事项选好有效接替人。确认后员工将立即停用并无法登录，再由系统自动交接，开始后不可中途结束。任务、六个阶段项目和未落选商机按所选接替人转交；已落选商机及已关闭支撑不转交。原部门及系统角色保留。若部分交接失败，员工仍停用，已完成的交接不撤销，失败项由有权管理者继续处理。</div>` : `<div class="role-note">恢复后可登录，保留原部门及系统角色；已关闭任务不会重新打开，已交出的责任不会取回。</div>`}<div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>${mode}原因</label><textarea class="input" id="esReason" minlength="5" maxlength="500" required></textarea></div></div><div class="modal-foot"><button class="btn" type="button" data-close>取消</button><button class="btn ${mode === "停用" ? "btn-danger" : "btn-primary"}" type="submit">确认并立即${mode}</button></div></form>`,
         );
         const refreshTargetReceivers=()=> {
           targetRegions.forEach((name,index)=> {
@@ -35202,6 +34986,15 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
         document.querySelectorAll("[data-pm-city-assign]").forEach(
           (button) =>
             (button.onclick = () => openCityForm(button.dataset.pmCityAssign)),
+        );
+        document.querySelectorAll("[data-city-rule-add]").forEach(
+          (button) => (button.onclick = () => openCityResponsibilityRuleForm()),
+        );
+        document.querySelectorAll("[data-city-rule-edit]").forEach(
+          (button) => (button.onclick = () => openCityResponsibilityRuleForm(Number(button.dataset.cityRuleEdit))),
+        );
+        document.querySelectorAll("[data-city-rule-toggle]").forEach(
+          (button) => (button.onclick = () => toggleCityResponsibilityRule(Number(button.dataset.cityRuleToggle))),
         );
 
         document.querySelectorAll("[data-permission-role]").forEach(

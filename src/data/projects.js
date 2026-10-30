@@ -9,12 +9,12 @@
       const projects = [
         {
           id: "XM2026000001",
-          name: "中国移动济南分公司新员工 AI 素养培训",
+          name: "华北云网集团济南分公司新员工 AI 素养培训",
           type: "培训项目",
           customerId: 2,
           customerSnapshot: {
             customerCode: "2",
-            name: "中国移动济南分公司",
+            name: "华北云网集团济南分公司",
             level: "市公司",
             province: "山东",
             city: "济南",
@@ -92,7 +92,7 @@
               title: "编辑项目",
               categories: ["基本信息"],
               changes: [
-                { category: "基本信息", field: "项目名称", before: "中国移动济南分公司新员工培训", after: "中国移动济南分公司新员工 AI 素养培训" },
+                { category: "基本信息", field: "项目名称", before: "华北云网集团济南分公司新员工培训", after: "华北云网集团济南分公司新员工 AI 素养培训" },
               ],
               operator: "陈经理",
               time: "2026-07-20 10:30:00",
@@ -133,7 +133,7 @@
               title: "编辑项目",
               categories: ["基本信息", "时间与金额", "商业资源"],
               changes: [
-                { category: "基本信息", field: "项目名称", before: "中国移动济南分公司新员工 AI 培训", after: "中国移动济南分公司新员工 AI 素养培训" },
+                { category: "基本信息", field: "项目名称", before: "华北云网集团济南分公司新员工 AI 培训", after: "华北云网集团济南分公司新员工 AI 素养培训" },
                 { category: "时间与金额", field: "结束时间", before: "2026-08-25 18:00", after: "2026-08-26 18:00" },
                 { category: "商业资源", field: "资源类型", before: "自定义课程", after: "采购包课程" },
               ],
@@ -222,12 +222,12 @@
         },
         {
           id: "XM2026000002",
-          name: "中国联通泰安分公司服务礼仪培训",
+          name: "华信通信集团泰安分公司服务礼仪培训",
           type: "培训项目",
           customerId: 3,
           customerSnapshot: {
             customerCode: "3",
-            name: "中国联通泰安分公司",
+            name: "华信通信集团泰安分公司",
             level: "市公司",
             province: "山东",
             city: "泰安",
@@ -266,12 +266,12 @@
         },
         {
           id: "XM2026000003",
-          name: "中国移动济南分公司中层管理能力培训",
+          name: "华北云网集团济南分公司中层管理能力培训",
           type: "培训项目",
           customerId: 2,
           customerSnapshot: {
             customerCode: "2",
-            name: "中国移动济南分公司",
+            name: "华北云网集团济南分公司",
             level: "市公司",
             province: "山东",
             city: "济南",
@@ -309,12 +309,12 @@
         },
         {
           id: "XM2026000004",
-          name: "中国电信青岛分公司客户服务培训",
+          name: "国网产业协同集团青岛分公司客户服务培训",
           type: "培训项目",
           customerId: 4,
           customerSnapshot: {
             customerCode: "4",
-            name: "中国电信青岛分公司",
+            name: "国网产业协同集团青岛分公司",
             level: "市公司",
             province: "山东",
             city: "青岛",
@@ -359,12 +359,12 @@
         },
         {
           id: "XM2026000005",
-          name: "中国移动烟台分公司数字化转型培训",
+          name: "齐鲁数科集团烟台分公司数字化转型培训",
           type: "培训项目",
           customerId: 10,
           customerSnapshot: {
             customerCode: "10",
-            name: "中国移动烟台分公司",
+            name: "齐鲁数科集团烟台分公司",
             level: "市公司",
             province: "山东",
             city: "烟台",
@@ -419,12 +419,12 @@
         },
         {
           id: "XM2026000006",
-          name: "国家电网济南市公司智能巡检平台项目",
+          name: "国网产业协同集团济南市公司智能巡检平台项目",
           type: "AI软件项目",
           customerId: 27,
           customerSnapshot: {
             customerCode: "CC00000027",
-            name: "国家电网济南市公司",
+            name: "国网产业协同集团济南市公司",
             level: "市公司",
             province: "山东",
             city: "济南",
@@ -462,12 +462,12 @@
         },
         {
           id: "XM2026000007",
-          name: "中国电信南京分公司数据分析平台项目",
+          name: "华北云网集团南京分公司数据分析平台项目",
           type: "AI软件项目",
           customerId: 7,
           customerSnapshot: {
             customerCode: "7",
-            name: "中国电信南京分公司",
+            name: "华北云网集团南京分公司",
             level: "市公司",
             province: "江苏",
             city: "南京",
@@ -505,12 +505,12 @@
         },
         {
           id: "XM2026000008",
-          name: "中国移动杭州分公司智能客服平台项目",
+          name: "齐鲁数科集团杭州分公司智能客服平台项目",
           type: "AI软件项目",
           customerId: 19,
           customerSnapshot: {
             customerCode: "19",
-            name: "中国移动杭州分公司",
+            name: "齐鲁数科集团杭州分公司",
             level: "市公司",
             province: "浙江",
             city: "杭州",
@@ -551,12 +551,12 @@
         },
         {
           id: "XM2026000009",
-          name: "华电山东新能源有限公司设备预测性维护平台项目",
+          name: "华东能源控股山东有限公司设备预测性维护平台项目",
           type: "AI软件项目",
           customerId: 5,
           customerSnapshot: {
             customerCode: "5",
-            name: "华电山东新能源有限公司",
+            name: "华东能源控股山东有限公司",
             level: "省公司",
             province: "山东",
             city: "",
@@ -605,12 +605,12 @@
         },
         {
           id: "XM2026000010",
-          name: "中国移动江苏有限公司省级管理培训",
+          name: "齐鲁数科集团江苏有限公司省级管理培训",
           type: "培训项目",
           customerId: 6,
           customerSnapshot: {
             customerCode: "6",
-            name: "中国移动江苏有限公司",
+            name: "齐鲁数科集团江苏有限公司",
             level: "省公司",
             province: "江苏",
             city: "",
@@ -648,12 +648,12 @@
         },
         {
           id: "XM2026000011",
-          name: "中国移动济南分公司网格经理服务培训",
+          name: "华北云网集团济南分公司网格经理服务培训",
           type: "培训项目",
           customerId: 2,
           customerSnapshot: {
             customerCode: "2",
-            name: "中国移动济南分公司",
+            name: "华北云网集团济南分公司",
             level: "市公司",
             province: "山东",
             city: "济南",
@@ -695,12 +695,12 @@
         },
         {
           id: "XM2026000012",
-          name: "中国电信济南分公司新员工服务培训",
+          name: "齐鲁数科集团济南分公司新员工服务培训",
           type: "培训项目",
           customerId: 12,
           customerSnapshot: {
             customerCode: "12",
-            name: "中国电信济南分公司",
+            name: "齐鲁数科集团济南分公司",
             level: "市公司",
             province: "山东",
             city: "济南",

@@ -1,56 +1,56 @@
       const customerDepartments = [
         {
           id: 1001,
-          group: "中国移动",
-          company: "中国移动济南分公司",
+          group: "华北云网集团",
+          company: "华北云网集团济南分公司",
           name: "人力资源部",
           parent: "无",
           duty: "人才发展与培训管理",
         },
         {
           id: 1002,
-          group: "中国移动",
-          company: "中国移动济南分公司",
+          group: "华北云网集团",
+          company: "华北云网集团济南分公司",
           name: "培训发展中心",
           parent: "人力资源部",
           duty: "培训项目执行",
         },
         {
           id: 1003,
-          group: "中国移动",
-          company: "中国移动济南分公司",
+          group: "华北云网集团",
+          company: "华北云网集团济南分公司",
           name: "人才发展部",
           parent: "人力资源部",
           duty: "人才梯队与能力建设",
         },
         {
           id: 1004,
-          group: "中国联通",
-          company: "中国联通泰安分公司",
+          group: "华信通信集团",
+          company: "华信通信集团泰安分公司",
           name: "组织人事部",
           parent: "无",
           duty: "组织与人才发展",
         },
         {
           id: 1005,
-          group: "中国电信",
-          company: "中国电信青岛分公司",
+          group: "华北云网集团",
+          company: "国网产业协同集团青岛分公司",
           name: "人力资源部",
           parent: "无",
           duty: "人才发展与培训管理",
         },
         {
           id: 1006,
-          group: "华电集团",
-          company: "华电山东新能源有限公司",
+          group: "华东能源控股",
+          company: "华东能源控股山东有限公司",
           name: "人力资源部",
           parent: "无",
           duty: "干部与人才培养",
         },
         {
           id: 1010,
-          group: "中国移动",
-          company: "中国移动济南分公司",
+          group: "华北云网集团",
+          company: "华北云网集团济南分公司",
           name: "原培训管理办公室",
           parent: "人力资源部",
           duty: "历史培训管理职能",
@@ -58,24 +58,24 @@
         },
         {
           id: 1101,
-          group: "国家电网",
-          company: "国家电网山东省公司",
+          group: "国网产业协同集团",
+          company: "国网产业协同集团山东省公司",
           name: "运营管理部",
           parent: "无",
           duty: "集团运营统筹与区域协同",
         },
         {
           id: 1102,
-          group: "国家电网",
-          company: "国家电网济南市公司",
+          group: "国网产业协同集团",
+          company: "国网产业协同集团济南市公司",
           name: "客户运营组",
           parent: "无",
           duty: "客户运营体系与重点客户协同",
         },
         {
           id: 1103,
-          group: "国家电网",
-          company: "国家电网济南市公司",
+          group: "国网产业协同集团",
+          company: "国网产业协同集团济南市公司",
           name: "华东客户组",
           parent: "客户运营组",
           duty: "华东区域客户日常运营",
@@ -302,23 +302,20 @@
       });
 
       const customerGroupNames = [
-        "中国移动",
-        "中国联通",
-        "中国电信",
-        "华电集团",
-        "国家电网",
-        "中粮集团",
+        "齐鲁数科集团",
+        "华信通信集团",
+        "华北云网集团",
+        "华东能源控股",
+        "国网产业协同集团",
       ];
       const pendingGroupStops = new Set();
       const customerGroupCreditCodes = {};
       const customerGroupNumbers = {
-        中国移动: "CG00000001",
-        中国联通: "CG00000002",
-        中国电信: "CG00000003",
-        华电集团: "CG00000004",
-        国家电网: "CG00000005",
-        中粮集团: "CG00000006",
-        华东通信试点集团: "CG00000007",
+        齐鲁数科集团: "CG00000001",
+        华信通信集团: "CG00000002",
+        华北云网集团: "CG00000003",
+        华东能源控股: "CG00000004",
+        国网产业协同集团: "CG00000005",
       };
       function nextCustomerGroupNumber() {
         const usedNumbers = new Set(Object.values(customerGroupNumbers));
@@ -336,8 +333,7 @@
           customers.find((customer) => customer.group === group)?.industry || "",
         ]),
       );
-      customerGroupIndustries['国家电网'] = '制造';
-      customerGroupIndustries['中粮集团'] = '制造';
+      customerGroupIndustries['国网产业协同集团'] = '制造';
 
       function customerBusinessResponsibilityLevel(company) {
         return (

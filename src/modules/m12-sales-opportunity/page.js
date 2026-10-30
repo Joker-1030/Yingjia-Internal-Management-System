@@ -149,16 +149,12 @@
             ? { ok: true, owner: candidates[0], role: "区域总监" }
             : { ok: false, message: "该省级客户没有唯一有效区域总监，暂不能创建商机" };
         }
-        const responsibilities = cityOwners.filter(
-          (item) =>
-            item.province === customer.province && item.city === customer.city,
-        );
-        if (responsibilities.length !== 1)
+        const currentPm = customer.pm || cityDefaultOwner(customer.province, customer.city)?.pm || "";
+        if (!currentPm)
           return { ok: false, message: "该客户责任地市没有唯一有效 PM 负责人，暂不能创建商机" };
-        const responsibility = responsibilities[0];
         const candidates = employees.filter(
           (employee) =>
-            employee.name === responsibility?.pm &&
+            employee.name === currentPm &&
             employee.status === "在职" &&
             employee.accountStatus !== "停用" &&
             employeeHasRole(employee, "PM") &&
@@ -1014,6 +1010,8 @@
           (!filter.deadlineTo || (validDeadline && day <= filter.deadlineTo));
       }
 
+      const SALES_SUPPORT_STATUS_TABS = ["全部", "待响应", "进行中", "已交付", "已关闭"];
+
       function salesCompareSupportRequests(left, right) {
         const group = (support) => !Number.isFinite(salesSupportDeadlineTime(support)) ? 2 : ["待响应", "进行中"].includes(support.status) ? 0 : 1;
         const leftGroup = group(left.support), rightGroup = group(right.support);
@@ -1023,10 +1021,14 @@
       function salesSupportFiltersHtml(requests) {
         const filter = appliedSupportFilters;
         const options = (values, selected) => values.map((value) => `<option value="${escapeHtml(value)}" ${value === selected ? "selected" : ""}>${escapeHtml(value)}</option>`).join("");
-        return `<div class="toolbar filter-toolbar sales-opportunity-filters">${filterField("商机名称",
+        const statusTabs = SALES_SUPPORT_STATUS_TABS.map((status) => {
+          const value = status === "全部" ? "" : status;
+          const active = filter.status === value;
+          return `<button class="tab${active ? " active" : ""}" type="button" role="tab" aria-selected="${active}" data-sales-support-status="${escapeHtml(value)}">${status}</button>`;
+        }).join("");
+        return `<div class="tabs sales-support-status-tabs" role="tablist" aria-label="方案支撑状态">${statusTabs}</div><div class="toolbar filter-toolbar sales-opportunity-filters">${filterField("商机名称",
           `<input class="input" id="supportNameFilter" value="${escapeHtml(filter.name)}" placeholder="请输入商机名称">`)}${filterField("客户单位",
-          `<select class="input" id="supportCustomerFilter"><option value="">全部客户</option>${options([...new Set(requests.map(({ opportunity }) => opportunity.customer))], filter.customer)}</select>`)}${filterField("状态",
-          `<select class="input" id="supportStatusFilter"><option value="">全部状态</option>${options(["待响应", "进行中", "已交付", "已关闭"], filter.status)}</select>`)}${filterField("交付截止日期",
+          `<select class="input" id="supportCustomerFilter"><option value="">全部客户</option>${options([...new Set(requests.map(({ opportunity }) => opportunity.customer))], filter.customer)}</select>`)}${filterField("交付截止日期",
           `<span class="date-range"><input class="input" id="supportDeadlineFromFilter" type="date" value="${escapeHtml(filter.deadlineFrom)}"><span>至</span><input class="input" id="supportDeadlineToFilter" type="date" value="${escapeHtml(filter.deadlineTo)}"></span>`)}${filterActions(
           '<button class="btn btn-primary" id="applySupportFilters" type="button">筛选</button><button class="btn" id="resetSupportFilters" type="button">重置</button>')}</div>`;
       }

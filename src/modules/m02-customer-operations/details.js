@@ -506,16 +506,14 @@
           const region = regionScopeName(regionMatch);
           const director = regionMatch.director;
           if (!director) return toast("所属区域中心未设置区域总监，不能创建客户");
-          const ownerInfo = cityOwners.find(
-            (item) => item.province === province && item.city === city,
-          );
-          if (level !== "省级" && !ownerInfo?.pm)
-            return toast("该城市尚未配置地市负责人，不能创建客户");
-          const owner = level === "省级" ? director : ownerInfo.pm;
-          const pm = level === "省级" ? "" : ownerInfo.pm;
           const group = $("#cfGroup").value;
           const industry = customerGroupIndustries[group];
           if (!industry) return toast("所属集团行业未配置，不能创建客户");
+          const defaultPm = level === "省级" ? "" : cityPmForNewCustomer({ province, city, group, industry });
+          if (level !== "省级" && !defaultPm)
+            return toast("该城市尚未配置地市负责人，不能创建客户");
+          const owner = level === "省级" ? director : defaultPm;
+          const pm = level === "省级" ? "" : defaultPm;
           const data = {
             group,
             industry,

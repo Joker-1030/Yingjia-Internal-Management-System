@@ -579,17 +579,17 @@
       const normalizePositionText = (value) =>
         String(value || "").trim().replace(/\s+/g, " ");
       const contactPositionCatalog = [
-        { id: "POS-CM-001", group: "中国移动", company: "中国移动济南分公司", departmentId: 1001, code: "POS00000001", name: "人力资源分管领导", aliases: ["人力副总"] },
-        { id: "POS-CM-002", group: "中国移动", company: "中国移动济南分公司", departmentId: 1002, code: "POS00000002", name: "培训发展负责人", aliases: ["培训负责人", "培训主任"] },
-        { id: "POS-CM-003", group: "中国移动", company: "中国移动济南分公司", departmentId: 1003, code: "POS00000003", name: "数字化负责人", aliases: ["信息化负责人"] },
-        { id: "POS-CM-004", group: "中国移动", company: "中国移动济南分公司", departmentId: 1001, code: "POS00000004", name: "关键决策人", aliases: ["采购负责人"] },
-        { id: "POS-CM-005", group: "中国移动", company: "中国移动济南分公司", departmentId: 1010, code: "POS00000005", name: "原培训管理岗", aliases: [], status: "已停用" },
-        { id: "POS-CT-001", group: "中国电信", company: "中国电信青岛分公司", departmentId: 1005, code: "POS00000006", name: "人力资源负责人", aliases: ["人力负责人"] },
-        { id: "POS-CT-002", group: "中国电信", company: "中国电信青岛分公司", departmentId: 1005, code: "POS00000007", name: "培训负责人", aliases: ["培训主任"] },
-        { id: "POS-CU-001", group: "中国联通", company: "中国联通泰安分公司", departmentId: 1004, code: "POS00000008", name: "组织人事负责人", aliases: ["人力负责人"] },
-        { id: "POS-HD-001", group: "华电集团", company: "华电山东新能源有限公司", departmentId: 1006, code: "POS00000009", name: "人力资源负责人", aliases: [] },
-        { id: "POS-SG-001", group: "国家电网", company: "国家电网山东省公司", departmentId: 1101, code: "POS00000021", name: "运营总监", aliases: ["运营负责人"] },
-        { id: "POS-SG-002", group: "国家电网", company: "国家电网济南市公司", departmentId: 1103, code: "POS00000022", name: "客户运营经理", aliases: [] },
+        { id: "POS-CM-001", group: "华北云网集团", company: "华北云网集团济南分公司", departmentId: 1001, code: "POS00000001", name: "人力资源分管领导", aliases: ["人力副总"] },
+        { id: "POS-CM-002", group: "华北云网集团", company: "华北云网集团济南分公司", departmentId: 1002, code: "POS00000002", name: "培训发展负责人", aliases: ["培训负责人", "培训主任"] },
+        { id: "POS-CM-003", group: "华北云网集团", company: "华北云网集团济南分公司", departmentId: 1003, code: "POS00000003", name: "数字化负责人", aliases: ["信息化负责人"] },
+        { id: "POS-CM-004", group: "华北云网集团", company: "华北云网集团济南分公司", departmentId: 1001, code: "POS00000004", name: "关键决策人", aliases: ["采购负责人"] },
+        { id: "POS-CM-005", group: "华北云网集团", company: "华北云网集团济南分公司", departmentId: 1010, code: "POS00000005", name: "原培训管理岗", aliases: [], status: "已停用" },
+        { id: "POS-CT-001", group: "华北云网集团", company: "国网产业协同集团青岛分公司", departmentId: 1005, code: "POS00000006", name: "人力资源负责人", aliases: ["人力负责人"] },
+        { id: "POS-CT-002", group: "华北云网集团", company: "国网产业协同集团青岛分公司", departmentId: 1005, code: "POS00000007", name: "培训负责人", aliases: ["培训主任"] },
+        { id: "POS-CU-001", group: "华信通信集团", company: "华信通信集团泰安分公司", departmentId: 1004, code: "POS00000008", name: "组织人事负责人", aliases: ["人力负责人"] },
+        { id: "POS-HD-001", group: "华东能源控股", company: "华东能源控股山东有限公司", departmentId: 1006, code: "POS00000009", name: "人力资源负责人", aliases: [] },
+        { id: "POS-SG-001", group: "国网产业协同集团", company: "国网产业协同集团山东省公司", departmentId: 1101, code: "POS00000021", name: "运营总监", aliases: ["运营负责人"] },
+        { id: "POS-SG-002", group: "国网产业协同集团", company: "国网产业协同集团济南市公司", departmentId: 1103, code: "POS00000022", name: "客户运营经理", aliases: [] },
       ];
       contactPositionCatalog.forEach((position, index) => {
         position.status = position.status || "正常";
@@ -754,7 +754,11 @@
             (item) =>
               item.province === company.province && item.city === company.city,
           );
-          company.owner = cityOwner?.pm || company.owner || company.pm || "待分配";
+          // Existing customer responsibility is authoritative. Responsibility
+          // rules apply when a customer is created; they must not migrate
+          // existing companies merely because the rule set changed.
+          const retainedPm = [company.pm, company.owner].find((value) => value && value !== "待分配");
+          company.owner = retainedPm || cityOwner?.pm || "待分配";
           company.pm = company.owner;
         });
         contacts.forEach((person) => {

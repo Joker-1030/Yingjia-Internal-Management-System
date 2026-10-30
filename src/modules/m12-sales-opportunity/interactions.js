@@ -1431,12 +1431,23 @@
       }
 
       function bindSalesSupportFilters() {
+        document.querySelectorAll("[data-sales-support-status]").forEach((button) => {
+          button.onclick = () => {
+            appliedSupportFilters = {
+              ...appliedSupportFilters,
+              status: button.dataset.salesSupportStatus || "",
+            };
+            const state = unifiedTablePaginationStates["m12-supports"];
+            if (state) state.page = 1;
+            renderPage();
+          };
+        });
         const apply = $("#applySupportFilters");
         if (apply) apply.onclick = () => {
           const next = {
             name: $("#supportNameFilter").value.trim(),
             customer: $("#supportCustomerFilter").value,
-            status: $("#supportStatusFilter").value,
+            status: appliedSupportFilters.status,
             deadlineFrom: $("#supportDeadlineFromFilter").value,
             deadlineTo: $("#supportDeadlineToFilter").value,
           };

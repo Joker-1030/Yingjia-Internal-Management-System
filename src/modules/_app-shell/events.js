@@ -350,6 +350,15 @@
           (button) =>
             (button.onclick = () => openCityForm(button.dataset.pmCityAssign)),
         );
+        document.querySelectorAll("[data-city-rule-add]").forEach(
+          (button) => (button.onclick = () => openCityResponsibilityRuleForm()),
+        );
+        document.querySelectorAll("[data-city-rule-edit]").forEach(
+          (button) => (button.onclick = () => openCityResponsibilityRuleForm(Number(button.dataset.cityRuleEdit))),
+        );
+        document.querySelectorAll("[data-city-rule-toggle]").forEach(
+          (button) => (button.onclick = () => toggleCityResponsibilityRule(Number(button.dataset.cityRuleToggle))),
+        );
 
         document.querySelectorAll("[data-permission-role]").forEach(
           (button) =>

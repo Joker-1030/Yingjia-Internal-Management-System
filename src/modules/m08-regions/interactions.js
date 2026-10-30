@@ -765,3 +765,89 @@
           `<div class="drawer-head"><div class="modal-title">地市责任交接</div><button class="icon-btn close" data-close>×</button></div><div class="drawer-body"><div class="detail-hero"><div class="avatar">交</div><div><div class="detail-name">${cityNames || handover.title}</div><div class="detail-sub">${handover.code}</div></div><div class="spacer"></div><span class="tag ${statusTone}">${statusName}</span></div><div class="detail-grid"><div class="detail-item"><label>原负责人</label><div>${handover.originalPm}</div></div><div class="detail-item"><label>目标负责人</label><div>${handover.targetPm}</div></div><div class="detail-item"><label>计划生效日期</label><div>${handover.plannedEffectiveDate}</div></div><div class="detail-item"><label>确认人</label><div>${handover.operator}</div></div><div class="detail-item"><label>确认时间</label><div>${handover.createdAt}</div></div><div class="detail-item"><label>实际生效时间</label><div>${handover.effectiveAt || "—"}</div></div><div class="detail-item full"><label>交接原因</label><div>${handover.reason}</div></div>${handover.businessError ? `<div class="detail-item full"><label>失败结果</label><div>${handover.businessError}</div></div>` : ""}</div><div class="section-title">影响快照</div><div class="metrics compact-metrics">${metric("客户单位", impact.customers || 0, "交接确认时")}${metric("关键人", impact.people || 0, "交接确认时", "blue")}${metric("未完成任务", impact.tasks || 0, "交接确认时", "yellow")}${metric("覆盖 KPI 待办", impact.coverageKpis || 0, "交接确认时", "orange")}${impact.opportunities !== undefined ? metric("未落选商机", impact.opportunities, "交接确认时") : ""}</div>${handover.status === "pending_effective" ? '<div class="role-note">计划生效日前仍由原 PM 负责。</div>' : ""}</div><div class="drawer-foot"><button class="btn" data-close>关闭</button></div>`,
         );
       }
+
+      function cityResponsibilityRuleRegion(rule) {
+        return regionsData.find((region) => regionProvinceList(region).includes(rule?.province));
+      }
+
+      function canEditCityResponsibilityRules(region) {
+        if (!region) return false;
+        if (currentUser?.fullAccess) return true;
+        const employee = employees.find((item) => item.code === currentUser?.employeeCode || item.name === currentUser?.name);
+        if (!employee || employee.status !== "在职" || employee.accountStatus === "停用") return false;
+        if (employeeHasRole(employee, "市场副总")) return hasOperationPermission("regions.edit");
+        return employeeHasRole(employee, "区域总监") && organizationRegionsForEmployee(employee).some((item) => item.id === region.id);
+      }
+
+      function cityResponsibilityRuleValues(dimension, region) {
+        const provinces = new Set(regionProvinceList(region));
+        const values = customers
+          .filter((customer) => customer && !customer.archived && provinces.has(customerBusinessProvince(customer)))
+          .map((customer) => dimension === "集团" ? customer.group : customer.industry)
+          .filter(Boolean);
+        return [...new Set(values)].sort((a, b) => String(a).localeCompare(String(b), "zh-CN"));
+      }
+
+      function openCityResponsibilityRuleForm(ruleId = null) {
+        const region = regionsData.find((item) => item.id === selectedRegionId) || regionsData[0];
+        if (!region) return toast("当前没有可维护的区域中心");
+        if (!canEditCityResponsibilityRules(region)) return toast("当前角色无权维护集团 / 行业责任规则");
+        const existing = ruleId == null ? null : cityResponsibilityRules.find((item) => Number(item.id) === Number(ruleId));
+        if (existing && !regionProvinceList(region).includes(existing.province)) return toast("无权维护其他区域的责任规则");
+        const cityRows = regionCityRows(region);
+        const pms = regionPmEmployees(region).filter((employee) => employee.status === "在职" && employee.accountStatus !== "停用");
+        if (!pms.length) return toast("当前区域暂无有效 PM，不能配置责任规则");
+        const dimension = existing?.dimension || "集团";
+        const renderValues = (selectedDimension, selectedValue) => {
+          const values = cityResponsibilityRuleValues(selectedDimension, region);
+          return `<option value="">请选择${selectedDimension}</option>${values.map((value) => `<option value="${escapeHtml(value)}" ${value === selectedValue ? "selected" : ""}>${escapeHtml(value)}</option>`).join("")}`;
+        };
+        openModal(`<div class="modal-head"><div><div class="modal-title">${existing ? "编辑" : "新增"}集团 / 行业责任规则</div><div class="modal-subtitle">集团规则优先于行业规则；未命中时沿用地市默认 PM</div></div><button class="icon-btn close" data-close>×</button></div><form id="cityResponsibilityRuleForm"><div class="modal-body"><div class="role-note">规则只影响新建客户时的默认 PM；已有客户不会自动迁移。</div><div class="form-grid"><div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>省份</label><select class="input" id="cityRuleProvince" required>${regionProvinceList(region).map((province) => `<option value="${escapeHtml(province)}" ${province === existing?.province ? "selected" : ""}>${escapeHtml(province)}</option>`).join("")}</select></div><div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>地市</label><select class="input" id="cityRuleCity" required>${cityRows.map((city) => `<option value="${escapeHtml(city.city)}" data-province="${escapeHtml(city.province)}" ${city.city === existing?.city && city.province === existing?.province ? "selected" : ""}>${escapeHtml(city.province)} · ${escapeHtml(city.city)}</option>`).join("")}</select></div><div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>规则维度</label><select class="input" id="cityRuleDimension" required><option value="集团" ${dimension === "集团" ? "selected" : ""}>集团</option><option value="行业" ${dimension === "行业" ? "selected" : ""}>行业</option></select></div><div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>匹配值</label><select class="input" id="cityRuleValue" required>${renderValues(dimension, existing?.value || "")}</select></div><div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>规则 PM</label><select class="input" id="cityRulePm" required>${pms.map((employee) => `<option value="${escapeHtml(employee.name)}" ${employee.name === existing?.pm ? "selected" : ""}>${escapeHtml(employee.name)} · ${escapeHtml(employee.code)}</option>`).join("")}</select></div><div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>生效日期</label><input class="input" id="cityRuleEffective" type="date" value="${existing?.effective || DEMO_TODAY}" required></div><div class="form-group full"><label class="form-label">规则说明</label><div class="list-sub">同一地市、同一维度、同一匹配值只能保留一条启用规则。停用规则不参与负责人解析。</div></div></div><div class="field-error" id="cityRuleError" role="alert"></div></div><div class="modal-foot"><button class="btn" type="button" data-close>取消</button><button class="btn btn-primary" type="submit">保存规则</button></div></form>`);
+        const refreshCities = () => {
+          const province = $("#cityRuleProvince")?.value || "";
+          const current = $("#cityRuleCity")?.value || "";
+          $("#cityRuleCity").innerHTML = cityRows.filter((city) => city.province === province).map((city) => `<option value="${escapeHtml(city.city)}" ${city.city === current || (!current && city.city === existing?.city) ? "selected" : ""}>${escapeHtml(city.city)}</option>`).join("");
+        };
+        const refreshValues = () => {
+          const selectedDimension = $("#cityRuleDimension").value;
+          const currentValue = existing?.dimension === selectedDimension ? existing?.value : "";
+          $("#cityRuleValue").innerHTML = renderValues(selectedDimension, currentValue);
+        };
+        $("#cityRuleProvince").onchange = refreshCities;
+        $("#cityRuleDimension").onchange = refreshValues;
+        refreshCities();
+        $("#cityResponsibilityRuleForm").onsubmit = (event) => {
+          event.preventDefault();
+          const province = $("#cityRuleProvince").value;
+          const city = $("#cityRuleCity").value;
+          const nextRule = { province, city, dimension: $("#cityRuleDimension").value, value: $("#cityRuleValue").value, pm: $("#cityRulePm").value, effective: $("#cityRuleEffective").value, status: existing?.status || "启用" };
+          const error = $("#cityRuleError");
+          const duplicate = cityResponsibilityRules.find((item) => Number(item.id) !== Number(existing?.id) && item.status === "启用" && item.province === nextRule.province && item.city === nextRule.city && item.dimension === nextRule.dimension && item.value === nextRule.value);
+          if (!nextRule.city || !nextRule.value || !nextRule.pm || !nextRule.effective) return error.textContent = "请完整填写规则条件、PM 和生效日期";
+          if (!canEditCityResponsibilityRules(region)) return error.textContent = "当前账号已无权维护该区域，请刷新后重试";
+          if (!regionProvinceList(region).includes(nextRule.province) || !regionCityRows(region).some((item) => item.province === nextRule.province && item.city === nextRule.city)) return error.textContent = "地市已不属于当前区域，请刷新后重试";
+          if (!regionPmEmployees(region).some((employee) => employee.name === nextRule.pm && employee.status === "在职" && employee.accountStatus !== "停用")) return error.textContent = "规则 PM 已失效，请重新选择在职 PM";
+          if (duplicate) return error.textContent = "同一地市、同一维度、同一匹配值已有启用规则，请编辑原规则或先停用它";
+          if (existing) Object.assign(existing, nextRule, { updatedAt: recordCreatedAt(), updatedBy: currentUser.name });
+          else cityResponsibilityRules.push({ id: Date.now(), ...nextRule, createdAt: recordCreatedAt(), updatedAt: recordCreatedAt(), createdBy: currentUser.name });
+          closeAllOverlays();
+          renderPage();
+          toast(existing ? "责任规则已更新" : "责任规则已新增");
+        };
+      }
+
+      function toggleCityResponsibilityRule(ruleId) {
+        const rule = cityResponsibilityRules.find((item) => Number(item.id) === Number(ruleId));
+        if (!rule) return toast("责任规则不存在");
+        const region = cityResponsibilityRuleRegion(rule);
+        if (!region || !canEditCityResponsibilityRules(region) || !regionProvinceList(region).includes(rule.province)) return toast("无权维护其他区域的责任规则");
+        if (rule.status !== "启用") {
+          const duplicate = cityResponsibilityRules.find((item) => item !== rule && item.status === "启用" && item.province === rule.province && item.city === rule.city && item.dimension === rule.dimension && item.value === rule.value);
+          if (duplicate) return toast("同一地市、同一维度、同一匹配值已有启用规则");
+        }
+        rule.status = rule.status === "启用" ? "停用" : "启用";
+        rule.updatedAt = recordCreatedAt();
+        rule.updatedBy = currentUser.name;
+        renderPage();
+        toast(rule.status === "启用" ? "责任规则已启用" : "责任规则已停用");
+      }

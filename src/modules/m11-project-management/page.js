@@ -457,6 +457,8 @@
         "进行中",
         "已交付",
         "已完成",
+        "已取消",
+        "已中止",
       ]);
       function projectResponsibilityTransferCandidates(spec) {
         const provinceNames = new Set(

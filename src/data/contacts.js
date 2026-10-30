@@ -2,7 +2,7 @@
         {
           id: 101,
           name: "李雪",
-          company: "中国移动山东有限公司",
+          company: "华北云网集团山东有限公司",
           department: "人力资源部",
           title: "副总经理",
           positionSource: "standard",
@@ -22,7 +22,7 @@
         {
           id: 102,
           name: "王建国",
-          company: "中国移动济南分公司",
+          company: "华北云网集团济南分公司",
           department: "人力资源部",
           title: "总经理",
           level: "二级",
@@ -39,7 +39,7 @@
         {
           id: 103,
           name: "林静",
-          company: "中国移动济南分公司",
+          company: "华北云网集团济南分公司",
           department: "培训发展中心",
           title: "主任",
           level: "四级",
@@ -56,7 +56,7 @@
         {
           id: 104,
           name: "马骏",
-          company: "中国联通泰安分公司",
+          company: "华信通信集团泰安分公司",
           department: "组织人事部",
           title: "副主任",
           level: "三级",
@@ -73,7 +73,7 @@
         {
           id: 105,
           name: "周明远",
-          company: "中国电信青岛分公司",
+          company: "国网产业协同集团青岛分公司",
           department: "人力资源部",
           title: "总经理",
           level: "二级",
@@ -90,7 +90,7 @@
         {
           id: 106,
           name: "许航",
-          company: "中国移动江苏有限公司",
+          company: "齐鲁数科集团江苏有限公司",
           department: "人才发展部",
           title: "副总经理",
           positionSource: "standard",
@@ -110,7 +110,7 @@
         {
           id: 107,
           name: "张海",
-          company: "中国移动济南分公司",
+          company: "华北云网集团济南分公司",
           department: "人力资源部",
           title: "副总经理",
           level: "二级",
@@ -127,7 +127,7 @@
         {
           id: 108,
           name: "孙立",
-          company: "华电山东新能源有限公司",
+          company: "华东能源控股山东有限公司",
           department: "人力资源部",
           title: "原部门主任",
           level: "三级",
@@ -145,7 +145,7 @@
         {
           id: 109,
           name: "赵倩",
-          company: "中国移动烟台分公司",
+          company: "齐鲁数科集团烟台分公司",
           department: "人力资源部",
           title: "总经理",
           level: "二级",
@@ -162,7 +162,7 @@
         {
           id: 110,
           name: "孙鹏",
-          company: "中国移动烟台分公司",
+          company: "齐鲁数科集团烟台分公司",
           department: "培训发展中心",
           title: "培训主任",
           level: "二级",
@@ -179,7 +179,7 @@
         {
           id: 111,
           name: "郑伟",
-          company: "中国联通烟台分公司",
+          company: "华信通信集团烟台分公司",
           department: "组织人事部",
           title: "总经理",
           level: "二级",
@@ -196,7 +196,7 @@
         {
           id: 112,
           name: "吴敏",
-          company: "中国电信济南分公司",
+          company: "齐鲁数科集团济南分公司",
           department: "人力资源部",
           title: "总经理",
           level: "二级",
@@ -213,7 +213,7 @@
         {
           id: 113,
           name: "冯军",
-          company: "中国电信济南分公司",
+          company: "齐鲁数科集团济南分公司",
           department: "人力资源部",
           title: "副经理",
           level: "二级",
@@ -230,7 +230,7 @@
         {
           id: 114,
           name: "高媛",
-          company: "中国移动泰安分公司",
+          company: "华信通信集团泰安分公司",
           department: "人力资源部",
           title: "总经理",
           level: "二级",
@@ -247,7 +247,7 @@
         {
           id: 115,
           name: "韩磊",
-          company: "中国移动泰安分公司",
+          company: "华信通信集团泰安分公司",
           department: "培训发展中心",
           title: "培训主任",
           level: "二级",
@@ -264,7 +264,7 @@
         {
           id: 116,
           name: "曹雪",
-          company: "中国移动市中分公司",
+          company: "华信通信集团市中分公司",
           department: "人力资源部",
           title: "主任",
           level: "三级",
@@ -281,7 +281,7 @@
         {
           id: 117,
           name: "谢东",
-          company: "中国移动福山分公司",
+          company: "国网产业协同集团福山分公司",
           department: "人力资源部",
           title: "主任",
           level: "三级",
@@ -298,7 +298,7 @@
         {
           id: 118,
           name: "何琳",
-          company: "中国移动福山分公司",
+          company: "国网产业协同集团福山分公司",
           department: "培训发展中心",
           title: "专员",
           level: "三级",
@@ -371,7 +371,7 @@
         {
           id: 119,
           name: "宋楠",
-          company: "中国移动济南分公司",
+          company: "华北云网集团济南分公司",
           department: "培训发展中心",
           title: "项目主管",
           level: "二级",
@@ -392,7 +392,7 @@
         {
           id: 120,
           name: "杜晨",
-          company: "中国移动济南分公司",
+          company: "华北云网集团济南分公司",
           department: "人力资源部",
           title: "副主任",
           level: "二级",
@@ -413,7 +413,7 @@
         {
           id: 121,
           name: "沈宁",
-          company: "中国电信南京分公司",
+          company: "华北云网集团南京分公司",
           department: "人力资源部",
           title: "总经理",
           level: "二级",
@@ -434,7 +434,7 @@
         {
           id: 122,
           name: "顾欣",
-          company: "中国移动无锡分公司",
+          company: "齐鲁数科集团无锡分公司",
           department: "培训发展中心",
           title: "主任",
           level: "三级",
@@ -455,7 +455,7 @@
         {
           id: 123,
           name: "方启明",
-          company: "中国联通合肥分公司",
+          company: "华信通信集团合肥分公司",
           department: "组织人事部",
           title: "副总经理",
           level: "二级",
@@ -476,7 +476,7 @@
         {
           id: 124,
           name: "陆文清",
-          company: "中国移动浙江有限公司",
+          company: "齐鲁数科集团浙江有限公司",
           department: "人力资源部",
           title: "副总经理",
           level: "一级",
@@ -497,7 +497,7 @@
         {
           id: 125,
           name: "何超",
-          company: "中国移动杭州分公司",
+          company: "齐鲁数科集团杭州分公司",
           department: "人力资源部",
           title: "总经理",
           level: "二级",
@@ -518,7 +518,7 @@
         {
           id: 126,
           name: "姚静",
-          company: "中国电信宁波分公司",
+          company: "华北云网集团宁波分公司",
           department: "人力资源部",
           title: "培训经理",
           level: "三级",
@@ -539,7 +539,7 @@
         {
           id: 127,
           name: "周启航",
-          company: "中国电信温州分公司",
+          company: "华东能源控股温州分公司",
           department: "人力资源部",
           title: "总经理",
           level: "二级",
@@ -560,7 +560,7 @@
         {
           id: 128,
           name: "郑岚",
-          company: "中国移动福建有限公司",
+          company: "齐鲁数科集团福建有限公司",
           department: "人才发展部",
           title: "副总经理",
           level: "一级",
@@ -581,7 +581,7 @@
         {
           id: 129,
           name: "陈海峰",
-          company: "中国移动福州分公司",
+          company: "齐鲁数科集团福州分公司",
           department: "人力资源部",
           title: "总经理",
           level: "二级",
@@ -602,7 +602,7 @@
         {
           id: 130,
           name: "梁慧",
-          company: "中国电信广州分公司",
+          company: "华北云网集团广州分公司",
           department: "人力资源部",
           title: "培训主任",
           level: "三级",

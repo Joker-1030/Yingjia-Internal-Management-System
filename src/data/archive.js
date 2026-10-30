@@ -3,7 +3,7 @@
           id: 601,
           name: "原培训管理办公室",
           type: "客户部门",
-          parent: "中国移动",
+          parent: "齐鲁数科集团",
           reason: "集团部门已撤并",
           date: "2026-08-08",
           operator: "王静",
@@ -37,15 +37,18 @@
         },
         {
           id: 603,
-          name: "中国移动历下分公司",
+          name: "齐鲁数科集团历下分公司",
           type: "客户单位",
-          parent: "中国移动",
+          parent: "齐鲁数科集团",
           reason: "单位合并，客户关系已迁移至济南分公司",
           date: "2026-08-12",
           operator: "陈经理",
           status: "已停用",
           targetKind: "customer",
-          targetId: 9,
+          // This archive record predates the current demo customer fixtures.
+          // Keep the historical record without archiving the current fixture
+          // that now reuses numeric id 9.
+          targetId: "ARCHIVED-CUSTOMER-OLD-009",
           region: "山东区域",
           effectiveAt: "2026-08-12 17:10",
           recoveryResult: "未恢复",
@@ -55,7 +58,7 @@
         },
         {
           id: 604,
-          name: "华东通信试点集团",
+          name: "华信通信集团",
           type: "集团公司",
           parent: "客户组织",
           reason: "试点集团主体注销，全部下属单位已完成级联停用",
@@ -79,9 +82,9 @@
         },
         {
           id: 605,
-          name: "华东通信试点集团济南分公司",
+          name: "华信通信集团济南分公司",
           type: "客户单位",
-          parent: "华东通信试点集团",
+          parent: "华信通信集团",
           reason: "随集团主体注销完成级联停用",
           date: "2026-08-15",
           operator: "王静",
@@ -98,4 +101,3 @@
           upperDisabledReason: "所属集团当前处于停用状态，须先恢复集团公司",
         },
       ];
-      customers.find((customer) => customer.id === 9).archived = true;

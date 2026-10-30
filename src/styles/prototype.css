@@ -4785,6 +4785,13 @@
       .sales-opportunity-filters {
         align-items: end;
       }
+      .sales-support-status-tabs {
+        margin-bottom: var(--space-4);
+        overflow-x: auto;
+      }
+      .sales-support-status-tabs .tab {
+        white-space: nowrap;
+      }
       [data-paged-table="m12-opportunities"] th:nth-child(2),
       [data-paged-table="m12-opportunities"] tr[data-page-row] > td:nth-child(2) {
         position: sticky;

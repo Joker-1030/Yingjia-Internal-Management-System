@@ -256,6 +256,7 @@
 
       function openCustomerForm(id) {
         const c = customers.find((x) => x.id === id);
+        if (c && !c.group) return toast("无集团公司不支持调整组织上级");
         if (c && !hasOperationPermission("settings.edit"))
           return toast("当前账号无权调整客户公司组织上级");
         if (!c && !canCreateCustomerUnit())
@@ -270,7 +271,7 @@
             .map((x) => `<option>${x.name}</option>`)
             .join(
               "",
-            )}</select></div><div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>集团公司</label><select class="input" id="cfGroup">${customerGroupNames.map((x) => `<option>${x}</option>`).join("")}</select></div><div class="form-group full"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>客户公司名称</label><input class="input" id="cfName" minlength="2" maxlength="100" required></div><div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>客户公司层级</label><select class="input" id="cfLevel"><option value="">请选择层级</option>${levels.map((x) => `<option>${x}</option>`).join("")}</select></div><div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>责任省份</label><select class="input" id="cfProvince" required></select></div><div class="form-group" id="cfCityGroup"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>责任城市</label><select class="input" id="cfCity" required></select></div><div class="form-group" id="cfDistrictGroup"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>责任区县</label><select class="input" id="cfDistrict" required></select></div><div class="form-group full"><label class="form-label">统一社会信用代码</label><input class="input" id="cfCredit" maxlength="18" pattern="[0-9A-HJ-NPQRTUWXY]{18}" placeholder="18 位；未填写可留空"></div></div></div><div class="modal-foot"><button class="btn" type="button" data-close>取消</button><button class="btn btn-primary" type="submit">保存客户公司</button></div></form>`,
+            )}</select></div><div class="form-group"><label class="form-label">集团公司</label><select class="input" id="cfGroup">${customerGroupNames.map((x) => `<option>${x}</option>`).join("")}</select></div><div class="form-group full"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>客户公司名称</label><input class="input" id="cfName" minlength="2" maxlength="100" required></div><div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>客户公司层级</label><select class="input" id="cfLevel"><option value="">请选择层级</option>${levels.map((x) => `<option>${x}</option>`).join("")}</select></div><div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>责任省份</label><select class="input" id="cfProvince" required></select></div><div class="form-group" id="cfCityGroup"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>责任城市</label><select class="input" id="cfCity" required></select></div><div class="form-group" id="cfDistrictGroup"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>责任区县</label><select class="input" id="cfDistrict" required></select></div><div class="form-group full"><label class="form-label">统一社会信用代码</label><input class="input" id="cfCredit" maxlength="18" pattern="[0-9A-HJ-NPQRTUWXY]{18}" placeholder="18 位；未填写可留空"></div></div></div><div class="modal-foot"><button class="btn" type="button" data-close>取消</button><button class="btn btn-primary" type="submit">保存客户公司</button></div></form>`,
         );
         const levelGroup = $("#cfLevel").closest(".form-group");
         levelGroup.querySelector(".form-label").textContent =
@@ -293,6 +294,10 @@
         $("#customerForm .btn-primary").textContent = c ? "保存" : "保存客户公司";
         const refreshOrganizationParents = () => {
           const group = $("#cfGroup").value;
+          $("#cfOrganizationParent").closest(".form-group").hidden = !group;
+          $("#cfOrganizationParent").required = !!group;
+          $("#cfOrganizationParent").disabled = !group;
+          if (!group) { $("#cfOrganizationParent").innerHTML = '<option value="">无</option>'; return; }
           const excludedIds = c
             ? new Set([c.id, ...customerOrganizationDescendantIds(c.id)])
             : new Set();
@@ -326,10 +331,7 @@
             (g) => customerGroupIndustries[g] === selectedIndustry,
           );
           $("#cfGroup").innerHTML =
-            (eligibleGroups.length
-              ? eligibleGroups
-              : customerGroupNames
-            ).map((g) => `<option>${g}</option>`).join("");
+            '<option value="">无集团</option>' + eligibleGroups.filter(group => !customerOrgArchivedGroup(group)).map((g) => `<option>${escapeHtml(g)}</option>`).join("");
           refreshOrganizationParents();
         };
         $("#cfIndustry").onchange = refreshGroupByIndustry;
@@ -343,6 +345,7 @@
           $("#cfIndustry").value = customerGroupIndustries[selectedTreeGroup];
           refreshGroupByIndustry();
           $("#cfGroup").value = selectedTreeGroup;
+          refreshOrganizationParents();
         }
         if (c) {
           $("#cfIndustry").value = c.industry;
@@ -364,9 +367,7 @@
             currentUser.role === "pm"
               ? [
                   ...new Set(
-                    cityOwners
-                      .filter((x) => x.pm === currentUser.name)
-                      .map((x) => x.province),
+                    scopedCustomers().map(customerBusinessProvince),
                   ),
                 ]
               : Object.keys(administrativeDivisions);
@@ -440,6 +441,14 @@
         }
         $("#customerForm").onsubmit = (e) => {
           e.preventDefault();
+          if (c ? !hasOperationPermission("settings.edit") : !canCreateCustomerUnit()) return toast("当前账号无权保存客户公司");
+          const actor = employees.find(employee => employee.code === currentUser?.employeeCode || employee.name === currentUser?.name);
+          if (!actor || actor.status !== "在职" || actor.accountStatus === "停用" || currentUser?.disabled) return toast("账号已失效，请重新登录");
+          const selectedIndustry = $("#cfIndustry").value;
+          const submittedGroup = c ? c.group : $("#cfGroup").value;
+          if (!c && (!industries.some(item => item.enabled && item.name === selectedIndustry) ||
+            (submittedGroup && (!customerGroupNames.includes(submittedGroup) || customerOrgArchivedGroup(submittedGroup) || customerGroupIndustries[submittedGroup] !== selectedIndustry))))
+            return toast("请选择正常行业及该行业下的正常集团，或留空集团");
           const parentValue = $("#cfOrganizationParent").value;
           const selectedParentId = parentValue.startsWith("company:")
             ? Number(parentValue.slice(8))
@@ -447,8 +456,8 @@
           const selectedParent = selectedParentId
             ? customers.find((company) => company.id === selectedParentId)
             : null;
-          const selectedGroup = c?.group || $("#cfGroup").value;
-          if (
+          const selectedGroup = c ? c.group : $("#cfGroup").value;
+          if ((!selectedGroup && parentValue) || (selectedGroup &&
             parentValue !== "group" &&
             (!selectedParent ||
               selectedParent.group !== selectedGroup ||
@@ -456,7 +465,7 @@
               (c &&
                 (selectedParent.id === c.id ||
                   customerOrganizationDescendantIds(c.id).has(selectedParent.id))))
-          )
+          ))
             return toast("请选择所属集团或同集团正常客户公司作为组织上级");
           if (c) {
             c.organizationParentType = selectedParent ? "company" : "group";
@@ -498,21 +507,21 @@
             return toast("请选择授权范围内的标准城市");
           if (level === "区县级" && !districts.includes(district))
             return toast("请选择标准区县");
-          const regionMatch = regionsData.find((r) =>
-            regionProvinceList(r).includes(province),
-          );
+          const group = $("#cfGroup").value;
+          const industry = group ? customerGroupIndustries[group] : selectedIndustry;
+          const regionMatch = operatingCenterForCustomer({ province, city, group, industry });
           if (!regionMatch || regionConfigurationStatus(regionMatch) !== "已配置")
             return toast("该省份无法唯一解析正常区域中心，请先完成区域配置");
           const region = regionScopeName(regionMatch);
           const director = regionMatch.director;
           if (!director) return toast("所属区域中心未设置区域总监，不能创建客户");
-          const group = $("#cfGroup").value;
-          const industry = customerGroupIndustries[group];
           if (!industry) return toast("所属集团行业未配置，不能创建客户");
           const defaultPm = level === "省级" ? "" : cityPmForNewCustomer({ province, city, group, industry });
-          if (level !== "省级" && !defaultPm)
+          if (level !== "省级" && !responsibilityReceiverIsValid({ level: "市公司" }, regionMatch, defaultPm))
             return toast("该城市尚未配置地市负责人，不能创建客户");
           const owner = level === "省级" ? director : defaultPm;
+          if (!responsibilityReceiverIsValid({ level: level === "省级" ? "省公司" : "市公司", group, industry, province, city }, regionMatch, owner))
+            return toast("所属中心缺少有效接收人，不能创建客户");
           const pm = level === "省级" ? "" : defaultPm;
           const data = {
             group,
@@ -528,7 +537,7 @@
             businessResponsibilityCity: level === "省级" ? "" : city,
             district: level === "区县级" ? district : "",
             businessResponsibilityDistrict: level === "区县级" ? district : "",
-            organizationParentType: selectedParent ? "company" : "group",
+            organizationParentType: selectedParent ? "company" : group ? "group" : null,
             organizationParentCompanyId: selectedParent?.id || null,
             region,
             owner,
@@ -541,6 +550,7 @@
             (item) =>
               !item.archived &&
               item.group === data.group &&
+              (data.group || item.industry === data.industry) &&
               item.organizationParentType === data.organizationParentType &&
               item.organizationParentCompanyId ===
                 data.organizationParentCompanyId &&
@@ -766,7 +776,7 @@
         ).split("-");
         const industries = [...new Set(choices.map((item) => item.industry))];
         openModal(
-          `<div class="modal-head"><div class="modal-title">${person ? "编辑关键人" : "新增关键人"}</div><button class="icon-btn close" data-close>×</button></div><form id="contactForm"><div class="modal-body"><div class="section-title">职业信息</div><div class="form-grid"><div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>行业</label><select class="input" id="pfIndustry" ${lockedProfession ? "disabled" : ""}><option value="">请选择行业</option>${industries.map((item) => `<option ${item === initialCompany.industry ? "selected" : ""}>${item}</option>`).join("")}</select></div><div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>集团</label><select class="input" id="pfGroup" ${lockedProfession ? "disabled" : ""}><option value="">请先选择行业</option></select></div><div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>客户公司</label><select class="input" id="pfCompany" ${lockedProfession ? "disabled" : ""}><option value="">请先选择集团</option></select></div><div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>客户部门</label><select class="input" id="pfDept" ${person ? "disabled" : ""}><option value="">请先选择客户公司</option></select></div><div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>关键人岗位</label><select class="input" id="pfPosition" ${person ? "disabled" : ""}><option value="">请先选择客户部门</option></select></div><div class="form-group"><label class="form-label" for="pfResponsibility"><span class="required-marker" aria-hidden="true">*</span>分管内容</label><input class="input" id="pfResponsibility" type="text" value="${escapeMaintenanceMethodText(person?.responsibilityText || "")}" placeholder="请输入分管内容" required></div></div>${person ? '<div class="role-note">变更公司、部门或岗位，请发起调岗。</div>' : ""}<div class="section-title">个人信息</div><div class="form-grid"><div class="form-group"><label class="form-label">关键人编号</label><input class="input" value="${person?.code || "保存后自动生成"}" disabled></div><div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>姓名</label><input class="input" id="pfName" value="${person?.name || ""}" minlength="2" maxlength="50" required></div><div class="form-group"><label class="form-label">性别</label><select class="input" id="pfGender"><option value="未说明" ${!person?.gender || person?.gender === "未说明" ? "selected" : ""}>未说明</option><option value="男" ${person?.gender === "男" ? "selected" : ""}>男</option><option value="女" ${person?.gender === "女" ? "selected" : ""}>女</option></select></div><div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>职级</label><select class="input" id="pfLevel" required><option value="">请选择职级</option>${contactLevelOptions(person?.level || "")}</select></div><div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>手机号</label><input class="input" id="pfPhone" value="${String(person?.phone || "").replace(/\D/g, "")}" inputmode="numeric" maxlength="11" pattern="1[3-9][0-9]{9}" required><div class="list-sub">11 位手机号，公司全局唯一</div></div><div class="form-group"><label class="form-label">微信号</label><input class="input" id="pfWechat" value="${person?.wechat || ""}" maxlength="64"></div><div class="form-group"><label class="form-label">邮箱</label><input class="input" id="pfEmail" type="email" maxlength="254" value="${person?.email || ""}"></div><div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>任职生效日</label><input class="input" id="pfEffectiveDate" type="date" max="${DEMO_TODAY}" value="${person?.effectiveDate || DEMO_TODAY}" ${person ? "disabled" : "required"}></div><div class="form-group"><label class="form-label">生日（公历月日）</label><div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--space-2)"><select class="input" id="pfBirthdayMonth"><option value="">月</option>${Array.from({ length: 12 }, (_, index) => String(index + 1).padStart(2, "0")).map((month) => `<option value="${month}" ${month === birthdayMonth ? "selected" : ""}>${Number(month)}月</option>`).join("")}</select><select class="input" id="pfBirthdayDay"><option value="">日</option></select></div></div><div class="form-group"><label class="form-label">关键决策人</label><select class="input" id="pfDecision"><option value="true" ${person?.decision === true ? "selected" : ""}>是</option><option value="false" ${person?.decision !== true ? "selected" : ""}>否</option></select></div><div class="form-group full"><label class="form-label" for="pfRemark">备注</label><textarea class="input" id="pfRemark" rows="3" placeholder="可记录其他补充信息">${escapeMaintenanceMethodText(person?.remark || "")}</textarea></div></div></div><div class="modal-foot">${person ? `<button class="btn" type="button" data-action="transfer" data-id="${person.id}">发起调岗</button>` : ""}<button class="btn" type="button" data-close>取消</button><button class="btn btn-primary" type="submit">保存关键人</button></div></form>`,
+          `<div class="modal-head"><div class="modal-title">${person ? "编辑关键人" : "新增关键人"}</div><button class="icon-btn close" data-close>×</button></div><form id="contactForm"><div class="modal-body"><div class="section-title">职业信息</div><div class="form-grid"><div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>行业</label><select class="input" id="pfIndustry" ${lockedProfession ? "disabled" : ""}><option value="">请选择行业</option>${industries.map((item) => `<option ${item === initialCompany.industry ? "selected" : ""}>${item}</option>`).join("")}</select></div><div class="form-group"><label class="form-label">集团</label><select class="input" id="pfGroup" ${lockedProfession ? "disabled" : ""}><option value="">请先选择行业</option></select></div><div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>客户公司</label><select class="input" id="pfCompany" ${lockedProfession ? "disabled" : ""}><option value="">请先选择集团</option></select></div><div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>客户部门</label><select class="input" id="pfDept" ${person ? "disabled" : ""}><option value="">请先选择客户公司</option></select></div><div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>关键人岗位</label><select class="input" id="pfPosition" ${person ? "disabled" : ""}><option value="">请先选择客户部门</option></select></div><div class="form-group"><label class="form-label" for="pfResponsibility"><span class="required-marker" aria-hidden="true">*</span>分管内容</label><input class="input" id="pfResponsibility" type="text" value="${escapeMaintenanceMethodText(person?.responsibilityText || "")}" placeholder="请输入分管内容" required></div></div>${person ? '<div class="role-note">变更公司、部门或岗位，请发起调岗。</div>' : ""}<div class="section-title">个人信息</div><div class="form-grid"><div class="form-group"><label class="form-label">关键人编号</label><input class="input" value="${person?.code || "保存后自动生成"}" disabled></div><div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>姓名</label><input class="input" id="pfName" value="${person?.name || ""}" minlength="2" maxlength="50" required></div><div class="form-group"><label class="form-label">性别</label><select class="input" id="pfGender"><option value="未说明" ${!person?.gender || person?.gender === "未说明" ? "selected" : ""}>未说明</option><option value="男" ${person?.gender === "男" ? "selected" : ""}>男</option><option value="女" ${person?.gender === "女" ? "selected" : ""}>女</option></select></div><div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>职级</label><select class="input" id="pfLevel" required><option value="">请选择职级</option>${contactLevelOptions(person?.level || "")}</select></div><div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>手机号</label><input class="input" id="pfPhone" value="${String(person?.phone || "").replace(/\D/g, "")}" inputmode="numeric" maxlength="11" pattern="1[3-9][0-9]{9}" required><div class="list-sub">11 位手机号，公司全局唯一</div></div><div class="form-group"><label class="form-label">微信号</label><input class="input" id="pfWechat" value="${person?.wechat || ""}" maxlength="64"></div><div class="form-group"><label class="form-label">邮箱</label><input class="input" id="pfEmail" type="email" maxlength="254" value="${person?.email || ""}"></div><div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>任职生效日</label><input class="input" id="pfEffectiveDate" type="date" max="${DEMO_TODAY}" value="${person?.effectiveDate || DEMO_TODAY}" ${person ? "disabled" : "required"}></div><div class="form-group"><label class="form-label">生日（公历月日）</label><div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--space-2)"><select class="input" id="pfBirthdayMonth"><option value="">月</option>${Array.from({ length: 12 }, (_, index) => String(index + 1).padStart(2, "0")).map((month) => `<option value="${month}" ${month === birthdayMonth ? "selected" : ""}>${Number(month)}月</option>`).join("")}</select><select class="input" id="pfBirthdayDay"><option value="">日</option></select></div></div><div class="form-group"><label class="form-label">关键决策人</label><select class="input" id="pfDecision"><option value="true" ${person?.decision === true ? "selected" : ""}>是</option><option value="false" ${person?.decision !== true ? "selected" : ""}>否</option></select></div><div class="form-group full"><label class="form-label" for="pfRemark">备注</label><textarea class="input" id="pfRemark" rows="3" placeholder="可记录其他补充信息">${escapeMaintenanceMethodText(person?.remark || "")}</textarea></div></div></div><div class="modal-foot">${person ? `<button class="btn" type="button" data-action="transfer" data-id="${person.id}">发起调岗</button>` : ""}<button class="btn" type="button" data-close>取消</button><button class="btn btn-primary" type="submit">保存关键人</button></div></form>`,
         );
 
         const fillContactCascade = (source = "initial") => {
@@ -779,10 +789,10 @@
           const desiredGroup =
             source === "industry"
               ? ""
-              : $("#pfGroup").value || initialCompany.group;
+              : source === "initial" ? initialCompany.group : $("#pfGroup").value;
           $("#pfGroup").innerHTML =
-            '<option value="">请选择集团</option>' +
-            groupCandidates
+            '<option value="">无集团</option>' +
+            groupCandidates.filter(Boolean)
               .map(
                 (item) =>
                   `<option ${item === desiredGroup ? "selected" : ""}>${item}</option>`,
@@ -836,7 +846,7 @@
               .join("");
           $("#pfGroup").disabled = lockedProfession || !industry;
           $("#pfCompany").disabled =
-            lockedProfession || !$("#pfGroup").value;
+            lockedProfession || !industry;
           $("#pfDept").disabled =
             Boolean(person) || !$("#pfCompany").value;
           $("#pfPosition").disabled =
@@ -948,7 +958,7 @@
             decision: $("#pfDecision").value === "true",
             decisionConfirmed: true,
             effectiveDate: person?.effectiveDate || $("#pfEffectiveDate").value,
-            pm: company.level === "省公司" ? "" : customerOwnerName(company),
+            pm: customerPmName(company),
             region: company.region,
             city: company.city,
             last: person?.last || "从未",
@@ -959,7 +969,7 @@
           };
           if (person) Object.assign(person, data);
           else {
-            const directorCityCreation = currentUser?.role === "director" && company.level !== "省公司";
+            const directorCityCreation = currentUser?.role === "director" && customerResponsibilityRole(company) === "PM";
             const cityPm = directorCityCreation ? currentCityPmForContact(company) : null;
             const created = {
               id: Date.now(),
@@ -967,7 +977,7 @@
               ...data,
             };
             if (directorCityCreation) {
-              // Refresh only this customer's owner projection from current city responsibility.
+              // Refresh only this customer's projection from its final responsibility.
               company.owner = cityPm?.name || "待分配";
               company.pm = cityPm?.name || "";
               created.pm = cityPm?.name || "";

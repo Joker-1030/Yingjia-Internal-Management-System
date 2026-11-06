@@ -233,9 +233,9 @@
       }
       function projectCurrentOwner(project) {
         if (project.stage === "已取消")
-          return project.cancelledOwner || project.ownerSnapshot || "—";
+          return project.currentOwner || project.cancelledOwner || project.ownerSnapshot || "—";
         if (project.stage === "已中止")
-          return project.terminatedOwner || project.currentOwner || project.ownerSnapshot || "—";
+          return project.currentOwner || project.terminatedOwner || project.ownerSnapshot || "—";
         if (isEcosystemProject(project))
           return employees.find(employee => employee.code === ecosystemProjectOwnerCode(project))?.name || project.currentOwner || project.ownerSnapshot || "待配置";
         const facts = projectCustomerFacts(project);
@@ -246,9 +246,7 @@
         if (isEcosystemProject(project)) return "";
         const facts = projectCustomerFacts(project);
         if (!facts) return "待配置区域";
-        const region = regionsData.find((item) =>
-          regionProvinceList(item).includes(facts.province),
-        );
+        const region = regionForCompany(facts);
         return region ? regionScopeName(region) : facts.region || "待配置区域";
       }
       function projectArea(project) {
@@ -265,7 +263,7 @@
         if (currentUser.role === "director")
           return companyInCurrentManagedRegion(facts);
         if (currentUser.role === "pm")
-          return projectCurrentOwner(project) === currentUser.name;
+          return companyIsVisible(facts) && projectCurrentOwner(project) === currentUser.name;
         return false;
       }
       function scopedProjects() {
@@ -328,7 +326,7 @@
           )
         )
           return "商业资源";
-        if (["主讲师", "辅讲师", "项目助教"].includes(field))
+        if (["主讲师", "辅训老师", "项目助教"].includes(field))
           return "项目人员";
         if (field === "项目资料") return "项目资料";
         if (["项目满意度", "人员满意度"].includes(field)) return "满意度";
@@ -461,11 +459,6 @@
         "已中止",
       ]);
       function projectResponsibilityTransferCandidates(spec) {
-        const provinceNames = new Set(
-          spec.kind === "region_director"
-            ? regionProvinceList(spec.region)
-            : [],
-        );
         const cityKeys = new Set(
           spec.kind === "city_pm"
             ? (spec.owners || []).map(
@@ -479,8 +472,9 @@
           const facts = projectCustomerFacts(project);
           if (!facts) return false;
           if (spec.kind === "region_director")
-            return facts.level === "省公司" && provinceNames.has(facts.province);
-          return cityKeys.has(`${facts.province}\u0000${facts.city}`);
+            return facts.level === "省公司" && !centerResponsibilityRuleForCustomer(facts) && regionForCompany(facts)?.id === spec.region?.id;
+          return facts.level !== "省公司" && regionForCompany(facts)?.id === spec.region?.id &&
+            !centerResponsibilityRuleForCustomer(facts) && cityKeys.has(`${facts.province}\u0000${facts.city}`);
         });
       }
       function prepareProjectResponsibilityTransfer(spec) {
@@ -748,10 +742,7 @@
       }
       function projectRegion(project) {
         if (isEcosystemProject(project)) return null;
-        const province = projectCustomerFacts(project)?.province;
-        return regionsData.find((region) =>
-          regionProvinceList(region).includes(province),
-        );
+        return regionForCompany(projectCustomerFacts(project));
       }
       function projectMomentValue(value) {
         const [datePart, timePart = "00:00"] = String(value).split(" ");
@@ -1091,38 +1082,9 @@
         );
       }
       function resolveProjectOwner(facts) {
-        if (!facts) return "";
-        if (facts.level === "省公司") {
-          const regions = regionsData.filter(
-            (region) =>
-              region.director &&
-              regionProvinceList(region).includes(facts.province),
-          );
-          if (regions.length !== 1) return "";
-          const matches = employees.filter(
-            (employee) =>
-              employee.name === regions[0].director &&
-              employee.status === "在职" &&
-              employeeHasRole(employee, "区域总监"),
-          );
-          if (matches.length !== 1) return "";
-          return regions[0].director;
-        }
-        const cityMatches = cityOwners.filter(
-          (item) =>
-            item.province === facts.province &&
-            item.city === facts.city &&
-            item.pm,
-        );
-        if (cityMatches.length !== 1) return "";
-        const matches = employees.filter(
-          (employee) =>
-            employee.name === cityMatches[0].pm &&
-            employee.status === "在职" &&
-            employeeHasRole(employee, "PM"),
-        );
-        if (matches.length !== 1) return "";
-        return cityMatches[0].pm;
+        const region = regionForCompany(facts);
+        const owner = responsibilityOwnerForCustomer(facts, region);
+        return responsibilityReceiverIsValid(facts, region, owner) ? owner : "";
       }
       function projectListSettlementAmount(project) {
         return project.stage === "已中止"
@@ -1176,7 +1138,7 @@
           `<tr data-page-row data-project-row data-id="${projectId}" ` +
           `data-name="${projectNameFilter}" ` +
           `data-type="${project.type}" data-stage="${project.stage}" ` +
-          `data-todos="${project.todos.join("|")}" data-customer="${customerNameText}" ` +
+          `data-todos="${project.todos.join("|")}" data-project-customer="${customerNameText}" ` +
           `data-area="${areaText}" data-owner="${ownerText}" ` +
           `data-start="${project.startTime.slice(0, 10)}" ` +
           `data-end="${project.endTime.slice(0, 10)}">` +
@@ -1357,6 +1319,7 @@
           ["项目确认天数", `${project.days} 天`],
           ["资源类型", project.resourceType],
           ["合作形式", project.cooperation],
+          ...(project.resourceType === "框架服务" ? [["框架", projectFrameworkLabel(projectFrameworks.find(item => item.id === project.frameworkId) || project.frameworkSnapshot)]] : []),
           ...(project.packageId
             ? [["采购包", `${packageName}（${project.packageId}）`]]
             : []),
@@ -1382,16 +1345,16 @@
           ...(project.snapshot?.managementFeeRate != null
             ? [["管理费比例", formatConfigPercent(project.snapshot.managementFeeRate)]]
             : []),
-          [
+          ...(project.resourceType !== "框架服务" ? [[
             "项目单价（含税，元/天）",
             project.type === "培训项目"
               ? formatProjectMoney(project.unitPrice)
               : "—",
-          ],
+          ]] : []),
           [
             "项目金额（含税，万元）",
             formatProjectAmount(project.amount),
-            projectAmountFormulaText(project.type),
+            projectAmountFormulaText(project.type, project.resourceType),
           ],
           [
             "结账金额（含税，万元）",
@@ -1429,7 +1392,7 @@
         if (project.type === "AI软件项目") return "";
         const items = [
           ["主讲师", project.lecturers.join("、") || "—"],
-          ["辅讲师", project.assistantLecturers.join("、") || "—"],
+          ["辅训老师", project.assistantLecturers.join("、") || "—"],
           ["项目助教", project.teachingAssistants.join("、") || "—"],
         ];
         return `<div class="project-detail-section"><div class="section-title">项目人员安排</div><div class="detail-grid">${items
@@ -1460,7 +1423,7 @@
         const staffLabel = (name) =>
           project.lecturers.includes(name)
             ? "主讲师满意度"
-            : "辅讲师满意度";
+            : "辅训老师满意度";
         if (editSatisfaction) {
           const staffInputs = staffNames
             .map((name, index) => {
@@ -1871,10 +1834,11 @@
         "采购包课程": ["直接服务", "走账合作"],
         "平台师资合作": ["师资合作"],
         "AI区域框架": ["直接服务", "走账合作"],
+        "框架服务": ["直接服务"],
       };
       function projectResourceTypes(type) {
-        if (type === "培训项目") return ["采购包课程", "平台师资合作"];
-        if (type === "AI软件项目") return ["AI区域框架"];
+        if (type === "培训项目") return ["采购包课程", "平台师资合作", "框架服务"];
+        if (type === "AI软件项目") return ["AI区域框架", "框架服务"];
         return [];
       }
       function projectAvailableResourceTypes(type, project = null) {
@@ -1898,19 +1862,29 @@
       function projectUsesPlatformCustomer(resource = "") {
         return resource === "平台师资合作" || (!resource && currentUser?.role === "ecology");
       }
+      function platformCompanyFeeValid(value, field) {
+        if (value === null || value === undefined || String(value).trim() === "") return false;
+        const number = Number(value);
+        return Number.isFinite(number) && number >= 0 &&
+          (field !== "managementFeeRate" || number <= 100) &&
+          number === Number(number.toFixed(2));
+      }
+      function platformCompanySupports(company, cooperation) {
+        if (!company || company.status !== "正常") return false;
+        const field = cooperation === "走账合作" ? "managementFeeRate" : cooperation === "师资合作" ? "cooperationPay" : "";
+        return Boolean(field && platformCompanyFeeValid(company[field], field));
+      }
       function projectCreatableCustomers(resource = $("#pfResource")?.value || "") {
         if (!currentUser || !hasOperationPermission("projects.create")) return [];
         if (projectUsesPlatformCustomer(resource))
-          return currentUser.fullAccess || currentEcosystemEmployee() ? platformCompanies.filter(company => company.status === "正常") : [];
+          return currentUser.fullAccess || currentEcosystemEmployee() ? platformCompanies.filter(company => platformCompanySupports(company, "师资合作")) : [];
         if (currentUser.fullAccess)
           return customers.filter((customer) => !customer.archived);
         if (currentUser.role === "pm") {
-          const cities = assignedCitiesForCurrentUser();
           return customers.filter(
             (customer) =>
               !customer.archived &&
-              customer.level !== "省公司" &&
-              cities.includes(customer.city),
+              companyIsVisible(customer),
           );
         }
         if (currentUser.role === "director") {
@@ -1956,7 +1930,8 @@
       function round2(value) {
         return Math.round(value * 100) / 100;
       }
-      function projectAmountFormulaText(type) {
+      function projectAmountFormulaText(type, resourceType = "") {
+        if (resourceType === "框架服务") return "由项目负责人填写，不按天数计算";
         if (type === "培训项目")
           return "项目金额（万元） = 项目单价（元/天） × 项目确认天数 ÷ 10000";
         if (type === "AI软件项目") return "由项目负责人填写，不按天数计算";
@@ -1984,19 +1959,19 @@
         return `<div class="form-group"><label class="form-label${hasFormula ? " project-money-label" : ""}">${requiredLabel ? '<span class="required-marker" aria-hidden="true">*</span>' : ""}${label}${formula}</label>${innerHtml}<div class="field-error" id="err-${id}"></div></div>`;
       }
       function projectStaffRole(id) { return /Helpers$/.test(id) ? "teachingAssistants" : /Assistants$/.test(id) ? "assistantLecturers" : "lecturers"; }
-      function projectSelectedTokens(project, role, names) { return project?.teacherAssignments?.[role] || (names || []).map((name) => "legacy:" + name); }
-      function projectTeacherTokenName(token) { return teacherById(token) ? teacherName(teacherById(token)) : String(token).replace(/^legacy:/, ""); }
-      function projectTeacherOptionHtml(tokens, context, helper) {
-        const candidates = teacherSelectionCandidates(context.directionId, context.start, context.end, helper, context.excludeId);
+      function projectSelectedTokens(project, role, names) { return project?.teacherAssignments?.[role] || []; }
+      function projectTeacherTokenName(token) { return teacherById(token) ? teacherName(teacherById(token)) : ""; }
+      function projectTeacherOptionHtml(tokens, context, role) {
+        const candidates = teacherSelectionCandidates(context.directionId, context.start, context.end, role, context.excludeId, context.resourceType);
         const ids = [...new Set([...candidates.map((teacher) => teacher.id), ...tokens])];
-        return ids.map((id) => { const teacher = teacherById(id), selected = tokens.includes(id); const reason = teacher ? teacherEligibility(id, context.directionId, context.start, context.end, helper, context.excludeId) : "历史人员未关联档案，请重新选择";
-          return `<div class="multi-select-option" data-instructor-option><label><input type="checkbox" data-instructor value="${escapeHtml(id)}" ${selected ? "checked" : ""} ${reason ? "disabled" : ""}><span>${escapeHtml(projectTeacherTokenName(id))}</span></label>${reason ? `<span class="list-sub">${escapeHtml(reason)}</span>` : `<button type="button" class="btn btn-sm" data-project-teacher-profile="${teacher.id}">资料</button>`}</div>`;
-        }).join("") || '<div class="list-sub">请先选择采购包课程和日期；暂无符合条件的老师时请调整条件。</div>';
+        return ids.map((id) => { const teacher = teacherById(id), selected = tokens.includes(id); const reason = teacher ? teacherEligibility(id, context.directionId, context.start, context.end, role, context.excludeId, context.resourceType) : "老师档案不可用，请重新选择";
+          return `<div class="multi-select-option" data-instructor-option><label><input type="checkbox" data-instructor value="${escapeHtml(id)}" ${selected ? "checked" : ""} ${reason ? "disabled" : ""}><span>${escapeHtml(projectTeacherTokenName(id))}${teacher ? `<span class="list-sub">${escapeHtml(teacher.teachingTypes.join("、"))} · ${escapeHtml(teacherResidence(teacher))}</span>` : ""}</span></label>${reason ? `<span class="list-sub">${escapeHtml(reason)}</span>` : `<button type="button" class="btn btn-sm" data-project-teacher-profile="${teacher.id}">资料</button>`}</div>`;
+        }).join("") || (context.resourceType === "框架服务" ? '<div class="list-sub">请先填写项目日期；暂无符合条件的老师时请调整条件。</div>' : '<div class="list-sub">请先选择采购包课程和日期；暂无符合条件的老师时请调整条件。</div>');
       }
       function instructorSelectHtml(id, roleLabel, selectedNames, project = null) {
         const tokens = projectSelectedTokens(project, projectStaffRole(id), selectedNames);
-        const context = { directionId: project?.teachingDirectionId || "", start: project?.startTime || "", end: project?.endTime || "", excludeId: project?.id || "" };
-        return `<div class="instructor-picker" id="${id}" data-instructor-picker data-instructor-label="${escapeHtml(roleLabel)}"><div class="multi-select instructor-select"><button class="multi-select-trigger" type="button" data-instructor-trigger aria-haspopup="listbox" aria-expanded="false"><span>搜索并选择${escapeHtml(roleLabel)}</span><span aria-hidden="true">⌄</span></button><div class="multi-select-menu hidden" data-instructor-menu><input class="input" type="search" data-instructor-search placeholder="搜索${escapeHtml(roleLabel)}" aria-label="搜索${escapeHtml(roleLabel)}"><div data-instructor-options>${projectTeacherOptionHtml(tokens, context, projectStaffRole(id) === "teachingAssistants")}</div></div></div><div class="instructor-selected-list" data-instructor-selected aria-live="polite">${tokens.map((token) => `<span class="instructor-selected-item"><span>${escapeHtml(projectTeacherTokenName(token))}</span><button type="button" class="instructor-selected-remove" data-instructor-remove="${escapeHtml(token)}" aria-label="移除${escapeHtml(projectTeacherTokenName(token))}">×</button></span>`).join("")}</div></div>`;
+        const context = { directionId: project?.teachingDirectionId || "", start: project?.startTime || "", end: project?.endTime || "", excludeId: project?.id || "", resourceType: project?.resourceType || "" };
+        return `<div class="instructor-picker" id="${id}" data-instructor-picker data-instructor-label="${escapeHtml(roleLabel)}"><div class="multi-select instructor-select"><button class="multi-select-trigger" type="button" data-instructor-trigger aria-haspopup="listbox" aria-expanded="false"><span>搜索并选择${escapeHtml(roleLabel)}</span><span aria-hidden="true">⌄</span></button><div class="multi-select-menu hidden" data-instructor-menu><input class="input" type="search" data-instructor-search placeholder="搜索${escapeHtml(roleLabel)}" aria-label="搜索${escapeHtml(roleLabel)}"><div data-instructor-options>${projectTeacherOptionHtml(tokens, context, projectStaffRole(id))}</div></div></div><div class="instructor-selected-list" data-instructor-selected aria-live="polite">${tokens.map((token) => `<span class="instructor-selected-item"><span>${escapeHtml(projectTeacherTokenName(token))}</span><button type="button" class="instructor-selected-remove" data-instructor-remove="${escapeHtml(token)}" aria-label="移除${escapeHtml(projectTeacherTokenName(token))}">×</button></span>`).join("")}</div></div>`;
       }
       function projectOpportunityFieldHtml(project) {
         return `<div class="form-group"><label class="form-label project-opportunity-label" for="pfOpportunity">所属商机编号${!project?.opportunityId ? '<span class="project-opportunity-note" id="pfOpportunityHint">暂不填写</span>' : ""}</label><input class="input" id="pfOpportunity" value="${escapeHtml(project?.opportunityId || "—")}" readonly${!project?.opportunityId ? ' aria-describedby="pfOpportunityHint"' : ""}></div>`;
@@ -2005,9 +1980,9 @@
         const editing = Boolean(project);
         const type = project?.type || "";
         const daysHelpText =
-          type === "培训项目"
+          type === "培训项目" && project?.resourceType !== "框架服务"
             ? "项目费用按此天数计算"
-            : type === "AI软件项目"
+            : type === "AI软件项目" || project?.resourceType === "框架服务"
               ? "仅用于记录项目周期，不参与项目金额计算"
               : "";
         const calculatedDays = project ? projectCalculatedDays(project) : "";
@@ -2018,7 +1993,7 @@
         const cooperation = project?.cooperation || "";
         const validPackages = projectPackages.filter(isProjectPackageValid);
         const validCompanies = platformCompanies.filter(
-          (company) => company.status === "正常",
+          (company) => platformCompanySupports(company, cooperation),
         );
         const referencedPackage = project?.packageId
           ? projectPackages.find((pkg) => pkg.id === project.packageId)
@@ -2086,7 +2061,7 @@
         const companyOptions = `<option value="">请选择平台公司</option>${companyCandidates
           .map(
             (company) =>
-              `<option value="${company.id}" ${project?.companyId === company.id ? "selected" : ""}>${company.name}（${company.id}）</option>`,
+              `<option value="${company.id}" ${project?.companyId === company.id ? "selected" : ""}>${escapeHtml(company.name)}（${escapeHtml(company.id)}）</option>`,
           )
           .join("")}`;
         const initialManagementFeeRate =
@@ -2096,12 +2071,12 @@
               null
             : null;
         const isTraining = type === "培训项目";
-        const amountField = isTraining
+        const amountField = isTraining && resourceType !== "框架服务"
           ? `<input class="input" id="pfAmount" value="${project ? wanMoneyInput(project.amount) : ""}" disabled>`
           : `<input class="input" id="pfAmount" type="number" min="0.000001" step="0.000001" value="${project ? wanMoneyInput(project.amount) : ""}">`;
         const personnelHtml =
           `<div class="form-group full"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>主讲师</label>${instructorSelectHtml("pfLecturers", "主讲师", project?.lecturers || [], project)}<div class="field-error" id="err-pfLecturers"></div></div>` +
-          `<div class="form-group full"><label class="form-label">辅讲师</label>${instructorSelectHtml("pfAssistants", "辅讲师", project?.assistantLecturers || [], project)}</div>` +
+          `<div class="form-group full"><label class="form-label">辅训老师</label>${instructorSelectHtml("pfAssistants", "辅训老师", project?.assistantLecturers || [], project)}</div>` +
           `<div class="form-group full"><label class="form-label">项目助教</label>${instructorSelectHtml("pfHelpers", "项目助教", project?.teachingAssistants || [], project)}</div>`;
         return (
           `<div class="form-grid">` +
@@ -2165,6 +2140,7 @@
             `<select class="input" id="pfCooperation">${cooperationOptions}</select>`,
             true,
           ) +
+          projectFormFieldHtml("pfFramework", "框架", `<select class="input" id="pfFramework">${projectFrameworkOptions(project?.customerId, project?.frameworkId, project?.id)}</select>`, true) +
           projectFormFieldHtml(
             "pfPackage",
             "采购包",
@@ -2194,8 +2170,8 @@
             "pfAmount",
             "项目金额（含税，万元）",
             amountField,
-            !isTraining,
-            projectAmountFormulaText(type),
+            !isTraining || resourceType === "框架服务",
+            projectAmountFormulaText(type, resourceType),
             "pfAmountFormula",
           ) +
           projectFormFieldHtml(
@@ -2229,7 +2205,7 @@
         const personnelHtml = isTraining
           ? `<div class="section-title">项目人员</div>` +
             `<div class="form-group full"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>主讲师</label>${instructorSelectHtml("pfStageLecturers", "主讲师", project.lecturers, project)}<div class="field-error" id="err-pfStageLecturers"></div></div>` +
-            `<div class="form-group full"><label class="form-label">辅讲师</label>${instructorSelectHtml("pfStageAssistants", "辅讲师", project.assistantLecturers, project)}</div>` +
+            `<div class="form-group full"><label class="form-label">辅训老师</label>${instructorSelectHtml("pfStageAssistants", "辅训老师", project.assistantLecturers, project)}</div>` +
             `<div class="form-group full"><label class="form-label">项目助教</label>${instructorSelectHtml("pfStageHelpers", "项目助教", project.teachingAssistants, project)}</div>` +
             projectFormFieldHtml(
               "pfChangeReason",
@@ -2259,14 +2235,14 @@
               projectFormFieldHtml(
                 "pfDays",
                 "项目确认天数",
-                `<input class="input" id="pfDays" type="number" step="0.5" min="0.5" value="${project.days}" data-user-edited="${confirmationDaysEdited}"><div class="list-sub" id="pfDaysHelp">${isTraining ? "项目费用按此天数计算" : "仅用于记录项目周期，不参与项目金额计算"}</div>`,
+                `<input class="input" id="pfDays" type="number" step="0.5" min="0.5" value="${project.days}" data-user-edited="${confirmationDaysEdited}"><div class="list-sub" id="pfDaysHelp">${isTraining && project.resourceType !== "框架服务" ? "项目费用按此天数计算" : "仅用于记录项目周期，不参与项目金额计算"}</div>`,
               ) +
               projectFormFieldHtml(
                 "pfAmount",
                 "项目金额（含税，万元）",
                 `<input class="input" id="pfAmount" value="${formatProjectAmount(project.amount)}" disabled>`,
                 false,
-                projectAmountFormulaText(project.type),
+                projectAmountFormulaText(project.type, project.resourceType),
                 "pfAmountFormula",
               ) +
               projectFormFieldHtml(
@@ -2362,7 +2338,7 @@
             const ops = canManage
               ? `<span class="project-config-actions"><button class="link" data-config-action="edit-company" data-config-id="${company.id}">编辑</button><button class="link" data-config-action="${company.status === "正常" ? "stop-company" : "restore-company"}" data-config-id="${company.id}">${company.status === "正常" ? "停用" : "恢复"}</button></span>`
               : "—";
-            return `<tr data-page-row data-platform-company-row data-company-id="${companyId}" data-company-name="${companyNameFilter}" data-company-credit="${creditCode}" data-company-status="${status}"><td>${companyId}</td><td>${companyName}</td><td>${creditCode || "—"}</td><td>${formatConfigPercent(company.managementFeeRate)}</td><td>${formatProjectMoney(company.cooperationPay)} 元/天</td><td>${configStatusTag(company.status)}</td><td>${ops}</td></tr>`;
+            return `<tr data-page-row data-platform-company-row data-company-id="${companyId}" data-company-name="${companyNameFilter}" data-company-credit="${creditCode}" data-company-status="${status}"><td>${companyId}</td><td>${companyName}</td><td>${creditCode || "—"}</td><td>${formatConfigPercent(company.managementFeeRate)}</td><td>${company.cooperationPay == null ? "—" : `${formatProjectMoney(company.cooperationPay)} 元/天`}</td><td style="min-width:160px;max-width:260px;white-space:normal;overflow-wrap:anywhere">${escapeHtml(company.remarks || "—")}</td><td>${configStatusTag(company.status)}</td><td>${ops}</td></tr>`;
           })
           .join("");
         return (
@@ -2372,7 +2348,73 @@
             "查看平台公司资料与合作信息。",
             actions,
           ) +
-          `<section class="panel project-config-panel">${filters}<div class="table-wrap project-config-table-wrap"><table class="project-config-table project-company-table" style="min-width:1120px" data-paged-table="m11-platform-companies"><thead><tr><th>平台公司编号</th><th>平台公司名称</th><th>统一社会信用代码</th><th>管理费比例</th><th>合作课酬</th><th>状态</th><th>操作</th></tr></thead><tbody>${rows || '<tr data-empty-row id="platformCompanyDefaultEmpty"><td colspan="7"><div class="empty">暂无平台公司</div></td></tr>'}<tr data-filter-empty id="platformCompanyFilterEmpty" style="display:none"><td colspan="7"><div class="empty">未找到符合条件的平台公司，请调整条件或重置筛选</div></td></tr></tbody></table></div>${tablePagination("m11-platform-companies")}</section>` +
+          `<section class="panel project-config-panel">${filters}<div class="table-wrap project-config-table-wrap"><table class="project-config-table project-company-table" style="min-width:1120px" data-paged-table="m11-platform-companies"><thead><tr><th>平台公司编号</th><th>平台公司名称</th><th>统一社会信用代码</th><th>管理费比例</th><th>合作课酬</th><th>备注</th><th>状态</th><th>操作</th></tr></thead><tbody>${rows || '<tr data-empty-row id="platformCompanyDefaultEmpty"><td colspan="8"><div class="empty">暂无平台公司</div></td></tr>'}<tr data-filter-empty id="platformCompanyFilterEmpty" style="display:none"><td colspan="8"><div class="empty">未找到符合条件的平台公司，请调整条件或重置筛选</div></td></tr></tbody></table></div>${tablePagination("m11-platform-companies")}</section>` +
           "</div>"
         );
+      }
+
+      function projectFrameworkLabel(framework) {
+        if (!framework) return "—";
+        const customer = customers.find(item => String(item.id) === String(framework.customerId));
+        return `${framework.name} · ${framework.customerName || customer?.name || "—"} · ${framework.validFrom} ~ ${framework.validTo} · ${formatProjectAmount(framework.amount)}万元`;
+      }
+      function projectFrameworkCanView(framework) {
+        if (!hasPermission("frameworks")) return false;
+        const roles = currentRoleTemplateNames();
+        if (isProjectConfigAdmin() || roles.some(role => ["总裁", "市场副总"].includes(role))) return true;
+        const customer = customers.find(item => String(item.id) === String(framework.customerId));
+        return Boolean(customer && ((roles.includes("区域总监") && companyInCurrentManagedRegion(customer)) || (roles.includes("PM") && companyIsVisible(customer))));
+      }
+      function projectFrameworkProjects(frameworkId) {
+        return projects.filter(project => project.resourceType === "框架服务" && project.frameworkId === frameworkId);
+      }
+      function projectFrameworkUsage(frameworkId, excludeId = "") {
+        let frozen = 0, delivered = 0;
+        projectFrameworkProjects(frameworkId).filter(project => project.id !== excludeId).forEach(project => {
+          const stage = computeProjectStageAndTodos(project).stage;
+          if (["已立项", "进行中"].includes(stage)) frozen += Math.round(Number(project.amount) * 100);
+          if (["已交付", "已完成"].includes(stage)) delivered += Math.round(Number(project.amount) * 100);
+          if (stage === "已中止" && project.terminationInvolvesSettlement) delivered += Math.round(Number(project.terminationSettlementAmount) * 100);
+        });
+        const total = Math.round(Number(projectFrameworks.find(item => item.id === frameworkId)?.amount || 0) * 100);
+        return { frozen: frozen / 100, delivered: delivered / 100, used: (frozen + delivered) / 100, available: (total - frozen - delivered) / 100 };
+      }
+      function projectFrameworkStatus(framework, businessDate = DEMO_TODAY) {
+        if (framework && framework.status !== "已到期" && framework.validTo < businessDate)
+          framework.status = "已到期";
+        return framework?.status || "";
+      }
+      function projectRetainsFramework(projectId, frameworkId) {
+        const original = projects.find(item => item.id === projectId);
+        return original?.resourceType === "框架服务" && original.frameworkId === frameworkId;
+      }
+      function projectFrameworkOptions(customerId, selectedId = "", originalProjectId = "") {
+        return '<option value="">请选择框架</option>' + projectFrameworks.filter(item => String(item.customerId) === String(customerId) && projectFrameworkCanView(item) && (projectFrameworkStatus(item) === "启用" || projectRetainsFramework(originalProjectId, item.id))).map(item => `<option value="${escapeHtml(item.id)}" ${item.id === selectedId ? "selected" : ""}>${escapeHtml(projectFrameworkLabel(item))}</option>`).join("");
+      }
+      function projectFrameworkValidation(project, excludeId = "", amountOverride = null) {
+        if (project.resourceType !== "框架服务") return "";
+        const framework = projectFrameworks.find(item => item.id === project.frameworkId);
+        if (!framework) return "请选择框架";
+        if (String(framework.customerId) !== String(project.customerId)) return "所选框架不属于当前客户公司";
+        const status = projectFrameworkStatus(framework);
+        if (!projectRetainsFramework(excludeId, framework.id) && status !== "启用")
+          return status === "已到期" ? "框架已到期，不可新增关联项目" : "框架已停用，不可新增关联项目";
+        if (!project.startTime || !project.endTime || project.startTime.slice(0, 10) < framework.validFrom || project.endTime.slice(0, 10) > framework.validTo) return "项目执行时间必须在框架有效期内";
+        const amount = amountOverride === null ? project.amount : amountOverride;
+        if (!Number.isFinite(amount) || amount <= 0) return "请填写大于 0 且最多6位小数的项目金额（含税，万元）";
+        if (Math.round(amount * 100) > Math.round(projectFrameworkUsage(framework.id, excludeId).available * 100)) return "框架待使用金额不足";
+        return "";
+      }
+      function renderProjectFrameworks() {
+        if (!hasPermission("frameworks")) return '<div class="empty">无权查看框架</div>';
+        const canManage = isProjectConfigAdmin();
+        const rows = projectFrameworks.filter(projectFrameworkCanView).map(item => {
+          const customer = customers.find(customer => String(customer.id) === String(item.customerId));
+          const usage = projectFrameworkUsage(item.id);
+          const status = projectFrameworkStatus(item);
+          return `<tr data-page-row><td>${escapeHtml(item.name)}</td><td>${escapeHtml(customer?.name || "—")}</td><td>${formatProjectAmount(item.amount)}</td><td>${item.validFrom}</td><td>${item.validTo}</td><td>${formatProjectAmount(usage.used)}<div class="list-sub">已交付/结算 ${formatProjectAmount(usage.delivered)}；冻结 ${formatProjectAmount(usage.frozen)}</div></td><td>${formatProjectAmount(usage.available)}</td><td><button class="link" type="button" data-framework-projects="${escapeHtml(item.id)}">${projectFrameworkProjects(item.id).length}</button></td><td>${configStatusTag(status)}</td><td>${canManage && status !== "已到期" ? `<div class="actions project-config-actions"><button class="link" type="button" data-framework-edit="${escapeHtml(item.id)}">编辑</button><button class="link" type="button" data-framework-toggle="${escapeHtml(item.id)}" data-framework-next="${status === "启用" ? "停用" : "启用"}">${status === "启用" ? "停用" : "启用"}</button></div>` : "—"}</td></tr>`;
+        }).join("");
+        return '<div class="project-page project-config-page">' +
+          pageHead("框架管理", "查看客户框架与额度使用情况。", canManage ? '<button class="btn btn-primary" id="addProjectFramework">新增框架</button>' : "") +
+          `<section class="panel project-config-panel"><div class="table-wrap project-config-table-wrap"><table class="project-config-table project-framework-table" data-paged-table="m11-frameworks"><thead><tr><th>框架名称</th><th>客户公司</th><th>框架金额（含税，万元）</th><th>开始日期</th><th>到期日期</th><th>已使用（含冻结，万元）</th><th>待使用金额（含税，万元）</th><th>关联项目数</th><th>状态</th><th>操作</th></tr></thead><tbody>${rows || '<tr data-empty-row><td colspan="10"><div class="empty">暂无框架</div></td></tr>'}</tbody></table></div>${tablePagination("m11-frameworks")}</section></div>`;
       }

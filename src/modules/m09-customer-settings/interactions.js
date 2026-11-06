@@ -498,7 +498,7 @@
         const rows = relations
           .map(
             (relation) =>
-              `<tr><td><strong>${relation.company}</strong><div class="list-sub">${relation.group || "未分组"}</div></td><td>${relation.path || atom.name}</td><td>${relation.parent && !["无", "—"].includes(relation.parent) ? relation.parent : "公司直属"}</td><td>${relation.sort}</td><td>${canUnlink ? `<button class="link association-remove" type="button" data-unlink-department-relation="${relation.id}">解除关联</button>` : "—"}</td></tr>`,
+              `<tr><td><strong>${relation.company}</strong><div class="list-sub">${relation.group || "无集团"}</div></td><td>${relation.path || atom.name}</td><td>${relation.parent && !["无", "—"].includes(relation.parent) ? relation.parent : "公司直属"}</td><td>${relation.sort}</td><td>${canUnlink ? `<button class="link association-remove" type="button" data-unlink-department-relation="${relation.id}">解除关联</button>` : "—"}</td></tr>`,
           )
           .join("");
         openModal(`<div class="modal-head"><div class="modal-title">“${atom.name}”的关联详情</div><button class="icon-btn close" data-close>×</button></div><div class="modal-body"><div class="table-wrap"><table><thead><tr><th>客户公司</th><th>关系路径</th><th>上级部门</th><th>排序</th><th>操作</th></tr></thead><tbody id="departmentAssociationDetailBody">${rows || '<tr><td colspan="5"><div class="empty">暂无关联客户公司</div></td></tr>'}</tbody></table></div></div><div class="modal-foot"><button class="btn" type="button" data-close>关闭</button></div>`);
@@ -598,7 +598,7 @@
               `${company.name}${company.group || ""}`.toLowerCase().includes(search),
           );
           optionsBox.innerHTML = options.length
-            ? options.map((company) => `<button class="association-option" type="button" data-assoc-company-option="${company.id}"><strong>${company.name}</strong><span>${company.group || "未分组"}</span></button>`).join("")
+            ? options.map((company) => `<button class="association-option" type="button" data-assoc-company-option="${company.id}"><strong>${company.name}</strong><span>${company.group || "无集团"}</span></button>`).join("")
             : '<div class="association-option-empty">未找到符合条件的公司</div>';
           optionsBox.hidden = false;
         };
@@ -615,7 +615,7 @@
                     .filter((item) => item.departmentAtomId !== atomId)
                     .sort((a, b) => a.sort - b.sort || a.path.localeCompare(b.path, "zh-CN"));
                   const draft = drafts.get(company.name) || { parentAtomId: "", sort: 100 };
-                  return `<article class="association-pending-card" data-assoc-company-row="${company.id}"><div class="association-pending-head"><div><strong>${company.name}</strong><div class="list-sub">${company.group || "未分组"}</div></div><button class="link association-remove" type="button" data-remove-assoc-company="${company.id}">取消选择</button></div><div class="association-pending-fields"><label class="form-group"><span class="form-label">上级部门</span><select class="input" data-assoc-parent><option value="">公司直属</option>${parents.map((parent) => `<option value="${parent.departmentAtomId}" ${draft.parentAtomId === parent.departmentAtomId ? "selected" : ""}>${parent.path}</option>`).join("")}</select></label><label class="form-group"><span class="form-label">排序</span><input class="input" type="number" min="1" max="9999" data-assoc-sort value="${draft.sort || 100}"></label></div></article>`;
+                  return `<article class="association-pending-card" data-assoc-company-row="${company.id}"><div class="association-pending-head"><div><strong>${company.name}</strong><div class="list-sub">${company.group || "无集团"}</div></div><button class="link association-remove" type="button" data-remove-assoc-company="${company.id}">取消选择</button></div><div class="association-pending-fields"><label class="form-group"><span class="form-label">上级部门</span><select class="input" data-assoc-parent><option value="">公司直属</option>${parents.map((parent) => `<option value="${parent.departmentAtomId}" ${draft.parentAtomId === parent.departmentAtomId ? "selected" : ""}>${parent.path}</option>`).join("")}</select></label><label class="form-group"><span class="form-label">排序</span><input class="input" type="number" min="1" max="9999" data-assoc-sort value="${draft.sort || 100}"></label></div></article>`;
                 })
                 .join("")
             : '<div class="association-empty"><strong>暂未选择公司</strong></div>';
@@ -670,7 +670,14 @@
             const nextRelationNumber = customerDepartmentRelations.reduce((max, item) => Math.max(max, Number(String(item.id).replace("DEPT-REL-", "")) || 0), 0) + 1;
             const newRelation = { id: `DEPT-REL-${String(nextRelationNumber).padStart(4, "0")}`, departmentAtomId: atom.id, company: company.name, group: company.group, parentDepartmentRelationId: parent?.id || "", parent: parent?.path?.split(" / ").pop() || "无", sort, path: parent ? `${parent.path} / ${atom.name}` : atom.name, status: atom.status, updatedAt: recordCreatedAt() };
             customerDepartmentRelations.push(newRelation);
-            customerDepartments.push({ id: 3000 + customerDepartments.length, group: company.group, company: company.name, name: atom.name, parent: newRelation.parent, duty: atom.duty, code: atom.code, sort, status: atom.status, updatedAt: newRelation.updatedAt });
+            const department = { id: 3000 + customerDepartments.length, group: company.group, company: company.name, name: atom.name, parent: newRelation.parent, duty: atom.duty, code: atom.code, sort, status: atom.status, updatedAt: newRelation.updatedAt };
+            customerDepartments.push(department);
+            // The existing atom relations also apply to newly associated companies.
+            customerPositionRelations.filter(relation => relation.departmentAtomId === atom.id).forEach(relation => {
+              const position = positionAtomForId(relation.positionAtomId);
+              if (!position) return;
+              contactPositionCatalog.push({ id: `${relation.id}-DEPT-${department.id}`, group: company.group, company: company.name, departmentId: department.id, code: position.code, name: position.name, aliases: [], sort: position.sort, status: position.status, positionAtomId: position.id, updatedAt: recordCreatedAt() });
+            });
             successes.push(`${company.name}：已新增关系`);
           });
           closeOverlay();

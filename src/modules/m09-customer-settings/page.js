@@ -303,14 +303,17 @@
                 return { group, groupCompanies, includedCompanyIds };
               })
               .filter(Boolean);
-            if (!groupEntries.length && (hasGroupCriteria || hasCompanyCriteria)) return "";
+            const ungrouped = hasGroupCriteria ? [] : customers.filter(company => !company.group && company.industry === industry.name);
+            const ungroupedIds = customerOrgCompanyMatchSet(ungrouped, ["company", "any"].includes(statusTarget));
+            const directCompanies = ungrouped.filter(company => ungroupedIds.has(company.id));
+            if (!groupEntries.length && !directCompanies.length && (hasGroupCriteria || hasCompanyCriteria)) return "";
             const industryStatusMatched =
               !filters.statuses.size ||
               filters.statuses.has(customerOrgStatus("industry", industry));
             if (
               statusTarget === "any" &&
               !industryStatusMatched &&
-              !groupEntries.length
+              !groupEntries.length && !directCompanies.length
             )
               return "";
             const industryKey = `industry:${industry.name}`;
@@ -320,7 +323,7 @@
               type: "industry",
               label: industry.name,
               depth: 0,
-              hasChildren: groupEntries.length > 0,
+              hasChildren: groupEntries.length > 0 || directCompanies.length > 0,
               meta: `<span class="tag ${customerOrgStatusTone(industryStatus)}">${industryStatus}</span>`,
             });
             if (!expandedCustomerOrgNodes.has(industryKey)) return html;
@@ -363,6 +366,9 @@
               html += rootPage.more;
             });
             html += groupPage.more;
+            const directPage = customerOrgLimitedChildren(`nav:ungrouped:${industry.name}`, directCompanies, customerOrgNavFiltering());
+            directPage.visible.forEach(company => { html += customerOrgCompanyTreeHtml(company, ungrouped, ungroupedIds, 1); });
+            html += directPage.more;
             return html;
           })
           .join("");
@@ -553,7 +559,7 @@
         const parent = customerOrganizationParent(company);
         const organizationPath = customerOrganizationPath(company);
         const status = customerOrgStatus("company", company);
-        return `<div class="customer-company-head"><div class="customer-company-head-main"><div class="customer-company-name">${company.name}</div><div class="customer-org-path">${organizationPath}</div></div><span class="tag ${customerOrgStatusTone(status)}">${status}</span></div><div class="company-overview">${customerOrgDetailField("公司编码", company.companyCode || `CC${String(company.id).padStart(8, "0")}`)}${customerOrgDetailField("所属行业", company.industry)}${customerOrgDetailField("所属集团", company.group)}${customerOrgDetailField("组织上级", parent?.name || company.group)}${customerOrgDetailField("业务责任层级", customerBusinessResponsibilityLevel(company))}${customerOrgDetailField("业务责任省/市/区县", adminArea(company))}${customerOrgDetailField("统一社会信用代码", company.creditCode || "未填写")}${customerOrgDetailField("更新时间", company.updatedAt || "2026-08-17 09:30")}</div>${canEditSettings ? `<div class="customer-org-actions">${status === "已停用" ? objectLifecycleActionHtml("customer", company.id) : `<button class="btn" data-action="edit-customer-parent" data-id="${company.id}">调整组织上级</button>${objectLifecycleActionHtml("customer", company.id)}`}</div>` : ""}`;
+        return `<div class="customer-company-head"><div class="customer-company-head-main"><div class="customer-company-name">${company.name}</div><div class="customer-org-path">${organizationPath}</div></div><span class="tag ${customerOrgStatusTone(status)}">${status}</span></div><div class="company-overview">${customerOrgDetailField("公司编码", company.companyCode || `CC${String(company.id).padStart(8, "0")}`)}${customerOrgDetailField("所属行业", company.industry)}${customerOrgDetailField("所属集团", company.group || "无")}${customerOrgDetailField("组织上级", parent?.name || company.group || "无")}${customerOrgDetailField("业务责任层级", customerBusinessResponsibilityLevel(company))}${customerOrgDetailField("业务责任省/市/区县", adminArea(company))}${customerOrgDetailField("统一社会信用代码", company.creditCode || "未填写")}${customerOrgDetailField("更新时间", company.updatedAt || "2026-08-17 09:30")}</div>${canEditSettings ? `<div class="customer-org-actions">${status === "已停用" ? objectLifecycleActionHtml("customer", company.id) : `${company.group ? `<button class="btn" data-action="edit-customer-parent" data-id="${company.id}">调整组织上级</button>` : ""}${objectLifecycleActionHtml("customer", company.id)}`}</div>` : ""}`;
       }
 
       function customerOrgFilterMultiSelect(id, options, selectedValues) {
@@ -730,7 +736,7 @@
             )
             .join("") || '<tr data-empty-row><td colspan="10"><div class="empty">暂无自动任务规则</div></td></tr>'}<tr data-filter-empty style="display:none"><td colspan="10"><div class="empty">未找到符合条件的规则，请调整条件或重置筛选</div></td></tr></tbody></table></div>${tablePagination("m09-rules", 20, [20])}</section>`;
         if (settingsSection === "industries")
-          content = `<section class="panel"><div class="panel-head"><div><div class="panel-title">行业配置</div><div class="panel-sub">停用后不再进入新增与筛选候选，存量集团引用保留</div></div><div class="spacer"></div>${canEditSettings ? '<button class="btn btn-primary" data-action="add-industry">＋ 新增行业</button>' : '<span class="tag blue">只读</span>'}</div><div class="toolbar filter-toolbar">${filterField("行业名称", '<input class="input" id="industryConfigName" placeholder="行业名称">')}${filterField("行业编码", '<input class="input" id="industryConfigCode" placeholder="行业编码">')}${filterField("状态", '<select class="input" id="industryConfigStatus"><option value="">全部状态</option><option value="正常">正常</option><option value="已停用">已停用</option></select>')}${filterActions('<button class="btn btn-primary" id="applyIndustryConfigFilters" type="button">筛选</button><button class="btn" id="resetIndustryConfigFilters" type="button">重置</button>')}</div><div class="table-wrap"><table data-paged-table="m09-industries"><thead><tr><th>行业名称</th><th>行业编码</th><th>引用集团数</th><th>状态</th><th>排序</th><th>备注</th><th>更新时间</th><th>操作</th></tr></thead><tbody id="industryConfigBody">${industries.map((item, index) => `<tr data-page-row data-config-row data-name="${item.name}" data-code="${item.code}" data-status="${item.enabled ? "正常" : "已停用"}"><td><strong>${item.name}</strong></td><td>${item.code}</td><td>${new Set(customers.filter((customer) => customer.industry === item.name).map((customer) => customer.group)).size}</td><td><span class="tag ${item.enabled ? "green" : "red"}">${item.enabled ? "正常" : "已停用"}</span></td><td>${item.sort}</td><td>${item.remark || "—"}</td><td>${item.updatedAt}</td><td>${canEditSettings ? `<button class="link" type="button" data-action="edit-industry" data-id="${index}">编辑</button> · <button class="link" type="button" data-action="toggle-industry" data-id="${index}">${item.enabled ? "停用" : "恢复"}</button>` : "—"}</td></tr>`).join("") || '<tr data-empty-row><td colspan="8"><div class="empty">暂无行业配置</div></td></tr>'}<tr data-filter-empty style="display:none"><td colspan="8"><div class="empty">未找到符合条件的行业，请调整条件或重置筛选</div></td></tr></tbody></table></div>${tablePagination("m09-industries")}</section>`;
+          content = `<section class="panel"><div class="panel-head"><div><div class="panel-title">行业配置</div><div class="panel-sub">停用后不再进入新增与筛选候选，存量集团引用保留</div></div><div class="spacer"></div>${canEditSettings ? '<button class="btn btn-primary" data-action="add-industry">＋ 新增行业</button>' : '<span class="tag blue">只读</span>'}</div><div class="toolbar filter-toolbar">${filterField("行业名称", '<input class="input" id="industryConfigName" placeholder="行业名称">')}${filterField("行业编码", '<input class="input" id="industryConfigCode" placeholder="行业编码">')}${filterField("状态", '<select class="input" id="industryConfigStatus"><option value="">全部状态</option><option value="正常">正常</option><option value="已停用">已停用</option></select>')}${filterActions('<button class="btn btn-primary" id="applyIndustryConfigFilters" type="button">筛选</button><button class="btn" id="resetIndustryConfigFilters" type="button">重置</button>')}</div><div class="table-wrap"><table data-paged-table="m09-industries"><thead><tr><th>行业名称</th><th>行业编码</th><th>引用集团数</th><th>状态</th><th>排序</th><th>备注</th><th>更新时间</th><th>操作</th></tr></thead><tbody id="industryConfigBody">${industries.map((item, index) => `<tr data-page-row data-config-row data-name="${item.name}" data-code="${item.code}" data-status="${item.enabled ? "正常" : "已停用"}"><td><strong>${item.name}</strong></td><td>${item.code}</td><td>${new Set(customers.filter((customer) => customer.industry === item.name).map((customer) => customer.group).filter(Boolean)).size}</td><td><span class="tag ${item.enabled ? "green" : "red"}">${item.enabled ? "正常" : "已停用"}</span></td><td>${item.sort}</td><td>${item.remark || "—"}</td><td>${item.updatedAt}</td><td>${canEditSettings ? `<button class="link" type="button" data-action="edit-industry" data-id="${index}">编辑</button> · <button class="link" type="button" data-action="toggle-industry" data-id="${index}">${item.enabled ? "停用" : "恢复"}</button>` : "—"}</td></tr>`).join("") || '<tr data-empty-row><td colspan="8"><div class="empty">暂无行业配置</div></td></tr>'}<tr data-filter-empty style="display:none"><td colspan="8"><div class="empty">未找到符合条件的行业，请调整条件或重置筛选</div></td></tr></tbody></table></div>${tablePagination("m09-industries")}</section>`;
         return (
           pageHead(
             "客户基础配置",

@@ -14,6 +14,7 @@
           title: "项目管理",
           items: [
             { id: "projects", icon: "▤", label: "项目列表" },
+            { id: "frameworks", icon: "▥", label: "框架管理" },
             { id: "packages", icon: "▥", label: "采购包管理" },
             { id: "platform-companies", icon: "▧", label: "平台公司管理" },
           ],
@@ -93,9 +94,9 @@
       let opportunityDetailTab = "overview";
       let opportunityDetailContext = "sales";
       let selectedOpportunitySupportId = null;
-      let salesPeriodDraft = "2026-09";
-      let salesPeriodApplied = "2026-09";
-      let salesTargetMonth = "2026-09";
+      let salesPeriodDraft = "2026-11";
+      let salesPeriodApplied = "2026-11";
+      let salesTargetMonth = "2026-11";
       let salesTrendMode = "count";
       let appliedOpportunityFilters = {
         code: "",
@@ -123,4 +124,5 @@
       let taskDataUpdatedAt = formatTaskUpdateTime(new Date());
       const executionTableStates = {};
 
+      let teacherListState = { actor: null, filters: null };
       let teacherScheduleState = { actor: null, month: "", view: "calendar", selected: null };

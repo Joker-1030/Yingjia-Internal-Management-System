@@ -170,7 +170,7 @@
           .filter((company) => regionForCompany(company)?.id === region.id)
           .forEach((company) => {
             company.region = regionScopeName(region);
-            if (company.level === "省公司") company.owner = region.director;
+            if (company.level === "省公司" && !centerResponsibilityRuleForCustomer(company)) company.owner = region.director;
           });
         contacts
           .filter((person) => {

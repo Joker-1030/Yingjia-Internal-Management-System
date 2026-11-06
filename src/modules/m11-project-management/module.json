@@ -8,7 +8,8 @@
     "project-create",
     "project-edit",
     "packages",
-    "platform-companies"
+    "platform-companies",
+    "frameworks"
   ],
   "pageStates": [
     "项目列表",
@@ -22,7 +23,8 @@
     "项目取消",
     "自动完成与待办",
     "采购包管理",
-    "平台公司管理"
+    "平台公司管理",
+    "框架管理及项目额度"
   ],
   "dataReferences": [
     "data/projects.js",
@@ -32,7 +34,8 @@
     "data/customers.js",
     "data/regions.js",
     "data/organization.js",
-    "data/teachers.js"
+    "data/teachers.js",
+    "data/project-frameworks.js"
   ],
   "sourceFiles": [
     "modules/m11-project-management/page.js",

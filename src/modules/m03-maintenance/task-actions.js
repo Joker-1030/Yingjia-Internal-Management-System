@@ -1,3 +1,81 @@
+      // Use the original KPI target snapshot; responsibility changes only regroup its customers.
+      function coverageCampaignCompanies(campaign) {
+        const targets = campaign.targets || {};
+        const matches = (values, value) => !values?.length || values.includes(value);
+        return customers.filter(company => !company.archived &&
+          matches(targets.industries, company.industry) &&
+          matches(targets.groups, company.group) &&
+          matches(targets.companyLevels, company.level) &&
+          (!campaign.targetCompany || company.name === campaign.targetCompany));
+      }
+      function coverageTaskCompanies(task) {
+        const campaign = campaigns.find(item => item.id === task.campaignId);
+        return campaign ? coverageCampaignCompanies(campaign).filter(company => customerOwnerName(company) === task.pm) : [];
+      }
+      function regroupCoverageForResponsibilityChange(changedCustomers, effectiveAt) {
+        campaigns.filter(campaign => campaign.category === "关键人覆盖 KPI" &&
+          campaign.endDate >= DEMO_TODAY && coverageCampaignCompanies(campaign).some(company => changedCustomers.includes(company)))
+          .forEach(campaign => {
+            const previousRows = campaign.coverageExecutions || [];
+            const groups = new Map();
+            coverageCampaignCompanies(campaign).forEach(company => {
+              const owner = customerOwnerName(company);
+              if (changedCustomers.includes(company) && !responsibilityReceiverIsValid(company, regionForCompany(company), owner)) throw new Error(`${company.name} 无有效接收人`);
+              if (!groups.has(owner)) groups.set(owner, []);
+              groups.get(owner).push(company);
+            });
+            const rows = [...groups].map(([owner, companies]) => {
+              const covered = companies.filter(company => contacts.some(person => contactIsActive(person) &&
+                person.company === company.name &&
+                (!campaign.targets?.levels?.length || campaign.targets.levels.includes(person.level)) &&
+                (!campaign.targetDepartmentId || person.departmentAtomId === campaign.targetDepartmentId) &&
+                (!campaign.targetPositionId || person.positionAtomId === campaign.targetPositionId)));
+              const denominator = companies.length, numerator = covered.length;
+              const required = Math.ceil(denominator * campaign.targetCoverageRate / 100);
+              const previous = previousRows.find(row => row.owner === owner);
+              return { owner, region: companies[0].region, denominator, numerator, required,
+                targetRate: campaign.targetCoverageRate,
+                currentRate: Math.round(numerator / denominator * 1000) / 10,
+                status: numerator >= required ? "已达标" : "待完成",
+                firstReachedAt: previous?.firstReachedAt && previous.firstReachedAt !== "—" ? previous.firstReachedAt : numerator >= required ? effectiveAt : "—",
+                uncovered: companies.filter(company => !covered.includes(company)).map(company => company.name).join("、") || "—",
+                updatedAt: effectiveAt };
+            });
+            const campaignTasks = tasks.filter(task => task.campaignId === campaign.id && task.type === "关键人覆盖 KPI" && !["cancelled", "expired"].includes(task.status));
+            campaignTasks.filter(task => !groups.has(task.pm) && task.status !== "done").forEach(task => {
+              task.status = "cancelled";
+              task.closeReason = "客户责任变更";
+              task.closedAt = effectiveAt;
+            });
+            rows.forEach(row => {
+              let task = campaignTasks.find(item => item.pm === row.owner);
+              if (!task) {
+                const theme = taskThemes.find(item => item.key === `campaign:${campaign.id}`);
+                if (!theme) throw new Error("覆盖 KPI 父任务不存在");
+                task = { id: Math.max(Date.now(), ...tasks.map(item => Number(item.id) || 0)) + 1,
+                  campaignId: campaign.id, parentTaskCode: theme.code, executionCode: nextTaskExecutionCode(theme.code),
+                  type: campaign.category, title: `${campaign.name} - ${row.owner}`, person: "公司 + 职级 + 部门 + 岗位覆盖 KPI 待办",
+                  company: campaign.targetCompany || "全部目标公司", due: campaign.endDate,
+                  requirement: campaign.description, source: "manual", createdAt: effectiveAt };
+                tasks.push(task);
+              }
+              // Finished executions are historical evidence; never rewrite their snapshots.
+              if (task.status === "done") return;
+              Object.assign(task, { pm: row.owner, region: row.region,
+                executorRole: customerResponsibilityRole(groups.get(row.owner)[0]),
+                coverageNumerator: row.numerator, coverageDenominator: row.denominator,
+                targetCoverageRate: row.targetRate, updatedAt: effectiveAt,
+                status: row.status === "已达标" ? "done" : "pending",
+                completionType: row.status === "已达标" ? "kpi_achieved" : "",
+                completedAt: row.status === "已达标" ? task.completedAt || effectiveAt : "" });
+            });
+            campaign.coverageExecutions = rows;
+            campaign.total = rows.length;
+            campaign.done = rows.filter(row => row.status === "已达标").length;
+            campaign.updatedAt = effectiveAt;
+          });
+      }
+
       function addDays(dateString, days) {
         const [year, month, day] = dateString.split("-").map(Number);
         const d = new Date(Date.UTC(year, month - 1, day));
@@ -32,7 +110,7 @@
           person: person.name,
           company: person.company,
           pm: customerOwnerName(company),
-          executorRole: company.level === "省公司" ? "区域总监" : "PM",
+          executorRole: customerResponsibilityRole(company),
           region: person.region,
           due: addDays(baseDate, maintenanceConfig.cycles[person.level] || 30),
           status: "pending",

@@ -54,14 +54,4 @@
           { id: "HOL-2026-NATIONAL", year: 2026, name: "国庆节", date: "2026-10-01", startDate: "2026-10-01", endDate: "2026-10-07", status: "正常" },
         ],
       };
-      let industries = [
-        { name: "通信", enabled: true },
-        { name: "制造", enabled: true },
-        { name: "能源", enabled: true },
-        { name: "金融", enabled: true },
-      ];
-      industries.forEach((industry, index) => {
-        industry.code = industry.code || `IND-${String(index + 1).padStart(3, "0")}`;
-        industry.sort = industry.sort || (index + 1) * 10;
-        industry.updatedAt = industry.updatedAt || "2026-08-17 09:30";
-      });
+      let industries = [{"name": "数字服务", "enabled": true, "code": "IND-001", "sort": 10, "updatedAt": "2026-11-01 09:00"}, {"name": "通信", "enabled": true, "code": "IND-002", "sort": 20, "updatedAt": "2026-11-01 09:00"}, {"name": "制造", "enabled": true, "code": "IND-003", "sort": 30, "updatedAt": "2026-11-01 09:00"}, {"name": "能源", "enabled": true, "code": "IND-004", "sort": 40, "updatedAt": "2026-11-01 09:00"}, {"name": "金融", "enabled": true, "code": "IND-005", "sort": 50, "updatedAt": "2026-11-01 09:00"}];

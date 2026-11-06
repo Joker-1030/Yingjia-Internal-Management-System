@@ -1,275 +1,163 @@
       const customerDepartments = [
-        {
-          id: 1001,
-          group: "华北云网集团",
-          company: "华北云网集团济南分公司",
-          name: "人力资源部",
-          parent: "无",
-          duty: "人才发展与培训管理",
-        },
-        {
-          id: 1002,
-          group: "华北云网集团",
-          company: "华北云网集团济南分公司",
-          name: "培训发展中心",
-          parent: "人力资源部",
-          duty: "培训项目执行",
-        },
-        {
-          id: 1003,
-          group: "华北云网集团",
-          company: "华北云网集团济南分公司",
-          name: "人才发展部",
-          parent: "人力资源部",
-          duty: "人才梯队与能力建设",
-        },
-        {
-          id: 1004,
-          group: "华信通信集团",
-          company: "华信通信集团泰安分公司",
-          name: "组织人事部",
-          parent: "无",
-          duty: "组织与人才发展",
-        },
-        {
-          id: 1005,
-          group: "华北云网集团",
-          company: "国网产业协同集团青岛分公司",
-          name: "人力资源部",
-          parent: "无",
-          duty: "人才发展与培训管理",
-        },
-        {
-          id: 1006,
-          group: "华东能源控股",
-          company: "华东能源控股山东有限公司",
-          name: "人力资源部",
-          parent: "无",
-          duty: "干部与人才培养",
-        },
-        {
-          id: 1010,
-          group: "华北云网集团",
-          company: "华北云网集团济南分公司",
-          name: "原培训管理办公室",
-          parent: "人力资源部",
-          duty: "历史培训管理职能",
-          archived: true,
-        },
-        {
-          id: 1101,
-          group: "国网产业协同集团",
-          company: "国网产业协同集团山东省公司",
-          name: "运营管理部",
-          parent: "无",
-          duty: "集团运营统筹与区域协同",
-        },
-        {
-          id: 1102,
-          group: "国网产业协同集团",
-          company: "国网产业协同集团济南市公司",
-          name: "客户运营组",
-          parent: "无",
-          duty: "客户运营体系与重点客户协同",
-        },
-        {
-          id: 1103,
-          group: "国网产业协同集团",
-          company: "国网产业协同集团济南市公司",
-          name: "华东客户组",
-          parent: "客户运营组",
-          duty: "华东区域客户日常运营",
-        },
+        {"id": 1011,"group": "华北云网集团","company": "华北云网集团山东有限公司","name": "人力资源部","parent": "无","duty": "人才发展与培训管理","code": "CDEPT00000001","sort": 10,"status": "正常","updatedAt": "2026-10-27 09:00"},
+        {"id": 1012,"group": "华北云网集团","company": "华北云网集团山东有限公司","name": "培训发展中心","parent": "人力资源部","duty": "培训项目执行与评估","code": "CDEPT00000002","sort": 20,"status": "正常","updatedAt": "2026-10-27 09:00"},
+        {"id": 1021,"group": "华北云网集团","company": "华北云网集团济南分公司","name": "人力资源部","parent": "无","duty": "人才发展与培训管理","code": "CDEPT00000001","sort": 10,"status": "正常","updatedAt": "2026-10-27 09:00"},
+        {"id": 1022,"group": "华北云网集团","company": "华北云网集团济南分公司","name": "培训发展中心","parent": "人力资源部","duty": "培训项目执行与评估","code": "CDEPT00000002","sort": 20,"status": "正常","updatedAt": "2026-10-27 09:00"},
+        {"id": 1031,"group": "华信通信集团","company": "华信通信集团泰安分公司","name": "人力资源部","parent": "无","duty": "人才发展与培训管理","code": "CDEPT00000001","sort": 10,"status": "正常","updatedAt": "2026-10-27 09:00"},
+        {"id": 1032,"group": "华信通信集团","company": "华信通信集团泰安分公司","name": "培训发展中心","parent": "人力资源部","duty": "培训项目执行与评估","code": "CDEPT00000002","sort": 20,"status": "正常","updatedAt": "2026-10-27 09:00"},
+        {"id": 1041,"group": "国网产业协同集团","company": "国网产业协同集团青岛分公司","name": "人力资源部","parent": "无","duty": "人才发展与培训管理","code": "CDEPT00000001","sort": 10,"status": "正常","updatedAt": "2026-10-27 09:00"},
+        {"id": 1042,"group": "国网产业协同集团","company": "国网产业协同集团青岛分公司","name": "培训发展中心","parent": "人力资源部","duty": "培训项目执行与评估","code": "CDEPT00000002","sort": 20,"status": "正常","updatedAt": "2026-10-27 09:00"},
+        {"id": 1051,"group": "华东能源控股","company": "华东能源控股山东有限公司","name": "人力资源部","parent": "无","duty": "人才发展与培训管理","code": "CDEPT00000001","sort": 10,"status": "正常","updatedAt": "2026-10-27 09:00"},
+        {"id": 1052,"group": "华东能源控股","company": "华东能源控股山东有限公司","name": "培训发展中心","parent": "人力资源部","duty": "培训项目执行与评估","code": "CDEPT00000002","sort": 20,"status": "正常","updatedAt": "2026-10-27 09:00"},
+        {"id": 1061,"group": "齐鲁数科集团","company": "齐鲁数科集团江苏有限公司","name": "人力资源部","parent": "无","duty": "人才发展与培训管理","code": "CDEPT00000001","sort": 10,"status": "正常","updatedAt": "2026-10-27 09:00"},
+        {"id": 1062,"group": "齐鲁数科集团","company": "齐鲁数科集团江苏有限公司","name": "培训发展中心","parent": "人力资源部","duty": "培训项目执行与评估","code": "CDEPT00000002","sort": 20,"status": "正常","updatedAt": "2026-10-27 09:00"},
+        {"id": 1071,"group": "华北云网集团","company": "华北云网集团南京分公司","name": "人力资源部","parent": "无","duty": "人才发展与培训管理","code": "CDEPT00000001","sort": 10,"status": "正常","updatedAt": "2026-10-27 09:00"},
+        {"id": 1072,"group": "华北云网集团","company": "华北云网集团南京分公司","name": "培训发展中心","parent": "人力资源部","duty": "培训项目执行与评估","code": "CDEPT00000002","sort": 20,"status": "正常","updatedAt": "2026-10-27 09:00"},
+        {"id": 1081,"group": "华东能源控股","company": "华东能源控股浙江有限公司","name": "人力资源部","parent": "无","duty": "人才发展与培训管理","code": "CDEPT00000001","sort": 10,"status": "正常","updatedAt": "2026-10-27 09:00"},
+        {"id": 1082,"group": "华东能源控股","company": "华东能源控股浙江有限公司","name": "培训发展中心","parent": "人力资源部","duty": "培训项目执行与评估","code": "CDEPT00000002","sort": 20,"status": "正常","updatedAt": "2026-10-27 09:00"},
+        {"id": 1091,"group": "齐鲁数科集团","company": "齐鲁数科集团历下分公司","name": "人力资源部","parent": "无","duty": "人才发展与培训管理","code": "CDEPT00000001","sort": 10,"status": "正常","updatedAt": "2026-10-27 09:00"},
+        {"id": 1092,"group": "齐鲁数科集团","company": "齐鲁数科集团历下分公司","name": "培训发展中心","parent": "人力资源部","duty": "培训项目执行与评估","code": "CDEPT00000002","sort": 20,"status": "正常","updatedAt": "2026-10-27 09:00"},
+        {"id": 1101,"group": "齐鲁数科集团","company": "齐鲁数科集团烟台分公司","name": "人力资源部","parent": "无","duty": "人才发展与培训管理","code": "CDEPT00000001","sort": 10,"status": "正常","updatedAt": "2026-10-27 09:00"},
+        {"id": 1102,"group": "齐鲁数科集团","company": "齐鲁数科集团烟台分公司","name": "培训发展中心","parent": "人力资源部","duty": "培训项目执行与评估","code": "CDEPT00000002","sort": 20,"status": "正常","updatedAt": "2026-10-27 09:00"},
+        {"id": 1111,"group": "华信通信集团","company": "华信通信集团烟台分公司","name": "人力资源部","parent": "无","duty": "人才发展与培训管理","code": "CDEPT00000001","sort": 10,"status": "正常","updatedAt": "2026-10-27 09:00"},
+        {"id": 1112,"group": "华信通信集团","company": "华信通信集团烟台分公司","name": "培训发展中心","parent": "人力资源部","duty": "培训项目执行与评估","code": "CDEPT00000002","sort": 20,"status": "正常","updatedAt": "2026-10-27 09:00"},
+        {"id": 1121,"group": "齐鲁数科集团","company": "齐鲁数科集团济南分公司","name": "人力资源部","parent": "无","duty": "人才发展与培训管理","code": "CDEPT00000001","sort": 10,"status": "正常","updatedAt": "2026-10-27 09:00"},
+        {"id": 1122,"group": "齐鲁数科集团","company": "齐鲁数科集团济南分公司","name": "培训发展中心","parent": "人力资源部","duty": "培训项目执行与评估","code": "CDEPT00000002","sort": 20,"status": "正常","updatedAt": "2026-10-27 09:00"},
+        {"id": 1131,"group": "华信通信集团","company": "华信通信集团济南分公司","name": "人力资源部","parent": "无","duty": "人才发展与培训管理","code": "CDEPT00000001","sort": 10,"status": "正常","updatedAt": "2026-10-27 09:00"},
+        {"id": 1132,"group": "华信通信集团","company": "华信通信集团济南分公司","name": "培训发展中心","parent": "人力资源部","duty": "培训项目执行与评估","code": "CDEPT00000002","sort": 20,"status": "正常","updatedAt": "2026-10-27 09:00"},
+        {"id": 1141,"group": "华信通信集团","company": "华信通信集团市中分公司","name": "人力资源部","parent": "无","duty": "人才发展与培训管理","code": "CDEPT00000001","sort": 10,"status": "正常","updatedAt": "2026-10-27 09:00"},
+        {"id": 1142,"group": "华信通信集团","company": "华信通信集团市中分公司","name": "培训发展中心","parent": "人力资源部","duty": "培训项目执行与评估","code": "CDEPT00000002","sort": 20,"status": "正常","updatedAt": "2026-10-27 09:00"},
+        {"id": 1151,"group": "国网产业协同集团","company": "国网产业协同集团福山分公司","name": "人力资源部","parent": "无","duty": "人才发展与培训管理","code": "CDEPT00000001","sort": 10,"status": "正常","updatedAt": "2026-10-27 09:00"},
+        {"id": 1152,"group": "国网产业协同集团","company": "国网产业协同集团福山分公司","name": "培训发展中心","parent": "人力资源部","duty": "培训项目执行与评估","code": "CDEPT00000002","sort": 20,"status": "正常","updatedAt": "2026-10-27 09:00"},
+        {"id": 1161,"group": "齐鲁数科集团","company": "齐鲁数科集团无锡分公司","name": "人力资源部","parent": "无","duty": "人才发展与培训管理","code": "CDEPT00000001","sort": 10,"status": "正常","updatedAt": "2026-10-27 09:00"},
+        {"id": 1162,"group": "齐鲁数科集团","company": "齐鲁数科集团无锡分公司","name": "培训发展中心","parent": "人力资源部","duty": "培训项目执行与评估","code": "CDEPT00000002","sort": 20,"status": "正常","updatedAt": "2026-10-27 09:00"},
+        {"id": 1171,"group": "华信通信集团","company": "华信通信集团合肥分公司","name": "人力资源部","parent": "无","duty": "人才发展与培训管理","code": "CDEPT00000001","sort": 10,"status": "正常","updatedAt": "2026-10-27 09:00"},
+        {"id": 1172,"group": "华信通信集团","company": "华信通信集团合肥分公司","name": "培训发展中心","parent": "人力资源部","duty": "培训项目执行与评估","code": "CDEPT00000002","sort": 20,"status": "正常","updatedAt": "2026-10-27 09:00"},
+        {"id": 1181,"group": "齐鲁数科集团","company": "齐鲁数科集团浙江有限公司","name": "人力资源部","parent": "无","duty": "人才发展与培训管理","code": "CDEPT00000001","sort": 10,"status": "正常","updatedAt": "2026-10-27 09:00"},
+        {"id": 1182,"group": "齐鲁数科集团","company": "齐鲁数科集团浙江有限公司","name": "培训发展中心","parent": "人力资源部","duty": "培训项目执行与评估","code": "CDEPT00000002","sort": 20,"status": "正常","updatedAt": "2026-10-27 09:00"},
+        {"id": 1191,"group": "齐鲁数科集团","company": "齐鲁数科集团杭州分公司","name": "人力资源部","parent": "无","duty": "人才发展与培训管理","code": "CDEPT00000001","sort": 10,"status": "正常","updatedAt": "2026-10-27 09:00"},
+        {"id": 1192,"group": "齐鲁数科集团","company": "齐鲁数科集团杭州分公司","name": "培训发展中心","parent": "人力资源部","duty": "培训项目执行与评估","code": "CDEPT00000002","sort": 20,"status": "正常","updatedAt": "2026-10-27 09:00"},
+        {"id": 1201,"group": "华北云网集团","company": "华北云网集团宁波分公司","name": "人力资源部","parent": "无","duty": "人才发展与培训管理","code": "CDEPT00000001","sort": 10,"status": "正常","updatedAt": "2026-10-27 09:00"},
+        {"id": 1202,"group": "华北云网集团","company": "华北云网集团宁波分公司","name": "培训发展中心","parent": "人力资源部","duty": "培训项目执行与评估","code": "CDEPT00000002","sort": 20,"status": "正常","updatedAt": "2026-10-27 09:00"},
+        {"id": 1211,"group": "华东能源控股","company": "华东能源控股温州分公司","name": "人力资源部","parent": "无","duty": "人才发展与培训管理","code": "CDEPT00000001","sort": 10,"status": "正常","updatedAt": "2026-10-27 09:00"},
+        {"id": 1212,"group": "华东能源控股","company": "华东能源控股温州分公司","name": "培训发展中心","parent": "人力资源部","duty": "培训项目执行与评估","code": "CDEPT00000002","sort": 20,"status": "正常","updatedAt": "2026-10-27 09:00"},
+        {"id": 1221,"group": "齐鲁数科集团","company": "齐鲁数科集团福建有限公司","name": "人力资源部","parent": "无","duty": "人才发展与培训管理","code": "CDEPT00000001","sort": 10,"status": "正常","updatedAt": "2026-10-27 09:00"},
+        {"id": 1222,"group": "齐鲁数科集团","company": "齐鲁数科集团福建有限公司","name": "培训发展中心","parent": "人力资源部","duty": "培训项目执行与评估","code": "CDEPT00000002","sort": 20,"status": "正常","updatedAt": "2026-10-27 09:00"},
+        {"id": 1231,"group": "齐鲁数科集团","company": "齐鲁数科集团福州分公司","name": "人力资源部","parent": "无","duty": "人才发展与培训管理","code": "CDEPT00000001","sort": 10,"status": "正常","updatedAt": "2026-10-27 09:00"},
+        {"id": 1232,"group": "齐鲁数科集团","company": "齐鲁数科集团福州分公司","name": "培训发展中心","parent": "人力资源部","duty": "培训项目执行与评估","code": "CDEPT00000002","sort": 20,"status": "正常","updatedAt": "2026-10-27 09:00"},
+        {"id": 1241,"group": "华北云网集团","company": "华北云网集团广州分公司","name": "人力资源部","parent": "无","duty": "人才发展与培训管理","code": "CDEPT00000001","sort": 10,"status": "正常","updatedAt": "2026-10-27 09:00"},
+        {"id": 1242,"group": "华北云网集团","company": "华北云网集团广州分公司","name": "培训发展中心","parent": "人力资源部","duty": "培训项目执行与评估","code": "CDEPT00000002","sort": 20,"status": "正常","updatedAt": "2026-10-27 09:00"},
+        {"id": 1251,"group": "华信通信集团","company": "华信通信集团南宁分公司","name": "人力资源部","parent": "无","duty": "人才发展与培训管理","code": "CDEPT00000001","sort": 10,"status": "正常","updatedAt": "2026-10-27 09:00"},
+        {"id": 1252,"group": "华信通信集团","company": "华信通信集团南宁分公司","name": "培训发展中心","parent": "人力资源部","duty": "培训项目执行与评估","code": "CDEPT00000002","sort": 20,"status": "正常","updatedAt": "2026-10-27 09:00"},
+        {"id": 1261,"group": "国网产业协同集团","company": "国网产业协同集团山东省公司","name": "人力资源部","parent": "无","duty": "人才发展与培训管理","code": "CDEPT00000001","sort": 10,"status": "正常","updatedAt": "2026-10-27 09:00"},
+        {"id": 1262,"group": "国网产业协同集团","company": "国网产业协同集团山东省公司","name": "培训发展中心","parent": "人力资源部","duty": "培训项目执行与评估","code": "CDEPT00000002","sort": 20,"status": "正常","updatedAt": "2026-10-27 09:00"},
+        {"id": 1271,"group": "国网产业协同集团","company": "国网产业协同集团济南市公司","name": "人力资源部","parent": "无","duty": "人才发展与培训管理","code": "CDEPT00000001","sort": 10,"status": "正常","updatedAt": "2026-10-27 09:00"},
+        {"id": 1272,"group": "国网产业协同集团","company": "国网产业协同集团济南市公司","name": "培训发展中心","parent": "人力资源部","duty": "培训项目执行与评估","code": "CDEPT00000002","sort": 20,"status": "正常","updatedAt": "2026-10-27 09:00"},
+        {"id": 1281,"group": "国网产业协同集团","company": "国网产业协同集团历下区县公司","name": "人力资源部","parent": "无","duty": "人才发展与培训管理","code": "CDEPT00000001","sort": 10,"status": "正常","updatedAt": "2026-10-27 09:00"},
+        {"id": 1282,"group": "国网产业协同集团","company": "国网产业协同集团历下区县公司","name": "培训发展中心","parent": "人力资源部","duty": "培训项目执行与评估","code": "CDEPT00000002","sort": 20,"status": "正常","updatedAt": "2026-10-27 09:00"},
+        {"id": 1291,"group": "华北云网集团","company": "华北云网集团青岛分公司","name": "人力资源部","parent": "无","duty": "人才发展与培训管理","code": "CDEPT00000001","sort": 10,"status": "正常","updatedAt": "2026-10-27 09:00"},
+        {"id": 1292,"group": "华北云网集团","company": "华北云网集团青岛分公司","name": "培训发展中心","parent": "人力资源部","duty": "培训项目执行与评估","code": "CDEPT00000002","sort": 20,"status": "正常","updatedAt": "2026-10-27 09:00"},
+        {"id": 1301,"group": "华北云网集团","company": "华北云网集团崂山分公司","name": "人力资源部","parent": "无","duty": "人才发展与培训管理","code": "CDEPT00000001","sort": 10,"status": "正常","updatedAt": "2026-10-27 09:00"},
+        {"id": 1302,"group": "华北云网集团","company": "华北云网集团崂山分公司","name": "培训发展中心","parent": "人力资源部","duty": "培训项目执行与评估","code": "CDEPT00000002","sort": 20,"status": "正常","updatedAt": "2026-10-27 09:00"},
+        {"id": 1311,"group": "齐鲁数科集团","company": "齐鲁数科集团青岛分公司","name": "人力资源部","parent": "无","duty": "人才发展与培训管理","code": "CDEPT00000001","sort": 10,"status": "正常","updatedAt": "2026-10-27 09:00"},
+        {"id": 1312,"group": "齐鲁数科集团","company": "齐鲁数科集团青岛分公司","name": "培训发展中心","parent": "人力资源部","duty": "培训项目执行与评估","code": "CDEPT00000002","sort": 20,"status": "正常","updatedAt": "2026-10-27 09:00"},
+        {"id": 1321,"group": "","company": "泉城数智服务有限公司","name": "人力资源部","parent": "无","duty": "人才发展与培训管理","code": "CDEPT00000001","sort": 10,"status": "正常","updatedAt": "2026-10-27 09:00"},
+        {"id": 1322,"group": "","company": "泉城数智服务有限公司","name": "培训发展中心","parent": "人力资源部","duty": "培训项目执行与评估","code": "CDEPT00000002","sort": 20,"status": "正常","updatedAt": "2026-10-27 09:00"},
+        {"id": 1331,"group": "","company": "鲁能绿色技术有限公司","name": "人力资源部","parent": "无","duty": "人才发展与培训管理","code": "CDEPT00000001","sort": 10,"status": "正常","updatedAt": "2026-10-27 09:00"},
+        {"id": 1332,"group": "","company": "鲁能绿色技术有限公司","name": "培训发展中心","parent": "人力资源部","duty": "培训项目执行与评估","code": "CDEPT00000002","sort": 20,"status": "正常","updatedAt": "2026-10-27 09:00"},
+        {"id": 1341,"group": "华东能源控股","company": "华东能源控股江苏有限公司","name": "人力资源部","parent": "无","duty": "人才发展与培训管理","code": "CDEPT00000001","sort": 10,"status": "正常","updatedAt": "2026-10-27 09:00"},
+        {"id": 1342,"group": "华东能源控股","company": "华东能源控股江苏有限公司","name": "培训发展中心","parent": "人力资源部","duty": "培训项目执行与评估","code": "CDEPT00000002","sort": 20,"status": "正常","updatedAt": "2026-10-27 09:00"},
+        {"id": 1351,"group": "华东能源控股","company": "华东能源控股广东有限公司","name": "人力资源部","parent": "无","duty": "人才发展与培训管理","code": "CDEPT00000001","sort": 10,"status": "正常","updatedAt": "2026-10-27 09:00"},
+        {"id": 1352,"group": "华东能源控股","company": "华东能源控股广东有限公司","name": "培训发展中心","parent": "人力资源部","duty": "培训项目执行与评估","code": "CDEPT00000002","sort": 20,"status": "正常","updatedAt": "2026-10-27 09:00"},
       ];
-      customerDepartments.forEach((department, index) => {
-        department.code =
-          department.code || `CDEPT${String(index + 1).padStart(8, "0")}`;
-        department.sort = department.sort || (index + 1) * 10;
-        department.status = department.archived ? "已停用" : "正常";
-        department.updatedAt = department.updatedAt || "2026-08-17 09:30";
-      });
-      const sourceCompanyByGroup = new Map();
-      customerDepartments
-        .filter((item) => !item.archived)
-        .forEach((item) => {
-          if (!sourceCompanyByGroup.has(item.group))
-            sourceCompanyByGroup.set(item.group, item.company);
-        });
-      customers
-        .filter((company) => !company.archived)
-        .forEach((company) => {
-          if (
-            customerDepartments.some(
-              (department) => department.company === company.name,
-            )
-          )
-            return;
-          const sourceCompany = sourceCompanyByGroup.get(company.group);
-          const sourceDepartments = customerDepartments.filter(
-            (department) =>
-              !department.archived && department.company === sourceCompany,
-          );
-          const templates = sourceDepartments.length
-            ? sourceDepartments
-            : [
-                {
-                  name: "综合管理部",
-                  parent: "无",
-                  duty: "客户公司综合管理",
-                  sort: 10,
-                },
-              ];
-          templates.forEach((template) => {
-            const department = {
-              id: 2000 + customerDepartments.length,
-              group: company.group,
-              company: company.name,
-              name: template.name,
-              parent: template.parent,
-              duty: template.duty,
-              code: `CDEPT${String(customerDepartments.length + 1).padStart(8, "0")}`,
-              sort: template.sort,
-              status: "正常",
-              updatedAt: "2026-08-17 09:30",
-            };
-            customerDepartments.push(department);
-            const sourcePosition = contactPositionCatalog.find(
-              (position) => position.departmentId === template.id,
-            );
-            contactPositionCatalog.push({
-              id: `POS-AUTO-${String(contactPositionCatalog.length + 1).padStart(4, "0")}`,
-              group: company.group,
-              company: company.name,
-              departmentId: department.id,
-              code: `POS${String(contactPositionCatalog.length + 1).padStart(8, "0")}`,
-              name: sourcePosition?.name || "业务负责人",
-              aliases: [...(sourcePosition?.aliases || [])],
-              sort: sourcePosition?.sort || 10,
-              status: "正常",
-              updatedAt: "2026-08-17 09:30",
-            });
-          });
-        });
-      contacts.forEach((person) => {
-        const companyDepartments = customerDepartments.filter(
-          (department) =>
-            !department.archived && department.company === person.company,
-        );
-        const department =
-          companyDepartments.find(
-            (item) => item.name === person.department,
-          ) || companyDepartments[0];
-        const positions = contactPositionCatalog.filter(
-          (position) =>
-            position.status === "正常" &&
-            position.departmentId === department?.id,
-        );
-        const position =
-          positions.find((item) =>
-            [item.name, ...(item.aliases || [])].some((name) =>
-              String(person.title || "").includes(
-                String(name).replace(/负责人$/, ""),
-              ),
-            ),
-          ) || positions[0];
-        if (department) person.department = department.name;
-        if (position) {
-          person.positionSource = "standard";
-          person.positionId = position.id;
-          person.positionName = position.name;
-          person.title = position.name;
-        }
-      });
-      // M09 atomic catalogs: legacy relation-shaped fixtures remain available to
-      // older consumers, while current organization/KPI flows use these stable atoms.
-      const departmentAtomByName = new Map();
-      const customerDepartmentAtoms = [];
-      customerDepartments
-        .filter((item) => !item.archived)
-        .forEach((item, index) => {
-          const key = String(item.name || "").trim().toLowerCase();
-          if (!departmentAtomByName.has(key)) {
-            const atom = {
-              id: `DEPT-ATOM-${String(customerDepartmentAtoms.length + 1).padStart(4, "0")}`,
-              name: item.name,
-              code: `CDEPT${String(customerDepartmentAtoms.length + 1).padStart(8, "0")}`,
-              duty: item.duty || "",
-              status: item.status || "正常",
-              sort: item.sort || (index + 1) * 10,
-              updatedAt: item.updatedAt || "2026-08-17 09:30",
-            };
-            departmentAtomByName.set(key, atom);
-            customerDepartmentAtoms.push(atom);
-          }
-        });
-      const customerDepartmentRelations = customerDepartments
-        .filter((item) => !item.archived)
-        .map((item, index) => {
-          const atom = departmentAtomByName.get(String(item.name || "").trim().toLowerCase());
-          const parent = customerDepartments.find(
-            (candidate) =>
-              !candidate.archived &&
-              candidate.company === item.company &&
-              candidate.name === item.parent,
-          );
-          return {
-            id: `DEPT-REL-${String(index + 1).padStart(4, "0")}`,
-            departmentAtomId: atom.id,
-            company: item.company,
-            group: item.group,
-            parentDepartmentRelationId: parent
-              ? `DEPT-REL-${String(customerDepartments.indexOf(parent) + 1).padStart(4, "0")}`
-              : "",
-            parent: item.parent,
-            sort: item.sort || 100,
-            path: item.parent && !["无", "—"].includes(item.parent)
-              ? `${item.parent} / ${item.name}`
-              : item.name,
-            status: item.status || "正常",
-            updatedAt: item.updatedAt || "2026-08-17 09:30",
-          };
-        });
-      const positionAtomByName = new Map();
-      const customerPositionAtoms = [];
-      contactPositionCatalog
-        .filter((item) => item.status !== "已停用")
-        .forEach((item, index) => {
-          const key = String(item.name || "").trim().toLowerCase();
-          if (!positionAtomByName.has(key)) {
-            const atom = {
-              id: `POS-ATOM-${String(customerPositionAtoms.length + 1).padStart(4, "0")}`,
-              name: item.name,
-              code: `POS${String(customerPositionAtoms.length + 1).padStart(8, "0")}`,
-              sort: item.sort || (index + 1) * 10,
-              status: item.status || "正常",
-              updatedAt: item.updatedAt || "2026-08-17 09:30",
-            };
-            positionAtomByName.set(key, atom);
-            customerPositionAtoms.push(atom);
-          }
-          item.positionAtomId = positionAtomByName.get(key).id;
-        });
-      const customerPositionRelations = [];
-      const positionRelationKeys = new Set();
-      contactPositionCatalog.forEach((item) => {
-        const atom = positionAtomByName.get(String(item.name || "").trim().toLowerCase());
-        const department = customerDepartments.find(
-          (candidate) => candidate.id === item.departmentId,
-        );
-        const departmentAtom = departmentAtomByName.get(
-          String(department?.name || "").trim().toLowerCase(),
-        );
-        if (!atom || !departmentAtom) return;
-        const key = `${atom.id}:${departmentAtom.id}`;
-        if (positionRelationKeys.has(key)) return;
-        positionRelationKeys.add(key);
-        customerPositionRelations.push({
-          id: `POS-REL-${String(customerPositionRelations.length + 1).padStart(4, "0")}`,
-          positionAtomId: atom.id,
-          departmentAtomId: departmentAtom.id,
-          status: atom.status || item.status || "正常",
-        });
-      });
+      const customerDepartmentAtoms = [
+        {"id": "DEPT-ATOM-0001","name": "人力资源部","code": "CDEPT00000001","duty": "人才发展与培训管理","status": "正常","sort": 10,"updatedAt": "2026-10-27 09:00"},
+        {"id": "DEPT-ATOM-0002","name": "培训发展中心","code": "CDEPT00000002","duty": "培训项目执行与评估","status": "正常","sort": 20,"updatedAt": "2026-10-27 09:00"},
+      ];
+      const customerDepartmentRelations = [
+        {"id": "DEPT-REL-0001","departmentAtomId": "DEPT-ATOM-0001","company": "华北云网集团山东有限公司","group": "华北云网集团","parentDepartmentRelationId": "","parent": "无","sort": 10,"path": "人力资源部","status": "正常","updatedAt": "2026-10-27 09:00"},
+        {"id": "DEPT-REL-0002","departmentAtomId": "DEPT-ATOM-0002","company": "华北云网集团山东有限公司","group": "华北云网集团","parentDepartmentRelationId": "DEPT-REL-0001","parent": "人力资源部","sort": 20,"path": "人力资源部 / 培训发展中心","status": "正常","updatedAt": "2026-10-27 09:00"},
+        {"id": "DEPT-REL-0003","departmentAtomId": "DEPT-ATOM-0001","company": "华北云网集团济南分公司","group": "华北云网集团","parentDepartmentRelationId": "","parent": "无","sort": 10,"path": "人力资源部","status": "正常","updatedAt": "2026-10-27 09:00"},
+        {"id": "DEPT-REL-0004","departmentAtomId": "DEPT-ATOM-0002","company": "华北云网集团济南分公司","group": "华北云网集团","parentDepartmentRelationId": "DEPT-REL-0003","parent": "人力资源部","sort": 20,"path": "人力资源部 / 培训发展中心","status": "正常","updatedAt": "2026-10-27 09:00"},
+        {"id": "DEPT-REL-0005","departmentAtomId": "DEPT-ATOM-0001","company": "华信通信集团泰安分公司","group": "华信通信集团","parentDepartmentRelationId": "","parent": "无","sort": 10,"path": "人力资源部","status": "正常","updatedAt": "2026-10-27 09:00"},
+        {"id": "DEPT-REL-0006","departmentAtomId": "DEPT-ATOM-0002","company": "华信通信集团泰安分公司","group": "华信通信集团","parentDepartmentRelationId": "DEPT-REL-0005","parent": "人力资源部","sort": 20,"path": "人力资源部 / 培训发展中心","status": "正常","updatedAt": "2026-10-27 09:00"},
+        {"id": "DEPT-REL-0007","departmentAtomId": "DEPT-ATOM-0001","company": "国网产业协同集团青岛分公司","group": "国网产业协同集团","parentDepartmentRelationId": "","parent": "无","sort": 10,"path": "人力资源部","status": "正常","updatedAt": "2026-10-27 09:00"},
+        {"id": "DEPT-REL-0008","departmentAtomId": "DEPT-ATOM-0002","company": "国网产业协同集团青岛分公司","group": "国网产业协同集团","parentDepartmentRelationId": "DEPT-REL-0007","parent": "人力资源部","sort": 20,"path": "人力资源部 / 培训发展中心","status": "正常","updatedAt": "2026-10-27 09:00"},
+        {"id": "DEPT-REL-0009","departmentAtomId": "DEPT-ATOM-0001","company": "华东能源控股山东有限公司","group": "华东能源控股","parentDepartmentRelationId": "","parent": "无","sort": 10,"path": "人力资源部","status": "正常","updatedAt": "2026-10-27 09:00"},
+        {"id": "DEPT-REL-0010","departmentAtomId": "DEPT-ATOM-0002","company": "华东能源控股山东有限公司","group": "华东能源控股","parentDepartmentRelationId": "DEPT-REL-0009","parent": "人力资源部","sort": 20,"path": "人力资源部 / 培训发展中心","status": "正常","updatedAt": "2026-10-27 09:00"},
+        {"id": "DEPT-REL-0011","departmentAtomId": "DEPT-ATOM-0001","company": "齐鲁数科集团江苏有限公司","group": "齐鲁数科集团","parentDepartmentRelationId": "","parent": "无","sort": 10,"path": "人力资源部","status": "正常","updatedAt": "2026-10-27 09:00"},
+        {"id": "DEPT-REL-0012","departmentAtomId": "DEPT-ATOM-0002","company": "齐鲁数科集团江苏有限公司","group": "齐鲁数科集团","parentDepartmentRelationId": "DEPT-REL-0011","parent": "人力资源部","sort": 20,"path": "人力资源部 / 培训发展中心","status": "正常","updatedAt": "2026-10-27 09:00"},
+        {"id": "DEPT-REL-0013","departmentAtomId": "DEPT-ATOM-0001","company": "华北云网集团南京分公司","group": "华北云网集团","parentDepartmentRelationId": "","parent": "无","sort": 10,"path": "人力资源部","status": "正常","updatedAt": "2026-10-27 09:00"},
+        {"id": "DEPT-REL-0014","departmentAtomId": "DEPT-ATOM-0002","company": "华北云网集团南京分公司","group": "华北云网集团","parentDepartmentRelationId": "DEPT-REL-0013","parent": "人力资源部","sort": 20,"path": "人力资源部 / 培训发展中心","status": "正常","updatedAt": "2026-10-27 09:00"},
+        {"id": "DEPT-REL-0015","departmentAtomId": "DEPT-ATOM-0001","company": "华东能源控股浙江有限公司","group": "华东能源控股","parentDepartmentRelationId": "","parent": "无","sort": 10,"path": "人力资源部","status": "正常","updatedAt": "2026-10-27 09:00"},
+        {"id": "DEPT-REL-0016","departmentAtomId": "DEPT-ATOM-0002","company": "华东能源控股浙江有限公司","group": "华东能源控股","parentDepartmentRelationId": "DEPT-REL-0015","parent": "人力资源部","sort": 20,"path": "人力资源部 / 培训发展中心","status": "正常","updatedAt": "2026-10-27 09:00"},
+        {"id": "DEPT-REL-0017","departmentAtomId": "DEPT-ATOM-0001","company": "齐鲁数科集团历下分公司","group": "齐鲁数科集团","parentDepartmentRelationId": "","parent": "无","sort": 10,"path": "人力资源部","status": "正常","updatedAt": "2026-10-27 09:00"},
+        {"id": "DEPT-REL-0018","departmentAtomId": "DEPT-ATOM-0002","company": "齐鲁数科集团历下分公司","group": "齐鲁数科集团","parentDepartmentRelationId": "DEPT-REL-0017","parent": "人力资源部","sort": 20,"path": "人力资源部 / 培训发展中心","status": "正常","updatedAt": "2026-10-27 09:00"},
+        {"id": "DEPT-REL-0019","departmentAtomId": "DEPT-ATOM-0001","company": "齐鲁数科集团烟台分公司","group": "齐鲁数科集团","parentDepartmentRelationId": "","parent": "无","sort": 10,"path": "人力资源部","status": "正常","updatedAt": "2026-10-27 09:00"},
+        {"id": "DEPT-REL-0020","departmentAtomId": "DEPT-ATOM-0002","company": "齐鲁数科集团烟台分公司","group": "齐鲁数科集团","parentDepartmentRelationId": "DEPT-REL-0019","parent": "人力资源部","sort": 20,"path": "人力资源部 / 培训发展中心","status": "正常","updatedAt": "2026-10-27 09:00"},
+        {"id": "DEPT-REL-0021","departmentAtomId": "DEPT-ATOM-0001","company": "华信通信集团烟台分公司","group": "华信通信集团","parentDepartmentRelationId": "","parent": "无","sort": 10,"path": "人力资源部","status": "正常","updatedAt": "2026-10-27 09:00"},
+        {"id": "DEPT-REL-0022","departmentAtomId": "DEPT-ATOM-0002","company": "华信通信集团烟台分公司","group": "华信通信集团","parentDepartmentRelationId": "DEPT-REL-0021","parent": "人力资源部","sort": 20,"path": "人力资源部 / 培训发展中心","status": "正常","updatedAt": "2026-10-27 09:00"},
+        {"id": "DEPT-REL-0023","departmentAtomId": "DEPT-ATOM-0001","company": "齐鲁数科集团济南分公司","group": "齐鲁数科集团","parentDepartmentRelationId": "","parent": "无","sort": 10,"path": "人力资源部","status": "正常","updatedAt": "2026-10-27 09:00"},
+        {"id": "DEPT-REL-0024","departmentAtomId": "DEPT-ATOM-0002","company": "齐鲁数科集团济南分公司","group": "齐鲁数科集团","parentDepartmentRelationId": "DEPT-REL-0023","parent": "人力资源部","sort": 20,"path": "人力资源部 / 培训发展中心","status": "正常","updatedAt": "2026-10-27 09:00"},
+        {"id": "DEPT-REL-0025","departmentAtomId": "DEPT-ATOM-0001","company": "华信通信集团济南分公司","group": "华信通信集团","parentDepartmentRelationId": "","parent": "无","sort": 10,"path": "人力资源部","status": "正常","updatedAt": "2026-10-27 09:00"},
+        {"id": "DEPT-REL-0026","departmentAtomId": "DEPT-ATOM-0002","company": "华信通信集团济南分公司","group": "华信通信集团","parentDepartmentRelationId": "DEPT-REL-0025","parent": "人力资源部","sort": 20,"path": "人力资源部 / 培训发展中心","status": "正常","updatedAt": "2026-10-27 09:00"},
+        {"id": "DEPT-REL-0027","departmentAtomId": "DEPT-ATOM-0001","company": "华信通信集团市中分公司","group": "华信通信集团","parentDepartmentRelationId": "","parent": "无","sort": 10,"path": "人力资源部","status": "正常","updatedAt": "2026-10-27 09:00"},
+        {"id": "DEPT-REL-0028","departmentAtomId": "DEPT-ATOM-0002","company": "华信通信集团市中分公司","group": "华信通信集团","parentDepartmentRelationId": "DEPT-REL-0027","parent": "人力资源部","sort": 20,"path": "人力资源部 / 培训发展中心","status": "正常","updatedAt": "2026-10-27 09:00"},
+        {"id": "DEPT-REL-0029","departmentAtomId": "DEPT-ATOM-0001","company": "国网产业协同集团福山分公司","group": "国网产业协同集团","parentDepartmentRelationId": "","parent": "无","sort": 10,"path": "人力资源部","status": "正常","updatedAt": "2026-10-27 09:00"},
+        {"id": "DEPT-REL-0030","departmentAtomId": "DEPT-ATOM-0002","company": "国网产业协同集团福山分公司","group": "国网产业协同集团","parentDepartmentRelationId": "DEPT-REL-0029","parent": "人力资源部","sort": 20,"path": "人力资源部 / 培训发展中心","status": "正常","updatedAt": "2026-10-27 09:00"},
+        {"id": "DEPT-REL-0031","departmentAtomId": "DEPT-ATOM-0001","company": "齐鲁数科集团无锡分公司","group": "齐鲁数科集团","parentDepartmentRelationId": "","parent": "无","sort": 10,"path": "人力资源部","status": "正常","updatedAt": "2026-10-27 09:00"},
+        {"id": "DEPT-REL-0032","departmentAtomId": "DEPT-ATOM-0002","company": "齐鲁数科集团无锡分公司","group": "齐鲁数科集团","parentDepartmentRelationId": "DEPT-REL-0031","parent": "人力资源部","sort": 20,"path": "人力资源部 / 培训发展中心","status": "正常","updatedAt": "2026-10-27 09:00"},
+        {"id": "DEPT-REL-0033","departmentAtomId": "DEPT-ATOM-0001","company": "华信通信集团合肥分公司","group": "华信通信集团","parentDepartmentRelationId": "","parent": "无","sort": 10,"path": "人力资源部","status": "正常","updatedAt": "2026-10-27 09:00"},
+        {"id": "DEPT-REL-0034","departmentAtomId": "DEPT-ATOM-0002","company": "华信通信集团合肥分公司","group": "华信通信集团","parentDepartmentRelationId": "DEPT-REL-0033","parent": "人力资源部","sort": 20,"path": "人力资源部 / 培训发展中心","status": "正常","updatedAt": "2026-10-27 09:00"},
+        {"id": "DEPT-REL-0035","departmentAtomId": "DEPT-ATOM-0001","company": "齐鲁数科集团浙江有限公司","group": "齐鲁数科集团","parentDepartmentRelationId": "","parent": "无","sort": 10,"path": "人力资源部","status": "正常","updatedAt": "2026-10-27 09:00"},
+        {"id": "DEPT-REL-0036","departmentAtomId": "DEPT-ATOM-0002","company": "齐鲁数科集团浙江有限公司","group": "齐鲁数科集团","parentDepartmentRelationId": "DEPT-REL-0035","parent": "人力资源部","sort": 20,"path": "人力资源部 / 培训发展中心","status": "正常","updatedAt": "2026-10-27 09:00"},
+        {"id": "DEPT-REL-0037","departmentAtomId": "DEPT-ATOM-0001","company": "齐鲁数科集团杭州分公司","group": "齐鲁数科集团","parentDepartmentRelationId": "","parent": "无","sort": 10,"path": "人力资源部","status": "正常","updatedAt": "2026-10-27 09:00"},
+        {"id": "DEPT-REL-0038","departmentAtomId": "DEPT-ATOM-0002","company": "齐鲁数科集团杭州分公司","group": "齐鲁数科集团","parentDepartmentRelationId": "DEPT-REL-0037","parent": "人力资源部","sort": 20,"path": "人力资源部 / 培训发展中心","status": "正常","updatedAt": "2026-10-27 09:00"},
+        {"id": "DEPT-REL-0039","departmentAtomId": "DEPT-ATOM-0001","company": "华北云网集团宁波分公司","group": "华北云网集团","parentDepartmentRelationId": "","parent": "无","sort": 10,"path": "人力资源部","status": "正常","updatedAt": "2026-10-27 09:00"},
+        {"id": "DEPT-REL-0040","departmentAtomId": "DEPT-ATOM-0002","company": "华北云网集团宁波分公司","group": "华北云网集团","parentDepartmentRelationId": "DEPT-REL-0039","parent": "人力资源部","sort": 20,"path": "人力资源部 / 培训发展中心","status": "正常","updatedAt": "2026-10-27 09:00"},
+        {"id": "DEPT-REL-0041","departmentAtomId": "DEPT-ATOM-0001","company": "华东能源控股温州分公司","group": "华东能源控股","parentDepartmentRelationId": "","parent": "无","sort": 10,"path": "人力资源部","status": "正常","updatedAt": "2026-10-27 09:00"},
+        {"id": "DEPT-REL-0042","departmentAtomId": "DEPT-ATOM-0002","company": "华东能源控股温州分公司","group": "华东能源控股","parentDepartmentRelationId": "DEPT-REL-0041","parent": "人力资源部","sort": 20,"path": "人力资源部 / 培训发展中心","status": "正常","updatedAt": "2026-10-27 09:00"},
+        {"id": "DEPT-REL-0043","departmentAtomId": "DEPT-ATOM-0001","company": "齐鲁数科集团福建有限公司","group": "齐鲁数科集团","parentDepartmentRelationId": "","parent": "无","sort": 10,"path": "人力资源部","status": "正常","updatedAt": "2026-10-27 09:00"},
+        {"id": "DEPT-REL-0044","departmentAtomId": "DEPT-ATOM-0002","company": "齐鲁数科集团福建有限公司","group": "齐鲁数科集团","parentDepartmentRelationId": "DEPT-REL-0043","parent": "人力资源部","sort": 20,"path": "人力资源部 / 培训发展中心","status": "正常","updatedAt": "2026-10-27 09:00"},
+        {"id": "DEPT-REL-0045","departmentAtomId": "DEPT-ATOM-0001","company": "齐鲁数科集团福州分公司","group": "齐鲁数科集团","parentDepartmentRelationId": "","parent": "无","sort": 10,"path": "人力资源部","status": "正常","updatedAt": "2026-10-27 09:00"},
+        {"id": "DEPT-REL-0046","departmentAtomId": "DEPT-ATOM-0002","company": "齐鲁数科集团福州分公司","group": "齐鲁数科集团","parentDepartmentRelationId": "DEPT-REL-0045","parent": "人力资源部","sort": 20,"path": "人力资源部 / 培训发展中心","status": "正常","updatedAt": "2026-10-27 09:00"},
+        {"id": "DEPT-REL-0047","departmentAtomId": "DEPT-ATOM-0001","company": "华北云网集团广州分公司","group": "华北云网集团","parentDepartmentRelationId": "","parent": "无","sort": 10,"path": "人力资源部","status": "正常","updatedAt": "2026-10-27 09:00"},
+        {"id": "DEPT-REL-0048","departmentAtomId": "DEPT-ATOM-0002","company": "华北云网集团广州分公司","group": "华北云网集团","parentDepartmentRelationId": "DEPT-REL-0047","parent": "人力资源部","sort": 20,"path": "人力资源部 / 培训发展中心","status": "正常","updatedAt": "2026-10-27 09:00"},
+        {"id": "DEPT-REL-0049","departmentAtomId": "DEPT-ATOM-0001","company": "华信通信集团南宁分公司","group": "华信通信集团","parentDepartmentRelationId": "","parent": "无","sort": 10,"path": "人力资源部","status": "正常","updatedAt": "2026-10-27 09:00"},
+        {"id": "DEPT-REL-0050","departmentAtomId": "DEPT-ATOM-0002","company": "华信通信集团南宁分公司","group": "华信通信集团","parentDepartmentRelationId": "DEPT-REL-0049","parent": "人力资源部","sort": 20,"path": "人力资源部 / 培训发展中心","status": "正常","updatedAt": "2026-10-27 09:00"},
+        {"id": "DEPT-REL-0051","departmentAtomId": "DEPT-ATOM-0001","company": "国网产业协同集团山东省公司","group": "国网产业协同集团","parentDepartmentRelationId": "","parent": "无","sort": 10,"path": "人力资源部","status": "正常","updatedAt": "2026-10-27 09:00"},
+        {"id": "DEPT-REL-0052","departmentAtomId": "DEPT-ATOM-0002","company": "国网产业协同集团山东省公司","group": "国网产业协同集团","parentDepartmentRelationId": "DEPT-REL-0051","parent": "人力资源部","sort": 20,"path": "人力资源部 / 培训发展中心","status": "正常","updatedAt": "2026-10-27 09:00"},
+        {"id": "DEPT-REL-0053","departmentAtomId": "DEPT-ATOM-0001","company": "国网产业协同集团济南市公司","group": "国网产业协同集团","parentDepartmentRelationId": "","parent": "无","sort": 10,"path": "人力资源部","status": "正常","updatedAt": "2026-10-27 09:00"},
+        {"id": "DEPT-REL-0054","departmentAtomId": "DEPT-ATOM-0002","company": "国网产业协同集团济南市公司","group": "国网产业协同集团","parentDepartmentRelationId": "DEPT-REL-0053","parent": "人力资源部","sort": 20,"path": "人力资源部 / 培训发展中心","status": "正常","updatedAt": "2026-10-27 09:00"},
+        {"id": "DEPT-REL-0055","departmentAtomId": "DEPT-ATOM-0001","company": "国网产业协同集团历下区县公司","group": "国网产业协同集团","parentDepartmentRelationId": "","parent": "无","sort": 10,"path": "人力资源部","status": "正常","updatedAt": "2026-10-27 09:00"},
+        {"id": "DEPT-REL-0056","departmentAtomId": "DEPT-ATOM-0002","company": "国网产业协同集团历下区县公司","group": "国网产业协同集团","parentDepartmentRelationId": "DEPT-REL-0055","parent": "人力资源部","sort": 20,"path": "人力资源部 / 培训发展中心","status": "正常","updatedAt": "2026-10-27 09:00"},
+        {"id": "DEPT-REL-0057","departmentAtomId": "DEPT-ATOM-0001","company": "华北云网集团青岛分公司","group": "华北云网集团","parentDepartmentRelationId": "","parent": "无","sort": 10,"path": "人力资源部","status": "正常","updatedAt": "2026-10-27 09:00"},
+        {"id": "DEPT-REL-0058","departmentAtomId": "DEPT-ATOM-0002","company": "华北云网集团青岛分公司","group": "华北云网集团","parentDepartmentRelationId": "DEPT-REL-0057","parent": "人力资源部","sort": 20,"path": "人力资源部 / 培训发展中心","status": "正常","updatedAt": "2026-10-27 09:00"},
+        {"id": "DEPT-REL-0059","departmentAtomId": "DEPT-ATOM-0001","company": "华北云网集团崂山分公司","group": "华北云网集团","parentDepartmentRelationId": "","parent": "无","sort": 10,"path": "人力资源部","status": "正常","updatedAt": "2026-10-27 09:00"},
+        {"id": "DEPT-REL-0060","departmentAtomId": "DEPT-ATOM-0002","company": "华北云网集团崂山分公司","group": "华北云网集团","parentDepartmentRelationId": "DEPT-REL-0059","parent": "人力资源部","sort": 20,"path": "人力资源部 / 培训发展中心","status": "正常","updatedAt": "2026-10-27 09:00"},
+        {"id": "DEPT-REL-0061","departmentAtomId": "DEPT-ATOM-0001","company": "齐鲁数科集团青岛分公司","group": "齐鲁数科集团","parentDepartmentRelationId": "","parent": "无","sort": 10,"path": "人力资源部","status": "正常","updatedAt": "2026-10-27 09:00"},
+        {"id": "DEPT-REL-0062","departmentAtomId": "DEPT-ATOM-0002","company": "齐鲁数科集团青岛分公司","group": "齐鲁数科集团","parentDepartmentRelationId": "DEPT-REL-0061","parent": "人力资源部","sort": 20,"path": "人力资源部 / 培训发展中心","status": "正常","updatedAt": "2026-10-27 09:00"},
+        {"id": "DEPT-REL-0063","departmentAtomId": "DEPT-ATOM-0001","company": "泉城数智服务有限公司","group": "","parentDepartmentRelationId": "","parent": "无","sort": 10,"path": "人力资源部","status": "正常","updatedAt": "2026-10-27 09:00"},
+        {"id": "DEPT-REL-0064","departmentAtomId": "DEPT-ATOM-0002","company": "泉城数智服务有限公司","group": "","parentDepartmentRelationId": "DEPT-REL-0063","parent": "人力资源部","sort": 20,"path": "人力资源部 / 培训发展中心","status": "正常","updatedAt": "2026-10-27 09:00"},
+        {"id": "DEPT-REL-0065","departmentAtomId": "DEPT-ATOM-0001","company": "鲁能绿色技术有限公司","group": "","parentDepartmentRelationId": "","parent": "无","sort": 10,"path": "人力资源部","status": "正常","updatedAt": "2026-10-27 09:00"},
+        {"id": "DEPT-REL-0066","departmentAtomId": "DEPT-ATOM-0002","company": "鲁能绿色技术有限公司","group": "","parentDepartmentRelationId": "DEPT-REL-0065","parent": "人力资源部","sort": 20,"path": "人力资源部 / 培训发展中心","status": "正常","updatedAt": "2026-10-27 09:00"},
+        {"id": "DEPT-REL-0067","departmentAtomId": "DEPT-ATOM-0001","company": "华东能源控股江苏有限公司","group": "华东能源控股","parentDepartmentRelationId": "","parent": "无","sort": 10,"path": "人力资源部","status": "正常","updatedAt": "2026-10-27 09:00"},
+        {"id": "DEPT-REL-0068","departmentAtomId": "DEPT-ATOM-0002","company": "华东能源控股江苏有限公司","group": "华东能源控股","parentDepartmentRelationId": "DEPT-REL-0067","parent": "人力资源部","sort": 20,"path": "人力资源部 / 培训发展中心","status": "正常","updatedAt": "2026-10-27 09:00"},
+        {"id": "DEPT-REL-0069","departmentAtomId": "DEPT-ATOM-0001","company": "华东能源控股广东有限公司","group": "华东能源控股","parentDepartmentRelationId": "","parent": "无","sort": 10,"path": "人力资源部","status": "正常","updatedAt": "2026-10-27 09:00"},
+        {"id": "DEPT-REL-0070","departmentAtomId": "DEPT-ATOM-0002","company": "华东能源控股广东有限公司","group": "华东能源控股","parentDepartmentRelationId": "DEPT-REL-0069","parent": "人力资源部","sort": 20,"path": "人力资源部 / 培训发展中心","status": "正常","updatedAt": "2026-10-27 09:00"},
+      ];
+      const customerPositionAtoms = [
+        {"id": "POS-ATOM-0001","name": "人力资源分管领导","code": "POS00000001","sort": 10,"status": "正常","updatedAt": "2026-10-27 09:00"},
+        {"id": "POS-ATOM-0002","name": "培训负责人","code": "POS00000002","sort": 20,"status": "正常","updatedAt": "2026-10-27 09:00"},
+        {"id": "POS-ATOM-0003","name": "项目经理","code": "POS00000003","sort": 30,"status": "正常","updatedAt": "2026-10-27 09:00"},
+        {"id": "POS-ATOM-0004","name": "关键决策人","code": "POS00000004","sort": 40,"status": "正常","updatedAt": "2026-10-27 09:00"},
+      ];
+      const customerPositionRelations = [
+        {"id": "POS-REL-0001","positionAtomId": "POS-ATOM-0001","departmentAtomId": "DEPT-ATOM-0001","status": "正常"},
+        {"id": "POS-REL-0002","positionAtomId": "POS-ATOM-0002","departmentAtomId": "DEPT-ATOM-0002","status": "正常"},
+        {"id": "POS-REL-0003","positionAtomId": "POS-ATOM-0003","departmentAtomId": "DEPT-ATOM-0002","status": "正常"},
+        {"id": "POS-REL-0004","positionAtomId": "POS-ATOM-0004","departmentAtomId": "DEPT-ATOM-0001","status": "正常"},
+      ];
       const departmentAtomForId = (id) =>
         customerDepartmentAtoms.find((item) => item.id === id);
       const positionAtomForId = (id) =>
@@ -284,23 +172,6 @@
           (item) => item.departmentAtomId === departmentRelation?.departmentAtomId,
         );
       };
-      contacts.forEach((person) => {
-        const department = customerDepartments.find(
-          (item) => item.company === person.company && item.name === person.department,
-        );
-        const departmentRelation = customerDepartmentRelations.find(
-          (item) => item.company === person.company && item.departmentAtomId === departmentAtomByName.get(String(person.department || "").trim().toLowerCase())?.id,
-        );
-        const positionAtom = positionAtomByName.get(String(person.positionName || person.title || "").trim().toLowerCase());
-        person.departmentAtomId = departmentRelation?.departmentAtomId || "";
-        person.departmentRelationId = departmentRelation?.id || "";
-        person.positionAtomId = positionAtom?.id || "";
-        const positionRelation = customerPositionRelations.find(
-          (item) => item.departmentAtomId === person.departmentAtomId && item.positionAtomId === person.positionAtomId,
-        );
-        person.positionRelationId = positionRelation?.id || "";
-      });
-
       const customerGroupNames = [
         "齐鲁数科集团",
         "华信通信集团",
@@ -327,13 +198,13 @@
         } while (usedNumbers.has(candidate));
         return candidate;
       }
-      const customerGroupIndustries = Object.fromEntries(
-        customerGroupNames.map((group) => [
-          group,
-          customers.find((customer) => customer.group === group)?.industry || "",
-        ]),
-      );
-      customerGroupIndustries['国网产业协同集团'] = '制造';
+      const customerGroupIndustries = {
+  "华北云网集团": "能源",
+  "华东能源控股": "能源",
+  "齐鲁数科集团": "数字服务",
+  "华信通信集团": "通信",
+  "国网产业协同集团": "制造"
+};
 
       function customerBusinessResponsibilityLevel(company) {
         return (
@@ -397,7 +268,7 @@
           visited.add(current.id);
           current = customerOrganizationParent(current);
         }
-        names.unshift(company.group);
+        names.unshift(company.group || company.industry);
         return names.join(" / ");
       }
       // 行政区划数据源：AreaCity 最新省市区三级紧凑数据（2026-08-11 提供），名称按数据源原样展示

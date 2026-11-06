@@ -129,7 +129,7 @@
       function salesOwnerMatchForCustomer(customer) {
         if (!customer || customer.archived)
           return { ok: false, message: "客户单位已停用或不存在" };
-        if (customer.level === "省公司") {
+        if (customerResponsibilityRole(customer) === "区域总监") {
           const region = regionForCompany(customer);
           const department = organizationDepartments.find(
             (item) =>
@@ -149,9 +149,9 @@
             ? { ok: true, owner: candidates[0], role: "区域总监" }
             : { ok: false, message: "该省级客户没有唯一有效区域总监，暂不能创建商机" };
         }
-        const currentPm = customer.pm || cityDefaultOwner(customer.province, customer.city)?.pm || "";
+        const currentPm = responsibilityOwnerForCustomer(customer);
         if (!currentPm)
-          return { ok: false, message: "该客户责任地市没有唯一有效 PM 负责人，暂不能创建商机" };
+          return { ok: false, message: "该客户没有唯一有效 PM 负责人，暂不能创建商机" };
         const candidates = employees.filter(
           (employee) =>
             employee.name === currentPm &&
@@ -162,11 +162,11 @@
         );
         return candidates.length === 1
           ? { ok: true, owner: candidates[0], role: "PM" }
-          : { ok: false, message: "该客户责任地市没有唯一有效 PM 负责人，暂不能创建商机" };
+          : { ok: false, message: "该客户没有唯一有效 PM 负责人，暂不能创建商机" };
       }
 
       function salesCustomerIsInCreateScope(customer, type = "") {
-        if (type === SALES_ECOSYSTEM_TYPE) return platformCompanies.includes(customer) && customer.status === "正常" && salesCreateTypes().includes(type);
+        if (type === SALES_ECOSYSTEM_TYPE) return platformCompanies.includes(customer) && platformCompanySupports(customer, "师资合作") && salesCreateTypes().includes(type);
         if (!customer || customer.archived || !customers.includes(customer)) return false;
         if (!salesCreateTypes().some(value => value !== SALES_ECOSYSTEM_TYPE)) return false;
         if (
@@ -177,13 +177,13 @@
           return true;
         const inDirectorScope =
           salesIsRole("区域总监") &&
-          customer.level === "省公司" &&
+          customer.level === "省公司" && customerOwnerName(customer) === currentUser.name &&
           salesManagedRegions().some(
             (region) => regionForCompany(customer)?.id === region.id,
           );
         const ownerMatch = salesOwnerMatchForCustomer(customer);
         const inSalesScope =
-          salesIsRole("PM") && customer.level !== "省公司" &&
+          salesIsRole("PM") &&
           ownerMatch.ok && ownerMatch.owner.name === currentUser.name;
         return inDirectorScope || inSalesScope;
       }
@@ -201,10 +201,8 @@
             (item) => isEcosystemOpportunity(item) ?
               Boolean(currentEcosystemEmployee()?.code === salesEcosystemOwnerCode(item)) :
               (salesIsRole("区域总监") &&
-                salesManagedRegions().some((region) =>
-                  regionsMatch(regionScopeName(region), item.region),
-                )) ||
-              (salesIsRole("PM") && item.owner === currentUser.name),
+                salesManagedRegions().some(region => region.id === regionForCompany(salesOpportunityCustomer(item))?.id)) ||
+              (salesIsRole("PM") && item.owner === currentUser.name && companyIsVisible(salesOpportunityCustomer(item))),
           );
         return [];
       }
@@ -517,7 +515,7 @@
         const owned = salesIsRole("PM") ? salesWorkbenchOpportunities().filter(item => item.owner === currentUser.name) : [];
         return regionsData.filter(region => managed.includes(region) ||
           owned.some(item => salesStatisticsRegion(item)?.id === region.id) ||
-          (salesIsRole("PM") && cityOwners.some(city => city.pm === currentUser.name && regionProvinceList(region).includes(city.province))));
+          (salesIsRole("PM") && scopedCustomers().some(customer => regionForCompany(customer)?.id === region.id)));
       }
 
       function salesOverviewProvinces() {
@@ -525,7 +523,7 @@
         const centers = salesOverviewCenters();
         const selected = salesOverviewRegion ? centers.find(region => String(region.id) === salesOverviewRegion) : null;
         if (salesOverviewRegion && !selected) return [];
-        return [...new Set((selected ? [selected] : centers).flatMap(region => regionProvinceList(region)))].sort((a, b) => a.localeCompare(b, "zh-CN"));
+        return [...new Set(scopedCustomers().filter(customer => (selected ? [selected] : centers).some(region => regionForCompany(customer)?.id === region.id)).map(customerBusinessProvince))].sort((a, b) => a.localeCompare(b, "zh-CN"));
       }
 
       function salesStatisticsProvince(item) {

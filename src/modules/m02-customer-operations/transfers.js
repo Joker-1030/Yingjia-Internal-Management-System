@@ -18,17 +18,17 @@
                 (company) => !company.archived && company.group === group,
               ),
           );
-        const normalCompaniesForGroup = (group) =>
+        const normalCompaniesForGroup = (group, industryName) =>
           customers.filter(
             (company) =>
               !company.archived &&
-              company.group === group &&
+              company.group === group && company.industry === industryName &&
               company.name !== person.company,
           );
         const optionHtml = (value, label = value, selected = "") =>
           `<option value="${value}" ${value === selected ? "selected" : ""}>${label}</option>`;
         openModal(
-          `<div class="modal-head"><div class="modal-title">关键人调岗</div><button class="icon-btn close" data-close>×</button></div><form id="transferForm"><div class="modal-body"><div class="role-note"><strong>${person.name}</strong> 当前任职：${person.company} / ${person.department} / ${person.positionName} / ${person.level}</div><div class="form-grid"><div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>变更类型</label><select class="input" id="tfChangeMode"><option value="same">同单位任职变更</option><option value="cross" selected>跨单位调岗</option></select></div><div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>目标行业</label><select class="input" id="tfIndustry"><option value="">请选择目标行业</option>${normalIndustries.map((industry) => optionHtml(industry.name)).join("")}</select></div><div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>目标集团</label><select class="input" id="tfGroup" disabled><option value="">请先选择目标行业</option></select></div><div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>目标客户公司</label><select class="input" id="tfCompany" disabled><option value="">请先选择目标集团</option></select></div><div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>新客户部门</label><select class="input" id="tfDepartment" disabled><option value="">请先选择目标公司</option></select></div><div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>新关键人岗位</label><select class="input" id="tfStandardPosition" disabled><option value="">请先选择目标部门</option></select></div><div class="form-group"><label class="form-label" for="tfResponsibility"><span class="required-marker" aria-hidden="true">*</span>新分管内容</label><input class="input" id="tfResponsibility" type="text" value="" placeholder="请输入新分管内容" required></div><div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>新职级</label><select class="input" id="tfLevel">${contactLevelOptions(person.level)}</select></div><div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>新任职生效日</label><input class="input" id="tfEffectiveDate" type="date" min="${DEMO_TODAY}" value="${DEMO_TODAY}" required></div><div class="form-group full"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>调岗原因</label><textarea class="input" id="tfReason" minlength="5" maxlength="500" required>客户本人确认任职发生变化，申请按最新信息调整。</textarea></div><div class="form-group full"><label class="form-label">影响摘要</label><div id="transferImpact" class="impact-summary"></div></div></div><div class="role-note" id="transferFlowNote"></div></div><div class="modal-foot"><button class="btn" type="button" data-close>取消</button><button class="btn btn-primary" type="submit">确认调岗</button></div></form>`,
+          `<div class="modal-head"><div class="modal-title">关键人调岗</div><button class="icon-btn close" data-close>×</button></div><form id="transferForm"><div class="modal-body"><div class="role-note"><strong>${person.name}</strong> 当前任职：${person.company} / ${person.department} / ${person.positionName} / ${person.level}</div><div class="form-grid"><div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>变更类型</label><select class="input" id="tfChangeMode"><option value="same">同单位任职变更</option><option value="cross" selected>跨单位调岗</option></select></div><div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>目标行业</label><select class="input" id="tfIndustry"><option value="">请选择目标行业</option>${normalIndustries.map((industry) => optionHtml(industry.name)).join("")}</select></div><div class="form-group"><label class="form-label">目标集团</label><select class="input" id="tfGroup" disabled><option value="">请先选择目标行业</option></select></div><div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>目标客户公司</label><select class="input" id="tfCompany" disabled><option value="">请选择目标客户公司</option></select></div><div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>新客户部门</label><select class="input" id="tfDepartment" disabled><option value="">请先选择目标公司</option></select></div><div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>新关键人岗位</label><select class="input" id="tfStandardPosition" disabled><option value="">请先选择目标部门</option></select></div><div class="form-group"><label class="form-label" for="tfResponsibility"><span class="required-marker" aria-hidden="true">*</span>新分管内容</label><input class="input" id="tfResponsibility" type="text" value="" placeholder="请输入新分管内容" required></div><div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>新职级</label><select class="input" id="tfLevel">${contactLevelOptions(person.level)}</select></div><div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>新任职生效日</label><input class="input" id="tfEffectiveDate" type="date" min="${DEMO_TODAY}" value="${DEMO_TODAY}" required></div><div class="form-group full"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>调岗原因</label><textarea class="input" id="tfReason" minlength="5" maxlength="500" required>客户本人确认任职发生变化，申请按最新信息调整。</textarea></div><div class="form-group full"><label class="form-label">影响摘要</label><div id="transferImpact" class="impact-summary"></div></div></div><div class="role-note" id="transferFlowNote"></div></div><div class="modal-foot"><button class="btn" type="button" data-close>取消</button><button class="btn btn-primary" type="submit">确认调岗</button></div></form>`,
         );
         const resolveTarget = () => {
           if ($("#tfChangeMode").value === "same")
@@ -41,10 +41,10 @@
           const group = $("#tfGroup").value;
           if (
             !industry ||
-            !normalGroupsForIndustry(industry.name).includes(group)
+            (group && !normalGroupsForIndustry(industry.name).includes(group))
           )
             return null;
-          return normalCompaniesForGroup(group).find(
+          return normalCompaniesForGroup(group, industry.name).find(
             (company) => company.name === $("#tfCompany").value,
           );
         };
@@ -108,7 +108,7 @@
               : []
             : normalGroupsForIndustry(industryValue);
           $("#tfGroup").innerHTML =
-            '<option value="">请先选择目标行业</option>' +
+            '<option value="">无集团</option>' +
             groups
               .map((group) => optionHtml(group, group, groupValue))
               .join("");
@@ -117,15 +117,15 @@
             ? sourceCompany
               ? [sourceCompany]
               : []
-            : normalCompaniesForGroup(groupValue);
+            : normalCompaniesForGroup(groupValue, industryValue);
           $("#tfCompany").innerHTML =
-            '<option value="">请先选择目标集团</option>' +
+            '<option value="">请选择目标客户公司</option>' +
             companies
               .map((company) =>
                 optionHtml(company.name, company.name, companyValue),
               )
               .join("");
-          $("#tfCompany").disabled = same || !groupValue;
+          $("#tfCompany").disabled = same || !industryValue;
           const target = resolveTarget();
           const departments = target
             ? customerDepartmentsForCompany(target.name)
@@ -229,10 +229,7 @@
             targetPositionName: position.name,
             targetResponsibilityText: responsibilityText,
             effectiveDate,
-            targetPm:
-              target.level === "省公司" || target.name === person.company
-                ? ""
-                : customerOwnerName(target),
+            targetPm: target.name === person.company ? "" : customerPmName(target),
             targetOwner: customerOwnerName(target),
             impactSnapshot: $("#transferImpact").textContent.trim(),
           };
@@ -262,7 +259,7 @@
               positionName: change.targetPositionName,
               responsibilityText: change.targetResponsibilityText,
               level: change.targetLevel,
-              pm: target.level === "省公司" ? "" : change.targetPm,
+              pm: customerPmName(target),
               region: target.region || person.region,
               city: target.city || person.city,
               effectiveDate,

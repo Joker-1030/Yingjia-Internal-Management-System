@@ -464,7 +464,7 @@
             !canCreateAcrossResponsibilities &&
             ownerMatch.owner.name !== currentUser.name
           ) {
-            setSalesFormError("salesOwner", "该客户不再属于本人 PM 地市责任范围");
+            setSalesFormError("salesOwner", "该客户不再由本人负责");
             valid = false;
           }
           if (
@@ -473,7 +473,7 @@
             !canCreateAcrossResponsibilities &&
             ownerMatch.owner.name !== currentUser.name
           ) {
-            setSalesFormError("salesOwner", "该省级客户不再属于本人主管区域");
+            setSalesFormError("salesOwner", "该省级客户不再由本人负责");
             valid = false;
           }
           if (!valid) return;

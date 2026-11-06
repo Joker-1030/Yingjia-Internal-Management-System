@@ -7,14 +7,7 @@
               companyIsVisible(customers.find((c) => c.name === x.company)),
           );
         if (currentScopeType() === "regions")
-          return maintenanceRecords.filter((x) =>
-            regionsMatch(
-              customerRegionScope(
-                customers.find((company) => company.name === x.company),
-              ) || x.region,
-              currentUser.region,
-            ),
-          );
+          return maintenanceRecords.filter(x => companyInCurrentManagedRegion(customers.find(company => company.name === x.company)));
         return ["company", "market"].includes(currentScopeType())
           ? maintenanceRecords
           : [];

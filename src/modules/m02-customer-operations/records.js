@@ -119,7 +119,7 @@
         )
           return toast(
             currentUser.role === "director"
-              ? "区域总监仅可为本区域省公司关键人新增维系记录"
+              ? "区域总监仅可为本人负责客户的关键人新增维系记录"
               : "当前关键人不在可维系数据范围内",
           );
         const actor = maintenanceActorSnapshot();

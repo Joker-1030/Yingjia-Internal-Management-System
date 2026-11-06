@@ -293,6 +293,19 @@
               renderPage();
             }),
         );
+        document.querySelectorAll("[data-region-workspace-tab]").forEach((button) => {
+          button.onclick = () => {
+            regionWorkspaceTab = button.dataset.regionWorkspaceTab;
+            document.querySelectorAll("[data-region-workspace-tab]").forEach((tab) => {
+              const active = tab.dataset.regionWorkspaceTab === regionWorkspaceTab;
+              tab.classList.toggle("active", active);
+              tab.setAttribute("aria-selected", String(active));
+            });
+            document.querySelectorAll(".region-data-pane").forEach((pane) => {
+              pane.hidden = pane.id !== `region-pane-${regionWorkspaceTab}`;
+            });
+          };
+        });
         const openInitialCityAssignment = $("#openInitialCityAssignment");
         if (openInitialCityAssignment)
           openInitialCityAssignment.onclick = () => openCityForm();
@@ -350,6 +363,12 @@
           (button) =>
             (button.onclick = () => openCityForm(button.dataset.pmCityAssign)),
         );
+        document.querySelectorAll("[data-group-province-add]").forEach(button => button.onclick = () => openGroupProvinceRouteForm());
+        document.querySelectorAll("[data-group-province-edit]").forEach(button => button.onclick = () => openGroupProvinceRouteForm(button.dataset.groupProvinceEdit));
+        document.querySelectorAll("[data-group-province-toggle]").forEach(button => button.onclick = () => toggleGroupProvinceRoute(button.dataset.groupProvinceToggle));
+        document.querySelectorAll("[data-enable-center]").forEach(button => button.onclick = () => enableIndustryCenter(button.dataset.enableCenter));
+        document.querySelectorAll("[data-city-unlink]").forEach(button => button.onclick = () => openCancelCityResponsibility(button.dataset.cityUnlink));
+        document.querySelectorAll("[data-center-city-assign]").forEach(button => button.onclick = () => openCenterCityAssignment());
         document.querySelectorAll("[data-city-rule-add]").forEach(
           (button) => (button.onclick = () => openCityResponsibilityRuleForm()),
         );

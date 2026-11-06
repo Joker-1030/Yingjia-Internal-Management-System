@@ -206,6 +206,7 @@
           organizationDepartments,
           regionsData,
           cityOwners,
+          cityResponsibilityRules,
           customers,
           contacts,
           tasks,
@@ -418,7 +419,7 @@
                   if(!targetPlan.ok)throw new Error(targetPlan.error);
                   applySalesTargetHandoff(targetPlan,"区域中心主管变更",effectiveAt);
                 }
-                opportunities.filter(item=>!isEcosystemOpportunity(item) && item.stage!=="落选" && item.owner===oldSupervisorName && salesOpportunityCustomer(item)?.level==="省公司" && regionForCompany(salesOpportunityCustomer(item))?.id===linkedRegion.id).forEach(item=> {
+                opportunities.filter(item=>!isEcosystemOpportunity(item) && item.stage!=="落选" && item.owner===oldSupervisorName && salesOpportunityCustomer(item)?.level==="省公司" && !centerResponsibilityRuleForCustomer(salesOpportunityCustomer(item)) && regionForCompany(salesOpportunityCustomer(item))?.id===linkedRegion.id).forEach(item=> {
                   salesCapturePerformance(item);item.owner=newSupervisorName;item.updatedAt=effectiveAt;item.reassignments ||= [];
                   item.reassignments.push({before:oldSupervisorName,after:newSupervisorName,reason:"区域中心主管变更",operator:currentUser.name,time:effectiveAt});
                 });
@@ -500,9 +501,7 @@
             role: "PM",
             label: `${owner.province} · ${owner.city} · PM 责任`,
             owner,
-            region: regionsData.find((item) =>
-              regionProvinceList(item).includes(owner.province),
-            ),
+            region: centerForCityOwner(owner),
           }));
         const regionGroups = departmentsManagedBy(employee.code)
           .filter((department) => department.type === "region")
@@ -514,7 +513,17 @@
             department,
             region: regionsData.find((item) => item.id === department.regionId),
           }));
-        return [...pmCityGroups, ...regionGroups];
+        const assignmentGroups = cityResponsibilityRules
+          .filter((rule) => rule.status === "启用" && rule.pm === employee.name)
+          .map((rule) => ({
+            key: `assignment-pm:${rule.id}`,
+            kind: "assignment_pm",
+            role: "PM",
+            label: `${cityResponsibilityRuleRegion(rule)?.name || "未配置中心"} · ${rule.dimension} · ${rule.dimension === "客户公司" ? customers.find(c => String(c.id) === String(rule.value))?.name || rule.value : rule.value}`,
+            rule,
+            region: cityResponsibilityRuleRegion(rule),
+          }));
+        return [...assignmentGroups, ...pmCityGroups, ...regionGroups];
       }
 
       function employeeDeactivationReceiverCandidates(group, employee) {
@@ -523,35 +532,55 @@
             candidate.code !== employee.code &&
             candidate.status === "在职" &&
             candidate.accountStatus !== "停用" &&
-            employeeHasRole(candidate, group.role),
+            employeeHasRole(candidate, group.role) &&
+            (!["assignment_pm", "city_pm"].includes(group.kind) || regionPmEmployees(group.region).some(pm => pm.code === candidate.code)),
         );
       }
 
       function employeeDeactivationGroupCompanies(group) {
+        if (group.kind === "assignment_pm")
+          return customers.filter(company => !company.archived &&
+            regionForCompany(company)?.id === group.region?.id && centerResponsibilityRuleForCustomer(company) === group.rule);
         if (group.kind === "city_pm") {
           return customers.filter(
             (company) =>
               !company.archived &&
               company.level !== "省公司" &&
-              company.province === group.owner.province &&
-              company.city === group.owner.city,
+              customerUsesCityOwner(company, group.owner),
           );
         }
         return customers.filter(
           (company) =>
             !company.archived &&
-            company.level === "省公司" &&
+            company.level === "省公司" && !centerResponsibilityRuleForCustomer(company) &&
             group.region &&
             regionForCompany(company)?.id === group.region.id,
         );
       }
 
+      function employeeDeactivationGroupProjects(group) {
+        if (group.kind === "assignment_pm") {
+          const ids = new Set(employeeDeactivationGroupCompanies(group).map(company => String(company.id)));
+          return projects.filter(project => !isEcosystemProject(project) &&
+            PROJECT_RESPONSIBILITY_TRANSFER_STAGES.has(project.stage) && ids.has(String(project.customerId)));
+        }
+        if (!group.region) return [];
+        return projectResponsibilityTransferCandidates(group.kind === "city_pm"
+          ? { kind: "city_pm", region: group.region, owners: [group.owner] }
+          : { kind: "region_director", region: group.region });
+      }
+
       function employeeDeactivationGroupOpportunities(group) {
+        if (group.kind === "assignment_pm") {
+          const ids = new Set(employeeDeactivationGroupCompanies(group).map(company => String(company.id)));
+          return opportunities.filter(opportunity => !isEcosystemOpportunity(opportunity) && opportunity.stage !== "落选" &&
+            ids.has(String(salesOpportunityCustomer(opportunity)?.id)));
+        }
         if (group.kind === "city_pm")
           return cityResponsibilityOpportunities([group.owner]);
         return opportunities.filter((opportunity) => {
           const company = salesOpportunityCustomer(opportunity);
-          return !isEcosystemOpportunity(opportunity) && opportunity.stage !== "落选" && company?.level === "省公司" &&
+          return !isEcosystemOpportunity(opportunity) && opportunity.stage !== "落选" && company?.level === "省公司" && !centerResponsibilityRuleForCustomer(company) &&
             group.region && regionForCompany(company)?.id === group.region.id;
         });
       }
@@ -568,6 +597,8 @@
         if (!receiver)
           return { ok: false, error: `${group.label} 的接收人已失效或角色不符` };
         if (
+          (group.kind === "assignment_pm" && (!cityResponsibilityRules.includes(group.rule) ||
+            group.rule.status !== "启用" || group.rule.pm !== employee.name || cityResponsibilityRuleRegion(group.rule) !== group.region)) ||
           (group.kind === "city_pm" && group.owner.pm !== employee.name) ||
           (group.kind === "region_director" &&
             group.department.supervisorCode !== employee.code)
@@ -581,19 +612,7 @@
           (task) => task.pm === employee.name &&
             companyNames.has(task.company) && employeeDeactivationTaskIsOpen(task),
         );
-        const projectSpec =
-          group.kind === "city_pm"
-            ? {
-                kind: "city_pm",
-                region: group.region,
-                owners: [group.owner],
-              }
-            : group.kind === "region_director"
-              ? { kind: "region_director", region: group.region }
-              : null;
-        const groupProjects = projectSpec
-          ? projectResponsibilityTransferCandidates(projectSpec)
-          : [];
+        const groupProjects = employeeDeactivationGroupProjects(group);
         const changedProject = groupProjects.find(
           (project) => projectCurrentOwner(project) !== employee.name,
         );
@@ -798,7 +817,15 @@
             !employeeHasRole(plan.receiver, plan.group.role)
           )
             throw new Error("接收人已失效或角色不符");
-          if (plan.group.kind === "city_pm") {
+          if (plan.group.kind === "assignment_pm") {
+            const checked = prepareEmployeeDeactivationGroup(plan.group, employee, plan.receiver.code);
+            if (!checked.ok) throw new Error(checked.error);
+            if (JSON.stringify(checked.companies.map(c => c.id)) !== JSON.stringify(plan.companies.map(c => c.id)))
+              throw new Error("分配客户范围已变化，请重新处理");
+            plan.group.rule.pm = plan.receiver.name;
+            plan.group.rule.effective = DEMO_TODAY;
+            plan.group.rule.updatedAt = changedAt;
+          } else if (plan.group.kind === "city_pm") {
             if (plan.group.owner.pm !== employee.name)
               throw new Error("地市当前负责人已变化");
             plan.group.owner.pm = plan.receiver.name;
@@ -815,11 +842,11 @@
           }
           plan.companies.forEach((company) => {
             company.owner = plan.receiver.name;
-            company.pm = company.level === "省公司" ? "" : plan.receiver.name;
+            company.pm = plan.group.kind === "assignment_pm" || company.level !== "省公司" ? plan.receiver.name : "";
             contacts
               .filter((person) => person.company === company.name)
               .forEach((person) => {
-                person.pm = company.level === "省公司" ? "" : plan.receiver.name;
+                person.pm = company.pm;
               });
           });
           let createdTasks = 0;
@@ -892,6 +919,7 @@
             migratedOpportunities += 1;
           });
           syncOrganizationRegions();
+          regroupCoverageForResponsibilityChange(plan.companies, changedAt);
           syncEmployeeAccount(plan.receiver);
           targetPlans.forEach(target=>applySalesTargetHandoff(target,`员工停用责任交接：${reason}`,changedAt));
           return {
@@ -977,24 +1005,7 @@
             employeeDeactivationTaskIsOpen(task),
         );
         const projectCount = new Set(
-          groups.flatMap((group) => {
-            if (!group.region) return [];
-            const projectSpec =
-              group.kind === "city_pm"
-                ? {
-                    kind: "city_pm",
-                    region: group.region,
-                    owners: [group.owner],
-                  }
-                : group.kind === "region_director"
-                  ? { kind: "region_director", region: group.region }
-                  : null;
-            return projectSpec
-              ? projectResponsibilityTransferCandidates(projectSpec).map(
-                  (project) => project.id,
-                )
-              : [];
-          }),
+          groups.flatMap((group) => employeeDeactivationGroupProjects(group).map(project => project.id)),
         ).size + ecologyIds.length;
         const receiverFields = groups
           .map((group, groupIndex) => {
@@ -1003,9 +1014,9 @@
               employee,
             );
             const note =
-              group.kind === "city_pm"
-                ? ""
-                : "接收人将成为该区域运营中心主管。";
+              group.kind === "region_director"
+                ? "接收人将成为该区域运营中心主管。"
+                : "";
             return `<div class="form-group full"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>${escapeHtml(group.label)} 接收人</label><select class="input" data-employee-handover-receiver="${groupIndex}" required><option value="">请选择${group.role}</option>${candidates.map((candidate) => `<option value="${candidate.code}">${escapeHtml(candidate.name)} · ${candidate.code}</option>`).join("")}</select>${note ? `<div class="list-sub">${note}</div>` : ""}</div>`;
           })
           .join("");
@@ -1015,7 +1026,7 @@
           ),
         ).size + ecologyOpportunityIds.length;
         openModal(
-          `<div class="modal-head"><div class="modal-title">确认员工${mode}</div><button class="icon-btn close" data-close>×</button></div><form id="employeeStatusForm"><div class="modal-body"><div class="role-note ${mode === "停用" ? "danger-note" : ""}"><strong>${employee.name} · ${employee.code}</strong></div>${mode === "停用" ? `<div class="impact-summary"><div class="impact-grid"><div><label>责任交接组</label><strong>${groups.length}</strong></div><div><label>未完成任务</label><strong>${openTasks.length}</strong></div><div><label>随责任迁移项目</label><strong>${projectCount}</strong></div><div><label>迁移未落选商机</label><strong>${opportunityCount}</strong></div></div></div>${ecologyIds.length || ecologyOpportunityIds.length ? ecosystemTransferFieldHtml(employee.code, "esEcologyReceiver") : ""}${supportRequests.length ? `<div class="section-title">方案支撑接替人</div><div class="form-grid">${supportFields}</div>` : ""}${targetRegions.length ? `<div class="section-title">个人目标承接</div><div class="role-note">本月未完成额度及未来目标交给所选人员，历史月份目标和已发生业绩保留。</div><div class="form-grid">${targetFields}</div>` : ""}${groups.length ? `<div class="section-title">责任组接收人</div><div class="form-grid">${receiverFields}</div>` : '<div class="role-note">该员工当前没有 PM 地市或区域总监区域中心责任。</div>'}<div class="role-note">请先为需交接事项选好有效接替人。确认后员工将立即停用并无法登录，再由系统自动交接，开始后不可中途结束。任务、六个阶段项目和未落选商机按所选接替人转交；已落选商机及已关闭支撑不转交。原部门及系统角色保留。若部分交接失败，员工仍停用，已完成的交接不撤销，失败项由有权管理者继续处理。</div>` : `<div class="role-note">恢复后可登录，保留原部门及系统角色；已关闭任务不会重新打开，已交出的责任不会取回。</div>`}<div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>${mode}原因</label><textarea class="input" id="esReason" minlength="5" maxlength="500" required></textarea></div></div><div class="modal-foot"><button class="btn" type="button" data-close>取消</button><button class="btn ${mode === "停用" ? "btn-danger" : "btn-primary"}" type="submit">确认并立即${mode}</button></div></form>`,
+          `<div class="modal-head"><div class="modal-title">确认员工${mode}</div><button class="icon-btn close" data-close>×</button></div><form id="employeeStatusForm"><div class="modal-body"><div class="role-note ${mode === "停用" ? "danger-note" : ""}"><strong>${employee.name} · ${employee.code}</strong></div>${mode === "停用" ? `<div class="impact-summary"><div class="impact-grid"><div><label>责任交接组</label><strong>${groups.length}</strong></div><div><label>未完成任务</label><strong>${openTasks.length}</strong></div><div><label>随责任迁移项目</label><strong>${projectCount}</strong></div><div><label>迁移未落选商机</label><strong>${opportunityCount}</strong></div></div></div>${ecologyIds.length || ecologyOpportunityIds.length ? ecosystemTransferFieldHtml(employee.code, "esEcologyReceiver") : ""}${supportRequests.length ? `<div class="section-title">方案支撑接替人</div><div class="form-grid">${supportFields}</div>` : ""}${targetRegions.length ? `<div class="section-title">个人目标承接</div><div class="role-note">本月未完成额度及未来目标交给所选人员，历史月份目标和已发生业绩保留。</div><div class="form-grid">${targetFields}</div>` : ""}${groups.length ? `<div class="section-title">责任组接收人</div><div class="form-grid">${receiverFields}</div>` : '<div class="role-note">该员工当前没有客户/集团分配、地市默认或区域中心责任。</div>'}<div class="role-note">请先为需交接事项选好有效接替人。确认后员工将立即停用并无法登录，再由系统自动交接，开始后不可中途结束。任务、六个阶段项目和未落选商机按所选接替人转交；已落选商机及已关闭支撑不转交。原部门及系统角色保留。若部分交接失败，员工仍停用，已完成的交接不撤销，失败项由有权管理者继续处理。</div>` : `<div class="role-note">恢复后可登录，保留原部门及系统角色；已关闭任务不会重新打开，已交出的责任不会取回。</div>`}<div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>${mode}原因</label><textarea class="input" id="esReason" minlength="5" maxlength="500" required></textarea></div></div><div class="modal-foot"><button class="btn" type="button" data-close>取消</button><button class="btn ${mode === "停用" ? "btn-danger" : "btn-primary"}" type="submit">确认并立即${mode}</button></div></form>`,
         );
         const refreshTargetReceivers=()=> {
           targetRegions.forEach((name,index)=> {
@@ -1074,6 +1085,8 @@
             renderPage();
             return toast("员工恢复已立即生效，旧任务和已交出责任不恢复");
           }
+          if (JSON.stringify(employeeDeactivationGroups(employee).map(group => group.key)) !== JSON.stringify(groups.map(group => group.key)))
+            return toast("员工责任已变化，请重新打开停用操作");
           const receiverInputs = [
             ...document.querySelectorAll("[data-employee-handover-receiver]"),
           ];

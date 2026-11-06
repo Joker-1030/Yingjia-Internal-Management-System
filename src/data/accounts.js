@@ -62,4 +62,8 @@
           fullAccess: true,
           technicalAdmin: true,
         },
+        { username: "pm-liu", phone: "13900000105", password: "123456", name: "刘经理", role: "pm", roleName: "项目经理（PM）", region: "山东区域" },
+        { username: "energy-director", phone: "13900000033", password: "123456", name: "能源总监", role: "director", roleName: "能源中心总监", region: "能源运营中心" },
+        { username: "energy-pm-a", phone: "13900000034", password: "123456", name: "能源PM甲", role: "pm", roleName: "项目经理（PM）", region: "能源运营中心" },
+        { username: "energy-pm-b", phone: "13900000035", password: "123456", name: "能源PM乙", role: "pm", roleName: "项目经理（PM）", region: "能源运营中心" },
       ];

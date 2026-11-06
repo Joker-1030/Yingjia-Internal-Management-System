@@ -20,6 +20,7 @@
 /* @include "data/project-instructors.js" */
 /* @include "data/teachers.js" */
 /* @include "data/project-packages.js" */
+/* @include "data/project-frameworks.js" */
 /* @include "data/platform-companies.js" */
 /* @include "data/sales-targets.js" */
 /* @include "data/opportunities.js" */

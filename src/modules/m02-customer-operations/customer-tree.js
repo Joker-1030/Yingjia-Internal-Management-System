@@ -1,16 +1,7 @@
       function customerFilterOptions() {
-        const provinces =
-          currentUser.role === "pm"
-            ? [
-                ...new Set(
-                  cityOwners
-                    .filter((x) => x.pm === currentUser.name)
-                    .map((x) => x.province),
-                ),
-              ]
-            : currentUser.role === "director"
-              ? regionProvinceList(regionForName(currentUser.region))
-              : Object.keys(administrativeDivisions);
+        const provinces = ["pm", "director"].includes(currentUser.role)
+          ? [...new Set(scopedCustomers().map(customerBusinessProvince))]
+          : Object.keys(administrativeDivisions);
         const cityPool =
           currentUser.role === "pm"
             ? assignedCitiesForCurrentUser()
@@ -363,8 +354,8 @@
             });
           return html;
         };
-        const groups = [...new Set(all.map((customer) => customer.group))];
-        return groups
+        const groups = [...new Set(all.map((customer) => customer.group).filter(Boolean))];
+        return all.filter(customer => !customer.group).map(company => companyRow(company, [], 0)).join("") + groups
           .map((group) => {
             const groupCompanies = all.filter(
               (customer) => customer.group === group,
@@ -581,7 +572,7 @@
             )
           : [];
         const people = [...activePeople, ...stoppedPeople];
-        return `<div class="customer-company-head"><div class="customer-company-head-main"><div class="customer-company-name">${customer.name}</div><div class="customer-company-path">${customerOrganizationPath(customer)} · 业务责任 ${customerBusinessResponsibilityLevel(customer)} / ${adminArea(customer)}</div></div>${healthTag(customerHealth(customer))}</div><div class="customer-company-summary"><div class="overview-item"><label>行业</label><div>${customer.industry}</div></div><div class="overview-item"><label>客户负责人</label><div>${customerOwnerName(customer)}</div></div><div class="overview-item"><label>执行安排</label><div>${customerBusinessResponsibilityLevel(customer) === "省级" ? "区域总监直接执行全部任务" : "地市负责人 PM 直接执行"}</div></div></div><div class="panel-head" style="padding:var(--space-3) 0"><div><div class="panel-title">关键人</div><div class="panel-sub">部门与关键人岗位属于当前任职，变更须通过调岗操作并完成影响确认</div></div><div class="spacer"></div>${canMaintainContactForCompany(customer) ? `<button class="btn btn-primary" data-action="add-contact" data-id="${customer.id}">＋ 新增关键人</button>` : ""}</div><div class="table-wrap"><table><thead><tr><th>关键人</th><th>关键人岗位 / 部门</th><th>职级</th><th>采购决策</th><th>联系方式</th><th>状态</th><th>操作</th></tr></thead><tbody>${people.map((person) => `<tr><td><div class="person"><div class="avatar">${person.name[0]}</div><strong>${person.name}</strong></div><div class="list-sub">${person.code}</div></td><td>${person.positionName}<div class="list-sub">${person.department} · ${person.title}</div></td><td><span class="tag blue">${person.level}</span></td><td>${person.decision ? '<span class="tag blue">是</span>' : "否"}</td><td>${person.phone}<div class="list-sub">微信 ${person.wechat || "未填写"}</div></td><td>${person.archived ? '<span class="tag red">已停用</span>' : healthTag(contactHasOverdue(person) ? "逾期" : "健康")}</td><td><span class="link" data-person="${person.id}">查看</span>${person.archived ? ` · ${objectLifecycleActionHtml("contact", person.id)}` : `${canMaintainContact(person) ? ` · <span class="link" data-action="edit-contact" data-id="${person.id}">编辑</span>` : ""}${canTransferContact(person) ? ` · <span class="link" data-action="transfer" data-id="${person.id}">调岗</span>` : ""}`}</td></tr>`).join("") || '<tr><td colspan="7"><div class="empty">该公司尚未维护关键人</div></td></tr>'}</tbody></table></div>`;
+        return `<div class="customer-company-head"><div class="customer-company-head-main"><div class="customer-company-name">${customer.name}</div><div class="customer-company-path">${customerOrganizationPath(customer)} · 业务责任 ${customerBusinessResponsibilityLevel(customer)} / ${adminArea(customer)}</div></div>${healthTag(customerHealth(customer))}</div><div class="customer-company-summary"><div class="overview-item"><label>行业</label><div>${customer.industry}</div></div><div class="overview-item"><label>客户负责人</label><div>${customerOwnerName(customer)}</div></div><div class="overview-item"><label>执行安排</label><div>${customerResponsibilityRole(customer) === "区域总监" ? "区域总监直接执行全部任务" : "客户负责人 PM 直接执行"}</div></div></div><div class="panel-head" style="padding:var(--space-3) 0"><div><div class="panel-title">关键人</div><div class="panel-sub">部门与关键人岗位属于当前任职，变更须通过调岗操作并完成影响确认</div></div><div class="spacer"></div>${canMaintainContactForCompany(customer) ? `<button class="btn btn-primary" data-action="add-contact" data-id="${customer.id}">＋ 新增关键人</button>` : ""}</div><div class="table-wrap"><table><thead><tr><th>关键人</th><th>关键人岗位 / 部门</th><th>职级</th><th>采购决策</th><th>联系方式</th><th>状态</th><th>操作</th></tr></thead><tbody>${people.map((person) => `<tr><td><div class="person"><div class="avatar">${person.name[0]}</div><strong>${person.name}</strong></div><div class="list-sub">${person.code}</div></td><td>${person.positionName}<div class="list-sub">${person.department} · ${person.title}</div></td><td><span class="tag blue">${person.level}</span></td><td>${person.decision ? '<span class="tag blue">是</span>' : "否"}</td><td>${person.phone}<div class="list-sub">微信 ${person.wechat || "未填写"}</div></td><td>${person.archived ? '<span class="tag red">已停用</span>' : healthTag(contactHasOverdue(person) ? "逾期" : "健康")}</td><td><span class="link" data-person="${person.id}">查看</span>${person.archived ? ` · ${objectLifecycleActionHtml("contact", person.id)}` : `${canMaintainContact(person) ? ` · <span class="link" data-action="edit-contact" data-id="${person.id}">编辑</span>` : ""}${canTransferContact(person) ? ` · <span class="link" data-action="transfer" data-id="${person.id}">调岗</span>` : ""}`}</td></tr>`).join("") || '<tr><td colspan="7"><div class="empty">该公司尚未维护关键人</div></td></tr>'}</tbody></table></div>`;
       }
 
       function openCustomer(id, options = {}) {

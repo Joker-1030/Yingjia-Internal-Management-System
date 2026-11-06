@@ -1,11 +1,11 @@
       const pendingContactCreationNotices = new Map();
       function currentCityPmForContact(company) {
-        const owner = cityOwners.find((item) =>
-          item.province === company?.province && item.city === company?.city);
-        return regionPmEmployees(regionForCompany(company)).find((employee) => employee.name === owner?.pm);
+        if (customerResponsibilityRole(company) !== "PM") return null;
+        const owner = responsibilityOwnerForCustomer(company);
+        return regionPmEmployees(regionForCompany(company)).find((employee) => employee.name === owner);
       }
       function queueDirectorContactCreatedNotice(person, company) {
-        if (currentUser?.role !== "director" || company.level === "省公司") return;
+        if (currentUser?.role !== "director" || customerResponsibilityRole(company) !== "PM") return;
         const recipient = currentCityPmForContact(company);
         if (!recipient) return;
         const id = `contact-created:${person.id}`;

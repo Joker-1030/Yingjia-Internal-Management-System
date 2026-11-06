@@ -37,6 +37,8 @@
             "商机",
             "商机跟进记录",
             "方案支撑请求",
+            "老师",
+            "渠道",
             "排期",
           ],
           permissions: [
@@ -72,6 +74,9 @@
             "商机",
             "商机跟进记录",
             "方案支撑请求",
+            "老师",
+            "渠道",
+            "排期",
           ],
           permissions: [
             "dashboard",
@@ -81,6 +86,7 @@
             "regions",
             "settings",
             "projects",
+            "teachers",
             "packages",
             "platform-companies",
             "opportunities",
@@ -277,7 +283,7 @@
           "dashboard.view", "customers.view",
           "tasks.view", "tasks.publish_campaign", "tasks.create_record",
           "employees.view", "employees.view_changes", "regions.view", "settings.view", "projects.view",
-          "packages.view", "platform-companies.view", "teachers.view",
+          "packages.view", "platform-companies.view", "teachers.view", "teachers.manage", "teachers.unavailable", "teachers.status",
           "sales.view", "opportunities.view", "opportunities.create", "sales-targets.manage",
         ],
         市场副总: [
@@ -285,7 +291,7 @@
           "customers.transfer_contact", "tasks.view", "tasks.publish_campaign", "tasks.create_record", "tasks.complete", "tasks.adjust",
           "employees.view", "employees.view_changes", "regions.view", "regions.edit", "regions.batch_assign", "settings.view", "projects.view",
           "imports.view", "imports.upload", "imports.confirm", "imports.download",
-          "packages.view", "platform-companies.view",
+          "packages.view", "platform-companies.view", "teachers.view", "teachers.manage", "teachers.unavailable", "teachers.status",
           "sales.view", "opportunities.view", "opportunities.create", "opportunities.progress", "sales-targets.manage",
         ],
         区域总监: [
@@ -330,8 +336,8 @@
       const roleFieldPermissions = {
         老师: ["teacher_contact_view"],
         教学管理人员: ["teacher_contact_view", "teacher_fee_view"],
-        总裁: ["customer_base_view", "customer_base_edit", "contact_sensitive_view", "record_view", "record_edit"],
-        市场副总: ["customer_base_view", "customer_base_edit", "contact_sensitive_view", "record_view", "record_edit"],
+        总裁: ["teacher_contact_view", "teacher_fee_view", "customer_base_view", "customer_base_edit", "contact_sensitive_view", "record_view", "record_edit"],
+        市场副总: ["teacher_contact_view", "teacher_fee_view", "customer_base_view", "customer_base_edit", "contact_sensitive_view", "record_view", "record_edit"],
         区域总监: ["customer_base_view", "contact_sensitive_view", "record_view", "record_edit"],
         PM: ["customer_base_view", "customer_base_edit", "contact_sensitive_view", "record_view", "record_edit"],
         "HR/人事": ["employee_sensitive_view", "employee_sensitive_edit"],
@@ -352,8 +358,8 @@
       const roleAttachmentPermissions = {
         老师: [],
         教学管理人员: ["teacher_resume_view", "teacher_resume_download", "teacher_resume_upload", "teacher_resume_delete"],
-        总裁: ["attachment_view", "attachment_download", "attachment_upload", "attachment_delete"],
-        市场副总: ["attachment_view", "attachment_download", "attachment_upload", "attachment_delete"],
+        总裁: ["teacher_resume_view", "teacher_resume_download", "teacher_resume_upload", "teacher_resume_delete", "attachment_view", "attachment_download", "attachment_upload", "attachment_delete"],
+        市场副总: ["teacher_resume_view", "teacher_resume_download", "teacher_resume_upload", "teacher_resume_delete", "attachment_view", "attachment_download", "attachment_upload", "attachment_delete"],
         区域总监: ["attachment_view", "attachment_download", "attachment_upload", "attachment_delete"],
         PM: ["attachment_view", "attachment_download", "attachment_upload", "attachment_delete"],
         "HR/人事": ["attachment_view", "attachment_upload"],
@@ -400,8 +406,10 @@
             "platform-companies.manage",
           ];
           const projectActionOperationKeys = ["projects.create", "projects.edit"];
-          const m11CreatePermissions = template.permissions.filter((key) => template.name !== "总裁" || key !== "teachers");
-          const m11CreateOperations = roleOperationPermissions[template.name].filter((key) => template.name !== "总裁" || key !== "teachers.view");
+          const historicalFields = roleFieldPermissions[template.name].filter(key => !receivesM11ReadonlyConfig || !key.startsWith("teacher_"));
+          const historicalAttachments = roleAttachmentPermissions[template.name].filter(key => !receivesM11ReadonlyConfig || !key.startsWith("teacher_"));
+          const m11CreatePermissions = template.permissions.filter((key) => !receivesM11ReadonlyConfig || key !== "teachers");
+          const m11CreateOperations = roleOperationPermissions[template.name].filter((key) => !receivesM11ReadonlyConfig || !key.startsWith("teachers."));
           const priorM11Permissions = receivesM11ReadonlyConfig
             ? m11CreatePermissions.filter(
                 (permission) => !configPageKeys.includes(permission),
@@ -450,8 +458,8 @@
                       reason: "开放 M11 采购包与平台公司有效配置只读查看",
                       permissions: m11CreatePermissions,
                       operations: m11CreateOperations,
-                      fields: [...roleFieldPermissions[template.name]],
-                      attachments: [...roleAttachmentPermissions[template.name]],
+                      fields: [...historicalFields],
+                      attachments: [...historicalAttachments],
                     },
                   ]
                 : []),
@@ -463,8 +471,8 @@
                 reason: "同步 M11 项目创建与开始前编辑权限基线",
                 permissions: priorM11Permissions,
                 operations: priorM11Operations,
-                fields: [...roleFieldPermissions[template.name]],
-                attachments: [...roleAttachmentPermissions[template.name]],
+                fields: [...historicalFields],
+                attachments: [...historicalAttachments],
               },
               {
                 id: `PERM-${code}-00000${index + 4}`,
@@ -474,8 +482,8 @@
                 reason: "同步 M11 采购包与平台公司配置权限基线",
                 permissions: m11ConfigPermissions,
                 operations: m11ConfigOperations,
-                fields: [...roleFieldPermissions[template.name]],
-                attachments: [...roleAttachmentPermissions[template.name]],
+                fields: [...historicalFields],
+                attachments: [...historicalAttachments],
               },
               {
                 id: `PERM-${code}-00000${index + 3}`,
@@ -485,8 +493,8 @@
                 reason: "同步 M11 项目管理权限基线",
                 permissions: m11ProjectPermissions,
                 operations: m11ProjectOperations,
-                fields: [...roleFieldPermissions[template.name]],
-                attachments: [...roleAttachmentPermissions[template.name]],
+                fields: [...historicalFields],
+                attachments: [...historicalAttachments],
               },
               {
                 id: `PERM-${code}-00000${index + 2}`,
@@ -496,8 +504,8 @@
                 reason: "同步 V1.2.0 客户经营权限基线",
                 permissions: baselinePermissions,
                 operations: baselineOperations,
-                fields: [...roleFieldPermissions[template.name]],
-                attachments: [...roleAttachmentPermissions[template.name]],
+                fields: [...historicalFields],
+                attachments: [...historicalAttachments],
               },
               {
                 id: `PERM-${code}-00000${index + 1}`,
@@ -507,8 +515,8 @@
                 reason: "保留版本升级前权限快照",
                 permissions: legacyPermissions,
                 operations: baselineOperations,
-                fields: [...roleFieldPermissions[template.name]],
-                attachments: [...roleAttachmentPermissions[template.name]],
+                fields: [...historicalFields],
+                attachments: [...historicalAttachments],
               },
             ],
           ];

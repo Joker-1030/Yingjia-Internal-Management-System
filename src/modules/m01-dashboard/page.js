@@ -227,7 +227,7 @@
         const rows = scopedTasks();
         const period = dashboardPeriodMeta();
         const pmNames = [...new Set(rows.map((task) => task.pm).filter(Boolean))].sort();
-        return `<section class="panel"><div class="panel-head"><div><div class="panel-title">责任人执行对比</div><div class="panel-sub">PM 执行市/区县任务，区域总监执行省公司任务；${period.start} 至 ${period.end} 已到期</div></div><div class="spacer"></div>${dashboardPeriodControl()}</div><div class="table-wrap"><table><thead><tr><th>责任人（PM / 区域总监）</th><th>${period.label}应到期</th><th>${period.label}已完成</th><th>${period.label}总完成率</th><th>${period.label}按期完成率</th><th>当前逾期</th></tr></thead><tbody>${pmNames
+        return `<section class="panel"><div class="panel-head"><div><div class="panel-title">责任人执行对比</div><div class="panel-sub">按客户最终负责人执行任务；${period.start} 至 ${period.end} 已到期</div></div><div class="spacer"></div>${dashboardPeriodControl()}</div><div class="table-wrap"><table><thead><tr><th>责任人（PM / 区域总监）</th><th>${period.label}应到期</th><th>${period.label}已完成</th><th>${period.label}总完成率</th><th>${period.label}按期完成率</th><th>当前逾期</th></tr></thead><tbody>${pmNames
           .map((pm) => {
             const pmRows = rows.filter((task) => task.pm === pm);
             const periodNumbers = dashboardTaskNumbers(
@@ -596,7 +596,7 @@
         if (currentUser.role === "director") return employees
           .filter((employee) => employee.status === "在职" && employeeHasRole(employee, "PM"))
           .slice().sort((a, b) => a.name.localeCompare(b.name, "zh-CN") || a.code.localeCompare(b.code))
-          .map((employee) => ({ employee, selected: companies.filter((company) => company.level !== "省公司" && customerOwnerName(company) === employee.name) }))
+          .map((employee) => ({ employee, selected: companies.filter((company) => customerResponsibilityRole(company) === "PM" && customerOwnerName(company) === employee.name) }))
           .filter((item) => item.selected.length)
           .map((item) => group(item.employee.name, item.selected))
           .sort((a, b) => dashboardRateCompare(a, b, dashboardCoverageOrder));

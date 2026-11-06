@@ -210,6 +210,7 @@
       const templatePagePermissionAllowed = (template, permission) =>
         (["老师", "教学管理人员"].includes(template.name) ? permission === "teachers" : template.name !== "生态合作员" || ["dashboard", "projects", "opportunities"].includes(permission));
       const hasPermission = (permission) =>
+        permission === "frameworks" ? hasPermission("projects") && currentRoleTemplateNames().some(role => ["系统管理员", "总裁", "市场副总", "区域总监", "PM"].includes(role)) :
         (!isAdminOnlyProjectConfigPage(permission) || isProjectConfigAdmin()) &&
         currentRoleTemplates().some((template) =>
           templatePagePermissionAllowed(template, permission) && template.permissions.includes(permission),
@@ -232,7 +233,7 @@
       const roleCanSeeBusiness = () => hasDataObject("客户单位");
       const canAccessPage = (page) => {
         if (["approvals", "archive", "sales-dashboard"].includes(page)) return false;
-        if (["teachers", "teacher-schedule"].includes(page)) return (typeof teacherIsFacultySupervisor === "function" && teacherIsFacultySupervisor()) || (hasPermission("teachers") && currentRoleTemplateNames().some((role) => ["系统管理员", "老师", "教学管理人员", ...(page === "teacher-schedule" ? ["总裁"] : [])].includes(role)));
+        if (["teachers", "teacher-schedule"].includes(page)) return (typeof teacherIsFacultySupervisor === "function" && teacherIsFacultySupervisor()) || (hasPermission("teachers") && currentRoleTemplateNames().some((role) => ["系统管理员", "总裁", "市场副总", "老师", "教学管理人员"].includes(role)));
         if (page === "operations") return roleCanSeeBusiness();
         if (page === "city-management")
           return isPmCityManagementUser() && hasPermission(page);
@@ -276,9 +277,8 @@
         Boolean(currentUser?.fullAccess || hasOperationPermission(operation));
       const assignedCitiesForCurrentUser = () =>
         currentScopeType() === "cities"
-          ? cityOwners
-              .filter((x) => x.pm === currentUser.name)
-              .map((x) => x.city)
+          ? [...new Set(customers.filter(company => !company.archived && company.level !== "省公司" &&
+              customerOwnerName(company) === currentUser.name).map(company => customerBusinessCity(company)))]
           : [];
       const adminArea = (c) =>
         [
@@ -308,12 +308,7 @@
         if (leftRegion && rightRegion) return leftRegion.id === rightRegion.id;
         return String(left || "") === String(right || "");
       };
-      const regionForCompany = (company) =>
-        regionsData.find(
-          (region) =>
-            regionsMatch(region.name, company?.region) ||
-            regionProvinceList(region).includes(company?.province),
-        );
+      const regionForCompany = (company) => operatingCenterForCustomer(company);
       const customerRegionLabel = (company) =>
         regionForCompany(company)?.name || company?.region || "待配置区域";
       const customerRegionScope = (company) =>
@@ -324,10 +319,7 @@
         const region = regionForCompany(company);
         return region?.director || company?.owner || "待配置";
       };
-      const customerOwnerName = (company) =>
-        company?.level === "省公司"
-          ? regionDirectorForCustomer(company)
-          : company?.owner || company?.pm || "待分配";
+      const customerOwnerName = (company) => responsibilityOwnerForCustomer(customerResponsibilityFacts(company)) || "待分配";
       const contactOwnerName = (person) =>
         customerOwnerName(
           customers.find((company) => company.name === person?.company),
@@ -357,9 +349,7 @@
           return regions.join("、") || "待配置区域";
         }
         if (employeeHasRole(employee, "PM")) {
-          const cities = cityOwners
-            .filter((item) => item.pm === employee.name)
-            .map((item) => item.city);
+          const cities = [...new Set(customers.filter(company => !company.archived && company.level !== "省公司" && responsibilityOwnerForCustomer(company) === employee.name).map(customerBusinessCity))];
           return cities.join("、") || "待配置负责地市";
         }
         if (employeeHasRole(employee, "生态合作员")) return "本人平台师资合作项目及商机";
@@ -579,23 +569,147 @@
       const normalizePositionText = (value) =>
         String(value || "").trim().replace(/\s+/g, " ");
       const contactPositionCatalog = [
-        { id: "POS-CM-001", group: "华北云网集团", company: "华北云网集团济南分公司", departmentId: 1001, code: "POS00000001", name: "人力资源分管领导", aliases: ["人力副总"] },
-        { id: "POS-CM-002", group: "华北云网集团", company: "华北云网集团济南分公司", departmentId: 1002, code: "POS00000002", name: "培训发展负责人", aliases: ["培训负责人", "培训主任"] },
-        { id: "POS-CM-003", group: "华北云网集团", company: "华北云网集团济南分公司", departmentId: 1003, code: "POS00000003", name: "数字化负责人", aliases: ["信息化负责人"] },
-        { id: "POS-CM-004", group: "华北云网集团", company: "华北云网集团济南分公司", departmentId: 1001, code: "POS00000004", name: "关键决策人", aliases: ["采购负责人"] },
-        { id: "POS-CM-005", group: "华北云网集团", company: "华北云网集团济南分公司", departmentId: 1010, code: "POS00000005", name: "原培训管理岗", aliases: [], status: "已停用" },
-        { id: "POS-CT-001", group: "华北云网集团", company: "国网产业协同集团青岛分公司", departmentId: 1005, code: "POS00000006", name: "人力资源负责人", aliases: ["人力负责人"] },
-        { id: "POS-CT-002", group: "华北云网集团", company: "国网产业协同集团青岛分公司", departmentId: 1005, code: "POS00000007", name: "培训负责人", aliases: ["培训主任"] },
-        { id: "POS-CU-001", group: "华信通信集团", company: "华信通信集团泰安分公司", departmentId: 1004, code: "POS00000008", name: "组织人事负责人", aliases: ["人力负责人"] },
-        { id: "POS-HD-001", group: "华东能源控股", company: "华东能源控股山东有限公司", departmentId: 1006, code: "POS00000009", name: "人力资源负责人", aliases: [] },
-        { id: "POS-SG-001", group: "国网产业协同集团", company: "国网产业协同集团山东省公司", departmentId: 1101, code: "POS00000021", name: "运营总监", aliases: ["运营负责人"] },
-        { id: "POS-SG-002", group: "国网产业协同集团", company: "国网产业协同集团济南市公司", departmentId: 1103, code: "POS00000022", name: "客户运营经理", aliases: [] },
+        {"id": "POS-REL-0001-DEPT-1011","group": "华北云网集团","company": "华北云网集团山东有限公司","departmentId": 1011,"code": "POS00000001","name": "人力资源分管领导","aliases": [],"sort": 10,"status": "正常","positionAtomId": "POS-ATOM-0001","updatedAt": "2026-10-27 09:00"},
+        {"id": "POS-REL-0004-DEPT-1011","group": "华北云网集团","company": "华北云网集团山东有限公司","departmentId": 1011,"code": "POS00000004","name": "关键决策人","aliases": [],"sort": 40,"status": "正常","positionAtomId": "POS-ATOM-0004","updatedAt": "2026-10-27 09:00"},
+        {"id": "POS-REL-0002-DEPT-1012","group": "华北云网集团","company": "华北云网集团山东有限公司","departmentId": 1012,"code": "POS00000002","name": "培训负责人","aliases": [],"sort": 20,"status": "正常","positionAtomId": "POS-ATOM-0002","updatedAt": "2026-10-27 09:00"},
+        {"id": "POS-REL-0003-DEPT-1012","group": "华北云网集团","company": "华北云网集团山东有限公司","departmentId": 1012,"code": "POS00000003","name": "项目经理","aliases": [],"sort": 30,"status": "正常","positionAtomId": "POS-ATOM-0003","updatedAt": "2026-10-27 09:00"},
+        {"id": "POS-REL-0001-DEPT-1021","group": "华北云网集团","company": "华北云网集团济南分公司","departmentId": 1021,"code": "POS00000001","name": "人力资源分管领导","aliases": [],"sort": 10,"status": "正常","positionAtomId": "POS-ATOM-0001","updatedAt": "2026-10-27 09:00"},
+        {"id": "POS-REL-0004-DEPT-1021","group": "华北云网集团","company": "华北云网集团济南分公司","departmentId": 1021,"code": "POS00000004","name": "关键决策人","aliases": [],"sort": 40,"status": "正常","positionAtomId": "POS-ATOM-0004","updatedAt": "2026-10-27 09:00"},
+        {"id": "POS-REL-0002-DEPT-1022","group": "华北云网集团","company": "华北云网集团济南分公司","departmentId": 1022,"code": "POS00000002","name": "培训负责人","aliases": [],"sort": 20,"status": "正常","positionAtomId": "POS-ATOM-0002","updatedAt": "2026-10-27 09:00"},
+        {"id": "POS-REL-0003-DEPT-1022","group": "华北云网集团","company": "华北云网集团济南分公司","departmentId": 1022,"code": "POS00000003","name": "项目经理","aliases": [],"sort": 30,"status": "正常","positionAtomId": "POS-ATOM-0003","updatedAt": "2026-10-27 09:00"},
+        {"id": "POS-REL-0001-DEPT-1031","group": "华信通信集团","company": "华信通信集团泰安分公司","departmentId": 1031,"code": "POS00000001","name": "人力资源分管领导","aliases": [],"sort": 10,"status": "正常","positionAtomId": "POS-ATOM-0001","updatedAt": "2026-10-27 09:00"},
+        {"id": "POS-REL-0004-DEPT-1031","group": "华信通信集团","company": "华信通信集团泰安分公司","departmentId": 1031,"code": "POS00000004","name": "关键决策人","aliases": [],"sort": 40,"status": "正常","positionAtomId": "POS-ATOM-0004","updatedAt": "2026-10-27 09:00"},
+        {"id": "POS-REL-0002-DEPT-1032","group": "华信通信集团","company": "华信通信集团泰安分公司","departmentId": 1032,"code": "POS00000002","name": "培训负责人","aliases": [],"sort": 20,"status": "正常","positionAtomId": "POS-ATOM-0002","updatedAt": "2026-10-27 09:00"},
+        {"id": "POS-REL-0003-DEPT-1032","group": "华信通信集团","company": "华信通信集团泰安分公司","departmentId": 1032,"code": "POS00000003","name": "项目经理","aliases": [],"sort": 30,"status": "正常","positionAtomId": "POS-ATOM-0003","updatedAt": "2026-10-27 09:00"},
+        {"id": "POS-REL-0001-DEPT-1041","group": "国网产业协同集团","company": "国网产业协同集团青岛分公司","departmentId": 1041,"code": "POS00000001","name": "人力资源分管领导","aliases": [],"sort": 10,"status": "正常","positionAtomId": "POS-ATOM-0001","updatedAt": "2026-10-27 09:00"},
+        {"id": "POS-REL-0004-DEPT-1041","group": "国网产业协同集团","company": "国网产业协同集团青岛分公司","departmentId": 1041,"code": "POS00000004","name": "关键决策人","aliases": [],"sort": 40,"status": "正常","positionAtomId": "POS-ATOM-0004","updatedAt": "2026-10-27 09:00"},
+        {"id": "POS-REL-0002-DEPT-1042","group": "国网产业协同集团","company": "国网产业协同集团青岛分公司","departmentId": 1042,"code": "POS00000002","name": "培训负责人","aliases": [],"sort": 20,"status": "正常","positionAtomId": "POS-ATOM-0002","updatedAt": "2026-10-27 09:00"},
+        {"id": "POS-REL-0003-DEPT-1042","group": "国网产业协同集团","company": "国网产业协同集团青岛分公司","departmentId": 1042,"code": "POS00000003","name": "项目经理","aliases": [],"sort": 30,"status": "正常","positionAtomId": "POS-ATOM-0003","updatedAt": "2026-10-27 09:00"},
+        {"id": "POS-REL-0001-DEPT-1051","group": "华东能源控股","company": "华东能源控股山东有限公司","departmentId": 1051,"code": "POS00000001","name": "人力资源分管领导","aliases": [],"sort": 10,"status": "正常","positionAtomId": "POS-ATOM-0001","updatedAt": "2026-10-27 09:00"},
+        {"id": "POS-REL-0004-DEPT-1051","group": "华东能源控股","company": "华东能源控股山东有限公司","departmentId": 1051,"code": "POS00000004","name": "关键决策人","aliases": [],"sort": 40,"status": "正常","positionAtomId": "POS-ATOM-0004","updatedAt": "2026-10-27 09:00"},
+        {"id": "POS-REL-0002-DEPT-1052","group": "华东能源控股","company": "华东能源控股山东有限公司","departmentId": 1052,"code": "POS00000002","name": "培训负责人","aliases": [],"sort": 20,"status": "正常","positionAtomId": "POS-ATOM-0002","updatedAt": "2026-10-27 09:00"},
+        {"id": "POS-REL-0003-DEPT-1052","group": "华东能源控股","company": "华东能源控股山东有限公司","departmentId": 1052,"code": "POS00000003","name": "项目经理","aliases": [],"sort": 30,"status": "正常","positionAtomId": "POS-ATOM-0003","updatedAt": "2026-10-27 09:00"},
+        {"id": "POS-REL-0001-DEPT-1061","group": "齐鲁数科集团","company": "齐鲁数科集团江苏有限公司","departmentId": 1061,"code": "POS00000001","name": "人力资源分管领导","aliases": [],"sort": 10,"status": "正常","positionAtomId": "POS-ATOM-0001","updatedAt": "2026-10-27 09:00"},
+        {"id": "POS-REL-0004-DEPT-1061","group": "齐鲁数科集团","company": "齐鲁数科集团江苏有限公司","departmentId": 1061,"code": "POS00000004","name": "关键决策人","aliases": [],"sort": 40,"status": "正常","positionAtomId": "POS-ATOM-0004","updatedAt": "2026-10-27 09:00"},
+        {"id": "POS-REL-0002-DEPT-1062","group": "齐鲁数科集团","company": "齐鲁数科集团江苏有限公司","departmentId": 1062,"code": "POS00000002","name": "培训负责人","aliases": [],"sort": 20,"status": "正常","positionAtomId": "POS-ATOM-0002","updatedAt": "2026-10-27 09:00"},
+        {"id": "POS-REL-0003-DEPT-1062","group": "齐鲁数科集团","company": "齐鲁数科集团江苏有限公司","departmentId": 1062,"code": "POS00000003","name": "项目经理","aliases": [],"sort": 30,"status": "正常","positionAtomId": "POS-ATOM-0003","updatedAt": "2026-10-27 09:00"},
+        {"id": "POS-REL-0001-DEPT-1071","group": "华北云网集团","company": "华北云网集团南京分公司","departmentId": 1071,"code": "POS00000001","name": "人力资源分管领导","aliases": [],"sort": 10,"status": "正常","positionAtomId": "POS-ATOM-0001","updatedAt": "2026-10-27 09:00"},
+        {"id": "POS-REL-0004-DEPT-1071","group": "华北云网集团","company": "华北云网集团南京分公司","departmentId": 1071,"code": "POS00000004","name": "关键决策人","aliases": [],"sort": 40,"status": "正常","positionAtomId": "POS-ATOM-0004","updatedAt": "2026-10-27 09:00"},
+        {"id": "POS-REL-0002-DEPT-1072","group": "华北云网集团","company": "华北云网集团南京分公司","departmentId": 1072,"code": "POS00000002","name": "培训负责人","aliases": [],"sort": 20,"status": "正常","positionAtomId": "POS-ATOM-0002","updatedAt": "2026-10-27 09:00"},
+        {"id": "POS-REL-0003-DEPT-1072","group": "华北云网集团","company": "华北云网集团南京分公司","departmentId": 1072,"code": "POS00000003","name": "项目经理","aliases": [],"sort": 30,"status": "正常","positionAtomId": "POS-ATOM-0003","updatedAt": "2026-10-27 09:00"},
+        {"id": "POS-REL-0001-DEPT-1081","group": "华东能源控股","company": "华东能源控股浙江有限公司","departmentId": 1081,"code": "POS00000001","name": "人力资源分管领导","aliases": [],"sort": 10,"status": "正常","positionAtomId": "POS-ATOM-0001","updatedAt": "2026-10-27 09:00"},
+        {"id": "POS-REL-0004-DEPT-1081","group": "华东能源控股","company": "华东能源控股浙江有限公司","departmentId": 1081,"code": "POS00000004","name": "关键决策人","aliases": [],"sort": 40,"status": "正常","positionAtomId": "POS-ATOM-0004","updatedAt": "2026-10-27 09:00"},
+        {"id": "POS-REL-0002-DEPT-1082","group": "华东能源控股","company": "华东能源控股浙江有限公司","departmentId": 1082,"code": "POS00000002","name": "培训负责人","aliases": [],"sort": 20,"status": "正常","positionAtomId": "POS-ATOM-0002","updatedAt": "2026-10-27 09:00"},
+        {"id": "POS-REL-0003-DEPT-1082","group": "华东能源控股","company": "华东能源控股浙江有限公司","departmentId": 1082,"code": "POS00000003","name": "项目经理","aliases": [],"sort": 30,"status": "正常","positionAtomId": "POS-ATOM-0003","updatedAt": "2026-10-27 09:00"},
+        {"id": "POS-REL-0001-DEPT-1091","group": "齐鲁数科集团","company": "齐鲁数科集团历下分公司","departmentId": 1091,"code": "POS00000001","name": "人力资源分管领导","aliases": [],"sort": 10,"status": "正常","positionAtomId": "POS-ATOM-0001","updatedAt": "2026-10-27 09:00"},
+        {"id": "POS-REL-0004-DEPT-1091","group": "齐鲁数科集团","company": "齐鲁数科集团历下分公司","departmentId": 1091,"code": "POS00000004","name": "关键决策人","aliases": [],"sort": 40,"status": "正常","positionAtomId": "POS-ATOM-0004","updatedAt": "2026-10-27 09:00"},
+        {"id": "POS-REL-0002-DEPT-1092","group": "齐鲁数科集团","company": "齐鲁数科集团历下分公司","departmentId": 1092,"code": "POS00000002","name": "培训负责人","aliases": [],"sort": 20,"status": "正常","positionAtomId": "POS-ATOM-0002","updatedAt": "2026-10-27 09:00"},
+        {"id": "POS-REL-0003-DEPT-1092","group": "齐鲁数科集团","company": "齐鲁数科集团历下分公司","departmentId": 1092,"code": "POS00000003","name": "项目经理","aliases": [],"sort": 30,"status": "正常","positionAtomId": "POS-ATOM-0003","updatedAt": "2026-10-27 09:00"},
+        {"id": "POS-REL-0001-DEPT-1101","group": "齐鲁数科集团","company": "齐鲁数科集团烟台分公司","departmentId": 1101,"code": "POS00000001","name": "人力资源分管领导","aliases": [],"sort": 10,"status": "正常","positionAtomId": "POS-ATOM-0001","updatedAt": "2026-10-27 09:00"},
+        {"id": "POS-REL-0004-DEPT-1101","group": "齐鲁数科集团","company": "齐鲁数科集团烟台分公司","departmentId": 1101,"code": "POS00000004","name": "关键决策人","aliases": [],"sort": 40,"status": "正常","positionAtomId": "POS-ATOM-0004","updatedAt": "2026-10-27 09:00"},
+        {"id": "POS-REL-0002-DEPT-1102","group": "齐鲁数科集团","company": "齐鲁数科集团烟台分公司","departmentId": 1102,"code": "POS00000002","name": "培训负责人","aliases": [],"sort": 20,"status": "正常","positionAtomId": "POS-ATOM-0002","updatedAt": "2026-10-27 09:00"},
+        {"id": "POS-REL-0003-DEPT-1102","group": "齐鲁数科集团","company": "齐鲁数科集团烟台分公司","departmentId": 1102,"code": "POS00000003","name": "项目经理","aliases": [],"sort": 30,"status": "正常","positionAtomId": "POS-ATOM-0003","updatedAt": "2026-10-27 09:00"},
+        {"id": "POS-REL-0001-DEPT-1111","group": "华信通信集团","company": "华信通信集团烟台分公司","departmentId": 1111,"code": "POS00000001","name": "人力资源分管领导","aliases": [],"sort": 10,"status": "正常","positionAtomId": "POS-ATOM-0001","updatedAt": "2026-10-27 09:00"},
+        {"id": "POS-REL-0004-DEPT-1111","group": "华信通信集团","company": "华信通信集团烟台分公司","departmentId": 1111,"code": "POS00000004","name": "关键决策人","aliases": [],"sort": 40,"status": "正常","positionAtomId": "POS-ATOM-0004","updatedAt": "2026-10-27 09:00"},
+        {"id": "POS-REL-0002-DEPT-1112","group": "华信通信集团","company": "华信通信集团烟台分公司","departmentId": 1112,"code": "POS00000002","name": "培训负责人","aliases": [],"sort": 20,"status": "正常","positionAtomId": "POS-ATOM-0002","updatedAt": "2026-10-27 09:00"},
+        {"id": "POS-REL-0003-DEPT-1112","group": "华信通信集团","company": "华信通信集团烟台分公司","departmentId": 1112,"code": "POS00000003","name": "项目经理","aliases": [],"sort": 30,"status": "正常","positionAtomId": "POS-ATOM-0003","updatedAt": "2026-10-27 09:00"},
+        {"id": "POS-REL-0001-DEPT-1121","group": "齐鲁数科集团","company": "齐鲁数科集团济南分公司","departmentId": 1121,"code": "POS00000001","name": "人力资源分管领导","aliases": [],"sort": 10,"status": "正常","positionAtomId": "POS-ATOM-0001","updatedAt": "2026-10-27 09:00"},
+        {"id": "POS-REL-0004-DEPT-1121","group": "齐鲁数科集团","company": "齐鲁数科集团济南分公司","departmentId": 1121,"code": "POS00000004","name": "关键决策人","aliases": [],"sort": 40,"status": "正常","positionAtomId": "POS-ATOM-0004","updatedAt": "2026-10-27 09:00"},
+        {"id": "POS-REL-0002-DEPT-1122","group": "齐鲁数科集团","company": "齐鲁数科集团济南分公司","departmentId": 1122,"code": "POS00000002","name": "培训负责人","aliases": [],"sort": 20,"status": "正常","positionAtomId": "POS-ATOM-0002","updatedAt": "2026-10-27 09:00"},
+        {"id": "POS-REL-0003-DEPT-1122","group": "齐鲁数科集团","company": "齐鲁数科集团济南分公司","departmentId": 1122,"code": "POS00000003","name": "项目经理","aliases": [],"sort": 30,"status": "正常","positionAtomId": "POS-ATOM-0003","updatedAt": "2026-10-27 09:00"},
+        {"id": "POS-REL-0001-DEPT-1131","group": "华信通信集团","company": "华信通信集团济南分公司","departmentId": 1131,"code": "POS00000001","name": "人力资源分管领导","aliases": [],"sort": 10,"status": "正常","positionAtomId": "POS-ATOM-0001","updatedAt": "2026-10-27 09:00"},
+        {"id": "POS-REL-0004-DEPT-1131","group": "华信通信集团","company": "华信通信集团济南分公司","departmentId": 1131,"code": "POS00000004","name": "关键决策人","aliases": [],"sort": 40,"status": "正常","positionAtomId": "POS-ATOM-0004","updatedAt": "2026-10-27 09:00"},
+        {"id": "POS-REL-0002-DEPT-1132","group": "华信通信集团","company": "华信通信集团济南分公司","departmentId": 1132,"code": "POS00000002","name": "培训负责人","aliases": [],"sort": 20,"status": "正常","positionAtomId": "POS-ATOM-0002","updatedAt": "2026-10-27 09:00"},
+        {"id": "POS-REL-0003-DEPT-1132","group": "华信通信集团","company": "华信通信集团济南分公司","departmentId": 1132,"code": "POS00000003","name": "项目经理","aliases": [],"sort": 30,"status": "正常","positionAtomId": "POS-ATOM-0003","updatedAt": "2026-10-27 09:00"},
+        {"id": "POS-REL-0001-DEPT-1141","group": "华信通信集团","company": "华信通信集团市中分公司","departmentId": 1141,"code": "POS00000001","name": "人力资源分管领导","aliases": [],"sort": 10,"status": "正常","positionAtomId": "POS-ATOM-0001","updatedAt": "2026-10-27 09:00"},
+        {"id": "POS-REL-0004-DEPT-1141","group": "华信通信集团","company": "华信通信集团市中分公司","departmentId": 1141,"code": "POS00000004","name": "关键决策人","aliases": [],"sort": 40,"status": "正常","positionAtomId": "POS-ATOM-0004","updatedAt": "2026-10-27 09:00"},
+        {"id": "POS-REL-0002-DEPT-1142","group": "华信通信集团","company": "华信通信集团市中分公司","departmentId": 1142,"code": "POS00000002","name": "培训负责人","aliases": [],"sort": 20,"status": "正常","positionAtomId": "POS-ATOM-0002","updatedAt": "2026-10-27 09:00"},
+        {"id": "POS-REL-0003-DEPT-1142","group": "华信通信集团","company": "华信通信集团市中分公司","departmentId": 1142,"code": "POS00000003","name": "项目经理","aliases": [],"sort": 30,"status": "正常","positionAtomId": "POS-ATOM-0003","updatedAt": "2026-10-27 09:00"},
+        {"id": "POS-REL-0001-DEPT-1151","group": "国网产业协同集团","company": "国网产业协同集团福山分公司","departmentId": 1151,"code": "POS00000001","name": "人力资源分管领导","aliases": [],"sort": 10,"status": "正常","positionAtomId": "POS-ATOM-0001","updatedAt": "2026-10-27 09:00"},
+        {"id": "POS-REL-0004-DEPT-1151","group": "国网产业协同集团","company": "国网产业协同集团福山分公司","departmentId": 1151,"code": "POS00000004","name": "关键决策人","aliases": [],"sort": 40,"status": "正常","positionAtomId": "POS-ATOM-0004","updatedAt": "2026-10-27 09:00"},
+        {"id": "POS-REL-0002-DEPT-1152","group": "国网产业协同集团","company": "国网产业协同集团福山分公司","departmentId": 1152,"code": "POS00000002","name": "培训负责人","aliases": [],"sort": 20,"status": "正常","positionAtomId": "POS-ATOM-0002","updatedAt": "2026-10-27 09:00"},
+        {"id": "POS-REL-0003-DEPT-1152","group": "国网产业协同集团","company": "国网产业协同集团福山分公司","departmentId": 1152,"code": "POS00000003","name": "项目经理","aliases": [],"sort": 30,"status": "正常","positionAtomId": "POS-ATOM-0003","updatedAt": "2026-10-27 09:00"},
+        {"id": "POS-REL-0001-DEPT-1161","group": "齐鲁数科集团","company": "齐鲁数科集团无锡分公司","departmentId": 1161,"code": "POS00000001","name": "人力资源分管领导","aliases": [],"sort": 10,"status": "正常","positionAtomId": "POS-ATOM-0001","updatedAt": "2026-10-27 09:00"},
+        {"id": "POS-REL-0004-DEPT-1161","group": "齐鲁数科集团","company": "齐鲁数科集团无锡分公司","departmentId": 1161,"code": "POS00000004","name": "关键决策人","aliases": [],"sort": 40,"status": "正常","positionAtomId": "POS-ATOM-0004","updatedAt": "2026-10-27 09:00"},
+        {"id": "POS-REL-0002-DEPT-1162","group": "齐鲁数科集团","company": "齐鲁数科集团无锡分公司","departmentId": 1162,"code": "POS00000002","name": "培训负责人","aliases": [],"sort": 20,"status": "正常","positionAtomId": "POS-ATOM-0002","updatedAt": "2026-10-27 09:00"},
+        {"id": "POS-REL-0003-DEPT-1162","group": "齐鲁数科集团","company": "齐鲁数科集团无锡分公司","departmentId": 1162,"code": "POS00000003","name": "项目经理","aliases": [],"sort": 30,"status": "正常","positionAtomId": "POS-ATOM-0003","updatedAt": "2026-10-27 09:00"},
+        {"id": "POS-REL-0001-DEPT-1171","group": "华信通信集团","company": "华信通信集团合肥分公司","departmentId": 1171,"code": "POS00000001","name": "人力资源分管领导","aliases": [],"sort": 10,"status": "正常","positionAtomId": "POS-ATOM-0001","updatedAt": "2026-10-27 09:00"},
+        {"id": "POS-REL-0004-DEPT-1171","group": "华信通信集团","company": "华信通信集团合肥分公司","departmentId": 1171,"code": "POS00000004","name": "关键决策人","aliases": [],"sort": 40,"status": "正常","positionAtomId": "POS-ATOM-0004","updatedAt": "2026-10-27 09:00"},
+        {"id": "POS-REL-0002-DEPT-1172","group": "华信通信集团","company": "华信通信集团合肥分公司","departmentId": 1172,"code": "POS00000002","name": "培训负责人","aliases": [],"sort": 20,"status": "正常","positionAtomId": "POS-ATOM-0002","updatedAt": "2026-10-27 09:00"},
+        {"id": "POS-REL-0003-DEPT-1172","group": "华信通信集团","company": "华信通信集团合肥分公司","departmentId": 1172,"code": "POS00000003","name": "项目经理","aliases": [],"sort": 30,"status": "正常","positionAtomId": "POS-ATOM-0003","updatedAt": "2026-10-27 09:00"},
+        {"id": "POS-REL-0001-DEPT-1181","group": "齐鲁数科集团","company": "齐鲁数科集团浙江有限公司","departmentId": 1181,"code": "POS00000001","name": "人力资源分管领导","aliases": [],"sort": 10,"status": "正常","positionAtomId": "POS-ATOM-0001","updatedAt": "2026-10-27 09:00"},
+        {"id": "POS-REL-0004-DEPT-1181","group": "齐鲁数科集团","company": "齐鲁数科集团浙江有限公司","departmentId": 1181,"code": "POS00000004","name": "关键决策人","aliases": [],"sort": 40,"status": "正常","positionAtomId": "POS-ATOM-0004","updatedAt": "2026-10-27 09:00"},
+        {"id": "POS-REL-0002-DEPT-1182","group": "齐鲁数科集团","company": "齐鲁数科集团浙江有限公司","departmentId": 1182,"code": "POS00000002","name": "培训负责人","aliases": [],"sort": 20,"status": "正常","positionAtomId": "POS-ATOM-0002","updatedAt": "2026-10-27 09:00"},
+        {"id": "POS-REL-0003-DEPT-1182","group": "齐鲁数科集团","company": "齐鲁数科集团浙江有限公司","departmentId": 1182,"code": "POS00000003","name": "项目经理","aliases": [],"sort": 30,"status": "正常","positionAtomId": "POS-ATOM-0003","updatedAt": "2026-10-27 09:00"},
+        {"id": "POS-REL-0001-DEPT-1191","group": "齐鲁数科集团","company": "齐鲁数科集团杭州分公司","departmentId": 1191,"code": "POS00000001","name": "人力资源分管领导","aliases": [],"sort": 10,"status": "正常","positionAtomId": "POS-ATOM-0001","updatedAt": "2026-10-27 09:00"},
+        {"id": "POS-REL-0004-DEPT-1191","group": "齐鲁数科集团","company": "齐鲁数科集团杭州分公司","departmentId": 1191,"code": "POS00000004","name": "关键决策人","aliases": [],"sort": 40,"status": "正常","positionAtomId": "POS-ATOM-0004","updatedAt": "2026-10-27 09:00"},
+        {"id": "POS-REL-0002-DEPT-1192","group": "齐鲁数科集团","company": "齐鲁数科集团杭州分公司","departmentId": 1192,"code": "POS00000002","name": "培训负责人","aliases": [],"sort": 20,"status": "正常","positionAtomId": "POS-ATOM-0002","updatedAt": "2026-10-27 09:00"},
+        {"id": "POS-REL-0003-DEPT-1192","group": "齐鲁数科集团","company": "齐鲁数科集团杭州分公司","departmentId": 1192,"code": "POS00000003","name": "项目经理","aliases": [],"sort": 30,"status": "正常","positionAtomId": "POS-ATOM-0003","updatedAt": "2026-10-27 09:00"},
+        {"id": "POS-REL-0001-DEPT-1201","group": "华北云网集团","company": "华北云网集团宁波分公司","departmentId": 1201,"code": "POS00000001","name": "人力资源分管领导","aliases": [],"sort": 10,"status": "正常","positionAtomId": "POS-ATOM-0001","updatedAt": "2026-10-27 09:00"},
+        {"id": "POS-REL-0004-DEPT-1201","group": "华北云网集团","company": "华北云网集团宁波分公司","departmentId": 1201,"code": "POS00000004","name": "关键决策人","aliases": [],"sort": 40,"status": "正常","positionAtomId": "POS-ATOM-0004","updatedAt": "2026-10-27 09:00"},
+        {"id": "POS-REL-0002-DEPT-1202","group": "华北云网集团","company": "华北云网集团宁波分公司","departmentId": 1202,"code": "POS00000002","name": "培训负责人","aliases": [],"sort": 20,"status": "正常","positionAtomId": "POS-ATOM-0002","updatedAt": "2026-10-27 09:00"},
+        {"id": "POS-REL-0003-DEPT-1202","group": "华北云网集团","company": "华北云网集团宁波分公司","departmentId": 1202,"code": "POS00000003","name": "项目经理","aliases": [],"sort": 30,"status": "正常","positionAtomId": "POS-ATOM-0003","updatedAt": "2026-10-27 09:00"},
+        {"id": "POS-REL-0001-DEPT-1211","group": "华东能源控股","company": "华东能源控股温州分公司","departmentId": 1211,"code": "POS00000001","name": "人力资源分管领导","aliases": [],"sort": 10,"status": "正常","positionAtomId": "POS-ATOM-0001","updatedAt": "2026-10-27 09:00"},
+        {"id": "POS-REL-0004-DEPT-1211","group": "华东能源控股","company": "华东能源控股温州分公司","departmentId": 1211,"code": "POS00000004","name": "关键决策人","aliases": [],"sort": 40,"status": "正常","positionAtomId": "POS-ATOM-0004","updatedAt": "2026-10-27 09:00"},
+        {"id": "POS-REL-0002-DEPT-1212","group": "华东能源控股","company": "华东能源控股温州分公司","departmentId": 1212,"code": "POS00000002","name": "培训负责人","aliases": [],"sort": 20,"status": "正常","positionAtomId": "POS-ATOM-0002","updatedAt": "2026-10-27 09:00"},
+        {"id": "POS-REL-0003-DEPT-1212","group": "华东能源控股","company": "华东能源控股温州分公司","departmentId": 1212,"code": "POS00000003","name": "项目经理","aliases": [],"sort": 30,"status": "正常","positionAtomId": "POS-ATOM-0003","updatedAt": "2026-10-27 09:00"},
+        {"id": "POS-REL-0001-DEPT-1221","group": "齐鲁数科集团","company": "齐鲁数科集团福建有限公司","departmentId": 1221,"code": "POS00000001","name": "人力资源分管领导","aliases": [],"sort": 10,"status": "正常","positionAtomId": "POS-ATOM-0001","updatedAt": "2026-10-27 09:00"},
+        {"id": "POS-REL-0004-DEPT-1221","group": "齐鲁数科集团","company": "齐鲁数科集团福建有限公司","departmentId": 1221,"code": "POS00000004","name": "关键决策人","aliases": [],"sort": 40,"status": "正常","positionAtomId": "POS-ATOM-0004","updatedAt": "2026-10-27 09:00"},
+        {"id": "POS-REL-0002-DEPT-1222","group": "齐鲁数科集团","company": "齐鲁数科集团福建有限公司","departmentId": 1222,"code": "POS00000002","name": "培训负责人","aliases": [],"sort": 20,"status": "正常","positionAtomId": "POS-ATOM-0002","updatedAt": "2026-10-27 09:00"},
+        {"id": "POS-REL-0003-DEPT-1222","group": "齐鲁数科集团","company": "齐鲁数科集团福建有限公司","departmentId": 1222,"code": "POS00000003","name": "项目经理","aliases": [],"sort": 30,"status": "正常","positionAtomId": "POS-ATOM-0003","updatedAt": "2026-10-27 09:00"},
+        {"id": "POS-REL-0001-DEPT-1231","group": "齐鲁数科集团","company": "齐鲁数科集团福州分公司","departmentId": 1231,"code": "POS00000001","name": "人力资源分管领导","aliases": [],"sort": 10,"status": "正常","positionAtomId": "POS-ATOM-0001","updatedAt": "2026-10-27 09:00"},
+        {"id": "POS-REL-0004-DEPT-1231","group": "齐鲁数科集团","company": "齐鲁数科集团福州分公司","departmentId": 1231,"code": "POS00000004","name": "关键决策人","aliases": [],"sort": 40,"status": "正常","positionAtomId": "POS-ATOM-0004","updatedAt": "2026-10-27 09:00"},
+        {"id": "POS-REL-0002-DEPT-1232","group": "齐鲁数科集团","company": "齐鲁数科集团福州分公司","departmentId": 1232,"code": "POS00000002","name": "培训负责人","aliases": [],"sort": 20,"status": "正常","positionAtomId": "POS-ATOM-0002","updatedAt": "2026-10-27 09:00"},
+        {"id": "POS-REL-0003-DEPT-1232","group": "齐鲁数科集团","company": "齐鲁数科集团福州分公司","departmentId": 1232,"code": "POS00000003","name": "项目经理","aliases": [],"sort": 30,"status": "正常","positionAtomId": "POS-ATOM-0003","updatedAt": "2026-10-27 09:00"},
+        {"id": "POS-REL-0001-DEPT-1241","group": "华北云网集团","company": "华北云网集团广州分公司","departmentId": 1241,"code": "POS00000001","name": "人力资源分管领导","aliases": [],"sort": 10,"status": "正常","positionAtomId": "POS-ATOM-0001","updatedAt": "2026-10-27 09:00"},
+        {"id": "POS-REL-0004-DEPT-1241","group": "华北云网集团","company": "华北云网集团广州分公司","departmentId": 1241,"code": "POS00000004","name": "关键决策人","aliases": [],"sort": 40,"status": "正常","positionAtomId": "POS-ATOM-0004","updatedAt": "2026-10-27 09:00"},
+        {"id": "POS-REL-0002-DEPT-1242","group": "华北云网集团","company": "华北云网集团广州分公司","departmentId": 1242,"code": "POS00000002","name": "培训负责人","aliases": [],"sort": 20,"status": "正常","positionAtomId": "POS-ATOM-0002","updatedAt": "2026-10-27 09:00"},
+        {"id": "POS-REL-0003-DEPT-1242","group": "华北云网集团","company": "华北云网集团广州分公司","departmentId": 1242,"code": "POS00000003","name": "项目经理","aliases": [],"sort": 30,"status": "正常","positionAtomId": "POS-ATOM-0003","updatedAt": "2026-10-27 09:00"},
+        {"id": "POS-REL-0001-DEPT-1251","group": "华信通信集团","company": "华信通信集团南宁分公司","departmentId": 1251,"code": "POS00000001","name": "人力资源分管领导","aliases": [],"sort": 10,"status": "正常","positionAtomId": "POS-ATOM-0001","updatedAt": "2026-10-27 09:00"},
+        {"id": "POS-REL-0004-DEPT-1251","group": "华信通信集团","company": "华信通信集团南宁分公司","departmentId": 1251,"code": "POS00000004","name": "关键决策人","aliases": [],"sort": 40,"status": "正常","positionAtomId": "POS-ATOM-0004","updatedAt": "2026-10-27 09:00"},
+        {"id": "POS-REL-0002-DEPT-1252","group": "华信通信集团","company": "华信通信集团南宁分公司","departmentId": 1252,"code": "POS00000002","name": "培训负责人","aliases": [],"sort": 20,"status": "正常","positionAtomId": "POS-ATOM-0002","updatedAt": "2026-10-27 09:00"},
+        {"id": "POS-REL-0003-DEPT-1252","group": "华信通信集团","company": "华信通信集团南宁分公司","departmentId": 1252,"code": "POS00000003","name": "项目经理","aliases": [],"sort": 30,"status": "正常","positionAtomId": "POS-ATOM-0003","updatedAt": "2026-10-27 09:00"},
+        {"id": "POS-REL-0001-DEPT-1261","group": "国网产业协同集团","company": "国网产业协同集团山东省公司","departmentId": 1261,"code": "POS00000001","name": "人力资源分管领导","aliases": [],"sort": 10,"status": "正常","positionAtomId": "POS-ATOM-0001","updatedAt": "2026-10-27 09:00"},
+        {"id": "POS-REL-0004-DEPT-1261","group": "国网产业协同集团","company": "国网产业协同集团山东省公司","departmentId": 1261,"code": "POS00000004","name": "关键决策人","aliases": [],"sort": 40,"status": "正常","positionAtomId": "POS-ATOM-0004","updatedAt": "2026-10-27 09:00"},
+        {"id": "POS-REL-0002-DEPT-1262","group": "国网产业协同集团","company": "国网产业协同集团山东省公司","departmentId": 1262,"code": "POS00000002","name": "培训负责人","aliases": [],"sort": 20,"status": "正常","positionAtomId": "POS-ATOM-0002","updatedAt": "2026-10-27 09:00"},
+        {"id": "POS-REL-0003-DEPT-1262","group": "国网产业协同集团","company": "国网产业协同集团山东省公司","departmentId": 1262,"code": "POS00000003","name": "项目经理","aliases": [],"sort": 30,"status": "正常","positionAtomId": "POS-ATOM-0003","updatedAt": "2026-10-27 09:00"},
+        {"id": "POS-REL-0001-DEPT-1271","group": "国网产业协同集团","company": "国网产业协同集团济南市公司","departmentId": 1271,"code": "POS00000001","name": "人力资源分管领导","aliases": [],"sort": 10,"status": "正常","positionAtomId": "POS-ATOM-0001","updatedAt": "2026-10-27 09:00"},
+        {"id": "POS-REL-0004-DEPT-1271","group": "国网产业协同集团","company": "国网产业协同集团济南市公司","departmentId": 1271,"code": "POS00000004","name": "关键决策人","aliases": [],"sort": 40,"status": "正常","positionAtomId": "POS-ATOM-0004","updatedAt": "2026-10-27 09:00"},
+        {"id": "POS-REL-0002-DEPT-1272","group": "国网产业协同集团","company": "国网产业协同集团济南市公司","departmentId": 1272,"code": "POS00000002","name": "培训负责人","aliases": [],"sort": 20,"status": "正常","positionAtomId": "POS-ATOM-0002","updatedAt": "2026-10-27 09:00"},
+        {"id": "POS-REL-0003-DEPT-1272","group": "国网产业协同集团","company": "国网产业协同集团济南市公司","departmentId": 1272,"code": "POS00000003","name": "项目经理","aliases": [],"sort": 30,"status": "正常","positionAtomId": "POS-ATOM-0003","updatedAt": "2026-10-27 09:00"},
+        {"id": "POS-REL-0001-DEPT-1281","group": "国网产业协同集团","company": "国网产业协同集团历下区县公司","departmentId": 1281,"code": "POS00000001","name": "人力资源分管领导","aliases": [],"sort": 10,"status": "正常","positionAtomId": "POS-ATOM-0001","updatedAt": "2026-10-27 09:00"},
+        {"id": "POS-REL-0004-DEPT-1281","group": "国网产业协同集团","company": "国网产业协同集团历下区县公司","departmentId": 1281,"code": "POS00000004","name": "关键决策人","aliases": [],"sort": 40,"status": "正常","positionAtomId": "POS-ATOM-0004","updatedAt": "2026-10-27 09:00"},
+        {"id": "POS-REL-0002-DEPT-1282","group": "国网产业协同集团","company": "国网产业协同集团历下区县公司","departmentId": 1282,"code": "POS00000002","name": "培训负责人","aliases": [],"sort": 20,"status": "正常","positionAtomId": "POS-ATOM-0002","updatedAt": "2026-10-27 09:00"},
+        {"id": "POS-REL-0003-DEPT-1282","group": "国网产业协同集团","company": "国网产业协同集团历下区县公司","departmentId": 1282,"code": "POS00000003","name": "项目经理","aliases": [],"sort": 30,"status": "正常","positionAtomId": "POS-ATOM-0003","updatedAt": "2026-10-27 09:00"},
+        {"id": "POS-REL-0001-DEPT-1291","group": "华北云网集团","company": "华北云网集团青岛分公司","departmentId": 1291,"code": "POS00000001","name": "人力资源分管领导","aliases": [],"sort": 10,"status": "正常","positionAtomId": "POS-ATOM-0001","updatedAt": "2026-10-27 09:00"},
+        {"id": "POS-REL-0004-DEPT-1291","group": "华北云网集团","company": "华北云网集团青岛分公司","departmentId": 1291,"code": "POS00000004","name": "关键决策人","aliases": [],"sort": 40,"status": "正常","positionAtomId": "POS-ATOM-0004","updatedAt": "2026-10-27 09:00"},
+        {"id": "POS-REL-0002-DEPT-1292","group": "华北云网集团","company": "华北云网集团青岛分公司","departmentId": 1292,"code": "POS00000002","name": "培训负责人","aliases": [],"sort": 20,"status": "正常","positionAtomId": "POS-ATOM-0002","updatedAt": "2026-10-27 09:00"},
+        {"id": "POS-REL-0003-DEPT-1292","group": "华北云网集团","company": "华北云网集团青岛分公司","departmentId": 1292,"code": "POS00000003","name": "项目经理","aliases": [],"sort": 30,"status": "正常","positionAtomId": "POS-ATOM-0003","updatedAt": "2026-10-27 09:00"},
+        {"id": "POS-REL-0001-DEPT-1301","group": "华北云网集团","company": "华北云网集团崂山分公司","departmentId": 1301,"code": "POS00000001","name": "人力资源分管领导","aliases": [],"sort": 10,"status": "正常","positionAtomId": "POS-ATOM-0001","updatedAt": "2026-10-27 09:00"},
+        {"id": "POS-REL-0004-DEPT-1301","group": "华北云网集团","company": "华北云网集团崂山分公司","departmentId": 1301,"code": "POS00000004","name": "关键决策人","aliases": [],"sort": 40,"status": "正常","positionAtomId": "POS-ATOM-0004","updatedAt": "2026-10-27 09:00"},
+        {"id": "POS-REL-0002-DEPT-1302","group": "华北云网集团","company": "华北云网集团崂山分公司","departmentId": 1302,"code": "POS00000002","name": "培训负责人","aliases": [],"sort": 20,"status": "正常","positionAtomId": "POS-ATOM-0002","updatedAt": "2026-10-27 09:00"},
+        {"id": "POS-REL-0003-DEPT-1302","group": "华北云网集团","company": "华北云网集团崂山分公司","departmentId": 1302,"code": "POS00000003","name": "项目经理","aliases": [],"sort": 30,"status": "正常","positionAtomId": "POS-ATOM-0003","updatedAt": "2026-10-27 09:00"},
+        {"id": "POS-REL-0001-DEPT-1311","group": "齐鲁数科集团","company": "齐鲁数科集团青岛分公司","departmentId": 1311,"code": "POS00000001","name": "人力资源分管领导","aliases": [],"sort": 10,"status": "正常","positionAtomId": "POS-ATOM-0001","updatedAt": "2026-10-27 09:00"},
+        {"id": "POS-REL-0004-DEPT-1311","group": "齐鲁数科集团","company": "齐鲁数科集团青岛分公司","departmentId": 1311,"code": "POS00000004","name": "关键决策人","aliases": [],"sort": 40,"status": "正常","positionAtomId": "POS-ATOM-0004","updatedAt": "2026-10-27 09:00"},
+        {"id": "POS-REL-0002-DEPT-1312","group": "齐鲁数科集团","company": "齐鲁数科集团青岛分公司","departmentId": 1312,"code": "POS00000002","name": "培训负责人","aliases": [],"sort": 20,"status": "正常","positionAtomId": "POS-ATOM-0002","updatedAt": "2026-10-27 09:00"},
+        {"id": "POS-REL-0003-DEPT-1312","group": "齐鲁数科集团","company": "齐鲁数科集团青岛分公司","departmentId": 1312,"code": "POS00000003","name": "项目经理","aliases": [],"sort": 30,"status": "正常","positionAtomId": "POS-ATOM-0003","updatedAt": "2026-10-27 09:00"},
+        {"id": "POS-REL-0001-DEPT-1321","group": "","company": "泉城数智服务有限公司","departmentId": 1321,"code": "POS00000001","name": "人力资源分管领导","aliases": [],"sort": 10,"status": "正常","positionAtomId": "POS-ATOM-0001","updatedAt": "2026-10-27 09:00"},
+        {"id": "POS-REL-0004-DEPT-1321","group": "","company": "泉城数智服务有限公司","departmentId": 1321,"code": "POS00000004","name": "关键决策人","aliases": [],"sort": 40,"status": "正常","positionAtomId": "POS-ATOM-0004","updatedAt": "2026-10-27 09:00"},
+        {"id": "POS-REL-0002-DEPT-1322","group": "","company": "泉城数智服务有限公司","departmentId": 1322,"code": "POS00000002","name": "培训负责人","aliases": [],"sort": 20,"status": "正常","positionAtomId": "POS-ATOM-0002","updatedAt": "2026-10-27 09:00"},
+        {"id": "POS-REL-0003-DEPT-1322","group": "","company": "泉城数智服务有限公司","departmentId": 1322,"code": "POS00000003","name": "项目经理","aliases": [],"sort": 30,"status": "正常","positionAtomId": "POS-ATOM-0003","updatedAt": "2026-10-27 09:00"},
+        {"id": "POS-REL-0001-DEPT-1331","group": "","company": "鲁能绿色技术有限公司","departmentId": 1331,"code": "POS00000001","name": "人力资源分管领导","aliases": [],"sort": 10,"status": "正常","positionAtomId": "POS-ATOM-0001","updatedAt": "2026-10-27 09:00"},
+        {"id": "POS-REL-0004-DEPT-1331","group": "","company": "鲁能绿色技术有限公司","departmentId": 1331,"code": "POS00000004","name": "关键决策人","aliases": [],"sort": 40,"status": "正常","positionAtomId": "POS-ATOM-0004","updatedAt": "2026-10-27 09:00"},
+        {"id": "POS-REL-0002-DEPT-1332","group": "","company": "鲁能绿色技术有限公司","departmentId": 1332,"code": "POS00000002","name": "培训负责人","aliases": [],"sort": 20,"status": "正常","positionAtomId": "POS-ATOM-0002","updatedAt": "2026-10-27 09:00"},
+        {"id": "POS-REL-0003-DEPT-1332","group": "","company": "鲁能绿色技术有限公司","departmentId": 1332,"code": "POS00000003","name": "项目经理","aliases": [],"sort": 30,"status": "正常","positionAtomId": "POS-ATOM-0003","updatedAt": "2026-10-27 09:00"},
+        {"id": "POS-REL-0001-DEPT-1341","group": "华东能源控股","company": "华东能源控股江苏有限公司","departmentId": 1341,"code": "POS00000001","name": "人力资源分管领导","aliases": [],"sort": 10,"status": "正常","positionAtomId": "POS-ATOM-0001","updatedAt": "2026-10-27 09:00"},
+        {"id": "POS-REL-0004-DEPT-1341","group": "华东能源控股","company": "华东能源控股江苏有限公司","departmentId": 1341,"code": "POS00000004","name": "关键决策人","aliases": [],"sort": 40,"status": "正常","positionAtomId": "POS-ATOM-0004","updatedAt": "2026-10-27 09:00"},
+        {"id": "POS-REL-0002-DEPT-1342","group": "华东能源控股","company": "华东能源控股江苏有限公司","departmentId": 1342,"code": "POS00000002","name": "培训负责人","aliases": [],"sort": 20,"status": "正常","positionAtomId": "POS-ATOM-0002","updatedAt": "2026-10-27 09:00"},
+        {"id": "POS-REL-0003-DEPT-1342","group": "华东能源控股","company": "华东能源控股江苏有限公司","departmentId": 1342,"code": "POS00000003","name": "项目经理","aliases": [],"sort": 30,"status": "正常","positionAtomId": "POS-ATOM-0003","updatedAt": "2026-10-27 09:00"},
+        {"id": "POS-REL-0001-DEPT-1351","group": "华东能源控股","company": "华东能源控股广东有限公司","departmentId": 1351,"code": "POS00000001","name": "人力资源分管领导","aliases": [],"sort": 10,"status": "正常","positionAtomId": "POS-ATOM-0001","updatedAt": "2026-10-27 09:00"},
+        {"id": "POS-REL-0004-DEPT-1351","group": "华东能源控股","company": "华东能源控股广东有限公司","departmentId": 1351,"code": "POS00000004","name": "关键决策人","aliases": [],"sort": 40,"status": "正常","positionAtomId": "POS-ATOM-0004","updatedAt": "2026-10-27 09:00"},
+        {"id": "POS-REL-0002-DEPT-1352","group": "华东能源控股","company": "华东能源控股广东有限公司","departmentId": 1352,"code": "POS00000002","name": "培训负责人","aliases": [],"sort": 20,"status": "正常","positionAtomId": "POS-ATOM-0002","updatedAt": "2026-10-27 09:00"},
+        {"id": "POS-REL-0003-DEPT-1352","group": "华东能源控股","company": "华东能源控股广东有限公司","departmentId": 1352,"code": "POS00000003","name": "项目经理","aliases": [],"sort": 30,"status": "正常","positionAtomId": "POS-ATOM-0003","updatedAt": "2026-10-27 09:00"},
       ];
-      contactPositionCatalog.forEach((position, index) => {
-        position.status = position.status || "正常";
-        position.sort = position.sort || (index + 1) * 10;
-        position.updatedAt = position.updatedAt || "2026-08-17 09:30";
-      });
       function customerDepartmentPath(department) {
         if (!department) return "待配置部门";
         const names = [department.name];
@@ -661,11 +775,9 @@
             hasDataObject("关键人") &&
             hasOperationPermission(operation) &&
             (currentUser?.fullAccess ||
-              (currentUser?.role === "pm" &&
-                company.level !== "省公司" &&
-                companyIsVisible(company)) ||
+              (currentUser?.role === "pm" && companyIsVisible(company)) ||
               (currentUser?.role === "director" &&
-                (operation === "customers.create_contact" || company.level === "省公司") &&
+                (operation === "customers.create_contact" || customerOwnerName(company) === currentUser.name) &&
                 companyInCurrentManagedRegion(company) &&
                 companyIsVisible(company))),
         );
@@ -683,7 +795,7 @@
         if (!person || !canCreateMaintenanceRecord()) return false;
         if (currentUser.role !== "director") return true;
         const company = customers.find((item) => item.name === person.company);
-        return company?.level === "省公司";
+        return Boolean(company && customerOwnerName(company) === currentUser.name);
       };
       const canEditMaintenanceRecord = (record) =>
         Boolean(
@@ -720,10 +832,12 @@
         ));
       }
       const companyIsVisible = (c) => {
+        c = customerResponsibilityFacts(c);
         if (!c || c.archived || !roleCanSeeBusiness()) return false;
         if (currentScopeType() === "cities")
           return (
-            Boolean(c.city) && assignedCitiesForCurrentUser().includes(c.city)
+            customerOwnerName(c) === currentUser.name &&
+            responsibilityReceiverIsValid(c, regionForCompany(c), currentUser.name)
           );
         if (currentScopeType() === "regions") return companyInCurrentManagedRegion(c);
         return ["company", "market"].includes(currentScopeType());
@@ -745,34 +859,21 @@
           ).length;
         });
         customers.forEach((company) => {
-          if (company.level === "省公司") {
-            company.owner = regionDirectorForCustomer(company);
-            company.pm = "";
-            return;
-          }
-          const cityOwner = cityOwners.find(
-            (item) =>
-              item.province === company.province && item.city === company.city,
-          );
-          // Existing customer responsibility is authoritative. Responsibility
-          // rules apply when a customer is created; they must not migrate
-          // existing companies merely because the rule set changed.
-          const retainedPm = [company.pm, company.owner].find((value) => value && value !== "待分配");
-          company.owner = retainedPm || cityOwner?.pm || "待分配";
-          company.pm = company.owner;
+          company.owner = responsibilityOwnerForCustomer(company) || "待分配";
+          company.pm = customerPmName(company);
         });
         contacts.forEach((person) => {
           const company = customers.find((item) => item.name === person.company);
           if (!company) return;
-          person.pm = company.level === "省公司" ? "" : customerOwnerName(company);
+          person.pm = customerPmName(company);
         });
         tasks.forEach((task) => {
           const company = customers.find((item) => item.name === task.company);
-          if (!company) return;
-          if (!["done", "cancelled"].includes(task.status)) {
+          if (!company || task.type === "关键人覆盖 KPI") return;
+          if (!["done", "cancelled", "expired"].includes(task.status)) {
             task.pm = customerOwnerName(company);
             task.executorRole =
-              company.level === "省公司" ? "区域总监" : "PM";
+              customerResponsibilityRole(company);
             delete task.closeReason;
             delete task.closedAt;
           }
@@ -943,17 +1044,10 @@
           return visible.filter(
             (x) =>
               x.pm === currentUser.name &&
-              companyIsVisible(customers.find((c) => c.name === x.company)),
+              (x.type === "关键人覆盖 KPI" ? coverageTaskCompanies(x).some(companyIsVisible) : companyIsVisible(customers.find((c) => c.name === x.company))),
           );
         if (currentScopeType() === "regions")
-          return visible.filter((x) =>
-            regionsMatch(
-              customerRegionScope(
-                customers.find((company) => company.name === x.company),
-              ) || x.region,
-              currentUser.region,
-            ),
-          );
+          return visible.filter(x => x.type === "关键人覆盖 KPI" ? coverageTaskCompanies(x).some(companyInCurrentManagedRegion) : companyInCurrentManagedRegion(customers.find(company => company.name === x.company)));
         return ["company", "market"].includes(currentScopeType())
           ? visible
           : [];
@@ -1119,6 +1213,9 @@
         }
         loginFailureState.delete(account.phone);
         currentUser = account;
+        teacherListState = { actor: account, filters: teacherEmptyListFilters() };
+        const personalTeacherLanding = defaultLandingPage() === "teacher-schedule";
+        if (personalTeacherLanding) teacherScheduleState = { actor: account, month: DEMO_TODAY.slice(0, 7), view: "calendar", selected: null };
         const loginEmployee = employees.find(
           (employee) => employee.name === account.name,
         );
@@ -1126,7 +1223,7 @@
         const requestedExplicitly = Boolean(window.location.hash.slice(1));
         const requestedPage = normalizedPageHash();
         const requestedPageAllowed = canAccessPage(requestedPage);
-        currentPage = requestedPageAllowed
+        currentPage = personalTeacherLanding && canAccessPage("teacher-schedule") ? "teacher-schedule" : requestedPageAllowed
           ? requestedPage
           : requestedExplicitly
             ? requestedPage
@@ -1270,6 +1367,7 @@
                   : canAccessPage(i.id),
             );
             if (!items.length) return "";
+            if (teacherPersonalScheduleView()) items.sort((a, b) => Number(b.id === "teacher-schedule") - Number(a.id === "teacher-schedule"));
             return `<div class="nav-group"><div class="nav-title">${g.title}</div>${items
               .map((i) => {
                 const label =
@@ -1334,6 +1432,7 @@
         "project-detail": "项目详情",
         "project-create": "创建项目",
         "project-edit": "编辑项目",
+        frameworks: "框架管理",
         packages: "采购包管理",
         "platform-companies": "平台公司管理",
         opportunities: "商机列表",
@@ -1384,6 +1483,7 @@
           "project-detail": renderProjectDetail,
           "project-create": renderProjectCreate,
           "project-edit": renderProjectEdit,
+          frameworks: renderProjectFrameworks,
           packages: renderProjectPackages,
           "platform-companies": renderPlatformCompanies,
           opportunities: renderOpportunities,

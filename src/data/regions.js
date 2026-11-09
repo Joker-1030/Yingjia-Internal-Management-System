@@ -52,9 +52,17 @@
       function groupProvinceRoutes() {
         return cityResponsibilityRules.filter(rule => rule.dimension === "集团省份分流");
       }
+      function customerCenterRoutes() {
+        return cityResponsibilityRules.filter(rule => rule.dimension === "客户中心划转");
+      }
       function operatingCenterForCustomer(customer, pendingCenter = null) {
         if (!customer) return null;
         customer = customerResponsibilityFacts(customer);
+        const explicit = customerCenterRoutes().filter(rule => rule.status === "启用" && String(rule.value) === String(customer.id));
+        if (explicit.length) {
+          const target = regionsData.find(region => region.id === explicit[0].targetRegionId && region.type !== "industry" && region.status !== "停用");
+          return explicit.length === 1 ? target || null : null;
+        }
         const routes = customer.group ? groupProvinceRoutes().filter(rule => rule.status === "启用" &&
           rule.value === customer.group && rule.province === customerBusinessProvince(customer)) : [];
         if (routes.length) return routes.length === 1 ? geographicCenterForProvince(customerBusinessProvince(customer)) : null;

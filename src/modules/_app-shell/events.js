@@ -366,7 +366,7 @@
         document.querySelectorAll("[data-group-province-add]").forEach(button => button.onclick = () => openGroupProvinceRouteForm());
         document.querySelectorAll("[data-group-province-edit]").forEach(button => button.onclick = () => openGroupProvinceRouteForm(button.dataset.groupProvinceEdit));
         document.querySelectorAll("[data-group-province-toggle]").forEach(button => button.onclick = () => toggleGroupProvinceRoute(button.dataset.groupProvinceToggle));
-        document.querySelectorAll("[data-enable-center]").forEach(button => button.onclick = () => enableIndustryCenter(button.dataset.enableCenter));
+        document.querySelectorAll("[data-customer-center-transfer]").forEach(button => button.onclick = () => openCustomerCenterTransfer());
         document.querySelectorAll("[data-city-unlink]").forEach(button => button.onclick = () => openCancelCityResponsibility(button.dataset.cityUnlink));
         document.querySelectorAll("[data-center-city-assign]").forEach(button => button.onclick = () => openCenterCityAssignment());
         document.querySelectorAll("[data-city-rule-add]").forEach(

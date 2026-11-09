@@ -38,34 +38,36 @@
             cityIdsForHandover(handover).includes(Number(cityId)),
         );
 
-      function cityHandoverImpact(cityIds) {
-        const owners = cityOwners.filter((owner) =>
-          cityIds.map(Number).includes(Number(owner.id)),
-        );
-        const companies = customers.filter(
-          (company) =>
-            !company.archived &&
-            owners.some(
-              (owner) =>
-                customerUsesCityOwner(company, owner),
-            ),
-        );
-        const companyNames = new Set(companies.map((company) => company.name));
-        const people = contacts.filter(
-          (person) => contactIsActive(person) && companyNames.has(person.company),
-        );
-        const openTasks = tasks.filter(
-          (task) =>
-            companyNames.has(task.company) &&
-            !["done", "cancelled", "expired"].includes(task.status),
-        );
+      function responsibilityHandoverItems(companies) {
+        const ids = new Set(companies.map(customer => String(customer.id)));
+        const names = new Set(companies.map(customer => customer.name));
+        const openTasks = tasks.filter(task => names.has(task.company) && !["done", "cancelled", "expired"].includes(task.status));
         return {
-          opportunities: cityResponsibilityOpportunities(owners).length,
-          customers: companies.length,
-          people: people.length,
-          tasks: openTasks.filter((task) => task.type !== "关键人覆盖 KPI").length,
-          coverageKpis: openTasks.filter((task) => task.type === "关键人覆盖 KPI").length,
+          customers: companies,
+          people: contacts.filter(person => contactIsActive(person) && names.has(person.company)),
+          tasks: openTasks.filter(task => task.type !== "关键人覆盖 KPI"),
+          coverageKpis: openTasks.filter(task => task.type === "关键人覆盖 KPI"),
+          projects: projects.filter(project => !isEcosystemProject(project) && ids.has(String(project.customerId)) && PROJECT_RESPONSIBILITY_TRANSFER_STAGES.has(project.stage)),
+          opportunities: opportunities.filter(opportunity => !isEcosystemOpportunity(opportunity) && opportunity.stage !== "落选" && ids.has(String(salesOpportunityCustomer(opportunity)?.id))),
         };
+      }
+      function cityHandoverItems(cityIds) {
+        const owners = cityOwners.filter(owner => cityIds.map(Number).includes(Number(owner.id)));
+        return responsibilityHandoverItems(customers.filter(customer => owners.some(owner => customerUsesCityOwner(customer, owner))));
+      }
+      function cityHandoverImpact(cityIds) {
+        return Object.fromEntries(Object.entries(cityHandoverItems(cityIds)).map(([key, list]) => [key, list.length]));
+      }
+      function renderResponsibilityHandoverItems(items) {
+        const sections = [
+          ["customers", "客户公司", item => [item.name, item.level, customerOwnerName(item)]],
+          ["people", "关键人", item => [item.name, item.company]],
+          ["tasks", "未完成任务", item => [item.title || item.name || item.type, item.company, taskStatusName(item.status, item)]],
+          ["coverageKpis", "覆盖 KPI 待办", item => [item.title || item.name || item.type, item.company, taskStatusName(item.status, item)]],
+          ["projects", "普通项目（全部六阶段）", item => [item.name || item.title || item.id, item.stage, `负责 PM：${projectCurrentOwner(item) || "未分配"}`]],
+          ["opportunities", "未落选普通商机", item => [item.name || item.title || item.id, item.stage, item.owner]],
+        ];
+        return `<div class="region-handover-items">${sections.map(([key, label, describe]) => `<details><summary>${label}<strong>${items[key].length}</strong><span class="panel-sub">展开明细</span></summary><div class="region-handover-list">${items[key].map(item => `<div class="region-handover-row">${describe(item).filter(Boolean).map(text => `<span>${escapeHtml(text)}</span>`).join("")}</div>`).join("") || '<div class="empty">无交接事项</div>'}</div></details>`).join("")}</div>`;
       }
 
       function pushCityTransferNotice(handover, owners) {
@@ -361,6 +363,7 @@
         const c = cityOwners.find((x) => x.id === cityId);
         if (!c || !c.pm) return toast("该地市当前没有负责人，请使用分配");
         const region = centerForCityOwner(c);
+        if (!canEditCityResponsibilityRules(region)) return toast("当前账号无权调整该中心负责人");
         const invalidPriorResponsibility = Boolean(
           c.effective &&
             !regionPmEmployees(region).some((employee) => employee.name === c.pm),
@@ -370,7 +373,7 @@
         const pms = regionPmEmployees(region).filter((item) => item.name !== c.pm);
         if (!pms.length) return toast("该区域中心没有其他在职 PM 可接任");
         openModal(
-          `<div class="modal-head"><div class="modal-title">直接调整地市负责人</div><button class="icon-btn close" data-close>×</button></div><form id="directAdjustForm"><div class="modal-body"><div class="role-note">${c.province} · <strong>${c.city}</strong> · ${invalidPriorResponsibility ? `原负责人 ${c.pm} 的责任已失效，负责起始时间：${c.effective}。` : `当前负责人 ${c.pm}。`}确认后立即生效，并通知原任和新任 PM。</div><div class="form-group full"><label class="form-label">影响摘要</label><div class="impact-summary"><div class="impact-grid"><div><label>受影响客户</label><strong>${cityHandoverImpact([c.id]).customers}</strong></div><div><label>关键人</label><strong>${cityHandoverImpact([c.id]).people}</strong></div><div><label>未完成任务</label><strong>${cityHandoverImpact([c.id]).tasks}</strong></div><div><label>覆盖 KPI 待办</label><strong>${cityHandoverImpact([c.id]).coverageKpis}</strong></div><div><label>未落选商机</label><strong>${cityResponsibilityOpportunities([c]).length}</strong></div></div></div></div><div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>目标 PM</label><select class="input" id="daPm" required>${pms.map((item) => `<option value="${item.name}">${item.name} · ${item.code}</option>`).join("")}</select></div><div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>调整原因</label><textarea class="input" id="daReason" minlength="5" maxlength="500" required placeholder="说明直接调整原因"></textarea></div></div><div class="modal-foot"><button class="btn" type="button" data-close>取消</button><button class="btn btn-primary" type="submit">确认调整</button></div></form>`,
+          `<div class="modal-head"><div class="modal-title">直接调整地市负责人</div><button class="icon-btn close" data-close>×</button></div><form id="directAdjustForm"><div class="modal-body"><div class="role-note">${c.province} · <strong>${c.city}</strong> · ${invalidPriorResponsibility ? `原负责人 ${c.pm} 的责任已失效，负责起始时间：${c.effective}。` : `当前负责人 ${c.pm}。`}确认后立即生效，并通知原任和新任 PM。</div><div class="form-group full"><label class="form-label">交接事项</label>${renderResponsibilityHandoverItems(cityHandoverItems([c.id]))}</div><div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>目标 PM</label><select class="input" id="daPm" required>${pms.map((item) => `<option value="${item.name}">${item.name} · ${item.code}</option>`).join("")}</select></div><div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>调整原因</label><textarea class="input" id="daReason" minlength="5" maxlength="500" required placeholder="说明直接调整原因"></textarea></div></div><div class="modal-foot"><button class="btn" type="button" data-close>取消</button><button class="btn btn-primary" type="submit">确认调整</button></div></form>`,
         );
         $("#directAdjustForm").onsubmit = (event) => {
           event.preventDefault();
@@ -563,11 +566,11 @@
         );
         const sameOwnerCities = cityOwners.filter(
           (owner) =>
-            owner.pm === c.pm && regionProvinceList(region).includes(owner.province),
+            owner.pm === c.pm && centerForCityOwner(owner)?.id === region?.id,
         );
         if (!pms.length) return toast("该区域暂无其他在职 PM 可接收交接");
         openModal(
-          `<div class="modal-head"><div class="modal-title">发起地市责任交接</div><button class="icon-btn close" data-close>×</button></div><form id="cityHandover"><div class="modal-body"><div class="role-note">原 PM：${c.pm}<br>每次可交接 1-50 个本人负责地市；计划生效日前仍由原 PM 负责。</div><div class="form-grid"><div class="form-group full"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>交接地市</label><div class="choice-grid" id="handoverCityChoices">${sameOwnerCities.map((owner) => { const pending = pendingCityHandover(owner.id); return `<label class="choice-item ${pending ? "is-disabled" : ""}"><input class="assignment-check" type="checkbox" value="${owner.id}" ${owner.id === c.id ? "checked" : ""} ${pending ? "disabled" : ""}><span>${owner.province} · ${owner.city}${pending ? ` · 待生效（${pending.code}）` : ""}</span></label>`; }).join("")}</div></div><div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>目标 PM</label><select class="input" id="targetCityPm">${pms.map((employee) => `<option value="${employee.name}">${employee.name} · ${employee.code}</option>`).join("")}</select></div><div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>计划生效日期</label><input class="input" id="cityHandoverDate" type="date" min="${DEMO_TODAY}" max="${addDays(DEMO_TODAY, 90)}" value="${DEMO_TODAY}" required></div><div class="form-group full"><label class="form-label">影响摘要</label><div class="detail-grid" id="cityHandoverImpact"></div></div><div class="form-group full"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>交接原因 <span class="panel-sub">5-500 字</span></label><textarea class="input" id="cityReason" minlength="5" maxlength="500" required placeholder="说明交接原因"></textarea></div></div></div><div class="modal-foot"><button class="btn" type="button" data-close>取消</button><button class="btn btn-primary" type="submit">下一步：确认交接</button></div></form>`,
+          `<div class="modal-head"><div class="modal-title">发起地市责任交接</div><button class="icon-btn close" data-close>×</button></div><form id="cityHandover"><div class="modal-body"><div class="role-note">原 PM：${c.pm}<br>每次可交接 1-50 个本人负责地市；计划生效日前仍由原 PM 负责。</div><div class="form-grid"><div class="form-group full"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>交接地市</label><div class="choice-grid" id="handoverCityChoices">${sameOwnerCities.map((owner) => { const pending = pendingCityHandover(owner.id); return `<label class="choice-item ${pending ? "is-disabled" : ""}"><input class="assignment-check" type="checkbox" value="${owner.id}" ${owner.id === c.id ? "checked" : ""} ${pending ? "disabled" : ""}><span>${owner.province} · ${owner.city}${pending ? ` · 待生效（${pending.code}）` : ""}</span></label>`; }).join("")}</div></div><div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>目标 PM</label><select class="input" id="targetCityPm">${pms.map((employee) => `<option value="${employee.name}">${employee.name} · ${employee.code}</option>`).join("")}</select></div><div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>计划生效日期</label><input class="input" id="cityHandoverDate" type="date" min="${DEMO_TODAY}" max="${addDays(DEMO_TODAY, 90)}" value="${DEMO_TODAY}" required></div><div class="form-group full"><label class="form-label">影响摘要</label><div id="cityHandoverImpact"></div></div><div class="form-group full"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>交接原因 <span class="panel-sub">5-500 字</span></label><textarea class="input" id="cityReason" minlength="5" maxlength="500" required placeholder="说明交接原因"></textarea></div></div></div><div class="modal-foot"><button class="btn" type="button" data-close>取消</button><button class="btn btn-primary" type="submit">下一步：确认交接</button></div></form>`,
         );
         const selectedOwnerIds = () =>
           [...document.querySelectorAll("#handoverCityChoices input:checked")].map(
@@ -575,8 +578,7 @@
           );
         const refreshImpact = () => {
           const selected = selectedOwnerIds();
-          const impact = cityHandoverImpact(selected);
-          $("#cityHandoverImpact").innerHTML = `<div class="detail-item"><label>客户单位</label><div>${impact.customers} 家</div></div><div class="detail-item"><label>关键人</label><div>${impact.people} 人</div></div><div class="detail-item"><label>未完成任务</label><div>${impact.tasks} 条</div></div><div class="detail-item"><label>覆盖 KPI 待办</label><div>${impact.coverageKpis} 条</div></div><div class="detail-item"><label>未落选商机</label><div>${impact.opportunities} 条</div></div><div class="detail-item"><label>已选地市</label><div>${selected.length} 个</div></div>`;
+          $("#cityHandoverImpact").innerHTML = renderResponsibilityHandoverItems(cityHandoverItems(selected));
         };
         $("#handoverCityChoices").onchange = (changeEvent) => {
           const selected = selectedOwnerIds();
@@ -614,29 +616,17 @@
             impactSnapshot: cityHandoverImpact(cityIds),
           };
           openModal(
-            `<div class="modal-head"><div class="modal-title">确认地市责任交接</div><button class="icon-btn close" data-close>×</button></div><div class="modal-body"><div class="role-note danger-note"><strong>请核对交接范围</strong><br>地市：${owners.map((owner) => owner.city).join("、")}<br>${c.pm} → ${targetPm}<br>计划生效：${plannedEffectiveDate}<br>${plannedEffectiveDate === DEMO_TODAY ? "确认后立即生效。" : "确认后进入待生效，计划日前原 PM 继续负责。"}</div></div><div class="modal-foot"><button class="btn" type="button" data-close>取消</button><button class="btn btn-primary" type="button" id="confirmCityHandover">确认交接</button></div>`,
+            `<div class="modal-head"><div class="modal-title">确认地市责任交接</div><button class="icon-btn close" data-close>×</button></div><div class="modal-body"><div class="role-note danger-note"><strong>请核对交接范围</strong><br>地市：${owners.map((owner) => owner.city).join("、")}<br>${c.pm} → ${targetPm}<br>计划生效：${plannedEffectiveDate}<br>${plannedEffectiveDate === DEMO_TODAY ? "确认后立即生效。" : "确认后进入待生效，计划日前原 PM 继续负责。"}</div>${renderResponsibilityHandoverItems(cityHandoverItems(cityIds))}</div><div class="modal-foot"><button class="btn" type="button" data-close>取消</button><button class="btn btn-primary" type="button" id="confirmCityHandover">确认交接</button></div>`,
           );
           $("#confirmCityHandover").onclick = () => commitCityHandover(payload);
         };
       }
       function openCityImpact(id) {
-        const c = cityOwners.find((x) => x.id === id);
-        if (!c) return toast("该地市尚未配置负责人");
-        const region = centerForCityOwner(c);
-        const live = regionCityRows(region).find(
-          (item) => item.province === c.province && item.city === c.city,
-        );
-        openDrawer(
-          `<div class="drawer-head"><div class="modal-title">${c.city}责任范围</div><button class="icon-btn close" data-close>×</button></div><div class="drawer-body"><div class="metrics" style="grid-template-columns:repeat(2,1fr)">${metric("客户单位", live?.customers || 0, "")}${metric("关键人", live?.contacts || 0, "")}</div><div class="section-title">客户单位</div>${
-            scopedCustomers()
-              .filter(x => customerBelongsToCenter(x, region) && x.province === c.province && x.city === c.city)
-              .map(
-                (x) =>
-                  `<div class="list-row"><div class="avatar">企</div><div class="list-main"><div class="list-title">${x.name}</div><div class="list-sub">${x.group} · ${x.contacts}名关键人</div></div><span class="link" data-customer-region="${x.id}">详情</span></div>`,
-              )
-              .join("") || '<div class="role-note">暂无客户</div>'
-          }</div><div class="drawer-foot"><button class="btn" data-close>关闭</button>${hasOperationPermission("regions.handover") && !pendingCityHandover(c.id) ? `<button class="btn btn-primary" data-action="handover-city" data-id="${c.id}">发起交接</button>` : ""}</div>`,
-        );
+        const owner = cityOwners.find(item => item.id === Number(id));
+        const region = centerForCityOwner(owner);
+        if (!owner || !region || (!canEditCityResponsibilityRules(region) && !["president", "vp"].includes(currentUser.role) && !(currentUser.role === "pm" && currentUser.name === owner.pm))) return toast("无权查看该责任范围");
+        const canHandover = currentUser.role === "pm" && owner.pm === currentUser.name && hasOperationPermission("regions.handover") && !pendingCityHandover(owner.id);
+        openDrawer(`<div class="drawer-head"><div class="modal-title">${escapeHtml(owner.city)}交接事项</div><button class="icon-btn close" data-close>×</button></div><div class="drawer-body"><div class="role-note">${escapeHtml(region.name)} · 当前 PM：${escapeHtml(owner.pm || "未分配")}</div>${renderResponsibilityHandoverItems(cityHandoverItems([owner.id]))}</div><div class="drawer-foot"><button class="btn" data-close>关闭</button>${canHandover ? `<button class="btn btn-primary" data-action="handover-city" data-id="${owner.id}">发起交接</button>` : ""}</div>`);
       }
 
       function openCityHandoverDetail(id) {
@@ -837,32 +827,65 @@
         return dimension === "客户公司" ? eligible.map(customer => ({ value: String(customer.id), label: customer.name })) :
           [...new Set(eligible.map(customer => customer.group).filter(Boolean))].map(group => ({ value: group, label: group }));
       }
-      function saveCenterResponsibilityRule(region, existing, values) {
+      function regionSelectionDropdown(id, options, selected = []) {
+        return `<details class="multi-select region-object-picker" id="${id}"><summary class="multi-select-trigger"><span data-selection-label>${selected.length ? `已选 ${selected.length} 项` : "请选择（可多选）"}</span><span>⌄</span></summary><div class="multi-select-menu"><input class="input" type="search" placeholder="搜索选项" aria-label="搜索选项"><div>${options.map(option => `<label class="multi-select-option"><input type="checkbox" value="${escapeHtml(option.value)}" ${selected.includes(String(option.value)) ? "checked" : ""}><span>${escapeHtml(option.label)}</span></label>`).join("") || '<div class="empty">暂无可选对象</div>'}</div></div></details>`;
+      }
+      function regionSelectedValues(id) {
+        return [...document.querySelectorAll(`#${id} input[type=checkbox]:checked`)].map(input => input.value);
+      }
+      function bindRegionSelectionDropdown(id, onChange = () => {}) {
+        const picker = document.getElementById(id);
+        picker.querySelector('input[type=search]').oninput = event => {
+          picker.querySelectorAll('.multi-select-option').forEach(row => { row.hidden = !row.textContent.toLowerCase().includes(event.target.value.trim().toLowerCase()); });
+        };
+        picker.onchange = () => {
+          const selected = regionSelectedValues(id);
+          picker.querySelector('[data-selection-label]').textContent = selected.length ? `已选 ${selected.length} 项` : "请选择（可多选）";
+          onChange(selected);
+        };
+      }
+      function saveCenterResponsibilityRules(region, entries, existing = null, expectedVersion = responsibilityConfigurationVersion()) {
         if (!canEditCityResponsibilityRules(region) || (existing && existing.regionId !== region.id)) return { ok: false, error: "无权维护该中心责任分配" };
-        if (!["客户公司", "集团"].includes(values.dimension) || !centerRuleValueOptions(region, values.dimension).some(option => option.value === String(values.value)))
-          return { ok: false, error: "请选择本中心有效的客户公司或集团" };
-        if (!regionPmEmployees(region).some(employee => employee.name === values.pm && employee.accountStatus !== "停用")) return { ok: false, error: "请选择本中心在职且账号有效的 PM" };
-        if (cityResponsibilityRules.some(rule => rule !== existing && rule.status === "启用" && rule.regionId === region.id && rule.dimension === values.dimension && String(rule.value) === String(values.value)))
-          return { ok: false, error: "已有相同客户或集团的启用分配，请编辑原分配" };
+        if (expectedVersion !== responsibilityConfigurationVersion()) return { ok: false, error: "责任配置已变化，请刷新后重试" };
+        if (!entries.length || existing && entries.length !== 1) return { ok: false, error: "请选择分配对象" };
+        const keys = new Set();
+        for (const values of entries) {
+          const key = `${values.dimension}|${values.value}`;
+          if (keys.has(key) || !["客户公司", "集团"].includes(values.dimension) || !centerRuleValueOptions(region, values.dimension).some(option => option.value === String(values.value))) return { ok: false, error: "请选择本中心有效且不重复的客户公司或集团" };
+          keys.add(key);
+          if (!regionPmEmployees(region).some(employee => employee.name === values.pm && employee.accountStatus !== "停用")) return { ok: false, error: "请选择本中心在职且账号有效的 PM" };
+          if (cityResponsibilityRules.some(rule => rule !== existing && rule.status === "启用" && rule.regionId === region.id && rule.dimension === values.dimension && String(rule.value) === String(values.value))) return { ok: false, error: "已有相同客户或集团的启用分配，请编辑原分配" };
+        }
         return applyCenterResponsibilityMutation(region, () => {
-          const rule = existing || { id: Math.max(900, ...cityResponsibilityRules.map(item => Number(item.id) || 0)) + 1, regionId: region.id };
-          Object.assign(rule, values, { status: "启用", effective: DEMO_TODAY, updatedAt: recordCreatedAt(), updatedBy: currentUser.name });
-          if (!existing) cityResponsibilityRules.push(rule);
+          entries.forEach(values => {
+            const rule = existing || { id: Math.max(900, ...cityResponsibilityRules.map(item => Number(item.id) || 0)) + 1, regionId: region.id };
+            Object.assign(rule, values, { status: "启用", effective: DEMO_TODAY, updatedAt: recordCreatedAt(), updatedBy: currentUser.name });
+            if (!existing) cityResponsibilityRules.push(rule);
+          });
         }, "客户责任分配变更");
+      }
+      function saveCenterResponsibilityRule(region, existing, values) {
+        return saveCenterResponsibilityRules(region, [values], existing);
       }
       function openCityResponsibilityRuleForm(ruleId = null) {
         const region = regionsData.find(item => item.id === selectedRegionId);
         if (!canEditCityResponsibilityRules(region)) return toast("当前账号无权维护该中心责任分配");
         const existing = ruleId == null ? null : cityResponsibilityRules.find(item => Number(item.id) === Number(ruleId));
-        if (ruleId != null && (!existing || existing.regionId !== region.id)) return toast("无权维护该责任分配");
+        if (ruleId != null && (!existing || existing.regionId !== region.id || !["客户公司", "集团"].includes(existing.dimension))) return toast("无权维护该责任分配");
+        const expectedVersion = responsibilityConfigurationVersion();
         const pms = regionPmEmployees(region).filter(employee => employee.accountStatus !== "停用");
         const dimension = existing?.dimension || "客户公司";
-        openModal(`<div class="modal-head"><div class="modal-title">${existing ? "编辑" : "新增"}客户 / 集团分配</div><button class="icon-btn close" data-close>×</button></div><form id="cityResponsibilityRuleForm"><div class="modal-body"><div class="role-note">${escapeHtml(region.name)}${region.type === "industry" && !region.enabled ? " · 启用中心后交接客户" : " · 保存后立即交接存量客户"}</div><div class="form-grid"><div class="form-group"><label class="form-label" for="cityRuleDimension">分配对象</label><select class="input" id="cityRuleDimension"><option ${dimension === "客户公司" ? "selected" : ""}>客户公司</option><option ${dimension === "集团" ? "selected" : ""}>集团</option></select></div><div class="form-group"><label class="form-label" for="cityRuleValue">客户 / 集团</label><select class="input" id="cityRuleValue" required></select></div><div class="form-group full"><label class="form-label" for="cityRulePm">负责 PM</label><select class="input" id="cityRulePm" required><option value="">请选择 PM</option>${pms.map(employee => `<option value="${escapeHtml(employee.name)}" ${employee.name === existing?.pm ? "selected" : ""}>${escapeHtml(employee.name)} · ${employee.code}</option>`).join("")}</select></div></div><div class="field-error" id="cityRuleError" role="alert"></div></div><div class="modal-foot"><button class="btn" type="button" data-close>取消</button><button class="btn btn-primary" type="submit">确认保存</button></div></form>`);
-        const refresh = () => { $("#cityRuleValue").innerHTML = '<option value="">请选择</option>' + centerRuleValueOptions(region, $("#cityRuleDimension").value).map(option => `<option value="${escapeHtml(option.value)}" ${String(existing?.value) === option.value ? "selected" : ""}>${escapeHtml(option.label)}</option>`).join(""); };
+        openModal(`<div class="modal-head"><div class="modal-title">${existing ? "编辑" : "分配"}客户 / 集团 PM</div><button class="icon-btn close" data-close>×</button></div><form id="cityResponsibilityRuleForm"><div class="modal-body"><div class="role-note">${escapeHtml(region.name)} · ${region.type === "industry" && !region.enabled ? "配置完整后保存中心配置生效" : "保存后立即交接所选客户，不改变所属中心"}</div><div class="form-grid"><div class="form-group full"><label class="form-label" for="cityRuleDimension">分配对象</label><select class="input" id="cityRuleDimension" ${existing ? "disabled" : ""}><option ${dimension === "客户公司" ? "selected" : ""}>客户公司</option><option ${dimension === "集团" ? "selected" : ""}>集团</option></select></div><div class="form-group full"><label class="form-label">客户 / 集团${existing ? "" : "（多选）"}</label><div id="cityRuleValues"></div></div><div class="form-group full"><label class="form-label" for="cityRulePm">负责 PM</label><select class="input" id="cityRulePm" required><option value="">请选择 PM</option>${pms.map(employee => `<option value="${escapeHtml(employee.name)}" ${employee.name === existing?.pm ? "selected" : ""}>${escapeHtml(employee.name)} · ${employee.code}</option>`).join("")}</select></div></div><div class="field-error" id="cityRuleError" role="alert"></div></div><div class="modal-foot"><button class="btn" type="button" data-close>取消</button><button class="btn btn-primary" type="submit">确认保存</button></div></form>`);
+        const refresh = () => {
+          const options = centerRuleValueOptions(region, $("#cityRuleDimension").value);
+          $("#cityRuleValues").innerHTML = existing ? `<select class="input" id="cityRuleValue" disabled>${options.filter(option => option.value === String(existing.value)).map(option => `<option value="${escapeHtml(option.value)}">${escapeHtml(option.label)}</option>`).join("")}</select>` : regionSelectionDropdown("cityRuleValue", options.filter(option => !cityResponsibilityRules.some(rule => rule.regionId === region.id && rule.dimension === $("#cityRuleDimension").value && String(rule.value) === option.value && rule.status === "启用")));
+          if (!existing) bindRegionSelectionDropdown("cityRuleValue");
+        };
         $("#cityRuleDimension").onchange = refresh; refresh();
         $("#cityResponsibilityRuleForm").onsubmit = event => {
           event.preventDefault();
-          const result = saveCenterResponsibilityRule(region, existing, { dimension: $("#cityRuleDimension").value, value: $("#cityRuleValue").value, pm: $("#cityRulePm").value });
+          const selected = existing ? [String(existing.value)] : regionSelectedValues("cityRuleValue");
+          const result = saveCenterResponsibilityRules(region, selected.map(value => ({ dimension: $("#cityRuleDimension").value, value, pm: $("#cityRulePm").value })), existing, expectedVersion);
           if (!result.ok) return $("#cityRuleError").textContent = result.error;
           closeAllOverlays(); renderPage(); toast("分配已保存" + (result.count ? `，已交接 ${result.count} 家客户` : ""));
         };
@@ -875,7 +898,7 @@
         const expectedVersion = responsibilityConfigurationVersion();
         const actual = () => centerCustomers(region).filter(customer => centerResponsibilityRuleForCustomer(customer, region) === rule);
         const empty = next === "停用" && responsibilityUnlinkCheck(actual()).ok;
-        openModal(`<div class="modal-head"><div class="modal-title">确认${next}分配</div><button class="icon-btn close" data-close>×</button></div><div class="modal-body">${empty ? "无需要交接的事项，可直接取消关联，无需选择接收人。" : region.type === "industry" && !region.enabled ? "启用中心后按有效分配交接客户。" : "确认后立即按有效分配交接存量客户。"}</div><div class="modal-foot"><button class="btn" data-close>取消</button><button class="btn btn-primary" id="confirmRuleToggle">确认${next}</button></div>`);
+        openModal(`<div class="modal-head"><div class="modal-title">确认${next}分配</div><button class="icon-btn close" data-close>×</button></div><div class="modal-body">${empty ? "无需要交接的事项，可直接取消关联，无需选择接收人。" : region.type === "industry" && !region.enabled ? "中心配置保存后按有效分配交接客户。" : "确认后立即按有效分配交接存量客户。"}</div><div class="modal-foot"><button class="btn" data-close>取消</button><button class="btn btn-primary" id="confirmRuleToggle">确认${next}</button></div>`);
         $("#confirmRuleToggle").onclick = () => {
           if (rule.status === next || expectedVersion !== responsibilityConfigurationVersion() || !canEditCityResponsibilityRules(region)) return toast("分配或权限已变化，请刷新后重试");
           if (next === "启用") {
@@ -889,34 +912,33 @@
           closeAllOverlays(); renderPage(); toast(`分配已${next}`);
         };
       }
+      function saveCenterCityAssignments(region, pairs, pm, expectedVersion = responsibilityConfigurationVersion()) {
+        if (!canEditCityResponsibilityRules(region)) return { ok: false, error: "无权维护该中心地市分配" };
+        if (expectedVersion !== responsibilityConfigurationVersion()) return { ok: false, error: "责任配置已变化，请刷新后重试" };
+        const candidates = regionCityRows(region);
+        if (!pairs.length || pairs.length > 50 || new Set(pairs).size !== pairs.length || !pairs.every(pair => candidates.some(row => `${row.province}|${row.city}` === pair && !row.pm)) || !regionPmEmployees(region).some(employee => employee.name === pm && employee.accountStatus !== "停用")) return { ok: false, error: "请选择1–50个未分配地市及有效PM，已有责任请使用直接调整" };
+        return applyCenterResponsibilityMutation(region, () => {
+          pairs.forEach(pair => {
+            const [province, city] = pair.split("|");
+            let owner = cityDefaultOwner(province, city, region);
+            if (!owner) { owner = { id: Math.max(800, ...cityOwners.map(item => Number(item.id) || 0)) + 1, regionId: region.id, province, city }; cityOwners.push(owner); }
+            Object.assign(owner, { pm, effective: DEMO_TODAY });
+          });
+        }, "地市责任分配");
+      }
       function openCenterCityAssignment() {
         const region = regionsData.find(item => item.id === selectedRegionId);
         if (!canEditCityResponsibilityRules(region)) return toast("无权维护该中心地市分配");
+        const expectedVersion = responsibilityConfigurationVersion();
         const pms = regionPmEmployees(region).filter(employee => employee.accountStatus !== "停用");
-        const pairs = regionCityRows(region);
-        openModal(`<div class="modal-head"><div class="modal-title">地市 PM 分配</div><button class="icon-btn close" data-close>×</button></div><form id="centerCityForm"><div class="modal-body"><div class="role-note">${escapeHtml(region.name)}${region.enabled ? " · 保存后立即交接存量客户" : " · 启用中心后生效"}</div><div class="form-grid"><div class="form-group full"><label class="form-label" for="centerCity">地市</label><select class="input" id="centerCity">${pairs.map(row => `<option value="${escapeHtml(row.province)}|${escapeHtml(row.city)}">${escapeHtml(row.province)} · ${escapeHtml(row.city)}${row.pm ? ` · ${escapeHtml(row.pm)}` : ""}</option>`).join("")}</select></div><div class="form-group full"><label class="form-label" for="centerCityPm">负责 PM</label><select class="input" id="centerCityPm" required><option value="">请选择 PM</option>${pms.map(employee => `<option>${escapeHtml(employee.name)}</option>`).join("")}</select></div></div><div class="field-error" id="centerCityError" role="alert"></div></div><div class="modal-foot"><button class="btn" type="button" data-close>取消</button><button class="btn btn-primary" type="submit">确认分配</button></div></form>`);
+        const pairs = regionCityRows(region).filter(row => !row.pm);
+        openModal(`<div class="modal-head"><div class="modal-title">地市 PM 分配</div><button class="icon-btn close" data-close>×</button></div><form id="centerCityForm"><div class="modal-body"><div class="role-note">${escapeHtml(region.name)} · 选择未分配地市交给同一 PM</div><div class="form-grid"><div class="form-group full"><label class="form-label">地市（多选，1–50个）</label>${regionSelectionDropdown("centerCity", pairs.map(row => ({value:`${row.province}|${row.city}`,label:`${row.province} · ${row.city}`})))}</div><div class="form-group full"><label class="form-label" for="centerCityPm">负责 PM</label><select class="input" id="centerCityPm" required><option value="">请选择 PM</option>${pms.map(employee => `<option>${escapeHtml(employee.name)}</option>`).join("")}</select></div></div><div class="field-error" id="centerCityError" role="alert"></div></div><div class="modal-foot"><button class="btn" type="button" data-close>取消</button><button class="btn btn-primary" type="submit">确认分配</button></div></form>`);
+        bindRegionSelectionDropdown("centerCity");
         $("#centerCityForm").onsubmit = event => {
           event.preventDefault();
-          const [province, city] = $("#centerCity").value.split("|"), pm = $("#centerCityPm").value;
-          if (!pairs.some(row => row.province === province && row.city === city) || !regionPmEmployees(region).some(employee => employee.name === pm && employee.accountStatus !== "停用")) return $("#centerCityError").textContent = "地市或 PM 已失效，请重新选择";
-          const result = applyCenterResponsibilityMutation(region, () => {
-            let owner = cityDefaultOwner(province, city, region);
-            if (!owner) { owner = { id: Date.now(), regionId: region.id, province, city }; cityOwners.push(owner); }
-            Object.assign(owner, { pm, effective: DEMO_TODAY });
-          }, "地市责任分配");
+          const result = saveCenterCityAssignments(region, regionSelectedValues("centerCity"), $("#centerCityPm").value, expectedVersion);
           if (!result.ok) return $("#centerCityError").textContent = result.error;
           closeAllOverlays(); renderPage(); toast("地市分配已保存");
-        };
-      }
-      function enableIndustryCenter(regionId) {
-        const region = regionsData.find(item => item.id === Number(regionId));
-        if (!region || region.type !== "industry" || region.enabled || !hasOperationPermission("regions.edit") || !canEditCityResponsibilityRules(region)) return toast("当前无法启用该中心");
-        openModal(`<div class="modal-head"><div class="modal-title">启用${escapeHtml(region.name)}</div><button class="icon-btn close" data-close>×</button></div><div class="modal-body"><p>启用后立即交接全国${escapeHtml(region.industry)}行业中未按集团省份分流的现有客户。</p><div class="field-error" id="enableCenterError" role="alert"></div></div><div class="modal-foot"><button class="btn" data-close>取消</button><button class="btn btn-primary" id="confirmEnableCenter">确认启用并交接</button></div>`);
-        $("#confirmEnableCenter").onclick = () => {
-          if (region.enabled) return $("#enableCenterError").textContent = "中心状态已变化，请刷新后重试";
-          const result = applyCenterResponsibilityMutation(region, () => { region.enabled = true; region.configuredAt = recordCreatedAt(); }, "行业中心启用", { activate: true });
-          if (!result.ok) return $("#enableCenterError").textContent = result.error;
-          closeAllOverlays(); renderPage(); toast(`中心已启用，已交接 ${result.count} 家客户`);
         };
       }
 
@@ -973,5 +995,71 @@
           const result = saveGroupProvinceRoute(rule, { ...rule, status: next });
           if (!result.ok) return toast(result.error);
           closeAllOverlays(); renderPage(); toast(`分流已${next}，已交接 ${result.count} 家客户`);
+        };
+      }
+
+      function canTransferCustomersFromCenter(region) {
+        return Boolean(canManageGroupProvinceRoutes() && regionsData.includes(region) && region.type === "industry" && region.enabled);
+      }
+      function saveCustomerCenterTransfer(source, customerIds, targetId, pm = "", expectedVersion = responsibilityConfigurationVersion()) {
+        if (!canManageGroupProvinceRoutes()) return { ok: false, error: "当前账号无权划转客户" };
+        if (!canTransferCustomersFromCenter(source)) return { ok: false, error: "仅可从已生效的行业运营中心划转客户" };
+        if (expectedVersion !== responsibilityConfigurationVersion()) return { ok: false, error: "责任配置已变化，请刷新后重试" };
+        const ids = customerIds.map(String), selected = customers.filter(customer => ids.includes(String(customer.id)));
+        if (!ids.length || new Set(ids).size !== ids.length || selected.length !== ids.length || selected.some(customer => customer.archived || regionForCompany(customer)?.id !== source.id)) return { ok: false, error: "来源客户归属已变化，请重新选择" };
+        const target = regionsData.find(region => region.id === Number(targetId));
+        if (!target || target === source || target.type === "industry" || target.status === "停用" || regionConfigurationStatus(target) !== "已配置") return { ok: false, error: "请选择其他有效且已配置的地理区域运营中心" };
+        if (pm && !regionPmEmployees(target).some(employee => employee.name === pm && employee.accountStatus !== "停用")) return { ok: false, error: "请选择接收中心有效 PM" };
+        if (selected.some(customer => customerCenterRoutes().filter(rule => rule.status === "启用" && String(rule.value) === String(customer.id)).length > 1)) return { ok: false, error: "客户存在重复划转配置，请先核对" };
+        return applyCenterResponsibilityMutation(target, () => {
+          selected.forEach(customer => {
+            let rule = customerCenterRoutes().find(item => item.status === "启用" && String(item.value) === String(customer.id));
+            if (!rule) { rule = { id: Math.max(900, ...cityResponsibilityRules.map(item => Number(item.id) || 0)) + 1, dimension: "客户中心划转", value: String(customer.id) }; cityResponsibilityRules.push(rule); }
+            Object.assign(rule, { targetRegionId: target.id, status: "启用", effective: DEMO_TODAY, updatedAt: recordCreatedAt(), updatedBy: currentUser.name });
+            if (pm) {
+              let assignment = cityResponsibilityRules.find(item => item.regionId === target.id && item.dimension === "客户公司" && String(item.value) === String(customer.id) && item.status === "启用");
+              if (!assignment) { assignment = { id: Math.max(900, ...cityResponsibilityRules.map(item => Number(item.id) || 0)) + 1, regionId: target.id, dimension: "客户公司", value: String(customer.id) }; cityResponsibilityRules.push(assignment); }
+              Object.assign(assignment, { pm, status: "启用", effective: DEMO_TODAY, updatedAt: recordCreatedAt(), updatedBy: currentUser.name });
+            }
+          });
+        }, "客户中心划转", { allCenters: true });
+      }
+      function openCustomerCenterTransfer() {
+        if (!canManageGroupProvinceRoutes()) return toast("当前账号无权划转客户");
+        const source = regionsData.find(region => region.id === selectedRegionId);
+        if (!canTransferCustomersFromCenter(source)) return toast("仅可从已生效的行业运营中心划转客户");
+        const expectedVersion = responsibilityConfigurationVersion();
+        const candidates = centerCustomers(source, false);
+        const targets = regionsData.filter(region => region !== source && region.type !== "industry" && region.status !== "停用" && regionConfigurationStatus(region) === "已配置");
+        openModal(`<div class="modal-head"><div class="modal-title">划转客户</div><button class="icon-btn close" data-close>×</button></div><form id="customerCenterTransferForm"><div class="modal-body"><div class="role-note">从${escapeHtml(source.name)}划转所选客户，未选客户保持原归属。接收中心不限客户所在省份，确认后立即交接。</div><div class="form-grid"><div class="form-group full"><label class="form-label">客户公司（多选）</label>${regionSelectionDropdown("transferCustomers", candidates.map(customer => ({value:String(customer.id),label:`${customer.name} · ${customer.group || "无集团"} · ${customerBusinessProvince(customer)} ${customerBusinessCity(customer) || ""}`})))}</div><div class="form-group"><label class="form-label" for="customerTransferTarget">接收区域运营中心</label><select class="input" id="customerTransferTarget" required><option value="">请选择接收中心</option>${targets.map(region => `<option value="${region.id}">${escapeHtml(region.name)}</option>`).join("")}</select></div><div class="form-group"><label class="form-label" for="customerTransferPm">接收负责人</label><select class="input" id="customerTransferPm"><option value="">沿用接收中心分配</option></select></div></div><div id="customerTransferPreview"></div><div class="field-error" id="customerTransferError" role="alert"></div></div><div class="modal-foot"><button class="btn" type="button" data-close>取消</button><button class="btn btn-primary" type="submit">下一步：确认交接</button></div></form>`);
+        const refresh = () => {
+          const target = targets.find(region => region.id === Number($("#customerTransferTarget").value));
+          const pm = $("#customerTransferPm").value;
+          const selected = candidates.filter(customer => regionSelectedValues("transferCustomers").includes(String(customer.id)));
+          $("#customerTransferPreview").innerHTML = selected.length ? `<div class="table-wrap"><table><thead><tr><th>客户公司</th><th>原负责人</th><th>接收负责人</th></tr></thead><tbody>${selected.map(customer => `<tr><td>${escapeHtml(customer.name)}</td><td>${escapeHtml(customerOwnerName(customer))}</td><td>${escapeHtml(target ? pm || responsibilityOwnerForCustomer(customer, target) || "未分配，请指定接收 PM" : "先选择接收中心")}</td></tr>`).join("")}</tbody></table></div>${renderResponsibilityHandoverItems(responsibilityHandoverItems(selected))}` : '<div class="empty">选择客户后核对交接事项</div>';
+        };
+        bindRegionSelectionDropdown("transferCustomers", refresh);
+        $("#customerTransferTarget").onchange = () => {
+          const target = targets.find(region => region.id === Number($("#customerTransferTarget").value));
+          $("#customerTransferPm").innerHTML = '<option value="">沿用接收中心分配</option>' + (target ? regionPmEmployees(target).filter(employee => employee.accountStatus !== "停用").map(employee => `<option>${escapeHtml(employee.name)}</option>`).join("") : "");
+          refresh();
+        };
+        $("#customerTransferPm").onchange = refresh;
+        refresh();
+        $("#customerCenterTransferForm").onsubmit = event => {
+          event.preventDefault();
+          const ids = regionSelectedValues("transferCustomers");
+          const targetId = $("#customerTransferTarget").value, pm = $("#customerTransferPm").value;
+          const target = targets.find(region => region.id === Number(targetId));
+          if (!ids.length || !target) return $("#customerTransferError").textContent = "请选择客户和接收中心";
+          const selected = candidates.filter(customer => ids.includes(String(customer.id)));
+          const invalid = selected.filter(customer => !pm && !responsibilityReceiverIsValid(customer, target, responsibilityOwnerForCustomer(customer, target)));
+          if (invalid.length) return $("#customerTransferError").textContent = `未分配客户：${invalid.map(customer => customer.name).join("、")}。请选择有效接收 PM`;
+          openModal(`<div class="modal-head"><div class="modal-title">确认客户划转</div><button class="icon-btn close" data-close>×</button></div><div class="modal-body"><div class="role-note">${escapeHtml(source.name)} → ${escapeHtml(target.name)}<br>确认后立即交接所选客户；未选客户保持原归属。</div><div class="table-wrap"><table><thead><tr><th>客户公司</th><th>原负责人</th><th>接收负责人</th></tr></thead><tbody>${selected.map(customer => `<tr><td>${escapeHtml(customer.name)}</td><td>${escapeHtml(customerOwnerName(customer))}</td><td>${escapeHtml(pm || responsibilityOwnerForCustomer(customer, target))}</td></tr>`).join("")}</tbody></table></div>${renderResponsibilityHandoverItems(responsibilityHandoverItems(selected))}<div class="field-error" id="customerTransferConfirmError" role="alert"></div></div><div class="modal-foot"><button class="btn" data-close>取消</button><button class="btn btn-primary" id="confirmCustomerTransfer">确认划转并交接</button></div>`);
+          $("#confirmCustomerTransfer").onclick = () => {
+            const result = saveCustomerCenterTransfer(source, ids, targetId, pm, expectedVersion);
+            if (!result.ok) return $("#customerTransferConfirmError").textContent = result.error;
+            closeAllOverlays(); renderPage(); toast(`已划转 ${result.count} 家客户`);
+          };
         };
       }

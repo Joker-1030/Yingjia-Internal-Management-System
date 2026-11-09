@@ -4634,6 +4634,16 @@
       .project-modal-body {
         padding: var(--space-6);
       }
+      .modal:has(.project-framework-projects) {
+        width: min(1000px, 92vw);
+      }
+      .project-framework-projects table {
+        min-width: 0;
+        table-layout: fixed;
+      }
+      .project-framework-projects th {
+        white-space: normal;
+      }
       .project-config-form .form-grid {
         column-gap: var(--space-5);
         row-gap: var(--space-4);
@@ -5758,3 +5768,22 @@
 .teacher-channel-body { padding: 16px; border-top: 1px solid var(--line); }
 .teacher-channel-editor:not([open]) > .teacher-channel-body { display: none; }
 #teacherForm .teacher-form-error { flex: 1; margin: 0; font-size: 12px; }
+
+/* M08: assignment and handover controls reuse existing modal/table styles. */
+.region-object-picker .multi-select-menu { position: relative; top: auto; margin-top: var(--space-1); box-shadow: none; max-height: 240px; }
+.region-object-picker > summary { cursor: pointer; list-style: none; }
+.region-object-picker > summary::-webkit-details-marker { display: none; }
+.region-object-picker .multi-select-option[hidden] { display: none; }
+.region-handover-items { display: grid; gap: var(--space-2); margin: var(--space-3) 0; }
+.region-handover-items > details { border: 1px solid var(--line); border-radius: var(--radius-control); background: var(--color-surface); }
+.region-handover-items summary { display: flex; align-items: center; gap: var(--space-2); cursor: pointer; padding: var(--space-3); }
+.region-handover-items summary .panel-sub { margin-left: auto; }
+.region-handover-items summary strong { color: var(--color-primary); }
+.region-handover-list { max-height: 200px; overflow: auto; border-top: 1px solid var(--line); }
+.region-handover-row { display: flex; gap: var(--space-2); flex-wrap: wrap; padding: var(--space-2) var(--space-3); border-bottom: 1px solid var(--line); font-size: var(--font-size-secondary); }
+.region-handover-row span:first-child { font-weight: 600; flex: 1 1 180px; }
+.region-handover-row span:not(:first-child) { color: var(--muted); }
+.region-group-routes { margin-top: var(--space-4); border-top: 1px solid var(--line); }
+.region-group-routes > summary { padding: var(--space-3); cursor: pointer; font-weight: 600; }
+.region-receiver-table { max-height: 340px; overflow: auto; }
+.region-receiver-table .input { min-width: 180px; }

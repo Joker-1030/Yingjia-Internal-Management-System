@@ -189,18 +189,49 @@
         };
       }
 
-      function openIndustryCenterForm(region, createIndustry = false) {
-        if (!hasOperationPermission("regions.edit")) return toast("当前账号无权维护中心配置");
+      function industryConfigurationCustomers(region, industry) {
+        return customers.filter(customer => !customer.archived && customer.industry === industry &&
+          !customerCenterRoutes().some(rule => rule.status === "启用" && String(rule.value) === String(customer.id)) &&
+          !groupProvinceRoutes().some(rule => rule.status === "启用" && rule.value === customer.group && rule.province === customerBusinessProvince(customer)));
+      }
+      function saveIndustryCenterConfiguration(region, values, expectedVersion = responsibilityConfigurationVersion()) {
+        if (!region || !hasOperationPermission("regions.edit") || !canEditCityResponsibilityRules(region)) return { ok: false, error: "当前账号无权维护该中心" };
+        if (expectedVersion !== responsibilityConfigurationVersion()) return { ok: false, error: "责任配置已变化，请刷新后重试" };
         const industries = [...new Set(Object.values(customerGroupIndustries))];
         const allCities = [...new Set(Object.values(administrativeDivisions).flatMap(cities => Object.keys(cities)))];
-        openModal(`<div class="modal-head"><div class="modal-title">编辑行业中心配置</div><button class="icon-btn close" data-close>×</button></div><form id="industryCenterForm"><div class="modal-body"><div class="role-note">${escapeHtml(region.name)}</div><div class="form-grid"><div class="form-group"><label class="form-label" for="centerIndustry">负责行业</label><select class="input" id="centerIndustry" required ${region.enabled ? "disabled" : ""}>${industries.map(industry => `<option ${industry === region.industry ? "selected" : ""}>${escapeHtml(industry)}</option>`).join("")}</select></div><div class="form-group"><label class="form-label" for="centerBase">驻地</label><select class="input" id="centerBase" required>${allCities.map(city => `<option ${city === region.base ? "selected" : ""}>${escapeHtml(city)}</option>`).join("")}</select></div></div><div class="field-error" id="industryCenterError" role="alert"></div></div><div class="modal-foot"><button class="btn" type="button" data-close>取消</button><button class="btn btn-primary" type="submit">保存配置</button></div></form>`);
+        if (!industries.includes(values.industry) || !allCities.includes(values.base) || region.enabled && values.industry !== region.industry) return { ok: false, error: "行业或驻地无效，已生效中心不可更换行业" };
+        if (!region.enabled && values.industry !== region.industry && cityResponsibilityRules.some(rule => rule.regionId === region.id && rule.status === "启用")) return { ok: false, error: "请先解除原行业责任分配，再更换行业" };
+        const eligible = industryConfigurationCustomers(region, values.industry);
+        const receivers = values.receivers || [];
+        if (new Set(receivers.map(item => String(item.customerId))).size !== receivers.length || receivers.some(item => !eligible.some(customer => String(customer.id) === String(item.customerId)) || !regionPmEmployees(region).some(employee => employee.name === item.pm && employee.accountStatus !== "停用"))) return { ok: false, error: "客户或接收 PM 已失效，请重新选择" };
+        return applyCenterResponsibilityMutation(region, () => {
+          Object.assign(region, { type: "industry", industry: values.industry, base: values.base, enabled: true, configuredAt: region.configuredAt || recordCreatedAt(), updatedAt: recordCreatedAt() });
+          receivers.forEach(item => {
+            let rule = cityResponsibilityRules.find(rule => rule.regionId === region.id && rule.dimension === "客户公司" && String(rule.value) === String(item.customerId) && rule.status === "启用");
+            if (!rule) { rule = { id: Math.max(900, ...cityResponsibilityRules.map(item => Number(item.id) || 0)) + 1, regionId: region.id, dimension: "客户公司", value: String(item.customerId) }; cityResponsibilityRules.push(rule); }
+            Object.assign(rule, { pm: item.pm, status: "启用", effective: DEMO_TODAY, updatedAt: recordCreatedAt(), updatedBy: currentUser.name });
+          });
+        }, "中心配置保存", { activate: true });
+      }
+      function openIndustryCenterForm(region, createIndustry = false) {
+        if (!hasOperationPermission("regions.edit")) return toast("当前账号无权维护中心配置");
+        const expectedVersion = responsibilityConfigurationVersion();
+        const industries = [...new Set(Object.values(customerGroupIndustries))];
+        const allCities = [...new Set(Object.values(administrativeDivisions).flatMap(cities => Object.keys(cities)))];
+        openModal(`<div class="modal-head"><div class="modal-title">编辑行业中心配置</div><button class="icon-btn close" data-close>×</button></div><form id="industryCenterForm"><div class="modal-body"><div class="role-note">${escapeHtml(region.name)}${region.enabled ? "" : " · 补齐接收安排后保存，立即交接存量客户"}</div><div class="form-grid"><div class="form-group"><label class="form-label" for="centerIndustry">负责行业</label><select class="input" id="centerIndustry" required ${region.enabled ? "disabled" : ""}>${industries.map(industry => `<option ${industry === region.industry ? "selected" : ""}>${escapeHtml(industry)}</option>`).join("")}</select></div><div class="form-group"><label class="form-label" for="centerBase">驻地</label><select class="input" id="centerBase" required>${allCities.map(city => `<option ${city === region.base ? "selected" : ""}>${escapeHtml(city)}</option>`).join("")}</select></div></div>${region.enabled ? "" : '<div class="section-title">待接收客户与负责人</div><div id="industryReceivers"></div>'}<div class="field-error" id="industryCenterError" role="alert"></div></div><div class="modal-foot"><button class="btn" type="button" data-close>取消</button><button class="btn btn-primary" type="submit">${region.enabled ? "保存配置" : "保存配置并交接"}</button></div></form>`);
+        const refresh = () => {
+          if (region.enabled) return;
+          const draft = { ...region, type: "industry", industry: $("#centerIndustry").value };
+          const candidates = industryConfigurationCustomers(region, draft.industry);
+          const pms = regionPmEmployees(region).filter(employee => employee.accountStatus !== "停用");
+          $("#industryReceivers").innerHTML = `<div class="table-wrap region-receiver-table"><table><thead><tr><th>客户公司</th><th>责任层级</th><th>接收负责人</th></tr></thead><tbody>${candidates.map(customer => { const owner = responsibilityOwnerForCustomer(customer, draft); const valid = responsibilityReceiverIsValid(customer, draft, owner); return `<tr><td>${escapeHtml(customer.name)}</td><td>${escapeHtml(customer.level)}</td><td><select class="input" data-industry-receiver="${customer.id}"><option value="">${valid ? `沿用：${escapeHtml(owner)}` : pms.length ? "未分配，请选择 PM" : "暂无本中心有效 PM，请先配置员工"}</option>${pms.map(employee => `<option>${escapeHtml(employee.name)}</option>`).join("")}</select></td></tr>`; }).join("") || '<tr><td colspan="3"><div class="empty">暂无待接收客户</div></td></tr>'}</tbody></table></div>`;
+        };
+        $("#centerIndustry").onchange = refresh; refresh();
         $("#industryCenterForm").onsubmit = event => {
           event.preventDefault();
-          if (!hasOperationPermission("regions.edit") || !canEditCityResponsibilityRules(region)) return $("#industryCenterError").textContent = "当前账号已无权维护该中心";
-          const industry = $("#centerIndustry").value, base = $("#centerBase").value;
-          if (!industries.includes(industry) || !allCities.includes(base) || region.enabled && industry !== region.industry) return $("#industryCenterError").textContent = "行业或驻地已失效，请重新选择";
-          if (!region.enabled && industry !== region.industry && cityResponsibilityRules.some(rule => rule.regionId === region.id && rule.status === "启用")) return $("#industryCenterError").textContent = "请先解除原行业客户和集团分配，再更换行业";
-          Object.assign(region, { ...(createIndustry ? { type: "industry", enabled: false } : {}), industry, base, updatedAt: recordCreatedAt() });
-          closeAllOverlays(); renderPage(); toast("中心配置已保存");
+          const receivers = [...document.querySelectorAll("[data-industry-receiver]")].filter(select => select.value).map(select => ({ customerId: select.dataset.industryReceiver, pm: select.value }));
+          const result = saveIndustryCenterConfiguration(region, { industry: $("#centerIndustry").value, base: $("#centerBase").value, receivers }, expectedVersion);
+          if (!result.ok) return $("#industryCenterError").textContent = result.error;
+          closeAllOverlays(); renderPage(); toast(`中心配置已保存${result.count ? `，已交接 ${result.count} 家客户` : ""}`);
         };
       }

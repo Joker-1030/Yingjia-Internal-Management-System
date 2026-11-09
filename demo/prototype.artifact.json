@@ -1,11 +1,11 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-11-06T08:14:34.071Z",
+  "generatedAt": "2026-11-09T05:58:30.956Z",
   "generator": "scripts/build-prototype.mjs",
   "buildCommand": "node scripts/build-prototype.mjs",
   "sourceRoot": "src",
   "entry": "src/prototype.html",
-  "sourceDigest": "6138f39819ab01a6f175951edf25835907c4f8163666b810fd05672df5b682a5",
+  "sourceDigest": "bc139eb324b4089aa82409c8683b0888befd20aeca39b56b7207fdd51c188d3f",
   "sourceFiles": [
     {
       "path": "src/app.js",
@@ -119,8 +119,8 @@
     },
     {
       "path": "src/data/regions.js",
-      "sha256": "1a755a8dd25725bce310a2015181ddcfa46d5ae6f7d2063b333fdfafd1652816",
-      "bytes": 11027
+      "sha256": "814175543f4a5c56c1af7ca5080172f56063e5bf5b47b0a88aaca80f0838c942",
+      "bytes": 11567
     },
     {
       "path": "src/data/sales-targets.js",
@@ -154,8 +154,8 @@
     },
     {
       "path": "src/modules/_app-shell/events.js",
-      "sha256": "2a2df828619b58736fe7c3d7a0fd657591271bfc04ea4cf1b67fca7970f372d7",
-      "bytes": 77918
+      "sha256": "2d15a507e8fca6d1e9732288305d2544d7d074d2333a6d02b35ea82d3980b036",
+      "bytes": 77908
     },
     {
       "path": "src/modules/_app-shell/notifications.js",
@@ -324,13 +324,13 @@
     },
     {
       "path": "src/modules/m08-regions/forms.js",
-      "sha256": "f4777b1d6657f2f2aa45de12cb32121ef2d5a3bd5e4e73a06787b990d7bb5853",
-      "bytes": 21502
+      "sha256": "3cec76a75f17a7b5106e790610863a0491039a9c9d3f33a9b2597a1f2df8885e",
+      "bytes": 25834
     },
     {
       "path": "src/modules/m08-regions/interactions.js",
-      "sha256": "c69ee2ba7c8949d453434d2f325b9e4d9b70b4280ee9aecd4a83f4090fc3e814",
-      "bytes": 72711
+      "sha256": "b6e1c93fccd25f75f334f66fa07b07d6206643cd13298447ca86193e4c95f531",
+      "bytes": 84797
     },
     {
       "path": "src/modules/m08-regions/module.json",
@@ -339,8 +339,8 @@
     },
     {
       "path": "src/modules/m08-regions/page.js",
-      "sha256": "521a6372c84903e332192a08a20e9329bc0fcfdf531b20161fc126cb91d39aed",
-      "bytes": 32010
+      "sha256": "c52e47211a79f23d6b6d39c773829fe82bd3aaa879c27f8ad50463ebe2337429",
+      "bytes": 32077
     },
     {
       "path": "src/modules/m09-customer-settings/interactions.js",
@@ -374,8 +374,8 @@
     },
     {
       "path": "src/modules/m11-project-management/interactions.js",
-      "sha256": "8e67619e6e74e03d2abeadab91e0ce0c4233941810cd266c0a36193ef514133b",
-      "bytes": 138658
+      "sha256": "f3133870ee2cac3f5fc2aa7fa2b94f89a05ff944f046a3b082b76b817c731040",
+      "bytes": 139402
     },
     {
       "path": "src/modules/m11-project-management/module.json",
@@ -424,8 +424,8 @@
     },
     {
       "path": "src/styles/prototype.css",
-      "sha256": "3996e22933cf0c36a4ac1643bf5e589689010bb9b5e142b83b080613dd1562bf",
-      "bytes": 203260
+      "sha256": "7c6d9098e7e74d220b4a1dff1078a0cdbe608b0f59880948b098ccf37df4aa48",
+      "bytes": 205197
     }
   ],
   "artifactInputs": [
@@ -501,8 +501,8 @@
   ],
   "artifact": {
     "path": "demo/prototype.html",
-    "sha256": "013e38daee81e4d2297b095bc133b2e09d0cf3bb328fdf12971d92d52ae68ef0",
-    "bytes": 3023845
+    "sha256": "33bad224f491424a8e9818ddcffe21fdbe2e814b85a281e7d524f598f47453f5",
+    "bytes": 3043541
   },
   "legacyBridge": false,
   "architecture": "lightweight-modular",

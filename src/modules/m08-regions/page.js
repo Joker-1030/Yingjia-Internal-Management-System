@@ -196,12 +196,12 @@
             const pmStatus = pmName ? "assigned" : "pending";
             const canSelfHandover =
               pmName === currentUser.name && canHandoverCities && !pending;
-            const pmActions = region.type === "industry" && canAssignCities ? '<button class="link" data-center-city-assign>分配 PM</button>' : invalidPriorResponsibility
+            const pmActions = invalidPriorResponsibility
               ? canAssignCities
                 ? `<button class="link" type="button" data-action="direct-adjust-city" data-id="${city.id}">直接调整</button>`
                 : "—"
               : pmName && !pending
-                ? `${canSelfHandover ? `<button class="link" type="button" data-action="handover-city" data-id="${city.id}">发起交接</button> · ` : ""}${canAssignCities ? `<button class="link" type="button" data-action="direct-adjust-city" data-id="${city.id}">直接调整</button> · ` : ""}<button class="link" type="button" data-action="city-impact" data-id="${city.id}">查看范围</button>`
+                ? `${canSelfHandover ? `<button class="link" type="button" data-action="handover-city" data-id="${city.id}">发起交接</button> · ` : ""}${canAssignCities ? `<button class="link" type="button" data-action="direct-adjust-city" data-id="${city.id}">直接调整</button> · ` : ""}<button class="link" type="button" data-action="city-impact" data-id="${city.id}">交接事项</button>`
                 : pending
                   ? "—"
                   : canAssignCities
@@ -215,14 +215,14 @@
       }
 
       function renderCityResponsibilityRules(region, canEdit) {
-        const rules = cityResponsibilityRules.filter(rule => rule.regionId === region.id &&
+        const rules = cityResponsibilityRules.filter(rule => ["客户公司", "集团"].includes(rule.dimension) && rule.regionId === region.id &&
           (rule.dimension !== "客户公司" || centerCustomers(region).some(customer => String(customer.id) === String(rule.value))));
         const rows = rules.map(rule => {
           const label = rule.dimension === "客户公司" ? customers.find(customer => String(customer.id) === String(rule.value))?.name || "客户已失效" : rule.value;
           return `<tr><td>${escapeHtml(rule.dimension)}</td><td>${escapeHtml(label)}</td><td>${escapeHtml(rule.pm)}</td><td>${escapeHtml(rule.effective || "—")}</td><td><span class="tag ${rule.status === "启用" ? "green" : "yellow"}">${rule.status}</span></td><td>${canEdit ? `<button class="link" data-city-rule-edit="${rule.id}">编辑</button> · <button class="link" data-city-rule-toggle="${rule.id}">${rule.status === "启用" ? "停用" : "启用"}</button>` : "—"}</td></tr>`;
         }).join("");
         const actual = centerCustomers(region).map(customer => `<tr><td>${escapeHtml(customer.name)}</td><td>${escapeHtml(customer.level)}</td><td>${escapeHtml(customerBusinessProvince(customer))} · ${escapeHtml(customerBusinessCity(customer) || "—")}</td><td>${escapeHtml(responsibilityOwnerForCustomer(customer, region) || "未分配")}</td></tr>`).join("");
-        return `<div class="region-data-pane" id="region-pane-rules" role="tabpanel" aria-labelledby="region-tab-rules" ${regionWorkspaceTab !== "rules" ? "hidden" : ""}><div class="panel-head"><div class="panel-title">客户与集团分配</div><div class="spacer"></div></div><div class="table-wrap"><table><thead><tr><th>对象</th><th>客户 / 集团</th><th>PM</th><th>生效日期</th><th>状态</th><th>操作</th></tr></thead><tbody>${rows || '<tr><td colspan="6"><div class="empty">暂无客户或集团分配</div></td></tr>'}</tbody></table></div>${renderGroupProvinceRoutes(region)}</div><div class="region-data-pane" id="region-pane-customers" role="tabpanel" aria-labelledby="region-tab-customers" ${regionWorkspaceTab !== "customers" ? "hidden" : ""}><div class="panel-head"><div class="panel-title">${region.type === "industry" && !region.enabled ? "待接收客户" : "当前责任客户"}</div></div><div class="table-wrap"><table><thead><tr><th>客户公司</th><th>责任层级</th><th>所在地</th><th>负责人</th></tr></thead><tbody>${actual || '<tr><td colspan="4"><div class="empty">暂无责任客户</div></td></tr>'}</tbody></table></div></div>`;
+        return `<div class="region-data-pane" id="region-pane-rules" role="tabpanel" aria-labelledby="region-tab-rules" ${regionWorkspaceTab !== "rules" ? "hidden" : ""}><div class="panel-head"><div class="panel-title">客户 / 集团 PM 分配</div><div class="spacer"></div></div><div class="table-wrap"><table><thead><tr><th>对象</th><th>客户 / 集团</th><th>PM</th><th>生效日期</th><th>状态</th><th>操作</th></tr></thead><tbody>${rows || '<tr><td colspan="6"><div class="empty">暂无客户或集团分配</div></td></tr>'}</tbody></table></div></div><div class="region-data-pane" id="region-pane-customers" role="tabpanel" aria-labelledby="region-tab-customers" ${regionWorkspaceTab !== "customers" ? "hidden" : ""}><div class="panel-head"><div class="panel-title">客户归属与划转</div></div><div class="table-wrap"><table><thead><tr><th>客户公司</th><th>责任层级</th><th>所在地</th><th>负责人</th></tr></thead><tbody>${actual || '<tr><td colspan="4"><div class="empty">暂无责任客户</div></td></tr>'}</tbody></table></div><details class="region-group-routes"><summary>按集团和省份持续分流</summary>${renderGroupProvinceRoutes(region)}</details></div>`;
       }
 
       function renderRegionAssignmentHelp() {
@@ -231,8 +231,8 @@
           <div class="region-assignment-help-body">
             <section>
               <h3>先确定经营中心</h3>
-              <p><strong>地理区域</strong>按关联省份经营；<strong>行业中心</strong>负责对应行业的全国客户。先匹配集团＋业务责任省份分流至当地地理中心，其余客户按启用行业中心、地理区域依次匹配。</p>
-              <p>行业中心启用前，通过“编辑区域配置”设置中心类型、负责行业与驻地。</p>
+              <p><strong>地理区域</strong>按关联省份经营；<strong>行业中心</strong>负责对应行业的全国客户。单独划转的客户优先归指定区域中心；其次匹配集团＋省份分流，其余按行业、地理区域依次匹配。</p>
+              <p>通过“编辑区域配置”设置行业及驻地，补齐客户负责人后保存即生效。</p>
             </section>
             <section>
               <h3>再确定负责人</h3>
@@ -245,16 +245,16 @@
               <h3>选对操作，核对分配结果</h3>
               <ul>
                 <li><strong>分配地市 PM：</strong>为待分配地市设置默认 PM；更换已有负责人时，在对应地市行使用“直接调整”。</li>
-                <li><strong>集团按省分流：</strong>在“客户与集团分配”内，由系统管理员或市场副总将集团某省全部客户交给该省地理中心；不改变集团组织树。</li><li><strong>分配客户 / 集团：</strong>为特定客户公司（含省公司）或本中心的集团客户指定 PM。</li>
+                <li><strong>划转客户：</strong>仅行业运营中心可发起，多选客户后直接指定接收区域中心，不受客户所在省份限制；未选客户仍留在原中心。</li><li><strong>集团按省分流：</strong>在“客户归属与划转”中持续将某集团某省的客户交给当地中心，不是单独客户划转的必经步骤。</li><li><strong>分配客户 / 集团：</strong>为特定客户公司（含省公司）或本中心的集团客户指定 PM。</li>
                 <li><strong>地市负责人配置：</strong>查看地市默认分工，可按地市或 PM 查看。</li>
-                <li><strong>客户与集团分配：</strong>维护公司、集团的分配规则。无关键人、待办及其他交接事项时可直接取消关联，无需选择接收人；有事项时按原流程交接。</li>
-                <li><strong>当前责任客户：</strong>核对最终负责人；待启用行业中心显示“待接收客户”，用于检查接收安排。</li>
+                <li><strong>客户 / 集团 PM 分配：</strong>维护公司、集团的分配规则。无关键人、待办及其他交接事项时可直接取消关联，无需选择接收人；有事项时按原流程交接。</li>
+                <li><strong>客户归属与划转：</strong>核对本中心最终客户和负责人；客户 / 集团 PM 分配只改变本中心内的负责PM。</li>
               </ul>
             </section>
             <section>
               <h3>何时生效，交接哪些业务</h3>
               <p>客户 / 集团分配新增、修改、启用或停用后，<strong>立即按最终规则交接存量客户</strong>；省公司停用直接分配后回归中心总监，其他客户回退下一层匹配。地市调整不覆盖客户、集团的高优先级分配。</p>
-              <p>行业中心先配置、不提前交接。有未分配或无有效接收人的客户时，须补齐后才能启用；成功启用立即交接未按集团省份分流的对应行业客户，失败时原责任保持。</p>
+              <p>行业中心配置完整后保存即生效。未分配客户须先补齐接收人；保存成功立即交接，已单独划转或按集团省份分流的客户保持，失败时原责任不变。</p>
               <p>交接包含适用任务、六阶段普通项目和未落选普通商机。项目终态、历史记录、历史业绩和目标不追溯改写；平台师资合作业务不随地区责任交接。</p>
             </section>
           </div>
@@ -333,7 +333,7 @@
             const department = organizationDepartments.find((entry) => entry.regionId === item.id);
             const status = regionConfigurationStatus(item);
             return `<button class="master-item ${item.id === region.id ? "active" : ""}" data-region-select="${item.id}" data-search="${item.name}${department?.code || ""}${item.director}" data-provinces="${regionProvinceList(item).join("|")}"><div class="avatar">区</div><div class="master-item-main"><div class="master-item-title">${item.name}</div><div class="master-item-sub">${department?.code || "待同步编码"} · ${item.director || "主管待配置"}</div><div class="master-item-sub">${item.type === "industry" ? `全国 · ${escapeHtml(item.industry)}` : `${regionProvinceList(item).length} 省`} · 驻地 ${item.base || "待配置"} · <span class="tag ${status === "已配置" ? "green" : status === "配置异常" ? "red" : "yellow"}">${status}</span></div></div><span>›</span></button>`;
-          }).join("")}</div></aside><div class="detail-pane">${anomaly ? anomalyHtml : `<div class="region-detail-head"><div class="region-detail-head-main"><div class="region-detail-name">${region.name}</div><div class="region-detail-director">区域总监 ${region.director || "待配置"} · 部门编码 ${organizationDepartments.find((item) => item.regionId === region.id)?.code || "待同步"}</div></div></div><div class="region-detail-actions">${canEditRegion ? `<button class="btn" data-action="edit-region" data-id="${region.id}">编辑区域配置</button>${region.type === "industry" && !region.enabled ? `<button class="btn btn-primary" data-enable-center="${region.id}">启用中心</button>` : ""}` : ""}${canAssignCities ? '<button class="btn btn-primary" type="button" id="openInitialCityAssignment">分配地市 PM</button>' : ""}${canEditCityRules ? '<button class="btn btn-primary" type="button" data-city-rule-add>分配客户 / 集团</button>' : ""}</div>${anomalyHtml}<div class="region-detail-summary"><div class="overview-item"><label>${region.type === "industry" ? "负责行业" : "关联省份"}</label><div>${region.type === "industry" ? escapeHtml(region.industry) : provinces.length}</div></div><div class="overview-item"><label>驻地</label><div>${region.base || "待配置"}</div></div><div class="overview-item"><label>已分配地市</label><div>${currentUser.role === "pm" ? regionCities.length : `${assignedCount}/${regionCities.length}`}</div></div><div class="overview-item"><label>地市客户</label><div>${customerCount}</div></div><div class="overview-item"><label>关键人</label><div>${contactCount}</div></div></div><div class="region-provinces"><span class="region-provinces-label">${region.type === "industry" ? "经营范围" : "关联省份"}</span>${region.type === "industry" ? '<span class="tag blue">全国</span>' : provinces.map(province => `<span class="tag blue">${province}</span>`).join("") || '<span class="tag yellow">待配置</span>'}</div><div class="region-data-tabs" role="tablist" aria-label="中心责任资料">${[["cities", "地市负责人配置"], ["rules", "客户与集团分配"], ["customers", region.type === "industry" && !region.enabled ? "待接收客户" : "当前责任客户"]].map(([key, label]) => `<button class="tab ${regionWorkspaceTab === key ? "active" : ""}" type="button" role="tab" id="region-tab-${key}" aria-selected="${regionWorkspaceTab === key}" aria-controls="region-pane-${key}" data-region-workspace-tab="${key}">${label}</button>`).join("")}</div><div class="region-data-area"><div class="region-data-pane" id="region-pane-cities" role="tabpanel" aria-labelledby="region-tab-cities" ${regionWorkspaceTab !== "cities" ? "hidden" : ""}>${regionAssignmentView === "pm" ? pmView : renderRegionCityResponsibilities({ region, regionCities, provinces, canAssignCities, canHandoverCities, viewSwitch, validPmNames })}</div>${renderCityResponsibilityRules(region, canEditCityRules)}</div>`}</div></div></section>`
+          }).join("")}</div></aside><div class="detail-pane">${anomaly ? anomalyHtml : `<div class="region-detail-head"><div class="region-detail-head-main"><div class="region-detail-name">${region.name}</div><div class="region-detail-director">区域总监 ${region.director || "待配置"} · 部门编码 ${organizationDepartments.find((item) => item.regionId === region.id)?.code || "待同步"}</div></div></div><div class="region-detail-actions">${canEditRegion ? `<button class="btn" data-action="edit-region" data-id="${region.id}">编辑区域配置</button>` : ""}${canAssignCities ? '<button class="btn btn-primary" type="button" id="openInitialCityAssignment">分配地市 PM</button>' : ""}${canEditCityRules ? '<button class="btn btn-primary" type="button" data-city-rule-add>分配客户 / 集团 PM</button>' : ""}${canTransferCustomersFromCenter(region) ? '<button class="btn btn-primary" type="button" data-customer-center-transfer>划转客户</button>' : ""}</div>${anomalyHtml}<div class="region-detail-summary"><div class="overview-item"><label>${region.type === "industry" ? "负责行业" : "关联省份"}</label><div>${region.type === "industry" ? escapeHtml(region.industry) : provinces.length}</div></div><div class="overview-item"><label>驻地</label><div>${region.base || "待配置"}</div></div><div class="overview-item"><label>已分配地市</label><div>${currentUser.role === "pm" ? regionCities.length : `${assignedCount}/${regionCities.length}`}</div></div><div class="overview-item"><label>地市客户</label><div>${customerCount}</div></div><div class="overview-item"><label>关键人</label><div>${contactCount}</div></div></div><div class="region-provinces"><span class="region-provinces-label">${region.type === "industry" ? "经营范围" : "关联省份"}</span>${region.type === "industry" ? '<span class="tag blue">全国</span>' : provinces.map(province => `<span class="tag blue">${province}</span>`).join("") || '<span class="tag yellow">待配置</span>'}</div><div class="region-data-tabs" role="tablist" aria-label="中心责任资料">${[["cities", "地市负责人配置"], ["rules", "客户 / 集团 PM 分配"], ["customers", "客户归属与划转"]].map(([key, label]) => `<button class="tab ${regionWorkspaceTab === key ? "active" : ""}" type="button" role="tab" id="region-tab-${key}" aria-selected="${regionWorkspaceTab === key}" aria-controls="region-pane-${key}" data-region-workspace-tab="${key}">${label}</button>`).join("")}</div><div class="region-data-area"><div class="region-data-pane" id="region-pane-cities" role="tabpanel" aria-labelledby="region-tab-cities" ${regionWorkspaceTab !== "cities" ? "hidden" : ""}>${regionAssignmentView === "pm" ? pmView : renderRegionCityResponsibilities({ region, regionCities, provinces, canAssignCities, canHandoverCities, viewSwitch, validPmNames })}</div>${renderCityResponsibilityRules(region, canEditCityRules)}</div>`}</div></div></section>`
         );
       }
 

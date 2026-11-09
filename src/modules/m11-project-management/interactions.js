@@ -2748,8 +2748,14 @@
           button.onclick = () => {
             const framework = projectFrameworks.find(item => item.id === button.dataset.frameworkProjects);
             if (!framework || !projectFrameworkCanView(framework)) return;
-            const rows = projectFrameworkProjects(framework.id).map(project => `<tr><td>${escapeHtml(project.id)}</td><td style="white-space:normal;overflow-wrap:anywhere">${escapeHtml(project.name)}</td><td>${escapeHtml(computeProjectStageAndTodos(project).stage)}</td></tr>`).join("");
-            openModal(`<div class="modal-head project-modal-head"><div class="modal-title">关联项目</div><button class="icon-btn close" data-close aria-label="关闭">×</button></div><div class="modal-body project-modal-body"><div class="table-wrap"><table style="min-width:0;table-layout:fixed"><thead><tr><th style="width:150px">项目编号</th><th>项目名称</th><th style="width:80px">主阶段</th></tr></thead><tbody>${rows || '<tr><td colspan="3" class="empty">暂无关联项目</td></tr>'}</tbody></table></div></div><div class="modal-foot"><button class="btn" data-close>关闭</button></div>`);
+            const rows = projectFrameworkProjects(framework.id).map(project => {
+              const stage = computeProjectStageAndTodos(project).stage;
+              const settledTermination = stage === "已中止" && project.terminationInvolvesSettlement;
+              const usageStatus = ["已立项", "进行中"].includes(stage) ? "冻结" : ["已交付", "已完成"].includes(stage) || settledTermination ? "已使用" : "不占用";
+              const settlementNote = settledTermination ? `<div class="list-sub">结算占用（含税）：${formatProjectAmount(project.terminationSettlementAmount)}万元</div>` : "";
+              return `<tr><td>${escapeHtml(project.id)}</td><td style="white-space:normal;overflow-wrap:anywhere">${escapeHtml(project.name)}</td><td>${formatProjectAmount(project.amount)}</td><td>${escapeHtml(stage)}</td><td>${usageStatus}${settlementNote}</td></tr>`;
+            }).join("");
+            openModal(`<div class="modal-head project-modal-head"><div class="modal-title">关联项目</div><button class="icon-btn close" data-close aria-label="关闭">×</button></div><div class="modal-body project-modal-body project-framework-projects"><div class="table-wrap"><table><thead><tr><th style="width:20%">项目编号</th><th style="width:27%">项目名称</th><th style="width:17%">项目金额（含税，万元）</th><th style="width:11%">主阶段</th><th style="width:25%">额度占用状态</th></tr></thead><tbody>${rows || '<tr><td colspan="5" class="empty">暂无关联项目</td></tr>'}</tbody></table></div></div><div class="modal-foot"><button class="btn" data-close>关闭</button></div>`);
           };
         });
         document.querySelectorAll("[data-framework-edit]").forEach(button => {

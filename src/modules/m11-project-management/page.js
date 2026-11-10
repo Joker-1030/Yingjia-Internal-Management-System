@@ -253,11 +253,16 @@
         const facts = projectCustomerFacts(project);
         return facts ? adminArea(facts) : "—";
       }
+      function financeCanReadAllProjects() {
+        const employee = employees.find(item => item.code === currentUser?.employeeCode || (!currentUser?.employeeCode && item.name === currentUser?.name));
+        return Boolean(currentUser && !currentUser.disabled && employee?.status === "在职" && employee.accountStatus === "启用" && employeeHasRole(employee, "财务") &&
+          currentRoleTemplateNames().includes("财务") && hasPermission("projects") && hasOperationPermission("projects.view"));
+      }
       function projectIsVisibleToCurrentUser(project) {
-        if (!currentUser || !project) return false;
+        if (!currentUser || currentUser.disabled || !project || !hasPermission("projects") || !hasOperationPermission("projects.view")) return false;
         const facts = projectCustomerFacts(project);
         if (!facts) return false;
-        if (currentUser.fullAccess || ["president", "vp"].includes(currentUser.role))
+        if (financeCanReadAllProjects() || currentUser.fullAccess || ["president", "vp"].includes(currentUser.role))
           return true;
         if (isEcosystemProject(project)) return projectOwnedByCurrentUser(project);
         if (currentUser.role === "director")
@@ -1301,6 +1306,7 @@
         const packageName = project.packageId
           ? projectPackages.find((item) => item.id === project.packageId)?.name
           : "";
+        const framework = project.resourceType === "框架服务" ? projectFrameworks.find(item => item.id === project.frameworkId) || project.frameworkSnapshot : null;
         const items = [
           ["项目编号", project.id],
           ["项目类型", project.type],
@@ -1319,7 +1325,13 @@
           ["项目确认天数", `${project.days} 天`],
           ["资源类型", project.resourceType],
           ["合作形式", project.cooperation],
-          ...(project.resourceType === "框架服务" ? [["框架", projectFrameworkLabel(projectFrameworks.find(item => item.id === project.frameworkId) || project.frameworkSnapshot)]] : []),
+          ...(project.resourceType === "框架服务" ? [
+            ["框架编号", framework?.code || "—"],
+            ["框架名称", framework?.name || "—"],
+            ["框架金额（含税，万元）", framework ? formatProjectAmount(framework.amount) : "—"],
+            ["开始日期", framework?.validFrom || "—"],
+            ["到期日期", framework?.validTo || "—"],
+          ] : []),
           ...(project.packageId
             ? [["采购包", `${packageName}（${project.packageId}）`]]
             : []),
@@ -1384,7 +1396,7 @@
         return `<div class="project-detail-section"><div class="section-title">项目基本信息</div><div class="detail-grid">${items
           .map(
             ([label, value, formula]) =>
-              `<div class="detail-item"><label${label === "所属商机编号" ? ' class="project-opportunity-label"' : formula ? ' class="project-money-label"' : ""}>${escapeHtml(label)}${label === "所属商机编号" && !project.opportunityId ? '<span class="project-opportunity-note">暂不填写</span>' : ""}${formula ? `<span class="project-money-formula">${escapeHtml(formula)}</span>` : ""}</label><div>${escapeHtml(value)}</div></div>`,
+              `<div class="detail-item"><label${label === "所属商机编号" ? ' class="project-opportunity-label"' : formula ? ' class="project-money-label"' : ""}>${escapeHtml(label)}${formula ? `<span class="project-money-formula">${escapeHtml(formula)}</span>` : ""}</label><div>${escapeHtml(value)}</div></div>`,
           )
           .join("")}</div></div>`;
       }
@@ -1848,16 +1860,17 @@
         return types.filter(resource => resource === "平台师资合作" ? Boolean(currentEcosystemEmployee()) : ["pm", "director"].includes(currentUser?.role));
       }
       function projectOwnerFieldHtml(project, resource = project?.resourceType || "", selectedCode = "") {
-        if (!project && resource === "平台师资合作" && currentUser?.fullAccess)
+        if (!project && projectCreateCustomerIsPlatform($("#pfCustomer")?.value) && currentUser?.fullAccess)
           return projectFormFieldHtml("pfOwner", "项目负责人", `<select class="input" id="pfOwner"><option value="">请选择生态合作员</option>${employees.filter(validEcosystemEmployee).map(employee => `<option value="${employee.code}" ${employee.code === selectedCode ? "selected" : ""}>${escapeHtml(employee.name)} · ${employee.code}</option>`).join("")}</select>`, true);
         const customer = customers.find(item => item.id === Number($("#pfCustomer")?.value));
-        const owner = project ? projectCurrentOwner(project) : resource === "平台师资合作" ? currentEcosystemEmployee()?.name : customer ? resolveProjectOwner(customer) : "";
+        const owner = project ? projectCurrentOwner(project) : projectCreateCustomerIsPlatform($("#pfCustomer")?.value) ? currentEcosystemEmployee()?.name : customer ? resolveProjectOwner(customer) : "";
         return `<div class="form-group"><label class="form-label">项目负责人</label><div class="input" id="pfOwner">${escapeHtml(owner || "—")}</div></div>`;
       }
       function refreshProjectOwnerField() {
         const project = currentPage === "project-edit" ? projectById(selectedProjectId) : null;
         const host = $("#pfOwnerHost");
         if (host) host.innerHTML = projectOwnerFieldHtml(project, $("#pfResource")?.value, $("#pfOwner")?.value || "");
+        if (!project && $("#pfOwner")) $("#pfOwner").onchange = refreshProjectFormDynamics;
       }
       function projectUsesPlatformCustomer(resource = "") {
         return resource === "平台师资合作" || (!resource && currentUser?.role === "ecology");
@@ -1865,7 +1878,7 @@
       function platformCompanyFeeValid(value, field) {
         if (value === null || value === undefined || String(value).trim() === "") return false;
         const number = Number(value);
-        return Number.isFinite(number) && number >= 0 &&
+        return (field !== "cooperationPay" || Number.isFinite(parseYuanMoney(value))) && Number.isFinite(number) && number >= 0 &&
           (field !== "managementFeeRate" || number <= 100) &&
           number === Number(number.toFixed(2));
       }
@@ -1973,8 +1986,43 @@
         const context = { directionId: project?.teachingDirectionId || "", start: project?.startTime || "", end: project?.endTime || "", excludeId: project?.id || "", resourceType: project?.resourceType || "" };
         return `<div class="instructor-picker" id="${id}" data-instructor-picker data-instructor-label="${escapeHtml(roleLabel)}"><div class="multi-select instructor-select"><button class="multi-select-trigger" type="button" data-instructor-trigger aria-haspopup="listbox" aria-expanded="false"><span>搜索并选择${escapeHtml(roleLabel)}</span><span aria-hidden="true">⌄</span></button><div class="multi-select-menu hidden" data-instructor-menu><input class="input" type="search" data-instructor-search placeholder="搜索${escapeHtml(roleLabel)}" aria-label="搜索${escapeHtml(roleLabel)}"><div data-instructor-options>${projectTeacherOptionHtml(tokens, context, projectStaffRole(id))}</div></div></div><div class="instructor-selected-list" data-instructor-selected aria-live="polite">${tokens.map((token) => `<span class="instructor-selected-item"><span>${escapeHtml(projectTeacherTokenName(token))}</span><button type="button" class="instructor-selected-remove" data-instructor-remove="${escapeHtml(token)}" aria-label="移除${escapeHtml(projectTeacherTokenName(token))}">×</button></span>`).join("")}</div></div>`;
       }
+      function projectCreateCustomerIsPlatform(customerId) {
+        return platformCompanies.some(item => item.id === customerId);
+      }
+      function projectCreateCustomerOptions() {
+        return [["客户公司", projectCreatableCustomers("采购包课程")], ["平台公司", projectCreatableCustomers("平台师资合作")]]
+          .filter(([, items]) => items.length)
+          .map(([label, items]) => `<optgroup label="${label}">${items.map(item => `<option value="${escapeHtml(String(item.id))}">${escapeHtml(item.name)}${item.level ? `（${escapeHtml(item.level)}）` : ""}</option>`).join("")}</optgroup>`).join("");
+      }
+      function projectCustomerOpportunityCandidates(customerId, ecosystemOwnerCode = "") {
+        const platform = projectCreateCustomerIsPlatform(customerId);
+        const customer = projectCreatableCustomers(platform ? "平台师资合作" : "采购包课程").find(item => String(item.id) === String(customerId));
+        if (!customer) return [];
+        const employee = platform ? (currentUser.fullAccess ? employees.find(item => item.code === ecosystemOwnerCode) : currentEcosystemEmployee()) : null;
+        if (platform && !validEcosystemEmployee(employee)) return [];
+        if (!platform && currentUser.role === "pm" && resolveProjectOwner(customer) !== currentUser.name) return [];
+        const types = platform ? [SALES_ECOSYSTEM_TYPE] : ["培训商机", "AI 项目商机"];
+        const customerCode = platform ? customer.id : `CU-${String(customer.id).padStart(4, "0")}`;
+        return opportunities.filter(item => item.stage === "中选" && types.includes(item.type) &&
+          item.customerCode === customerCode && (!platform || salesEcosystemOwnerCode(item) === employee.code) &&
+          !projects.some(project => project.opportunityId === item.id));
+      }
+      function projectOpportunityCandidates(type, customerId, resourceType, ecosystemOwnerCode = "") {
+        if (!type || !customerId || !resourceType || !projectAvailableResourceTypes(type).includes(resourceType)) return [];
+        const platform = resourceType === "平台师资合作";
+        if (platform !== projectCreateCustomerIsPlatform(customerId)) return [];
+        const expectedType = platform ? SALES_ECOSYSTEM_TYPE : type === "培训项目" ? "培训商机" : "AI 项目商机";
+        return projectCustomerOpportunityCandidates(customerId, ecosystemOwnerCode).filter(item => item.type === expectedType);
+      }
+      function projectCreateResourceTypes(type, customerId) {
+        const platform = projectCreateCustomerIsPlatform(customerId);
+        return projectAvailableResourceTypes(type).filter(resource =>
+          (resource === "平台师资合作") === platform &&
+          (resource !== "框架服务" || projectFrameworks.some(item => String(item.customerId) === String(customerId) && projectFrameworkCanView(item) && projectFrameworkStatus(item) === "启用")));
+      }
       function projectOpportunityFieldHtml(project) {
-        return `<div class="form-group"><label class="form-label project-opportunity-label" for="pfOpportunity">所属商机编号${!project?.opportunityId ? '<span class="project-opportunity-note" id="pfOpportunityHint">暂不填写</span>' : ""}</label><input class="input" id="pfOpportunity" value="${escapeHtml(project?.opportunityId || "—")}" readonly${!project?.opportunityId ? ' aria-describedby="pfOpportunityHint"' : ""}></div>`;
+        if (project) return `<div class="form-group"><label class="form-label" for="pfOpportunity">所属商机编号</label><input class="input" id="pfOpportunity" value="${escapeHtml(project.opportunityId || "—")}" readonly></div>`;
+        return projectFormFieldHtml("pfOpportunity", "所属商机", '<select class="input" id="pfOpportunity" aria-required="true" disabled><option value="">请先选择客户公司</option></select>', true);
       }
       function projectFormHtml(project) {
         const editing = Boolean(project);
@@ -2015,12 +2063,7 @@
         });
         const customerOptions = editing
           ? `<option value="${project.customerId}" selected>${escapeHtml(project.customerSnapshot?.name || "—")}${project.customerSnapshot?.level ? `（${escapeHtml(project.customerSnapshot.level)}）` : ""}</option>`
-          : projectCreatableCustomers(resourceType)
-              .map(
-                (customer) =>
-                  `<option value="${customer.id}" ${project?.customerId === customer.id ? "selected" : ""}>${escapeHtml(customer.name)}${customer.level ? `（${escapeHtml(customer.level)}）` : ""}</option>`,
-              )
-              .join("");
+          : projectCreateCustomerOptions();
         const resourceOptions = `<option value="">请选择资源类型</option>${projectAvailableResourceTypes(type, project)
           .map(
             (item) =>
@@ -2087,21 +2130,16 @@
             true,
           ) +
           projectFormFieldHtml(
-            "pfType",
-            "项目类型",
-            `<select class="input" id="pfType" ${editing ? "disabled" : ""}><option value="">请选择项目类型</option>${(currentUser?.role === "ecology" && !editing ? ["培训项目"] : PROJECT_TYPES).map((item) => `<option value="${item}" ${type === item ? "selected" : ""}>${item}</option>`).join("")}</select>`,
-            true,
-          ) +
-          projectFormFieldHtml(
             "pfCustomer",
             "客户公司",
-            `<select class="input" id="pfCustomer" data-source="${projectUsesPlatformCustomer(resourceType) ? "platform" : "customer"}" ${editing ? "disabled" : ""}><option value="">请选择客户公司</option>${customerOptions}</select>`,
+            `<select class="input" id="pfCustomer" ${editing ? "disabled" : ""}><option value="">请选择客户公司</option>${customerOptions}</select>`,
             true,
           ) +
           `<div class="form-group"><label class="form-label">客户编号</label><div class="input" id="pfCustomerCode">${project ? project.customerSnapshot?.customerCode || "—" : "—"}</div></div>` +
-          projectOpportunityFieldHtml(project) +
-          `<div class="form-group"><label class="form-label">地区</label><div class="input" id="pfArea">${project ? projectArea(project) : "—"}</div></div>` +
           `<div id="pfOwnerHost" style="display:contents">${projectOwnerFieldHtml(project, resourceType)}</div>` +
+          projectOpportunityFieldHtml(project) +
+          projectFormFieldHtml("pfType", "项目类型", `<input class="input" id="pfType" value="${escapeHtml(type)}" readonly>`, true) +
+          `<div class="form-group"><label class="form-label">地区</label><div class="input" id="pfArea">${project ? projectArea(project) : "—"}</div></div>` +
           `</div>` +
           `<div class="section-title">时间与天数</div><div class="form-grid">` +
           projectFormFieldHtml(
@@ -2353,10 +2391,15 @@
         );
       }
 
+      function nextProjectFrameworkCode(year = DEMO_TODAY.slice(0, 4)) {
+        const prefix = "KJ" + year;
+        const sequence = Math.max(0, ...projectFrameworks.filter(item => item.code?.startsWith(prefix)).map(item => Number(item.code.slice(prefix.length)))) + 1;
+        return prefix + String(sequence).padStart(6, "0");
+      }
       function projectFrameworkLabel(framework) {
         if (!framework) return "—";
         const customer = customers.find(item => String(item.id) === String(framework.customerId));
-        return `${framework.name} · ${framework.customerName || customer?.name || "—"} · ${framework.validFrom} ~ ${framework.validTo} · ${formatProjectAmount(framework.amount)}万元`;
+        return `${framework.code || "—"} · ${framework.name} · ${framework.customerName || customer?.name || "—"} · ${framework.validFrom} ~ ${framework.validTo} · ${formatProjectAmount(framework.amount)}万元`;
       }
       function projectFrameworkCanView(framework) {
         if (!hasPermission("frameworks")) return false;
@@ -2412,9 +2455,9 @@
           const customer = customers.find(customer => String(customer.id) === String(item.customerId));
           const usage = projectFrameworkUsage(item.id);
           const status = projectFrameworkStatus(item);
-          return `<tr data-page-row><td>${escapeHtml(item.name)}</td><td>${escapeHtml(customer?.name || "—")}</td><td>${formatProjectAmount(item.amount)}</td><td>${item.validFrom}</td><td>${item.validTo}</td><td>${formatProjectAmount(usage.used)}<div class="list-sub">已交付/结算 ${formatProjectAmount(usage.delivered)}；冻结 ${formatProjectAmount(usage.frozen)}</div></td><td>${formatProjectAmount(usage.available)}</td><td><button class="link" type="button" data-framework-projects="${escapeHtml(item.id)}">${projectFrameworkProjects(item.id).length}</button></td><td>${configStatusTag(status)}</td><td>${canManage && status !== "已到期" ? `<div class="actions project-config-actions"><button class="link" type="button" data-framework-edit="${escapeHtml(item.id)}">编辑</button><button class="link" type="button" data-framework-toggle="${escapeHtml(item.id)}" data-framework-next="${status === "启用" ? "停用" : "启用"}">${status === "启用" ? "停用" : "启用"}</button></div>` : "—"}</td></tr>`;
+          return `<tr data-page-row><td>${escapeHtml(item.code)}</td><td>${escapeHtml(item.name)}</td><td>${escapeHtml(customer?.name || "—")}</td><td>${formatProjectAmount(item.amount)}</td><td>${item.validFrom}</td><td>${item.validTo}</td><td>${formatProjectAmount(usage.used)}<div class="list-sub">已交付/结算 ${formatProjectAmount(usage.delivered)}；冻结 ${formatProjectAmount(usage.frozen)}</div></td><td>${formatProjectAmount(usage.available)}</td><td><button class="link" type="button" data-framework-projects="${escapeHtml(item.id)}">${projectFrameworkProjects(item.id).length}</button></td><td>${configStatusTag(status)}</td><td>${canManage && status !== "已到期" ? `<div class="actions project-config-actions"><button class="link" type="button" data-framework-edit="${escapeHtml(item.id)}">编辑</button><button class="link" type="button" data-framework-toggle="${escapeHtml(item.id)}" data-framework-next="${status === "启用" ? "停用" : "启用"}">${status === "启用" ? "停用" : "启用"}</button></div>` : "—"}</td></tr>`;
         }).join("");
         return '<div class="project-page project-config-page">' +
           pageHead("框架管理", "查看客户框架与额度使用情况。", canManage ? '<button class="btn btn-primary" id="addProjectFramework">新增框架</button>' : "") +
-          `<section class="panel project-config-panel"><div class="table-wrap project-config-table-wrap"><table class="project-config-table project-framework-table" data-paged-table="m11-frameworks"><thead><tr><th>框架名称</th><th>客户公司</th><th>框架金额（含税，万元）</th><th>开始日期</th><th>到期日期</th><th>已使用（含冻结，万元）</th><th>待使用金额（含税，万元）</th><th>关联项目数</th><th>状态</th><th>操作</th></tr></thead><tbody>${rows || '<tr data-empty-row><td colspan="10"><div class="empty">暂无框架</div></td></tr>'}</tbody></table></div>${tablePagination("m11-frameworks")}</section></div>`;
+          `<section class="panel project-config-panel"><div class="table-wrap project-config-table-wrap"><table class="project-config-table project-framework-table" data-paged-table="m11-frameworks"><thead><tr><th>框架编号</th><th>框架名称</th><th>客户公司</th><th>框架金额（含税，万元）</th><th>开始日期</th><th>到期日期</th><th>已使用（含冻结，万元）</th><th>待使用金额（含税，万元）</th><th>关联项目数</th><th>状态</th><th>操作</th></tr></thead><tbody>${rows || '<tr data-empty-row><td colspan="11"><div class="empty">暂无框架</div></td></tr>'}</tbody></table></div>${tablePagination("m11-frameworks")}</section></div>`;
       }

@@ -261,9 +261,9 @@
           '<button class="icon-btn package-direction-remove" type="button" data-pkg-dir-remove title="移除该课程方向" aria-label="移除该课程方向">×</button></div>'
         );
       }
-      function packageDirectionNumber(input) {
+      function packageDirectionNumber(input, money = false) {
         if (!input || input.value.trim() === "") return null;
-        const value = Number(input.value);
+        const value = money ? parseYuanMoney(input.value) : Number(input.value);
         return Number.isFinite(value) ? value : null;
       }
       function recalculatePackageDirection(row, source) {
@@ -276,17 +276,17 @@
         if (taxRate === null || taxRate < 0 || taxRate > 100) return;
         const basis = row.dataset.priceBasis || "untaxed";
         if (basis === "taxed") {
-          const taxed = packageDirectionNumber(taxedInput);
+          const taxed = packageDirectionNumber(taxedInput, true);
           if (taxed === null || taxed <= 0) return;
           untaxedInput.value = round2(taxed / (1 + taxRate / 100)).toFixed(2);
           return;
         }
-        const untaxed = packageDirectionNumber(untaxedInput);
+        const untaxed = packageDirectionNumber(untaxedInput, true);
         if (untaxed === null || untaxed <= 0) return;
         taxedInput.value = round2(untaxed * (1 + taxRate / 100)).toFixed(2);
       }
       function normalizePackageDirectionInput(row, input, source) {
-        const value = packageDirectionNumber(input);
+        const value = packageDirectionNumber(input, source !== "taxRate" && source === (row.dataset.priceBasis || "untaxed"));
         if (value !== null) input.value = round2(value).toFixed(2);
         recalculatePackageDirection(row, source === "taxRate" ? source : null);
       }
@@ -306,9 +306,10 @@
         const untaxedInput = row.querySelector("[data-pkg-dir-untaxed]");
         const taxRateInput = row.querySelector("[data-pkg-dir-tax-rate]");
         const taxedInput = row.querySelector("[data-pkg-dir-taxed]");
-        const rawUntaxedPrice = packageDirectionNumber(untaxedInput);
+        const basis = row.dataset.priceBasis || "untaxed";
+        const rawUntaxedPrice = packageDirectionNumber(untaxedInput, basis === "untaxed");
         const rawTaxRate = packageDirectionNumber(taxRateInput);
-        const rawTaxedPrice = packageDirectionNumber(taxedInput);
+        const rawTaxedPrice = packageDirectionNumber(taxedInput, basis === "taxed");
         if (rawUntaxedPrice === null || rawUntaxedPrice <= 0) {
           untaxedInput.reportValidity();
           return null;
@@ -324,7 +325,6 @@
         const untaxedPrice = round2(rawUntaxedPrice);
         const taxRate = round2(rawTaxRate);
         const taxedPrice = round2(rawTaxedPrice);
-        const basis = row.dataset.priceBasis || "untaxed";
         const expected =
           basis === "taxed"
             ? round2(taxedPrice / (1 + taxRate / 100))
@@ -475,7 +475,7 @@
           const fee = feeInput.value.trim();
           const pay = payInput.value.trim();
           const feeMessage = "管理费比例须为0～100，最多两位小数";
-          const payMessage = "合作课酬须大于等于0，最多两位小数";
+          const payMessage = "合作课酬须大于等于0，最多6位整数、最多两位小数";
           if (feeInput.validity.badInput || (fee && !platformCompanyFeeValid(fee, "managementFeeRate"))) return invalid(feeInput, feeMessage);
           if (payInput.validity.badInput || (pay && !platformCompanyFeeValid(pay, "cooperationPay"))) return invalid(payInput, payMessage);
           if (!fee && !pay) return invalid(feeInput, "管理费比例和合作课酬至少填写一项");
@@ -1022,27 +1022,66 @@
         if (!project) return $("#pfCustomer")?.value || "";
         return platformCompanies.some(company => company.id === project.customerId) ? project.customerId : $("#pfCompany")?.value || "";
       }
+      function refreshProjectOpportunityOptions() {
+        if (currentPage === "project-edit") return;
+        const select = $("#pfOpportunity");
+        if (!select) return;
+        const customerId = $("#pfCustomer")?.value || "", owner = $("#pfOwner")?.value || "";
+        const selected = select.value;
+        const needsOwner = projectCreateCustomerIsPlatform(customerId) && currentUser.fullAccess && !employees.some(item => item.code === owner && validEcosystemEmployee(item));
+        const candidates = projectCustomerOpportunityCandidates(customerId, owner);
+        const placeholder = !customerId ? "请先选择客户公司" : needsOwner ? "请先选择生态合作员" : candidates.length ? "请选择所属商机" : "该客户暂无已中选、未立项商机，请先完成商机中选";
+        select.innerHTML = `<option value="">${placeholder}</option>` + candidates.map(item => `<option value="${escapeHtml(item.id)}">${escapeHtml(item.name)}（${escapeHtml(item.id)}）</option>`).join("");
+        select.value = candidates.some(item => item.id === selected) ? selected : "";
+        select.disabled = !customerId || needsOwner || !candidates.length;
+      }
       function refreshProjectCustomerField() {
         const editing = currentPage === "project-edit";
-        const resource = $("#pfResource")?.value || "";
         const project = editing ? projectById(selectedProjectId) : null;
-        const platform = project ? isEcosystemProject(project) && platformCompanies.some(company => company.id === project.customerId) : projectUsesPlatformCustomer(resource);
         const select = $("#pfCustomer");
         if (!select) return;
+        const platform = project ? isEcosystemProject(project) && platformCompanies.some(company => company.id === project.customerId) : projectCreateCustomerIsPlatform(select.value);
         if (!editing) {
           const previous = select.value;
-          const source = platform ? "platform" : "customer";
-          const candidates = projectCreatableCustomers(resource);
-          select.innerHTML = '<option value="">请选择客户公司</option>' + candidates.map(customer =>
-            `<option value="${escapeHtml(String(customer.id))}">${escapeHtml(customer.name)}${customer.level ? `（${escapeHtml(customer.level)}）` : ""}</option>`).join("");
-          select.value = (!select.dataset.source || select.dataset.source === source) && candidates.some(customer => String(customer.id) === previous) ? previous : "";
-          select.dataset.source = source;
-          const customer = candidates.find(customer => String(customer.id) === select.value);
+          const candidates = projectCreatableCustomers(platform ? "平台师资合作" : "采购包课程");
+          select.innerHTML = '<option value="">请选择客户公司</option>' + projectCreateCustomerOptions();
+          select.value = candidates.some(item => String(item.id) === previous) ? previous : "";
+          select.dataset.source = platform ? "platform" : "customer";
+          const customer = candidates.find(item => String(item.id) === select.value);
           $("#pfCustomerCode").textContent = customerStableCode(customer);
           $("#pfArea").textContent = !platform && customer ? adminArea(customer) : "—";
         }
         setProjectFieldVisible("pfArea", !platform);
-        if (resource === "平台师资合作") $("#pfCompany").value = projectFormCompanyId();
+        if (platform) $("#pfCompany").value = projectFormCompanyId();
+      }
+      function refreshProjectCreateResources() {
+        const typeInput = $("#pfType"), resourceSelect = $("#pfResource"), cooperationSelect = $("#pfCooperation");
+        const customerId = $("#pfCustomer").value;
+        const deal = projectCustomerOpportunityCandidates(customerId, $("#pfOwner")?.value || "").find(item => item.id === $("#pfOpportunity").value);
+        const type = deal ? deal.type === "AI 项目商机" ? "AI软件项目" : "培训项目" : "";
+        const oldType = typeInput.value, oldResource = resourceSelect.dataset.previousResource || "";
+        const choices = deal ? projectCreateResourceTypes(type, customerId) : [];
+        const resource = projectCreateCustomerIsPlatform(customerId) && deal ? "平台师资合作" : choices.includes(resourceSelect.value) ? resourceSelect.value : "";
+        typeInput.value = type;
+        resourceSelect.innerHTML = '<option value="">请选择资源类型</option>' + choices.map(item => `<option value="${item}">${item}</option>`).join("");
+        resourceSelect.value = resource;
+        resourceSelect.disabled = !deal;
+        resourceSelect.dataset.previousResource = resource;
+        const cooperations = PROJECT_RESOURCE_COOPERATION[resource] || [];
+        const cooperation = resource === "平台师资合作" ? "师资合作" : cooperations.includes(cooperationSelect.value) ? cooperationSelect.value : "";
+        cooperationSelect.innerHTML = '<option value="">请选择合作形式</option>' + cooperations.map(item => `<option value="${item}">${item}</option>`).join("");
+        cooperationSelect.value = cooperation;
+        cooperationSelect.disabled = !resource;
+        if (!["采购包课程", "平台师资合作"].includes(resource) || (oldResource && oldResource !== resource)) {
+          $("#pfPackage").value = "";
+          $("#pfDirection").innerHTML = '<option value="">请选择课程</option>';
+          $("#pfDirection").value = "";
+        }
+        if (resource !== "框架服务") $("#pfFramework").value = "";
+        if (!["走账合作", "师资合作"].includes(cooperation)) $("#pfCompany").value = "";
+        const calculated = (t, r) => t === "培训项目" && r !== "框架服务";
+        if (!type || oldType !== type || calculated(oldType, oldResource) !== calculated(type, resource)) $("#pfAmount").value = "";
+        if (!type) { $("#pfUnitPrice").value = "—"; $("#pfSettlement").value = "—"; }
       }
       function refreshProjectCompanyOptions() {
         const select = $("#pfCompany");
@@ -1165,6 +1204,11 @@
       }
       function refreshProjectFormDynamics() {
         refreshProjectCustomerField();
+        refreshProjectOwnerField();
+        if (currentPage !== "project-edit") {
+          refreshProjectOpportunityOptions();
+          refreshProjectCreateResources();
+        }
         refreshProjectCompanyOptions();
         const type = $("#pfType").value;
         const resourceType = $("#pfResource").value;
@@ -1209,7 +1253,6 @@
           projectSettlementFormulaText(cooperation),
         );
         refreshProjectFormAmounts();
-        refreshProjectOwnerField();
         refreshProjectTeacherCandidates();
       }
       function writePreStartEditHistory(project, payload) {
@@ -1571,9 +1614,10 @@
         clearProjectFormErrors();
         const name = $("#pfName").value.trim();
         const type = editing ? project.type : $("#pfType").value;
+        const platformCustomer = projectCreateCustomerIsPlatform($("#pfCustomer").value);
         const customerId = editing
           ? project.customerId
-          : projectUsesPlatformCustomer($("#pfResource").value) ? $("#pfCustomer").value : Number($("#pfCustomer").value);
+          : platformCustomer ? $("#pfCustomer").value : Number($("#pfCustomer").value);
         const startTime = $("#pfStart").value.replace("T", " ");
         const endTime = $("#pfEnd").value.replace("T", " ");
         const daysValue = $("#pfDays").value.trim();
@@ -1590,9 +1634,17 @@
         const helpers =
           type === "培训项目" ? selectedInstructorNames("pfHelpers") : [];
 
+        const opportunityId = editing ? project.opportunityId || "" : $("#pfOpportunity")?.value || "";
         const errors = {};
+        if (!editing) {
+          if (!opportunityId) errors.pfOpportunity = "请选择所属商机";
+          else {
+            const deal = projectCustomerOpportunityCandidates(customerId, $("#pfOwner")?.value || "").find(item => item.id === opportunityId);
+            const expectedType = deal ? deal.type === "AI 项目商机" ? "AI软件项目" : "培训项目" : "";
+            if (!deal || type !== expectedType) errors.pfOpportunity = "该商机已不符合立项条件，请重新选择";
+          }
+        }
         if (!name) errors.pfName = "请填写项目名称";
-        if (!editing && !type) errors.pfType = "请选择项目类型";
         if (!editing && !customerId) errors.pfCustomer = "请选择客户公司";
         if (!startTime) errors.pfStart = "请填写开始时间";
         if (!endTime) errors.pfEnd = "请填写结束时间";
@@ -1604,19 +1656,19 @@
         let owner = "";
         let liveCustomer = null;
         if (!editing) {
-          liveCustomer = (resourceType === "平台师资合作" ? platformCompanies : customers).find((item) => item.id === customerId);
-          if (customerId && !projectCreatableCustomers(resourceType).some((item) => item.id === customerId)) {
-            if (resourceType === "平台师资合作") errors.pfCustomer = "所选采购包或平台公司当前不可用，请重新选择";
+          liveCustomer = (platformCustomer ? platformCompanies : customers).find((item) => item.id === customerId);
+          if (customerId && !projectCreatableCustomers(platformCustomer ? "平台师资合作" : "采购包课程").some((item) => item.id === customerId)) {
+            if (platformCustomer) errors.pfCustomer = "所选采购包或平台公司当前不可用，请重新选择";
             else return;
           }
-          if (resourceType === "平台师资合作") {
+          if (platformCustomer) {
             const employee = currentUser.fullAccess
               ? employees.find(item => item.code === $("#pfOwner")?.value)
               : currentEcosystemEmployee();
             if (validEcosystemEmployee(employee)) owner = employee.name;
             else errors.pfOwner = "请选择有效生态合作员作为项目负责人";
           } else owner = liveCustomer ? resolveProjectOwner(liveCustomer) : "";
-          if (liveCustomer && !owner && resourceType !== "平台师资合作")
+          if (liveCustomer && !owner && !platformCustomer)
             errors.pfCustomer = "该客户未匹配到唯一有效项目负责人，无法创建项目";
         }
 
@@ -1631,7 +1683,7 @@
 
         if (editing && isEcosystemProject(project) !== (resourceType === "平台师资合作"))
           errors.pfResource = "平台师资合作与其他资源类型不能互相转换";
-        else if (!editing && type && !projectAvailableResourceTypes(type).includes(resourceType))
+        else if (!editing && type && !projectCreateResourceTypes(type, customerId).includes(resourceType))
           errors.pfResource = "当前角色不能创建该资源类型的项目";
         if (!resourceType) errors.pfResource = "请选择资源类型";
         else if (type && !projectResourceTypes(type).includes(resourceType))
@@ -1843,7 +1895,7 @@
           const newProject = {
             ...payload,
             id: nextProjectId(),
-            opportunityId: "",
+            opportunityId,
             createdBy: currentUser.name,
             createdAt: projectNow(),
             ownerSnapshot: owner,
@@ -2640,32 +2692,12 @@
           };
           return;
         }
-        const typeSelect = $("#pfType");
-        if (typeSelect && !editing) {
-          typeSelect.onchange = () => {
-            const type = typeSelect.value;
-            const resourceSelect = $("#pfResource");
-            resourceSelect.innerHTML =
-              '<option value="">请选择资源类型</option>' +
-              projectAvailableResourceTypes(type)
-                .map((item) => `<option value="${item}">${item}</option>`)
-                .join("");
-            resourceSelect.value = "";
-            $("#pfCooperation").innerHTML = '<option value="">请选择合作形式</option>';
-            $("#pfCooperation").value = "";
-            const amountInput = $("#pfAmount");
-            if (amountInput) {
-              amountInput.disabled = type === "培训项目";
-              amountInput.value = "";
-            }
-            $("#pfUnitPrice").value = "—";
-            $("#pfSettlement").value = "—";
-            refreshProjectFormDynamics();
-          };
-        }
+        if (!editing) $("#pfOpportunity").onchange = refreshProjectFormDynamics;
+
         const resourceSelect = $("#pfResource");
         if (resourceSelect) {
           resourceSelect.onchange = () => {
+            if (!editing) { refreshProjectFormDynamics(); return; }
             const resourceType = resourceSelect.value;
             $("#pfCooperation").innerHTML =
               '<option value="">请选择合作形式</option>' +
@@ -2723,12 +2755,7 @@
           };
         const customerSelect = $("#pfCustomer");
         if (customerSelect && !editing) {
-          customerSelect.onchange = () => {
-            refreshProjectCustomerField();
-            refreshProjectFormAmounts();
-            refreshProjectOwnerField();
-            refreshProjectFrameworkOptions();
-          };
+          customerSelect.onchange = refreshProjectFormDynamics;
         }
         refreshProjectFormDynamics();
         form.onsubmit = (event) => {
@@ -2790,14 +2817,15 @@
           toast("框架已到期，不可编辑或恢复"); return;
         }
         const actor = currentUser, account = currentAccountKey();
+        let submitted = false;
         const customer = framework ? customers.find(item => item.id === framework.customerId) : null;
         const customerInput = framework
           ? `<input class="input" type="text" value="${escapeHtml(customer?.name || "—")}" readonly><input id="fwCustomer" type="hidden" value="${framework.customerId}">`
           : `<select class="input" id="fwCustomer"><option value="">请选择客户公司</option>${customers.filter(item => !item.archived).map(item => `<option value="${item.id}">${escapeHtml(item.name)}</option>`).join("")}</select>`;
-        openModal(`<div class="modal-head project-modal-head"><div class="modal-title">${framework ? "编辑框架" : "新增框架"}</div><button class="icon-btn close" data-close aria-label="关闭">×</button></div><form id="projectFrameworkForm" class="project-config-form project-framework-form" novalidate><div class="modal-body project-modal-body"><div class="form-grid">${projectFormFieldHtml("fwName", "框架名称", `<input class="input" id="fwName" value="${escapeHtml(framework?.name || "")}">`, true)}${projectFormFieldHtml("fwCustomer", "客户公司", customerInput, true)}${projectFormFieldHtml("fwAmount", "框架金额（含税，万元）", `<input class="input" id="fwAmount" type="number" min="0.000001" step="0.000001" value="${framework ? wanMoneyInput(framework.amount) : ""}">`, true)}${projectFormFieldHtml("fwFrom", "开始日期", `<input class="input" id="fwFrom" type="date" value="${framework?.validFrom || ""}">`, true)}${projectFormFieldHtml("fwTo", "到期日期", `<input class="input" id="fwTo" type="date" value="${framework?.validTo || ""}">`, true)}</div></div><div class="modal-foot"><button class="btn" type="button" data-close>取消</button><button class="btn btn-primary" type="submit">保存</button></div></form>`);
+        openModal(`<div class="modal-head project-modal-head"><div class="modal-title">${framework ? "编辑框架" : "新增框架"}</div><button class="icon-btn close" data-close aria-label="关闭">×</button></div><form id="projectFrameworkForm" class="project-config-form project-framework-form" novalidate><div class="modal-body project-modal-body"><div class="form-grid">${framework ? projectFormFieldHtml("fwCode", "框架编号", `<input class="input" value="${escapeHtml(framework.code)}" readonly>`) : ""}${projectFormFieldHtml("fwName", "框架名称", `<input class="input" id="fwName" value="${escapeHtml(framework?.name || "")}">`, true)}${projectFormFieldHtml("fwCustomer", "客户公司", customerInput, true)}${projectFormFieldHtml("fwAmount", "框架金额（含税，万元）", `<input class="input" id="fwAmount" type="number" min="0.000001" step="0.000001" value="${framework ? wanMoneyInput(framework.amount) : ""}">`, true)}${projectFormFieldHtml("fwFrom", "开始日期", `<input class="input" id="fwFrom" type="date" value="${framework?.validFrom || ""}">`, true)}${projectFormFieldHtml("fwTo", "到期日期", `<input class="input" id="fwTo" type="date" value="${framework?.validTo || ""}">`, true)}</div></div><div class="modal-foot"><button class="btn" type="button" data-close>取消</button><button class="btn btn-primary" type="submit">保存</button></div></form>`);
         $("#projectFrameworkForm").onsubmit = event => {
           event.preventDefault();
-          if (actor !== currentUser || account !== currentAccountKey() || !isProjectConfigAdmin()) return;
+          if (submitted || actor !== currentUser || account !== currentAccountKey() || !isProjectConfigAdmin()) return;
           if (framework && !projectFrameworks.includes(framework)) return;
           if (framework && projectFrameworkStatus(framework) === "已到期") {
             toast("框架已到期，不可编辑或恢复"); return;
@@ -2806,6 +2834,7 @@
           const amount = parseWanMoney($("#fwAmount").value.trim()), validFrom = $("#fwFrom").value, validTo = $("#fwTo").value;
           const errors = {};
           if (!name) errors.fwName = "请填写框架名称";
+          else if (projectFrameworks.some(item => item !== framework && item.name.trim() === name)) errors.fwName = "框架名称已存在";
           if (framework ? customerId !== framework.customerId : !customers.some(item => item.id === customerId && !item.archived)) errors.fwCustomer = framework ? "客户公司不可修改" : "请选择客户公司";
           if (!Number.isFinite(amount) || amount <= 0) errors.fwAmount = "请填写大于0的框架金额";
           else if (framework && Math.round(amount * 100) < Math.round(projectFrameworkUsage(framework.id).used * 100)) errors.fwAmount = "框架金额不得小于已占用金额";
@@ -2821,8 +2850,9 @@
           if (framework) Object.assign(framework, { name, amount, validFrom, validTo });
           else {
             const sequence = Math.max(0, ...projectFrameworks.map(item => Number(item.id.slice(2)))) + 1;
-            projectFrameworks.push({ id: "FW" + String(sequence).padStart(3, "0"), name, customerId, amount, validFrom, validTo, status: "启用" });
+            projectFrameworks.push({ id: "FW" + String(sequence).padStart(3, "0"), code: nextProjectFrameworkCode(), name, customerId, amount, validFrom, validTo, status: "启用" });
           }
+          submitted = true;
           closeOverlay(); renderPage();
         };
       }

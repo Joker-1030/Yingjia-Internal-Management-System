@@ -6,7 +6,7 @@
       function teacherFeeError(fee, tax) {
         if (fee != null && !["number", "string"].includes(typeof fee)) return "课酬须为有效金额";
         if (fee == null && tax) return "课酬金额与含税／不含税口径须一起填写";
-        return fee != null && (!Number.isFinite(Number(fee)) || Number(fee) < 0 || !/^(\d+)(\.\d{1,2})?$/.test(String(fee)) || !["含税", "不含税"].includes(tax)) ? "课酬须为非负金额、最多两位小数，并选择含税或不含税" : "";
+        return fee != null && (!Number.isFinite(Number(fee)) || Number(fee) < 0 || !/^(\d{1,6})(\.\d{1,2})?$/.test(String(fee)) || !["含税", "不含税"].includes(tax)) ? "课酬须为非负金额、最多6位整数、最多两位小数，并选择含税或不含税" : "";
       }
       function teacherNormalizeRoleFees(input, internal) {
         if (input != null && (typeof input !== "object" || Array.isArray(input))) return { error: "课酬格式不正确" };

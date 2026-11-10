@@ -169,6 +169,7 @@
         },
         { name: "老师", jobs: [], scopeType: "own-teacher", scopeSource: "员工关联老师档案", objects: ["老师", "排期"], permissions: ["teachers"] },
         { name: "教学管理人员", jobs: [], scopeType: "teaching-scopes", scopeSource: "admin分配教学管理范围", objects: ["老师", "渠道", "排期"], permissions: ["teachers"] },
+        { name: "财务", jobs: [], scopeType: "company", scopeSource: "公司全部项目", objects: ["项目"], permissions: ["dashboard", "projects"] },
         {
           name: "系统管理员",
           jobs: ["内置 admin 账号"],
@@ -276,7 +277,10 @@
         ["opportunities.support", "sales-supports", "处理本人方案支撑请求"],
         ["sales-targets.manage", "sales-targets", "维护有权层级成交金额目标"],
       ];
+      const FINANCE_OPERATIONS = ["dashboard.view", "projects.view"];
+      const FINANCE_ATTACHMENTS = ["attachment_view", "attachment_download"];
       const roleOperationPermissions = {
+        财务: [...FINANCE_OPERATIONS],
         老师: ["teachers.view", "teachers.unavailable"],
         教学管理人员: ["teachers.view", "teachers.manage", "teachers.unavailable", "teachers.status"],
         总裁: [
@@ -334,6 +338,7 @@
         ["employee_sensitive_edit", "员工敏感字段编辑", "edit", "employee_sensitive_view"],
       ];
       const roleFieldPermissions = {
+        财务: [],
         老师: ["teacher_contact_view"],
         教学管理人员: ["teacher_contact_view", "teacher_fee_view"],
         总裁: ["teacher_contact_view", "teacher_fee_view", "customer_base_view", "customer_base_edit", "contact_sensitive_view", "record_view", "record_edit"],
@@ -356,6 +361,7 @@
         ["attachment_delete", "附件删除", "attachment_view|attachment_upload"],
       ];
       const roleAttachmentPermissions = {
+        财务: [...FINANCE_ATTACHMENTS],
         老师: [],
         教学管理人员: ["teacher_resume_view", "teacher_resume_download", "teacher_resume_upload", "teacher_resume_delete"],
         总裁: ["teacher_resume_view", "teacher_resume_download", "teacher_resume_upload", "teacher_resume_delete", "attachment_view", "attachment_download", "attachment_upload", "attachment_delete"],
@@ -368,6 +374,7 @@
         系统管理员: attachmentPermissionCatalog.map((item) => item[0]),
       };
       const permissionRoleCodes = {
+        财务: "FINANCE",
         老师: "TEACHER",
         教学管理人员: "TEACHING_MANAGER",
         总裁: "PRESIDENT",
@@ -383,6 +390,10 @@
         systemRoleTemplates.map((template, position) => {
           const index = template.name === "系统管理员" ? 5 : position;
           const code = permissionRoleCodes[template.name];
+          if (template.name === "财务") return [template.name, [{
+            id: "PERM-FINANCE-000001", type: "初始化", operator: "系统管理员", time: "2026-11-10 09:00", reason: "建立财务项目只读权限",
+            permissions: [...template.permissions], operations: [...FINANCE_OPERATIONS], fields: [], attachments: [...FINANCE_ATTACHMENTS],
+          }]];
           if (["老师", "教学管理人员"].includes(template.name)) return [template.name, [{ id: `PERM-${code}-000001`, type: "初始化", operator: "系统管理员", time: "2026-10-21 09:00", reason: "建立老师管理权限", permissions: [...template.permissions], operations: [...roleOperationPermissions[template.name]], fields: [...roleFieldPermissions[template.name]], attachments: [...roleAttachmentPermissions[template.name]] }]];
           if (template.name === "生态合作员") return [template.name, [
             { id: `PERM-${code}-000002`, type: "调整", operator: "系统管理员", time: "2026-10-19 09:00", reason: "增加本人平台师资合作商机权限", permissions: [...template.permissions], operations: [...roleOperationPermissions[template.name]], fields: [], attachments: [...roleAttachmentPermissions[template.name]] },

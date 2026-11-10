@@ -426,7 +426,7 @@
         const regions = currentUser.role === "director" ? dashboardManagedRegions() : [];
         const visible = projects.filter((project) => {
           if (!projectCustomerFacts(project)) return false;
-          if (currentUser.role === "director" && !currentUser.fullAccess)
+          if (currentUser.role === "director" && !currentUser.fullAccess && !financeCanReadAllProjects())
             return !isEcosystemProject(project) && regions.some((region) => regionsMatch(projectRegionScope(project), regionScopeName(region)));
           return projectIsVisibleToCurrentUser(project);
         });
@@ -442,7 +442,7 @@
 
       function dashboardProjectMeasureOptions() {
         const options = [["count", "项目数量"], ["amount", "项目金额（含税，万元）"]];
-        if (["president", "vp", "director", "pm", "ecology"].includes(currentUser?.role))
+        if (["president", "vp", "director", "pm", "ecology", "finance"].includes(currentUser?.role))
           options.push(["settlement", "项目结账金额（含税，万元）"]);
         return options;
       }
@@ -488,7 +488,7 @@
         if (!analysis) return '<div class="empty">项目数据暂不可用</div>';
         const money = analysis.measure !== "count";
         const settlement = analysis.measure === "settlement";
-        const singleMetric = ["president", "vp", "director", "pm", "ecology"].includes(currentUser?.role);
+        const singleMetric = ["president", "vp", "director", "pm", "ecology", "finance"].includes(currentUser?.role);
         const amountLabel = settlement ? "项目结账金额" : "项目金额";
         const totalLabel = money ? amountLabel + "合计" : "项目总数（个）";
         const helpKey = settlement ? "projectSettlementAmount" : money ? "projectAmount" : "projectCount";
@@ -917,7 +917,8 @@
         const peopleCard = canSeePeople ? `<section class="panel workbench-card workbench-people${currentUser.role === "pm" ? " workbench-pm-people" : ""}"><div class="panel-head"><div class="panel-title" id="workbenchPeopleTitle">关键人概况</div><div class="spacer"></div><span class="workbench-updated">更新于 ${escapeDashboardHtml(DEMO_TODAY)}</span></div><div class="workbench-split" role="region" aria-labelledby="workbenchPeopleTitle"><div class="workbench-values">${dashboardOverviewValue("有效关键人", people.length, "people", "人")}${dashboardOverviewValue("关键人覆盖率", dashboardPercent(coverage), "coverage")}${coverage == null ? '<div class="workbench-empty-note">暂无客户单位</div>' : ""}</div>${dashboardCoverageTable(companies, people)}</div>${currentUser.role === "pm" ? dashboardNewContactsCard() : ""}</section>` : "";
         const taskCard = dashboardTaskStatsCard();
         const projectCard = hasPermission("projects") ? `<section class="panel workbench-card workbench-projects"><div class="panel-head"><div class="panel-title" id="workbenchProjectsTitle">项目概况</div></div><div class="workbench-project-body" role="region" aria-labelledby="workbenchProjectsTitle">${dashboardProjectControls()}<div class="workbench-project-visualization" id="workbenchProjectVisualization">${dashboardProjectChart(dashboardProjectSummary())}</div></div></section>` : "";
-        const todoCard = `<section class="panel workbench-card workbench-todos"><div class="panel-head"><div class="panel-title" id="workbenchTodosTitle">我的待办</div></div>${dashboardTodosBody()}</section>`;
+        const todoCard = currentUser.role === "finance" ? "" : `<section class="panel workbench-card workbench-todos"><div class="panel-head"><div class="panel-title" id="workbenchTodosTitle">我的待办</div></div>${dashboardTodosBody()}</section>`;
+        if (currentUser.role === "finance") return pageHead("工作台", "查看项目进展与金额概况。") + `<div class="workbench"><div class="workbench-bottom">${projectCard}</div></div>`;
         return pageHead("工作台", currentUser.role === "ecology" ? "查看项目概况，安排项目待办。" : "查看关键人、任务、销售与项目概况，安排待办事项。",
           currentUser.role === "admin" ? '<button class="btn" type="button" data-admin-dashboard-view="system">系统运行</button>' : "") +
           `<div class="workbench">${peopleCard}${currentUser.role === "pm" ? "" : dashboardNewContactsCard()}${taskCard}${renderWorkbenchSales()}<div class="workbench-bottom">${projectCard}${todoCard}</div></div>`;

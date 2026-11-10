@@ -6,10 +6,14 @@
         return value == null ? "" : (value / 10000).toFixed(6).replace(/(\.\d*?[1-9])0+$|\.0+$/, "$1");
       }
       function parseWanMoney(text) {
-        if (!/^(?:\d+(?:\.\d{0,6})?|\.\d{1,6})$/.test(text)) return NaN;
+        if (!/^(?:\d{1,6}(?:\.\d{0,6})?|\.\d{1,6})$/.test(text)) return NaN;
         const [whole, fraction = ""] = text.split(".");
         const cents = Number(whole || "0") * 1000000 + Number(fraction.padEnd(6, "0"));
         return Number.isSafeInteger(cents) ? cents / 100 : NaN;
+      }
+      function parseYuanMoney(text) {
+        const raw = String(text).trim();
+        return /^(?:\d{1,6}(?:\.\d{0,2})?|\.\d{1,2})$/.test(raw) ? Number(raw) : NaN;
       }
       function amountHistoryField(field) {
         return /^(项目金额|结账金额|应结算金额|预估金额)(（含税，元）)?$/.test(field) ? field.replace(/（含税，元）$/, "") + "（含税，万元）" : field;
@@ -181,6 +185,7 @@
         pm: "PM",
         hr: "HR/人事",
         ecology: "生态合作员",
+        finance: "财务",
         teacher: "老师",
         teachingManager: "教学管理人员",
         support: "商机支撑",
@@ -208,6 +213,7 @@
       const isProjectConfigAdmin = () =>
         Boolean(currentUser?.username === "admin" && currentUser?.role === "admin" && currentUser?.fullAccess);
       const templatePagePermissionAllowed = (template, permission) =>
+        template.name === "财务" ? ["dashboard", "projects"].includes(permission) :
         (["老师", "教学管理人员"].includes(template.name) ? permission === "teachers" : template.name !== "生态合作员" || ["dashboard", "projects", "opportunities"].includes(permission));
       const hasPermission = (permission) =>
         permission === "frameworks" ? hasPermission("projects") && currentRoleTemplateNames().some(role => ["系统管理员", "总裁", "市场副总", "区域总监", "PM"].includes(role)) :
@@ -218,7 +224,8 @@
       const hasDataObject = (object) =>
         currentRoleTemplates().some((template) => template.objects.includes(object));
       const currentScopeType = () => {
-        const scopeTypes = currentRoleTemplates().map(
+        // 财务的公司范围仅用于项目读取，不扩张兼任角色的客户、商机或写范围。
+        const scopeTypes = currentRoleTemplates().filter(template => template.name !== "财务").map(
           (template) => template.scopeType,
         );
         return [
@@ -239,8 +246,8 @@
           return isPmCityManagementUser() && hasPermission(page);
         if (page === "regions" && isPmCityManagementUser()) return false;
         if (page === "project-detail") return hasPermission("projects");
-        if (page === "project-create") return hasPermission("projects");
-        if (page === "project-edit") return hasPermission("projects");
+        if (page === "project-create") return hasPermission("projects") && hasOperationPermission("projects.create");
+        if (page === "project-edit") return hasPermission("projects") && hasOperationPermission("projects.edit");
         if (page === "opportunity-detail") return hasPermission("opportunities") || salesCanViewSupportOpportunity(opportunities.find((item) => item.id === selectedOpportunityId));
         if (page === "opportunity-create") return hasPermission("opportunities");
         if (page === "sales-supports") {
@@ -256,21 +263,21 @@
           (!isAdminOnlyProjectConfigPage(operation.split(".")[0]) || isProjectConfigAdmin()) &&
           ((operation.startsWith("teachers.") && typeof teacherIsFacultySupervisor === "function" && teacherIsFacultySupervisor()) || currentUser?.fullAccess ||
             currentRoleTemplateNames().some((roleName) =>
-              (!["老师", "教学管理人员"].includes(roleName) || operation.startsWith("teachers.")) && (roleName !== "生态合作员" || ["dashboard.view", "projects.view", "projects.create", "projects.edit", "opportunities.view", "opportunities.create", "opportunities.progress"].includes(operation)) && roleOperationPermissions?.[roleName]?.includes(operation),
+              (roleName !== "财务" || FINANCE_OPERATIONS.includes(operation)) && (!["老师", "教学管理人员"].includes(roleName) || operation.startsWith("teachers.")) && (roleName !== "生态合作员" || ["dashboard.view", "projects.view", "projects.create", "projects.edit", "opportunities.view", "opportunities.create", "opportunities.progress"].includes(operation)) && roleOperationPermissions?.[roleName]?.includes(operation),
             )),
         );
       const hasFieldPermission = (permission) =>
         Boolean(
           (permission.startsWith("teacher_") && typeof teacherIsFacultySupervisor === "function" && teacherIsFacultySupervisor()) || currentUser?.fullAccess ||
             currentRoleTemplateNames().some((roleName) =>
-              roleFieldPermissions?.[roleName]?.includes(permission),
+              roleName !== "财务" && roleFieldPermissions?.[roleName]?.includes(permission),
             ),
         );
       const hasAttachmentPermission = (permission) =>
         Boolean(
           (permission.startsWith("teacher_") && typeof teacherIsFacultySupervisor === "function" && teacherIsFacultySupervisor()) || currentUser?.fullAccess ||
             currentRoleTemplateNames().some((roleName) =>
-              roleAttachmentPermissions?.[roleName]?.includes(permission),
+              (roleName !== "财务" || FINANCE_ATTACHMENTS.includes(permission)) && roleAttachmentPermissions?.[roleName]?.includes(permission),
             ),
         );
       const canEmployeeAction = (operation) =>
@@ -333,6 +340,7 @@
         PM: "pm",
         "HR/人事": "hr",
         生态合作员: "ecology",
+        财务: "finance",
         老师: "teacher",
         教学管理人员: "teachingManager",
         商机支撑: "support",
@@ -353,6 +361,7 @@
           return cities.join("、") || "待配置负责地市";
         }
         if (employeeHasRole(employee, "生态合作员")) return "本人平台师资合作项目及商机";
+        if (employeeHasRole(employee, "财务")) return "公司全部项目";
         if (employeeHasRole(employee, "HR/人事")) return "公司组织";
         const template = systemRoleTemplates.find(
           (item) => item.name === employee.role,
@@ -385,6 +394,7 @@
           "区域总监",
           "PM",
           "生态合作员",
+          "财务",
           "HR/人事",
           "商机支撑",
           "教学管理人员",

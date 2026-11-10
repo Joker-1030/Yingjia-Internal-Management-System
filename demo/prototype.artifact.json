@@ -1,11 +1,11 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-11-10T06:20:04.479Z",
+  "generatedAt": "2026-11-10T07:21:57.205Z",
   "generator": "scripts/build-prototype.mjs",
   "buildCommand": "node scripts/build-prototype.mjs",
   "sourceRoot": "src",
   "entry": "src/prototype.html",
-  "sourceDigest": "29317bce9acd5d951b78a57ce154be491f22e571524ddd7749166fdc30ff7379",
+  "sourceDigest": "0b8b59427e651809ab595a20b6a23dfa742636f914bb08499a85c4ed8ce558f5",
   "sourceFiles": [
     {
       "path": "src/app.js",
@@ -384,8 +384,8 @@
     },
     {
       "path": "src/modules/m11-project-management/page.js",
-      "sha256": "f4f2e718ea9a0f7f21c63a17c69d1c6dcf75f2ec6821bed2e9c5848a62298f3b",
-      "bytes": 133915
+      "sha256": "45cd30ded2a26bc7e3375810e369e9013bf29a017342a45183a4f06141b2f837",
+      "bytes": 134287
     },
     {
       "path": "src/modules/m12-sales-opportunity/interactions.js",
@@ -501,8 +501,8 @@
   ],
   "artifact": {
     "path": "demo/prototype.html",
-    "sha256": "2512fed8ddd2bce9ba145bf9e93b8e223ada7e82b0c65b71b9c7fa7f7487ca78",
-    "bytes": 3059915
+    "sha256": "ea51c77fc08883efe7ac45a21f263eb8f112f5b06d6e1499793dfb7f50aad7ea",
+    "bytes": 3060287
   },
   "legacyBridge": false,
   "architecture": "lightweight-modular",

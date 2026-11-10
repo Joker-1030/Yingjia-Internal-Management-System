@@ -279,9 +279,7 @@
         return projects.find((project) => project.id === id);
       }
       function projectEditMode(project) {
-        if (!project || !projectIsVisibleToCurrentUser(project) || !hasOperationPermission("projects.edit")) return null;
-        const isOwner = projectOwnedByCurrentUser(project);
-        if (!isOwner && !currentUser.fullAccess) return null;
+        if (!projectOperableByCurrentUser(project)) return null;
         if (project.stage === "已立项" && project.startTime > DEMO_NOW)
           return "pre-start";
         if (project.stage === "进行中") return "in-progress";
@@ -965,7 +963,11 @@
       }
       function projectOperableByCurrentUser(project) {
         if (!project || !projectIsVisibleToCurrentUser(project) || !hasOperationPermission("projects.edit")) return false;
-        return currentUser.fullAccess || projectOwnedByCurrentUser(project);
+        if (currentUser.fullAccess || projectOwnedByCurrentUser(project)) return true;
+        if (currentUser.role !== "director" || isEcosystemProject(project) || !companyInCurrentManagedRegion(projectCustomerFacts(project))) return false;
+        const actor = employees.find(employee => employee.code === currentUser.employeeCode);
+        const owner = employees.find(employee => employee.name === projectCurrentOwner(project));
+        return Boolean(actor?.status === "在职" && actor.accountStatus === "启用" && owner && owner.status === "在职" && owner.accountStatus === "启用" && employeeHasRole(owner, "PM"));
       }
       function canConfirmProjectDelivery(project) {
         if (!project || project.type !== "AI软件项目") return false;

@@ -316,6 +316,7 @@
             pm: t.pm,
             region: t.region,
             createdBy: currentUser.name,
+            createdByCode: employeeUsageEmployee()?.code || "",
             proxyOperator: currentUser.fullAccess ? currentUser.name : "",
             proxyReason,
             attachments: completionFiles.map((file) => file.name),

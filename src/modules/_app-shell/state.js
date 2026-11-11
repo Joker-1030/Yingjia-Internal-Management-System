@@ -21,13 +21,14 @@
         },
         {
           title: "培训老师",
-          items: [{ id: "teachers", icon: "♧", label: "老师管理" }, { id: "teacher-schedule", icon: "▦", label: "老师排期" }],
+          items: [{ id: "teachers", icon: "♧", label: "老师管理" }, { id: "teacher-schedule", icon: "▦", label: "老师排期" }, { id: "teacher-work", icon: "▤", label: "授课复盘" }, { id: "teacher-recommendations", icon: "◎", label: "我的推荐" }],
         },
         {
           title: "销售管理",
           items: [
             { id: "opportunities", icon: "◎", label: "商机列表" },
             { id: "sales-supports", icon: "◇", label: "我的方案支撑" },
+            { id: "support-results", icon: "▥", label: "支撑结果与月度参考" },
             { id: "sales-targets", icon: "▥", label: "销售指标" },
           ],
         },
@@ -35,6 +36,7 @@
           title: "系统管理",
           items: [
             { id: "employees", icon: "♧", label: "组织与员工" },
+            { id: "employee-usage", icon: "▥", label: "员工使用统计" },
             { id: "permissions", icon: "⌘", label: "权限授权" },
             { id: "regions", icon: "⌖", label: "区域中心与地市配置" },
             { id: "city-management", icon: "⌖", label: "地市管理" },

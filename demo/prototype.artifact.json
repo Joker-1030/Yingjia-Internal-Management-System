@@ -1,16 +1,16 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-11-10T07:21:57.205Z",
+  "generatedAt": "2026-11-11T08:54:06.743Z",
   "generator": "scripts/build-prototype.mjs",
   "buildCommand": "node scripts/build-prototype.mjs",
   "sourceRoot": "src",
   "entry": "src/prototype.html",
-  "sourceDigest": "0b8b59427e651809ab595a20b6a23dfa742636f914bb08499a85c4ed8ce558f5",
+  "sourceDigest": "b2131179132d50a6dc724670c58470eeed27d1304a7ea1ec2aa7150225447507",
   "sourceFiles": [
     {
       "path": "src/app.js",
-      "sha256": "069f52c8fcf6a6fe123afffe621cae01b04afbd552c3cd9f031d774027a64058",
-      "bytes": 3151
+      "sha256": "3de7d1bd07daeb67db7f331a62dfdc7b061bae8b9d601ad50f33494e369b1f52",
+      "bytes": 3469
     },
     {
       "path": "src/data/accounts.js",
@@ -53,14 +53,19 @@
       "bytes": 21277
     },
     {
+      "path": "src/data/employee-usage.js",
+      "sha256": "adbe7c939c9a67239331f677da989c7f81308c4ccfdf55aa4c6250ec4e56d022",
+      "bytes": 2785
+    },
+    {
       "path": "src/data/imports.js",
       "sha256": "e7e68c1f03e4ed048f3b4916578172d97ffd80dbe361006b2faf7179f7c32174",
       "bytes": 5469
     },
     {
       "path": "src/data/maintenance.js",
-      "sha256": "b3a12a43c9eccdf83d6f7a09ab8663b8a029d69cc160a16140af68fcc776999b",
-      "bytes": 3823
+      "sha256": "4ee2c835eb833f14a4fbd740942d97dff95ef9cc8245d41ed08763b741b6e876",
+      "bytes": 6120
     },
     {
       "path": "src/data/notifications.js",
@@ -69,8 +74,8 @@
     },
     {
       "path": "src/data/opportunities.js",
-      "sha256": "d30f362d6f93e042f19c113155042dc5ab817bc7d48c72c622ed7ecd231e3b20",
-      "bytes": 41337
+      "sha256": "26e36996918c6186d0c5bb366af0c5418b6f5e847b9ad14127b7c202916b394a",
+      "bytes": 42394
     },
     {
       "path": "src/data/organization-history.js",
@@ -79,13 +84,13 @@
     },
     {
       "path": "src/data/organization.js",
-      "sha256": "2f7abe8cc320abc2a7c51de6326b2368abd096465202751ad49b1cf34a21323d",
-      "bytes": 26207
+      "sha256": "0244d9d20e224ed02e60e77501e93f18ee43a3b2ff6616b78e97d193f25f2965",
+      "bytes": 26658
     },
     {
       "path": "src/data/permissions.js",
-      "sha256": "a64246906d9230f01a24bd859df755a30142711ef2055125cd800c531ad39c0c",
-      "bytes": 28161
+      "sha256": "03ef950e4df30f4e7ab5cbcb20739633718379676412537f9515959328427ad6",
+      "bytes": 29905
     },
     {
       "path": "src/data/platform-companies.js",
@@ -114,8 +119,8 @@
     },
     {
       "path": "src/data/projects.js",
-      "sha256": "f7bb7b31ff129072a1ac7f802ca77a49a75c4e7137d1cf74b1029ce032855789",
-      "bytes": 27922
+      "sha256": "19bd715128e7825fefa6393cb888ccc760d450ba44cd78db6cf2e1f5de111e44",
+      "bytes": 28599
     },
     {
       "path": "src/data/regions.js",
@@ -138,9 +143,14 @@
       "bytes": 45082
     },
     {
+      "path": "src/data/teacher-work.js",
+      "sha256": "52ee7e71d0f5aaceae013c2e24e6a020cea87da6968324b0eb5f32882ce0136b",
+      "bytes": 992
+    },
+    {
       "path": "src/data/teachers.js",
-      "sha256": "0250509e63e8fe46c1e670444401c462784840f3d673df9e34f9437466c5df32",
-      "bytes": 7602
+      "sha256": "d02c04ae18e45bfdd131015d6a940a5749d6ea34d92da27e2b28f3a4d19c7b61",
+      "bytes": 9485
     },
     {
       "path": "src/modules/_app-shell/account.js",
@@ -149,13 +159,13 @@
     },
     {
       "path": "src/modules/_app-shell/bootstrap.js",
-      "sha256": "985a454442ca96941d45cced2fbccd36a900fb1ee726c02318a6f203340426dc",
-      "bytes": 97
+      "sha256": "a8c14280014447965087cb4b798179d7a3e345c37ab7d733f9fe10b3ee13d4c9",
+      "bytes": 136
     },
     {
       "path": "src/modules/_app-shell/events.js",
-      "sha256": "2d15a507e8fca6d1e9732288305d2544d7d074d2333a6d02b35ea82d3980b036",
-      "bytes": 77908
+      "sha256": "51ba1ce987a310d56d2458e49a69b9e56dece6a59db21e46bcfb3e9cc987f0d6",
+      "bytes": 77943
     },
     {
       "path": "src/modules/_app-shell/notifications.js",
@@ -164,18 +174,18 @@
     },
     {
       "path": "src/modules/_app-shell/overlays.js",
-      "sha256": "168a1aee6f24ea34400f593c196b0e3b1a0341e4332a1b6043f6c087ac4e2475",
-      "bytes": 3199
+      "sha256": "73827f619aeee0ea3ad0cdf37de42ef1842bd8579eefacb0ec360e8e077357da",
+      "bytes": 3239
     },
     {
       "path": "src/modules/_app-shell/runtime.js",
-      "sha256": "ce187417bbe232e0e5e08aaa6128ff169da8c2fc152d89b3cb462cd29aafcd5c",
-      "bytes": 106923
+      "sha256": "9d97e268a2c526e20ce74eaf961c91afff98dbd1873dbd0a1b0a7141234d1c78",
+      "bytes": 108141
     },
     {
       "path": "src/modules/_app-shell/state.js",
-      "sha256": "71c405fe749e383478ce59573fdb81ab7ef1f720b7931eb0d3e40a2ce96cde34",
-      "bytes": 4633
+      "sha256": "6008c82892d3a2f7aca74331ca97ea58ab6094a910d9694f3f29d80d2ccda115",
+      "bytes": 4934
     },
     {
       "path": "src/modules/m01-dashboard/echarts-LICENSE.txt",
@@ -193,14 +203,19 @@
       "bytes": 705143
     },
     {
+      "path": "src/modules/m01-dashboard/employee-usage.js",
+      "sha256": "23820e081cd9d048799f14164f1c4c30146c51dd843ba5aa08f45156caae501a",
+      "bytes": 21028
+    },
+    {
       "path": "src/modules/m01-dashboard/module.json",
-      "sha256": "125614bd603aa1bd55e6e3ad14f4717c01673b74fa9bdb5427b2fc88c8dc3b36",
-      "bytes": 659
+      "sha256": "b54d06f15c9841453d2caff6c6039c213a5bcf6d51835aa5a01fa2b7c18a92be",
+      "bytes": 860
     },
     {
       "path": "src/modules/m01-dashboard/page.js",
-      "sha256": "f87089285a1cfa2a6f8a80e0e2a9c3c64148ac21cae70c804b1746f35a945f93",
-      "bytes": 76239
+      "sha256": "7e0546249aa79386a2ba4f4f3fe63446669ce554449932a9170a40dbd6a40f9b",
+      "bytes": 76582
     },
     {
       "path": "src/modules/m02-customer-operations/customer-tree.js",
@@ -224,8 +239,8 @@
     },
     {
       "path": "src/modules/m02-customer-operations/records.js",
-      "sha256": "2782fdd9b7c96d83f46582e3c8d3676f268dbd0407c1b7ec646dd01d5d5576c3",
-      "bytes": 26898
+      "sha256": "87dc3f8983dfd3e3bc0af21c2515a7712822f339c2d6be93cd865dbfb101085d",
+      "bytes": 26996
     },
     {
       "path": "src/modules/m02-customer-operations/scoped-records.js",
@@ -254,8 +269,8 @@
     },
     {
       "path": "src/modules/m03-maintenance/task-actions.js",
-      "sha256": "4371a1451502e65bb83183c61eef1e50152191f18fe2353fe47d76dedd1854a1",
-      "bytes": 22861
+      "sha256": "75996501c6af511389960711721e4707beacd4bcc62f0886ac44ead8aae09664",
+      "bytes": 22925
     },
     {
       "path": "src/modules/m04-approvals/interactions.js",
@@ -374,8 +389,8 @@
     },
     {
       "path": "src/modules/m11-project-management/interactions.js",
-      "sha256": "057f0a670116c36638904d0cdf3c8e4bb738cae352752b28c322b78dfeb265fd",
-      "bytes": 143003
+      "sha256": "4a7e650fc76f5ddd49476dfcd29d73376fd2866e909ed5ac86e5216c0f56a067",
+      "bytes": 142933
     },
     {
       "path": "src/modules/m11-project-management/module.json",
@@ -384,38 +399,53 @@
     },
     {
       "path": "src/modules/m11-project-management/page.js",
-      "sha256": "45cd30ded2a26bc7e3375810e369e9013bf29a017342a45183a4f06141b2f837",
-      "bytes": 134287
+      "sha256": "a2c7b5d0e624f113f8722efa7b2657db4c0317f4dc4ca8300f889e9edda81a82",
+      "bytes": 134610
     },
     {
       "path": "src/modules/m12-sales-opportunity/interactions.js",
-      "sha256": "0cba63f8beb2b4960b77be2ccabcbf085f86b6de8220bfc740c01493dd625821",
-      "bytes": 122735
+      "sha256": "7830cf67311aebea494e23fe90c41dc304a5eef81ebce056d10d12f994915681",
+      "bytes": 123985
     },
     {
       "path": "src/modules/m12-sales-opportunity/module.json",
-      "sha256": "25bce97cba4269ff7795397e9be8e97e7cf63586ba03e4453d73468451ad8994",
-      "bytes": 958
+      "sha256": "37dbff780ee244c85fbe5f346dcc6964750d048b5b88ee464a90f3360b65a918",
+      "bytes": 1090
     },
     {
       "path": "src/modules/m12-sales-opportunity/page.js",
-      "sha256": "2f617b607aaadf9f54b945246a93ff887ab2e8c5c9326a0efae6ad228bb265dc",
-      "bytes": 110208
+      "sha256": "92e90dbf645b11004f4ce5aefee5b570dda12721b1fb7ec9667d2525633c101e",
+      "bytes": 111045
+    },
+    {
+      "path": "src/modules/m12-sales-opportunity/results.js",
+      "sha256": "84fd64acb2e2488111d4ce35c37b3c1ae3a9c37961861a70f52349582df475a6",
+      "bytes": 8750
+    },
+    {
+      "path": "src/modules/m13-teacher-management/catalog-materials.js",
+      "sha256": "81925b3936ff280b15b623fd8455ba3c58d325ff3519b9ef1922c0ebbca5bf6f",
+      "bytes": 24999
     },
     {
       "path": "src/modules/m13-teacher-management/interactions.js",
-      "sha256": "1d0a8f8d396d7ba104982b2e0e83cb84a3bec82efacd766e00b2c89dc261ee11",
-      "bytes": 54506
+      "sha256": "9593ba2fc4a53534daed2a9c62fac5fb67d7562562d6b2223c0db9207e3d2b55",
+      "bytes": 57749
     },
     {
       "path": "src/modules/m13-teacher-management/module.json",
-      "sha256": "25694e4dc48f505f0c619b2268d53bff197f8243440ad486d2632f02a8a95075",
-      "bytes": 582
+      "sha256": "2cb1d5c931a8c808ec72e6f688cd2a488073d3ccb9daae03e68df2ce6b3b6af4",
+      "bytes": 968
     },
     {
       "path": "src/modules/m13-teacher-management/page.js",
-      "sha256": "953e7b1983a8fbb1066219f8ad1f05de72c2a37e18128733b1e76c47f3d7b622",
-      "bytes": 34403
+      "sha256": "cc332df1a059e74aa39550f4f34e344b99a9b6fac6da5ee77661519e496188c2",
+      "bytes": 35349
+    },
+    {
+      "path": "src/modules/m13-teacher-management/work.js",
+      "sha256": "d4bcfd91fad941b97368c781dd7002780882829caa8355f367b62e22cf6511f5",
+      "bytes": 21851
     },
     {
       "path": "src/prototype.html",
@@ -424,8 +454,8 @@
     },
     {
       "path": "src/styles/prototype.css",
-      "sha256": "7c6d9098e7e74d220b4a1dff1078a0cdbe608b0f59880948b098ccf37df4aa48",
-      "bytes": 205197
+      "sha256": "00598bf65a134b65930e316634a670347c1167a9baffeaf87cdfec50f55a4de3",
+      "bytes": 209739
     }
   ],
   "artifactInputs": [
@@ -438,6 +468,7 @@
     "src/data/customer-organization.js",
     "src/data/customer-settings.js",
     "src/data/customers.js",
+    "src/data/employee-usage.js",
     "src/data/imports.js",
     "src/data/maintenance.js",
     "src/data/notifications.js",
@@ -455,6 +486,7 @@
     "src/data/sales-targets.js",
     "src/data/task-state.js",
     "src/data/tasks.js",
+    "src/data/teacher-work.js",
     "src/data/teachers.js",
     "src/modules/_app-shell/account.js",
     "src/modules/_app-shell/bootstrap.js",
@@ -464,6 +496,7 @@
     "src/modules/_app-shell/runtime.js",
     "src/modules/_app-shell/state.js",
     "src/modules/m01-dashboard/echarts.common-6.0.0.min.js",
+    "src/modules/m01-dashboard/employee-usage.js",
     "src/modules/m01-dashboard/page.js",
     "src/modules/m02-customer-operations/customer-tree.js",
     "src/modules/m02-customer-operations/details.js",
@@ -494,15 +527,18 @@
     "src/modules/m11-project-management/page.js",
     "src/modules/m12-sales-opportunity/interactions.js",
     "src/modules/m12-sales-opportunity/page.js",
+    "src/modules/m12-sales-opportunity/results.js",
+    "src/modules/m13-teacher-management/catalog-materials.js",
     "src/modules/m13-teacher-management/interactions.js",
     "src/modules/m13-teacher-management/page.js",
+    "src/modules/m13-teacher-management/work.js",
     "src/prototype.html",
     "src/styles/prototype.css"
   ],
   "artifact": {
     "path": "demo/prototype.html",
-    "sha256": "ea51c77fc08883efe7ac45a21f263eb8f112f5b06d6e1499793dfb7f50aad7ea",
-    "bytes": 3060287
+    "sha256": "d81cb14af2c091ad0b05af313cb22f2763224a4743423eab51aa4cd02fcc0196",
+    "bytes": 3162010
   },
   "legacyBridge": false,
   "architecture": "lightweight-modular",

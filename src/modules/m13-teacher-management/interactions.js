@@ -29,12 +29,13 @@
       }
       function teacherTypeRemovalImpact(teacher, draft) {
         const removedTypes = teacher.teachingTypes.filter((type) => !draft.teachingTypes.includes(type));
-        if (!removedTypes.length) return null;
+        const removedDirections = teacher.directions.filter(id=>!draft.directions.includes(id));
+        if (!removedTypes.length && !removedDirections.length) return null;
         const linked = projects.filter((project) => project.type === "培训项目" && teacherProjectIds(project).includes(teacher.id)).map((project) => ({ id: project.id, name: project.name, stage: computeProjectStageAndTodos(project).stage, owner: projectCurrentOwner(project), ecosystem: isEcosystemProject(project) }));
-        return { removedTypes, projects: linked, key: JSON.stringify({ teacherId: teacher.id, version: teacher.version, removedTypes, projects: linked }) };
+        return { removedTypes, removedDirections, projects: linked, key: JSON.stringify({ teacherId: teacher.id, version: teacher.version, removedTypes, removedDirections, projects: linked }) };
       }
       function teacherTypeRemovalConfirmHtml(impact) {
-        return `<div class="modal-head"><div class="modal-title">确认取消授课类型</div><button class="icon-btn close" data-close aria-label="返回修改">×</button></div><div class="modal-body"><p>即将取消：${impact.removedTypes.map(escapeHtml).join("、")}。</p><p>已创建项目保留原已选人员并继续执行；后续新项目及新增、替换人员按更新后的授课类型筛选。</p><div class="section-title">已关联项目</div><div class="table-wrap"><table class="teacher-type-projects"><thead><tr><th>项目名称</th><th>当前阶段</th><th>项目负责人</th></tr></thead><tbody>${impact.projects.map((project) => `<tr><td>${escapeHtml(project.name)}</td><td>${escapeHtml(project.stage)}</td><td>${escapeHtml(project.owner)}${project.ecosystem ? "（生态负责人）" : ""}</td></tr>`).join("") || '<tr><td colspan="3"><div class="empty">暂无关联项目</div></td></tr>'}</tbody></table></div></div><div class="modal-foot"><button class="btn" type="button" data-close>返回修改</button><button class="btn btn-primary" type="button" id="teacherTypeConfirmSave">确认保存</button></div>`;
+        return `<div class="modal-head"><div class="modal-title">确认调整授课能力</div><button class="icon-btn close" data-close aria-label="返回修改">×</button></div><div class="modal-body"><p>即将取消：${[...impact.removedTypes,...impact.removedDirections.map(teacherDirectionName)].map(escapeHtml).join("、")}。</p><p>已创建项目保留原已选人员并继续执行；后续新项目及新增、替换人员按更新后的授课类型筛选。</p><div class="section-title">已关联项目</div><div class="table-wrap"><table class="teacher-type-projects"><thead><tr><th>项目名称</th><th>当前阶段</th><th>项目负责人</th></tr></thead><tbody>${impact.projects.map((project) => `<tr><td>${escapeHtml(project.name)}</td><td>${escapeHtml(project.stage)}</td><td>${escapeHtml(project.owner)}${project.ecosystem ? "（生态负责人）" : ""}</td></tr>`).join("") || '<tr><td colspan="3"><div class="empty">暂无关联项目</div></td></tr>'}</tbody></table></div></div><div class="modal-foot"><button class="btn" type="button" data-close>返回修改</button><button class="btn btn-primary" type="button" id="teacherTypeConfirmSave">确认保存</button></div>`;
       }
       function openTeacherTypeRemovalConfirm(impact, onConfirm, onCancel) {
         openModal(teacherTypeRemovalConfirmHtml(impact));
@@ -57,12 +58,12 @@
         const phone = type === "内部" ? employee.phone : String(draft.phone || "").trim();
         const wechat = String(draft.wechat || "").trim();
         if (!name) return { error: "请填写老师姓名", field: "tfName" };
-        if (!phone && !wechat) return { error: "手机号、微信号至少填写一项", field: "tfphone" };
+        if (!phone) return { error: "请填写手机号", field: "tfphone" };
         if (phone && !/^1[3-9]\d{9}$/.test(phone)) return { error: "请填写有效手机号", field: "tfphone" };
         if (wechat && (wechat.length > 64 || /[\u0000-\u001f\u007f]/.test(wechat))) return { error: "微信号须为1-64字且不能包含控制字符", field: "tfwechat" };
         if (draft.gender && !TEACHER_GENDERS.includes(draft.gender)) return { error: "请选择有效性别", field: "tfGender" };
-        if (draft.education && !TEACHER_EDUCATIONS.includes(draft.education)) return { error: "请选择有效学历", field: "tfEducation" };
-        if (!Array.isArray(draft.directions) || !draft.directions.length || draft.directions.some((direction) => !teacherCourseOptions().some((item) => item.id === direction))) return { error: "请至少选择一门采购包课程作为教学方向", field: "tfDirectionPicker" };
+        if (!TEACHER_EDUCATIONS.includes(draft.education)) return { error: "请选择有效学历", field: "tfEducation" };
+        if (!Array.isArray(draft.directions) || !draft.directions.length || draft.directions.some((direction) => !teacherCourseOptions().some((item) => item.id === direction))) return { error: "请至少选择一项有效教学方向", field: "tfDirectionPicker" };
         if (!Array.isArray(draft.teachingTypes) || !draft.teachingTypes.length || draft.teachingTypes.some((item) => !TEACHER_TEACHING_TYPES.includes(item))) return { error: "请至少选择一项有效授课类型" };
         if (!teacherValidResidence(draft.residenceProvince, draft.residenceCity)) return { error: "请选择有效的常驻省份和城市" };
         if (draft.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(draft.email)) return { error: "邮箱格式不正确" };
@@ -104,17 +105,12 @@
           roleFees = normalized.fees;
           if (!teacherIsFacultySupervisor() && !hasFieldPermission("teacher_fee_view") && JSON.stringify(roleFees) !== JSON.stringify(teacherNormalizeRoleFees(existing?.roleFees, true).fees)) return { error: "无权修改课酬" };
         }
-        if (existing) {
-          const removed = existing.directions.filter((direction) => !draft.directions.includes(direction));
-          const blocking = teacherProjectBookings(id).filter((project) => removed.includes(project.teachingDirectionId) && ["已立项", "进行中"].includes(computeProjectStageAndTodos(project).stage) && [...(project.teacherAssignments?.lecturers || []), ...(project.teacherAssignments?.assistantLecturers || [])].includes(id));
-          if (blocking.length) return { error: "该方向仍有未开始或进行中项目，请先更换老师或调整项目：" + blocking.map((project) => project.id).join("、"), field: "tfDirectionPicker" };
-        }
         const confirmation = existing ? teacherTypeRemovalImpact(existing, draft) : null;
         if (confirmation && confirmation.key !== typeRemovalKey) return { typeRemovalConfirmation: confirmation };
         const newId = existing?.id || `T${String(Math.max(0, ...teachers.map((teacher) => Number(teacher.id.slice(1)) || 0)) + 1).padStart(3, "0")}`;
         const payload = { id: newId, type, employeeCode: type === "内部" ? employeeCode : "", name, phone: type === "内部" ? "" : phone, intro: String(draft.intro || "").trim(), gender: String(draft.gender || ""), birthDate: draft.birthDate || "", education: String(draft.education || "").trim(), email: String(draft.email || "").trim(), wechat, directions: [...new Set(draft.directions)], teachingTypes: [...new Set(draft.teachingTypes)], residenceProvince: draft.residenceProvince, residenceCity: draft.residenceCity, channels, ...(type === "内部" ? { roleFees } : { cooperationType }), version: (existing?.version || 0) + 1 };
         if (existing) Object.assign(existing, payload);
-        else teachers.push({ ...payload, status: "启用", resumes: [], unavailable: [] });
+        else teachers.push({ ...payload, status: type === "外部" ? "停用" : "启用", resumes: [], materials: [], unavailable: [] });
         return { teacher: teacherById(newId) };
       }
       function teacherSaveUnavailable(teacherId, itemId, start, end, reason, expectedVersion) {
@@ -141,6 +137,7 @@
         if (teacher.status !== expectedStatus) return { error: "老师状态已更新，请刷新" };
         const blocking = teacherProjectBookings(id).filter((project) => ["已立项", "进行中"].includes(computeProjectStageAndTodos(project).stage));
         if (teacher.status === "启用" && blocking.length) return { error: "请先替换未开始或进行中项目的老师：" + blocking.map((project) => project.id).join("、") };
+        if (teacher.status === "停用" && !teacherHasAgreement(teacher)) return {error:"请先补齐合作协议后再启用"};
         teacher.status = teacher.status === "启用" ? "停用" : "启用"; teacher.version++; return { teacher };
       }
       function teacherRefresh(id = "") { closeAllOverlays(); renderPage(); if (id && !teacherPersonalScheduleView() && currentPage !== "teacher-schedule" && teacherCanView(teacherById(id))) openTeacherDetail(id); }
@@ -161,11 +158,11 @@
       function teacherInput(label, id, value = "", type = "text", extra = "") {
         return `<label class="form-group"><span class="form-label">${label}</span><input class="input" id="${id}" type="${type}" value="${escapeHtml(value)}" ${extra}></label>`;
       }
-      function teacherSelect(label, id, value, options) {
-        return `<label class="form-group"><span class="form-label">${label}</span><select class="input" id="${id}"><option value="">请选择（可留空）</option>${options.map((item) => `<option ${value === item ? "selected" : ""}>${escapeHtml(item)}</option>`).join("")}</select></label>`;
+      function teacherSelect(label, id, value, options, required = false) {
+        return `<label class="form-group"><span class="form-label">${label}</span><select class="input" id="${id}" ${required ? 'required' : ''}><option value="">${required ? '请选择' : '请选择（可留空）'}</option>${options.map((item) => `<option ${value === item ? "selected" : ""}>${escapeHtml(item)}</option>`).join("")}</select></label>`;
       }
       function teacherDirectionPicker(teacher) {
-        return `<div class="form-group full"><span class="form-label">教学方向 *</span><details class="teacher-direction-picker" id="tfDirectionPicker"><summary>选择教学方向</summary><div class="teacher-direction-panel"><input class="input" id="tfDirectionSearch" type="search" placeholder="搜索采购包或课程" aria-label="搜索教学方向"><div class="teacher-direction-options">${teacherCourseOptions().map((direction) => `<label class="choice-item" data-teacher-direction-option><input type="checkbox" data-teacher-direction value="${direction.id}" ${teacher?.directions.includes(direction.id) ? "checked" : ""}><span>${escapeHtml(teacherDirectionName(direction.id))}</span></label>`).join("")}<div class="empty" id="tfDirectionEmpty" hidden>无匹配课程</div></div></div></details><div class="teacher-direction-selected" id="tfDirectionSelected" aria-live="polite"></div></div>`;
+        return `<div class="form-group full"><span class="form-label">教学方向 *</span><div class="multi-select teacher-direction-picker" id="tfDirectionPicker"><button type="button" class="multi-select-trigger" id="tfDirectionToggle" aria-expanded="false" aria-controls="tfDirectionPanel"><span id="tfDirectionLabel">请选择教学方向（可多选）</span><span>⌄</span></button><div class="multi-select-menu teacher-direction-panel hidden" id="tfDirectionPanel"><input class="input" id="tfDirectionSearch" type="search" placeholder="搜索教学方向" aria-label="搜索教学方向"><div class="teacher-direction-options">${teacherCourseOptions().map((direction) => `<label class="choice-item" data-teacher-direction-option><input type="checkbox" data-teacher-direction value="${direction.id}" ${teacher?.directions.includes(direction.id) ? "checked" : ""}><span>${escapeHtml(teacherDirectionName(direction.id))}</span></label>`).join("")}<div class="empty" id="tfDirectionEmpty" hidden>无匹配教学方向</div></div></div></div><div class="teacher-direction-selected" id="tfDirectionSelected" aria-live="polite"></div></div>`;
       }
       function teacherRoleFeeForm(prefix, fees, internal) {
         const kinds = teacherFeeKinds(internal);
@@ -182,7 +179,7 @@
         }))]));
       }
       function teacherContactInput(label, key, value, prefix = "tf") {
-        return teacherInput(label, prefix + key, "", key === "email" ? "email" : "text", `data-teacher-contact="${key}" data-unchanged="true" placeholder="${escapeHtml(value ? maskTeacherContact(value, key) + '（留空保持原值）' : '选填')}"`);
+        return teacherInput(label, prefix + key, "", key === "email" ? "email" : "text", `data-teacher-contact="${key}" data-unchanged="true" placeholder="${escapeHtml(value ? maskTeacherContact(value, key) + '（留空保持原值）' : prefix === 'tf' && key === 'phone' ? '请输入手机号' : '选填')}"`);
       }
       function teacherChannelForm(channel = {}, index = 0) {
         const prefix = "tc" + index;
@@ -195,12 +192,38 @@
         const scopes = teacherHasGlobalScope() ? Object.keys(TEACHER_SCOPE_NAMES) : teacherScopes();
         const type = teacher?.type || (scopes.includes("internal") ? "内部" : "外部");
         const employeeOptions = employees.filter((employee) => employeeHasRole(employee, "老师") && (!teachers.some((item) => item.employeeCode === employee.code) || employee.code === teacher?.employeeCode));
-        openModal(`<div class="modal-head"><div class="modal-title">${teacher ? "编辑老师" : "新增老师"}</div><button class="icon-btn close" data-close aria-label="关闭">×</button></div><form id="teacherForm" novalidate><div class="modal-body teacher-form"><div class="form-grid"><label class="form-group"><span class="form-label">老师来源 *</span><select class="input" id="tfType" ${teacher ? "disabled" : ""}>${["内部", "外部"].filter((item) => item === "内部" ? scopes.includes("internal") : scopes.some((scope) => scope !== "internal")).map((item) => `<option ${type === item ? "selected" : ""}>${item}</option>`).join("")}</select></label><div id="tfCooperationGroup">${teacherSelect("合作属性", "tfCooperationType", teacher?.cooperationType || "", TEACHER_COOPERATION_TYPES)}</div><label class="form-group" id="tfEmployeeGroup"><span class="form-label">关联员工 *</span><select class="input" id="tfEmployee" ${teacher ? "disabled" : ""}><option value="">请选择老师角色员工</option>${employeeOptions.map((employee) => `<option value="${employee.code}" ${teacher?.employeeCode === employee.code ? "selected" : ""}>${escapeHtml(employee.name)}（${employee.code}）</option>`).join("")}</select></label>${teacherInput("老师姓名 *", "tfName", teacher ? teacherName(teacher) : "")}<div class="form-group full teacher-contact-heading">手机号、微信号至少填写一项</div>${teacherContactInput("手机号", "phone", teacher && teacherRawContact(teacher, "phone"))}${teacherContactInput("微信号", "wechat", teacher?.wechat)}${teacherSelect("性别", "tfGender", teacher?.gender || "", TEACHER_GENDERS)}${teacherSelect("学历", "tfEducation", teacher?.education || "", TEACHER_EDUCATIONS)}${teacherInput("出生日期", "tfBirth", teacher?.birthDate || "", "date")}${teacherContactInput("邮箱", "email", teacher?.email)}<div class="form-group full"><span class="form-label">授课类型 *</span><div class="choice-grid">${TEACHER_TEACHING_TYPES.map((item) => `<label class="choice-item"><input type="checkbox" data-teacher-type value="${item}" ${teacher?.teachingTypes.includes(item) ? "checked" : ""}><span>${item}</span></label>`).join("")}</div></div><label class="form-group"><span class="form-label">常驻省份 *</span><select class="input" id="tfResidenceProvince"><option value="">请选择省份</option>${Object.keys(administrativeDivisions).map((province) => `<option ${teacher?.residenceProvince === province ? "selected" : ""}>${escapeHtml(province)}</option>`).join("")}</select></label><label class="form-group"><span class="form-label">常驻城市 *</span><select class="input" id="tfResidenceCity"></select></label><label class="form-group full"><span class="form-label">简介</span><textarea class="input" id="tfIntro" rows="3">${escapeHtml(teacher?.intro || "")}</textarea></label>${teacherDirectionPicker(teacher)}<div id="tfInternalFeeGroup" class="teacher-form-section">${teacherIsFacultySupervisor() || hasFieldPermission("teacher_fee_view") ? teacherRoleFeeForm("tfInternal", teacher?.roleFees, true) : ""}</div><div id="tfChannelsGroup" class="form-group full"><span class="form-label">合作渠道 *</span><div class="teacher-form-actions">${scopes.includes("agency") ? '<button type="button" class="btn btn-sm" id="tfAddAgency">添加机构渠道</button>' : ""}${scopes.includes("personal") ? '<button type="button" class="btn btn-sm" id="tfAddPersonal">添加个人渠道</button>' : ""}</div><div id="tfChannels">${(teacher?.channels || []).filter((channel) => scopes.includes(channel.kind)).map(teacherChannelForm).join("")}</div></div>${(!teacher || teacherCanResume(teacher, "upload")) && (teacherHasGlobalScope() || teacherIsFacultySupervisor() || currentRoleTemplateNames().includes("教学管理人员")) && (teacherIsFacultySupervisor() || hasAttachmentPermission("teacher_resume_upload")) ? `<label class="form-group full"><span class="form-label">添加简历</span><input class="input" id="tfResumes" type="file" multiple accept=".jpg,.jpeg,.png,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx"><span class="list-sub">单个文件不超过20MB，最多9个。</span></label>` : ""}</div></div><div class="modal-foot"><div class="field-error teacher-form-error" id="tfError" role="alert"></div><button type="button" class="btn" data-close>取消</button><button type="submit" class="btn btn-primary" id="tfSave">保存</button></div></form>`);
+        openModal(`<div class="modal-head"><div class="modal-title">${teacher ? "编辑老师 · " + escapeHtml(teacherName(teacher)) : "新增老师"}</div><button class="icon-btn close" data-close aria-label="关闭">×</button></div><form id="teacherForm" novalidate>
+          <div class="tabs teacher-profile-tabs" role="tablist" aria-label="老师档案页签">${[["basic","基本信息"],["fees","课酬与渠道"],["materials","资料附件"]].map(([key,label])=>`<button type="button" role="tab" class="tab ${key==='basic'?'active':''}" data-profile-tab="${key}" aria-selected="${key==='basic'}">${label}</button>`).join('')}</div>
+          <div class="modal-body teacher-form"><div class="form-grid" data-profile-panel="basic"><label class="form-group"><span class="form-label">老师来源 *</span><select class="input" id="tfType" ${teacher ? "disabled" : ""}>${["内部", "外部"].filter((item) => item === "内部" ? scopes.includes("internal") : scopes.some((scope) => scope !== "internal")).map((item) => `<option ${type === item ? "selected" : ""}>${item}</option>`).join("")}</select></label><div id="tfCooperationGroup">${teacherSelect("合作属性", "tfCooperationType", teacher?.cooperationType || "", TEACHER_COOPERATION_TYPES)}</div><label class="form-group" id="tfEmployeeGroup"><span class="form-label">关联员工 *</span><select class="input" id="tfEmployee" ${teacher ? "disabled" : ""}><option value="">请选择老师角色员工</option>${employeeOptions.map((employee) => `<option value="${employee.code}" ${teacher?.employeeCode === employee.code ? "selected" : ""}>${escapeHtml(employee.name)}（${employee.code}）</option>`).join("")}</select></label>${teacherInput("老师姓名 *", "tfName", teacher ? teacherName(teacher) : "")}${teacherContactInput("手机号 *", "phone", teacher && teacherRawContact(teacher, "phone"))}${teacherContactInput("微信号", "wechat", teacher?.wechat)}${teacherSelect("性别", "tfGender", teacher?.gender || "", TEACHER_GENDERS)}${teacherSelect("学历 *", "tfEducation", teacher?.education || "", TEACHER_EDUCATIONS, true)}${teacherInput("出生日期", "tfBirth", teacher?.birthDate || "", "date")}${teacherContactInput("邮箱", "email", teacher?.email)}<div class="form-group full"><span class="form-label">授课类型 *</span><div class="choice-grid">${TEACHER_TEACHING_TYPES.map((item) => `<label class="choice-item"><input type="checkbox" data-teacher-type value="${item}" ${teacher?.teachingTypes.includes(item) ? "checked" : ""}><span>${item}</span></label>`).join("")}</div></div><label class="form-group"><span class="form-label">常驻省份 *</span><select class="input" id="tfResidenceProvince"><option value="">请选择省份</option>${Object.keys(administrativeDivisions).map((province) => `<option ${teacher?.residenceProvince === province ? "selected" : ""}>${escapeHtml(province)}</option>`).join("")}</select></label><label class="form-group"><span class="form-label">常驻城市 *</span><select class="input" id="tfResidenceCity"></select></label>${teacherDirectionPicker(teacher)}<label class="form-group full"><span class="form-label">简介</span><textarea class="input" id="tfIntro" rows="2">${escapeHtml(teacher?.intro || "")}</textarea></label></div><div class="form-grid" data-profile-panel="fees" hidden><div id="tfInternalFeeGroup" class="teacher-form-section">${teacherIsFacultySupervisor() || hasFieldPermission("teacher_fee_view") ? teacherRoleFeeForm("tfInternal", teacher?.roleFees, true) : ""}</div><div id="tfChannelsGroup" class="form-group full"><span class="form-label">合作渠道 *</span><div class="teacher-form-actions">${scopes.includes("agency") ? '<button type="button" class="btn btn-sm" id="tfAddAgency">添加机构渠道</button>' : ""}${scopes.includes("personal") ? '<button type="button" class="btn btn-sm" id="tfAddPersonal">添加个人渠道</button>' : ""}</div><div id="tfChannels">${(teacher?.channels || []).filter((channel) => scopes.includes(channel.kind)).map(teacherChannelForm).join("")}</div></div></div><div data-profile-panel="materials" hidden>${teacherProfileMaterialsEditor(teacher)}</div></div>
+          <div class="modal-foot"><div class="field-error teacher-form-error" id="tfError" role="alert"></div><button type="button" class="btn" data-close>取消</button><button type="submit" class="btn btn-primary" id="tfSave">保存</button></div></form>`);
         $("#modalLayer .modal").classList.add("teacher-profile-modal");
         const form = $("#teacherForm");
+        const profileUploads = [], profileRemoved = new Set();
+        let profileMaterialRevision = 0;
+        const showProfileTab = (key) => {
+          form.querySelectorAll('[data-profile-panel]').forEach(panel=>panel.hidden=panel.dataset.profilePanel!==key);
+          form.querySelectorAll('[data-profile-tab]').forEach(button=>{button.classList.toggle('active',button.dataset.profileTab===key);button.setAttribute('aria-selected',String(button.dataset.profileTab===key));});
+        };
+        form.querySelectorAll('[data-profile-tab]').forEach(button=>button.onclick=()=>showProfileTab(button.dataset.profileTab));
+        const renderProfileUploads = () => {
+          form.querySelectorAll('[data-profile-pending]').forEach(list=>{list.innerHTML=profileUploads.map((item,index)=>({item,index})).filter(({item})=>item.category===list.dataset.profilePending).map(({item,index})=>`<div class="teacher-profile-file"><span>${escapeHtml(item.file.name)} <span class="list-sub">待上传 · ${formatFileSize(item.file.size)}</span></span><button type="button" class="link" data-remove-pending="${index}">移除</button></div>`).join('');});
+          form.querySelectorAll('[data-remove-pending]').forEach(button=>button.onclick=()=>{profileUploads.splice(Number(button.dataset.removePending),1);profileMaterialRevision++;renderProfileUploads();});
+        };
+        form.querySelectorAll('[data-profile-upload]').forEach(input=>input.onchange=()=>{[...input.files].forEach(file=>profileUploads.push({category:input.dataset.profileUpload,file}));input.value='';profileMaterialRevision++;renderProfileUploads();});
+        form.querySelectorAll('[data-profile-remove-file]').forEach(button=>button.onclick=()=>{profileMaterialRevision++;const fid=button.dataset.profileRemoveFile;if(profileRemoved.has(fid))profileRemoved.delete(fid);else profileRemoved.add(fid);button.textContent=profileRemoved.has(fid)?'撤销移除':'移除';button.closest('[data-profile-file]').classList.toggle('teacher-file-removed',profileRemoved.has(fid));});
+        const restoreProfile = () => { $("#modalLayer").replaceChildren(...profileNodes);bindOverlay(); };
+        const profileNodes = [...$("#modalLayer").childNodes];
+        form.querySelectorAll('[data-profile-preview]').forEach(button=>button.onclick=()=>openTeacherMaterial(id,button.dataset.profilePreview,false,false,restoreProfile));
+        form.querySelectorAll('[data-profile-download]').forEach(button=>button.onclick=()=>openTeacherMaterial(id,button.dataset.profileDownload,true));
         form.querySelectorAll("[data-teacher-type]").forEach((input) => input.onchange = () => teacherSyncFeeTypes(form));
+        const directionPanel = $("#tfDirectionPanel"), directionToggle = $("#tfDirectionToggle");
+        const setDirectionOpen = (open) => { directionPanel.classList.toggle("hidden", !open); directionToggle.setAttribute("aria-expanded", String(open)); };
+        directionToggle.onclick = () => setDirectionOpen(directionToggle.getAttribute("aria-expanded") !== "true");
+        form.onclick = (event) => { if (!event.target.closest("#tfDirectionPicker")) setDirectionOpen(false); };
+        form.onkeydown = (event) => { if (event.key === "Escape") setDirectionOpen(false); };
         const updateDirections = () => {
           const selected = [...form.querySelectorAll("[data-teacher-direction]:checked")];
+          $("#tfDirectionLabel").textContent = selected.length ? `已选 ${selected.length} 项教学方向` : "请选择教学方向（可多选）";
           $("#tfDirectionSelected").innerHTML = selected.map((input) => `<span class="teacher-direction-token"><span>${escapeHtml(teacherDirectionName(input.value))}</span><button type="button" data-remove-teacher-direction="${input.value}" aria-label="移除${escapeHtml(teacherDirectionName(input.value))}">×</button></span>`).join("");
           form.querySelectorAll("[data-remove-teacher-direction]").forEach((button) => button.onclick = () => { form.querySelector(`[data-teacher-direction][value="${button.dataset.removeTeacherDirection}"]`).checked = false; updateDirections(); });
         };
@@ -250,32 +273,29 @@
             return { id: row.dataset.channelId, kind: row.dataset.channelKind, agencyName: get("#" + prefix + "Agency"), contact: get("#" + prefix + "Contact"), ...Object.fromEntries(["phone", "email", "wechat"].map((key) => [key, contactValue(prefix, key, before?.[key])])), roleFees: teacherReadRoleFees(prefix, false, before?.roleFees) };
           });
           const draft = { version: expectedVersion, type: get("#tfType"), cooperationType: get("#tfType") === "外部" ? get("#tfCooperationType") : "", employeeCode: get("#tfEmployee"), name: get("#tfName"), phone: contactValue("tf", "phone", teacher && teacherRawContact(teacher, "phone")), email: contactValue("tf", "email", teacher?.email), wechat: contactValue("tf", "wechat", teacher?.wechat), gender: get("#tfGender"), birthDate: get("#tfBirth"), education: get("#tfEducation"), intro: get("#tfIntro"), directions: [...document.querySelectorAll("[data-teacher-direction]:checked")].map((input) => input.value), channels, teachingTypes: [...document.querySelectorAll("[data-teacher-type]:checked")].map((input) => input.value), residenceProvince: get("#tfResidenceProvince"), residenceCity: get("#tfResidenceCity"), roleFees: teacherReadRoleFees("tfInternal", true, teacher?.roleFees) };
-          const files = [...($("#tfResumes")?.files || [])];
           $("#tfSave").disabled = true;
-          let fileError = "";
-          if (files.length + (teacher?.resumes.length || 0) > 9 || files.reduce((sum, file) => sum + file.size, 0) > 100 * 1024 * 1024) fileError = "简历最多9个，单次总大小不超过100MB";
-          for (const file of files) {
-            if (fileError) break;
-            if (file.size > 20 * 1024 * 1024 || ![".jpg", ".jpeg", ".png", ".pdf", ".doc", ".docx", ".xls", ".xlsx", ".ppt", ".pptx"].includes(fileExtension(file.name))) fileError = "简历仅支持图片、PDF和Office，单个不超过20MB";
-            else { try { const check = await validateProjectFile(file, { kinds: ["image", "document"] }); if (!check.ok) fileError = check.reason; } catch { fileError = "文件读取失败，请重试"; } }
-          }
+          const materialRevision = profileMaterialRevision;
+          let fileError = await teacherValidateProfileMaterials(teacher, [...profileUploads], new Set(profileRemoved));
+          if(materialRevision !== profileMaterialRevision) fileError = "资料选择已变化，请重新保存";
           if ($("#teacherForm") !== form || currentUser !== actor || (teacher ? !teacherCanManage(teacher) : !teacherCanCreate())) return;
-          if (files.length && (!hasAttachmentPermission("teacher_resume_upload") || (teacher && !teacherCanResume(teacher, "upload")))) fileError = "无权上传简历";
-          if (fileError) { $("#tfError").textContent = fileError; $("#tfSave").disabled = false; return; }
+          if (fileError) { $("#tfError").textContent = fileError; $("#tfSave").disabled = false; showProfileTab('materials'); return; }
           const editorLayer = $("#modalLayer"), editorNodes = [...editorLayer.childNodes];
           const restoreEditor = () => { editorLayer.replaceChildren(...editorNodes); bindOverlay(); $("#tfSave").disabled = false; };
           const save = (confirmationKey = "") => {
             if (currentUser !== actor || (teacher ? !teacherCanManage(teacher) : !teacherCanCreate())) { restoreEditor(); $("#tfError").textContent = "权限已变化，请重新打开"; return; }
-            if (files.length && (!hasAttachmentPermission("teacher_resume_upload") || (teacher && !teacherCanResume(teacher, "upload")))) { restoreEditor(); $("#tfError").textContent = "无权上传简历"; return; }
+            const attachmentError = teacherProfileMaterialAccessError(teacher,profileUploads,profileRemoved);
+            if(attachmentError){restoreEditor();$("#tfError").textContent=attachmentError;showProfileTab('materials');return;}
             const result = teacherSaveProfile(id, draft, confirmationKey);
             if (result.error) {
               restoreEditor(); $("#tfError").textContent = result.error;
               const target = Number.isInteger(result.channelIndex) ? [...form.querySelectorAll("[data-teacher-channel-row]")][result.channelIndex] : result.field ? $("#" + result.field) : null;
-              if (target) { if (target.matches?.("details")) target.open = true; target.scrollIntoView?.({ block: "nearest" }); if (target.matches?.("input, select")) target.focus(); }
+              showProfileTab(Number.isInteger(result.channelIndex) || (!result.field && /课酬|渠道/.test(result.error)) ? "fees" : "basic");
+              if (target) { if (result.field === "tfDirectionPicker") { setDirectionOpen(true); directionToggle.focus?.(); } if (target.matches?.("details")) target.open = true; target.scrollIntoView?.({ block: "nearest" }); if (target.matches?.("input, select")) target.focus(); }
               return;
             }
             if (result.typeRemovalConfirmation) { openTeacherTypeRemovalConfirm(result.typeRemovalConfirmation, save, restoreEditor); return; }
-            files.forEach((file, index) => { const fileId = `CV-${result.teacher.id}-${Date.now()}-${index}`; teacherResumeFiles.set(fileId, file); result.teacher.resumes.push({ id: fileId, name: file.name, type: file.type, size: file.size, addedBy: actor.name }); });
+            profileUploads.forEach(({category,file},index)=>{const fileId=`TM-${result.teacher.id}-${Date.now()}-${index}`;teacherResumeFiles.set(fileId,file);(category==='简历'?result.teacher.resumes:result.teacher.materials).push({id:fileId,category,name:file.name,type:file.type,size:file.size,addedBy:actor.name});});
+            result.teacher.resumes=result.teacher.resumes.filter(file=>!profileRemoved.has(file.id));result.teacher.materials=result.teacher.materials.filter(file=>!profileRemoved.has(file.id));profileRemoved.forEach(fid=>teacherResumeFiles.delete(fid));
             teacherRefresh(); toast("老师资料已保存");
           };
           save();
@@ -354,6 +374,8 @@
         if (picker?.open && !picker.contains(event.target)) picker.open = false;
       }, true);
       function bindTeacherEvents() {
+        bindTeacherCatalogMaterials();
+        bindTeacherWorkEvents();
         if ($("#teacherScheduleCreate")) $("#teacherScheduleCreate").onclick = () => openTeacherUnavailable();
         const filters = $("#teacherListFilterForm");
         if (filters) {

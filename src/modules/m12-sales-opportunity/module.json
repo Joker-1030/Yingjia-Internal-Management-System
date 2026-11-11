@@ -7,7 +7,8 @@
     "opportunities",
     "opportunity-create",
     "opportunity-detail",
-    "sales-supports"
+    "sales-supports",
+    "support-results"
   ],
   "pageStates": [
     "销售周期目标与当前商机快照",
@@ -20,7 +21,9 @@
     "负责人改派",
     "结构化跟进",
     "多人方案支撑",
-    "我的方案支撑"
+    "我的方案支撑",
+    "支撑结果与月度参考",
+    "老师推荐接收"
   ],
   "dataReferences": [
     "data/sales-targets.js",
@@ -32,7 +35,8 @@
   ],
   "sourceFiles": [
     "modules/m12-sales-opportunity/page.js",
-    "modules/m12-sales-opportunity/interactions.js"
+    "modules/m12-sales-opportunity/interactions.js",
+    "modules/m12-sales-opportunity/results.js"
   ],
   "eventRouterSource": "modules/_app-shell/events.js"
 }

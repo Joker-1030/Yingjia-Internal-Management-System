@@ -281,6 +281,7 @@
               next: $("#rfNext").value,
               pm: r?.pm || currentUser.name,
               createdBy: r?.createdBy || currentUser.name,
+              createdByCode: r ? (r.createdByCode || "") : (employeeUsageEmployee()?.code || ""),
               proxyOperator: r?.proxyOperator || "",
               proxyReason: r?.proxyReason || "",
               region: p.region,

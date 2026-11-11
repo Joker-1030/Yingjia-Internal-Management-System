@@ -10,6 +10,10 @@
         ["imports", "数据导入"],
         ["projects", "项目管理"],
         ["teachers", "培训老师管理"],
+        ["teacher-schedule", "内部老师排期（只读）"],
+        ["teacher-work", "授课复盘"],
+        ["teacher-recommendations", "我的推荐"],
+        ["support-results", "支撑结果与月度参考"],
         ["packages", "采购包管理"],
         ["platform-companies", "平台公司管理"],
         ["opportunities", "商机列表"],
@@ -227,6 +231,7 @@
         { name: "组织与配置", items: [["employees", "组织与员工", "组织、员工与异动"], ["regions", "区域中心与地市配置", "区域与地市责任"], ["city-management", "地市管理", "PM 本人地市责任"], ["settings", "客户基础配置", "配置项维护"], ["imports", "数据导入", "上传、确认与结果"]] },
       ];
       const operationPermissionCatalog = [
+        ["teachers.schedule.read", "teacher-schedule", "只读查看内部老师排期"],
         ["teachers.view", "teachers", "查看老师资料与排期"],
         ["teachers.manage", "teachers", "维护负责范围内老师档案"],
         ["teachers.unavailable", "teachers", "维护有权人工不可用日期"],
@@ -327,6 +332,7 @@
       };
       const fieldPermissionCatalog = [
         ["teacher_contact_view", "老师有权联系方式明文查看", "view"],
+        ["teacher_standard_fee_view", "内部老师对外标准课酬查看", "view"],
         ["teacher_fee_view", "老师有权课酬查看", "view"],
         ["customer_base_view", "客户基础字段查看", "view"],
         ["customer_base_edit", "客户基础字段编辑", "edit", "customer_base_view"],
@@ -386,6 +392,16 @@
         商机支撑: "OPPORTUNITY_SUPPORT",
         系统管理员: "ADMIN",
       };
+      for (const name of ["PM", "区域总监"]) {
+        systemRoleTemplates.find(t => t.name === name).permissions.push("teacher-schedule");
+        roleOperationPermissions[name].push("teachers.schedule.read");
+        roleFieldPermissions[name].push("teacher_standard_fee_view");
+      }
+      for (const template of systemRoleTemplates) {
+        if (["系统管理员","总裁","市场副总","老师","教学管理人员","PM","区域总监"].includes(template.name)) template.permissions.push("teacher-work");
+        if (template.name === "老师") template.permissions.push("teacher-recommendations");
+        if (["系统管理员","总裁","市场副总","商机支撑"].includes(template.name)) template.permissions.push("support-results");
+      }
       const permissionVersions = Object.fromEntries(
         systemRoleTemplates.map((template, position) => {
           const index = template.name === "系统管理员" ? 5 : position;
@@ -535,3 +551,9 @@
       );
       let permissionDraft = null;
       let permissionChangeReason = "";
+
+      // Current capability only: do not insert the new node into older permission snapshots.
+      permissionTreeGroups.find(group => group.name === "组织与配置").items.splice(1, 0, ["employee-usage", "员工使用统计", "领导资格内只读查看"]);
+      permissionCatalog.push(["employee-usage", "员工使用统计（只读）"]);
+      allPermissionCatalog.push(["employee-usage", "员工使用统计（只读）"]);
+      systemRoleTemplates.forEach(template => { if (!template.permissions.includes("employee-usage")) template.permissions.push("employee-usage"); });

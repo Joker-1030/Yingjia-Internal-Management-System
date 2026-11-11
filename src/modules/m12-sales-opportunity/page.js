@@ -1038,7 +1038,7 @@
         const now = Date.now();
         const rows = requests.filter(salesSupportMatchesFilters).sort(salesCompareSupportRequests)
           .map(({ opportunity, support }) =>
-            `<tr data-page-row><td>${support.id}</td><td>${opportunity.id}</td><td>${opportunity.name}</td><td>${opportunity.customer}</td><td>${support.content}</td><td>${support.deadline}</td><td data-support-remaining="${support.id}">${salesSupportRemainingText(support, now)}</td><td>${salesStageTag(support.status)}</td><td><button class="link" data-opportunity-open="${opportunity.id}" data-opportunity-context="support" data-opportunity-support="${support.id}">商机详情</button> ${supportDeliveryAction(opportunity, support)} ${supportHistoryAction(opportunity, support)} ${supportStatusAction(opportunity, support).replaceAll("data-support-id", `data-support-opportunity=\"${opportunity.id}\" data-support-id`)}</td></tr>`,
+            `<tr data-page-row><td>${support.id}</td><td>${opportunity.id}</td><td>${opportunity.name}</td><td>${opportunity.customer}</td><td>${support.content}</td><td>${support.deadline}</td><td data-support-remaining="${support.id}">${salesSupportRemainingText(support, now)}</td><td>${salesStageTag(support.status)}</td><td><button class="link" data-opportunity-open="${opportunity.id}" data-opportunity-context="support" data-opportunity-support="${support.id}">商机详情</button> <button class="link" data-support-outcome="${opportunity.id}">业务结果</button> ${supportDeliveryAction(opportunity, support)} ${supportHistoryAction(opportunity, support)} ${supportStatusAction(opportunity, support).replaceAll("data-support-id", `data-support-opportunity=\"${opportunity.id}\" data-support-id`)}</td></tr>`,
           )
           .join("");
         return (
@@ -1146,6 +1146,7 @@
       }
 
       function renderOpportunities() {
+        if (salesListTab === "recommendations") return renderTeacherRecommendations(false);
         const rows = salesVisibleOpportunities().filter(opportunityMatchesFilters);
         const body = rows
           .sort((left, right) => Number(salesOpportunityIsUnread(right)) - Number(salesOpportunityIsUnread(left)) || right.updatedAt.localeCompare(left.updatedAt) || right.id.localeCompare(left.id))
@@ -1169,7 +1170,7 @@
             "查看商机信息，跟进销售进展。",
             `${salesCanCreate() ? '<button class="btn btn-primary" data-sales-page="opportunity-create">新建商机</button>' : ""}`,
           ) +
-          tableHtml
+          teacherRecommendationTabs() + tableHtml
         );
       }
 
@@ -1209,6 +1210,7 @@
           item.stage === "中选" ? salesField("成交金额（含税，万元）", salesMoney(item.expectedContractAmount)) : "",
           isEcosystemOpportunity(item) ? "" : salesField("商机关键人", item.keyPeople.join("、") || "—", "full"),
           salesField("商机需求描述", item.requirement, "full"),
+          (item.teacherSources || []).length ? salesField("老师推荐来源", item.teacherSources.map(s => escapeHtml(teacherName(teacherById(s.teacherId))) + " · " + escapeHtml(projectById(s.projectId)?.name || s.projectId) + " · " + s.recommendationId).join("<br>"), "full") : "",
           supportContext ? "" : salesField("创建信息", `${item.createdDate} · ${item.createdBy}`),
           supportContext ? "" : salesField("最近更新时间", item.updatedAt),
         ];
@@ -1226,7 +1228,7 @@
           salesCanProgress(item) && item.stage !== "落选"
             ? '<div class="sales-tab-toolbar"><button class="btn btn-primary" type="button" data-sales-followup-add>新增跟进</button></div>'
             : "";
-        return `${action}<div class="table-wrap"><table style="min-width:1280px"><thead><tr><th>跟进时间</th><th>跟进方式</th>${isEcosystemOpportunity(item) ? "" : "<th>参与关键人</th>"}<th>内容与结果</th><th>当前风险</th><th>下一步行动</th><th>下次跟进日期</th><th>附件</th><th>操作人</th></tr></thead><tbody>${rows || `<tr><td colspan="${isEcosystemOpportunity(item) ? 8 : 9}"><div class="empty">暂无跟进记录</div></td></tr>`}</tbody></table></div>`;
+        return `${action}${salesCanViewSupportOutcome(item) ? `<div class="sales-tab-toolbar"><button class="btn" data-support-outcome="${item.id}">查看支撑业务结果</button></div>` : ""}<div class="table-wrap"><table style="min-width:1280px"><thead><tr><th>跟进时间</th><th>跟进方式</th>${isEcosystemOpportunity(item) ? "" : "<th>参与关键人</th>"}<th>内容与结果</th><th>当前风险</th><th>下一步行动</th><th>下次跟进日期</th><th>附件</th><th>操作人</th></tr></thead><tbody>${rows || `<tr><td colspan="${isEcosystemOpportunity(item) ? 8 : 9}"><div class="empty">暂无跟进记录</div></td></tr>`}</tbody></table></div>`;
       }
 
       function supportStatusAction(item, support) {
@@ -1247,7 +1249,7 @@
           salesCanInitiateSupport(item)
             ? '<div class="sales-tab-toolbar"><button class="btn btn-primary" type="button" data-sales-support-add>发起支撑</button></div>'
             : "";
-        return `${action}<div class="table-wrap"><table style="min-width:1180px"><thead><tr><th>请求编号</th><th>支撑人员</th><th>交付截止时间</th><th>支撑需求</th><th>状态</th><th>操作</th></tr></thead><tbody>${rows || '<tr><td colspan="6"><div class="empty">暂无方案支撑请求</div></td></tr>'}</tbody></table></div>`;
+        return `${action}${salesCanViewSupportOutcome(item) ? `<div class="sales-tab-toolbar"><button class="btn" data-support-outcome="${item.id}">查看支撑业务结果</button></div>` : ""}<div class="table-wrap"><table style="min-width:1180px"><thead><tr><th>请求编号</th><th>支撑人员</th><th>交付截止时间</th><th>支撑需求</th><th>状态</th><th>操作</th></tr></thead><tbody>${rows || '<tr><td colspan="6"><div class="empty">暂无方案支撑请求</div></td></tr>'}</tbody></table></div>`;
       }
 
       function opportunityHistoryHtml(item) {
@@ -1335,7 +1337,7 @@
           )
           .join("");
         return (
-          `<div class="sales-support-picker sales-key-people-picker" id="${id}" data-sales-key-picker data-customer="${escapeHtml(customerName)}">` +
+          `<div class="sales-support-picker sales-key-people-picker" id="${id}" data-sales-key-picker data-sales-customer="${escapeHtml(customerName)}">` +
           '<div class="multi-select sales-support-select">' +
           `<button class="multi-select-trigger" type="button" data-sales-key-trigger aria-haspopup="listbox" aria-expanded="false" ${people.length ? "" : "disabled"}><span>${customerName ? people.length ? "搜索并选择商机关键人" : "该客户暂无有效关键人" : "请先选择客户单位"}</span><span aria-hidden="true">⌄</span></button>` +
           `<div class="multi-select-menu hidden" data-sales-key-menu><input class="input" type="search" data-sales-key-search placeholder="搜索商机关键人" aria-label="搜索商机关键人"><div data-sales-key-options>${options}</div></div></div>` +

@@ -76,6 +76,7 @@
         if (n) n.remove();
       }
       function toast(msg) {
+        employeeUsageNoteFeedback(msg);
         const t = $("#toast");
         t.textContent = msg;
         t.classList.remove("hidden");

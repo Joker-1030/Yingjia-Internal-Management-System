@@ -213,6 +213,7 @@
       const isProjectConfigAdmin = () =>
         Boolean(currentUser?.username === "admin" && currentUser?.role === "admin" && currentUser?.fullAccess);
       const templatePagePermissionAllowed = (template, permission) =>
+        permission === "employee-usage" ? true :
         template.name === "财务" ? ["dashboard", "projects"].includes(permission) :
         (["老师", "教学管理人员"].includes(template.name) ? permission === "teachers" : template.name !== "生态合作员" || ["dashboard", "projects", "opportunities"].includes(permission));
       const hasPermission = (permission) =>
@@ -240,6 +241,11 @@
       const roleCanSeeBusiness = () => hasDataObject("客户单位");
       const canAccessPage = (page) => {
         if (["approvals", "archive", "sales-dashboard"].includes(page)) return false;
+        if (page === "employee-usage") return employeeUsageAccess();
+        if (page === "teacher-work") return (hasPermission("teacher-work") || teacherIsFacultySupervisor()) && teacherWorkAccess();
+        if (page === "teacher-recommendations") return hasPermission("teacher-recommendations") && Boolean(teacherWorkSelf());
+        if (page === "support-results") return salesCanViewSupportResults();
+        if (page === "teacher-schedule" && teacherHasMarketSchedule()) return true;
         if (["teachers", "teacher-schedule"].includes(page)) return (typeof teacherIsFacultySupervisor === "function" && teacherIsFacultySupervisor()) || (hasPermission("teachers") && currentRoleTemplateNames().some((role) => ["系统管理员", "总裁", "市场副总", "老师", "教学管理人员"].includes(role)));
         if (page === "operations") return roleCanSeeBusiness();
         if (page === "city-management")
@@ -1223,6 +1229,7 @@
         }
         loginFailureState.delete(account.phone);
         currentUser = account;
+        employeeUsageRecordVisit();
         teacherListState = { actor: account, filters: teacherEmptyListFilters() };
         const personalTeacherLanding = defaultLandingPage() === "teacher-schedule";
         if (personalTeacherLanding) teacherScheduleState = { actor: account, month: DEMO_TODAY.slice(0, 7), view: "calendar", selected: null };
@@ -1381,7 +1388,7 @@
             return `<div class="nav-group"><div class="nav-title">${g.title}</div>${items
               .map((i) => {
                 const label =
-                  i.id === "teachers" && teacherPersonalScheduleView()
+                  i.id === "teacher-work" && teacherPersonalScheduleView() ? "我的复盘" : i.id === "teachers" && teacherPersonalScheduleView()
                     ? "我的信息"
                     : i.id === "teacher-schedule" && teacherPersonalScheduleView() && !teacherHasCompanyScheduleAccess()
                     ? "我的排期"
@@ -1425,6 +1432,7 @@
       }
       const pageNames = {
         dashboard: "工作台",
+        "employee-usage": "员工使用统计",
         operations: "客户经营",
         customers: "客户档案",
         tasks: "维系管理",
@@ -1438,6 +1446,9 @@
         imports: "数据导入",
         teachers: "老师管理",
         "teacher-schedule": "老师排期",
+        "teacher-work": "授课复盘",
+        "teacher-recommendations": "我的推荐",
+        "support-results": "支撑结果与月度参考",
         projects: "项目管理",
         "project-detail": "项目详情",
         "project-create": "创建项目",
@@ -1452,7 +1463,10 @@
         "sales-supports": "我的方案支撑",
       };
       function renderPage() {
+        employeeUsageGuard();
         normalizeTaskStates();
+        teacherEnsureRecapTasks();
+        if(currentPage !== "opportunity-create") pendingTeacherRecommendationId="";
         const canOpenPage = canAccessPage(currentPage);
         if (!canOpenPage) {
           const deniedName = pageNames[currentPage] || "该页面";
@@ -1477,6 +1491,7 @@
         );
         const renderers = {
           dashboard: renderDashboard,
+          "employee-usage": employeeUsagePage,
           operations: renderOperations,
           tasks: renderTasks,
           approvals: renderApprovals,
@@ -1489,6 +1504,9 @@
           imports: renderImports,
           teachers: renderTeachers,
           "teacher-schedule": renderTeacherSchedule,
+          "teacher-work": renderTeacherWork,
+          "teacher-recommendations": () => renderTeacherRecommendations(true),
+          "support-results": renderSupportResults,
           projects: renderProjects,
           "project-detail": renderProjectDetail,
           "project-create": renderProjectCreate,

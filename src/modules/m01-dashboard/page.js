@@ -289,10 +289,11 @@
           ...item, category: "project", due: "", overdue: false,
           createdAt: item.createdAt || "", sortId: item.projectId,
         }));
+        const teacherItems = teacherWorkTodoItems();
         const items =
           currentUser.role === "pm"
-            ? [...projectItems, ...taskItems, ...opportunityItems]
-            : [...projectItems, ...taskItems, ...opportunityItems];
+            ? [...projectItems, ...taskItems, ...opportunityItems, ...teacherItems]
+            : [...projectItems, ...taskItems, ...opportunityItems, ...teacherItems];
         const timeCompare = (a, b) => a ? b ? a.localeCompare(b) : -1 : b ? 1 : 0;
         return items.sort((a,b) => Number(b.overdue) - Number(a.overdue) || timeCompare(a.due,b.due) || timeCompare(a.createdAt,b.createdAt) || a.sortId.localeCompare(b.sortId, "en", { numeric: true }) || a.title.localeCompare(b.title, "zh-CN"));
       }
@@ -360,7 +361,7 @@
         return items.length
           ? items
               .map((item) => {
-                const attrs = item.projectId
+                const attrs = item.recapProjectId ? `data-teacher-todo-recap="${escapeDashboardHtml(item.recapProjectId)}" data-teacher-id="${item.teacherId}"` : item.recommendationId ? `data-teacher-todo-recommend="${item.recommendationId}"` : item.projectId
                   ? `data-project-open="${escapeDashboardHtml(item.projectId)}"`
                   : item.opportunityId
                     ? `data-opportunity-open="${escapeDashboardHtml(item.opportunityId)}"`
@@ -641,7 +642,7 @@
         });
       }
 
-      const WORKBENCH_TODO_CATEGORIES = [["all", "全部"], ["regular", "常规维系"], ["opportunity", "商机跟进"], ["seasonal", "生日/节假日"], ["campaign", "专项"], ["project", "项目"]];
+      const WORKBENCH_TODO_CATEGORIES = [["all", "全部"], ["regular", "常规维系"], ["opportunity", "商机跟进"], ["seasonal", "生日/节假日"], ["campaign", "专项"], ["project", "项目"], ["teacher-work", "老师复盘/推荐"]];
       let dashboardTodoCategory = "all";
       let dashboardTodoPage = 1;
       function dashboardTodoPageData() {

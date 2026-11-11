@@ -3,14 +3,16 @@
   "id": "M01",
   "name": "工作台",
   "pages": [
-    "dashboard"
+    "dashboard",
+    "employee-usage"
   ],
   "pageStates": [
     "角色视图",
     "统计周期",
     "销售概况与商机多维统计",
     "任务下钻筛选",
-    "重点动态与待办"
+    "重点动态与待办",
+    "员工使用统计与只读计数明细"
   ],
   "dataReferences": [
     "data/accounts.js",
@@ -20,11 +22,15 @@
     "data/campaigns.js",
     "data/notifications.js",
     "data/opportunities.js",
-    "data/sales-targets.js"
+    "data/sales-targets.js",
+    "data/employee-usage.js",
+    "data/organization.js",
+    "data/maintenance.js"
   ],
   "sourceFiles": [
     "modules/m01-dashboard/page.js",
-    "modules/m01-dashboard/echarts.common-6.0.0.min.js"
+    "modules/m01-dashboard/echarts.common-6.0.0.min.js",
+    "modules/m01-dashboard/employee-usage.js"
   ],
   "eventRouterSource": "modules/_app-shell/events.js"
 }

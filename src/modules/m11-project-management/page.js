@@ -716,6 +716,7 @@
             effectiveTime,
           );
           project.stage = nextStage;
+          if (nextStage === "已交付") project.deliveredAt = effectiveTime || (project.type === "培训项目" ? project.endTime : DEMO_NOW);
         }
         if (!projectTodosEqual(project.todos, target.todos)) {
           project.todos = target.todos;
@@ -1337,7 +1338,6 @@
           ...(project.packageId
             ? [["采购包", `${packageName}（${project.packageId}）`]]
             : []),
-          ...(project.teachingDirectionId && project.resourceType === "平台师资合作" && !project.directionIntro ? [["课程", teacherDirectionName(project.teachingDirectionId)]] : []),
           ...(project.directionIntro
             ? [["课程", project.directionIntro]]
             : []),
@@ -1978,15 +1978,15 @@
       function projectTeacherTokenName(token) { return teacherById(token) ? teacherName(teacherById(token)) : ""; }
       function projectTeacherOptionHtml(tokens, context, role) {
         const candidates = teacherSelectionCandidates(context.directionId, context.start, context.end, role, context.excludeId, context.resourceType);
-        const ids = [...new Set([...candidates.map((teacher) => teacher.id), ...tokens])];
+        const ids = [...new Set([...candidates.filter(t=>!context.filterDirection || t.directions.includes(context.filterDirection)).map((teacher) => teacher.id), ...tokens])];
         return ids.map((id) => { const teacher = teacherById(id), selected = tokens.includes(id); const reason = teacher ? teacherEligibility(id, context.directionId, context.start, context.end, role, context.excludeId, context.resourceType) : "老师档案不可用，请重新选择";
           return `<div class="multi-select-option" data-instructor-option><label><input type="checkbox" data-instructor value="${escapeHtml(id)}" ${selected ? "checked" : ""} ${reason ? "disabled" : ""}><span>${escapeHtml(projectTeacherTokenName(id))}${teacher ? `<span class="list-sub">${escapeHtml(teacher.teachingTypes.join("、"))} · ${escapeHtml(teacherResidence(teacher))}</span>` : ""}</span></label>${reason ? `<span class="list-sub">${escapeHtml(reason)}</span>` : `<button type="button" class="btn btn-sm" data-project-teacher-profile="${teacher.id}">资料</button>`}</div>`;
-        }).join("") || (context.resourceType === "框架服务" ? '<div class="list-sub">请先填写项目日期；暂无符合条件的老师时请调整条件。</div>' : '<div class="list-sub">请先选择采购包课程和日期；暂无符合条件的老师时请调整条件。</div>');
+        }).join("") || (context.resourceType === "框架服务" ? '<div class="list-sub">暂无符合当前筛选条件的老师，请检查日期及筛选。</div>' : '<div class="list-sub">暂无符合当前筛选条件的老师，请检查日期及筛选。</div>');
       }
       function instructorSelectHtml(id, roleLabel, selectedNames, project = null) {
         const tokens = projectSelectedTokens(project, projectStaffRole(id), selectedNames);
-        const context = { directionId: project?.teachingDirectionId || "", start: project?.startTime || "", end: project?.endTime || "", excludeId: project?.id || "", resourceType: project?.resourceType || "" };
-        return `<div class="instructor-picker" id="${id}" data-instructor-picker data-instructor-label="${escapeHtml(roleLabel)}"><div class="multi-select instructor-select"><button class="multi-select-trigger" type="button" data-instructor-trigger aria-haspopup="listbox" aria-expanded="false"><span>搜索并选择${escapeHtml(roleLabel)}</span><span aria-hidden="true">⌄</span></button><div class="multi-select-menu hidden" data-instructor-menu><input class="input" type="search" data-instructor-search placeholder="搜索${escapeHtml(roleLabel)}" aria-label="搜索${escapeHtml(roleLabel)}"><div data-instructor-options>${projectTeacherOptionHtml(tokens, context, projectStaffRole(id))}</div></div></div><div class="instructor-selected-list" data-instructor-selected aria-live="polite">${tokens.map((token) => `<span class="instructor-selected-item"><span>${escapeHtml(projectTeacherTokenName(token))}</span><button type="button" class="instructor-selected-remove" data-instructor-remove="${escapeHtml(token)}" aria-label="移除${escapeHtml(projectTeacherTokenName(token))}">×</button></span>`).join("")}</div></div>`;
+        const context = { directionId: "", start: project?.startTime || "", end: project?.endTime || "", excludeId: project?.id || "", resourceType: project?.resourceType || "" };
+        return `<div class="instructor-picker" id="${id}" data-instructor-picker data-instructor-label="${escapeHtml(roleLabel)}"><div class="multi-select instructor-select"><button class="multi-select-trigger" type="button" data-instructor-trigger aria-haspopup="listbox" aria-expanded="false"><span>搜索并选择${escapeHtml(roleLabel)}</span><span aria-hidden="true">⌄</span></button><div class="multi-select-menu hidden" data-instructor-menu>${projectStaffRole(id)!=="teachingAssistants" ? `<label class="form-group"><span class="form-label">教学方向筛选</span><select class="input" data-instructor-direction><option value="">全部教学方向</option>${teacherCourseOptions().map(d=>`<option value="${d.id}">${escapeHtml(d.name)}</option>`).join("")}</select></label>` : ""}<input class="input" type="search" data-instructor-search placeholder="搜索${escapeHtml(roleLabel)}" aria-label="搜索${escapeHtml(roleLabel)}"><div data-instructor-options>${projectTeacherOptionHtml(tokens, context, projectStaffRole(id))}</div></div></div><div class="instructor-selected-list" data-instructor-selected aria-live="polite">${tokens.map((token) => `<span class="instructor-selected-item"><span>${escapeHtml(projectTeacherTokenName(token))}</span><button type="button" class="instructor-selected-remove" data-instructor-remove="${escapeHtml(token)}" aria-label="移除${escapeHtml(projectTeacherTokenName(token))}">×</button></span>`).join("")}</div></div>`;
       }
       function projectCreateCustomerIsPlatform(customerId) {
         return platformCompanies.some(item => item.id === customerId);

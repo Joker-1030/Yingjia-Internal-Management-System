@@ -58,13 +58,8 @@
         if (key === "email") { const at = text.indexOf("@"); return at > 0 ? text.slice(0, 1) + "***" + text.slice(at) : "***"; }
         return text.slice(0, 1) + "***";
       }
-      function teacherCourseOptions() {
-        return projectPackages.flatMap((pkg) => pkg.directions.map((course) => ({ id: course.directionId, name: course.intro, packageId: pkg.id, packageName: pkg.name })));
-      }
-      function teacherDirectionName(id) {
-        const course = teacherCourseOptions().find((item) => item.id === id);
-        return course ? `${course.packageName} · ${course.name}` : "—";
-      }
+      function teacherCourseOptions() { return teacherDirections.filter(d=>d.status==='启用'); }
+      function teacherDirectionName(id) { return teacherDirections.find(d=>d.id===id)?.name || '—'; }
       function teacherAge(birthDate) {
         if (!birthDate) return "—";
         const today = new Intl.DateTimeFormat("sv-SE", { timeZone: "Asia/Shanghai" }).format(new Date());
@@ -91,19 +86,18 @@
         const originalAssignment = projects.find((project) => project.id === excludeProjectId)?.teacherAssignments?.[role]?.includes(teacherId);
         if (!TEACHER_ROLE_TYPES[role] || (!originalAssignment && !teacher.teachingTypes.includes(TEACHER_ROLE_TYPES[role]))) return "老师不具备对应授课类型，请重新选择";
         if (!teacherValidResidence(teacher.residenceProvince, teacher.residenceCity)) return "老师常驻省市未完善，请先补录";
+        if (!teacherHasAgreement(teacher) && !originalAssignment) return "请先补齐老师合作协议";
         if (teacher.status !== "启用") return "老师已停用，请重新选择";
         if (teacher.type === "内部") {
           const employee = employees.find((item) => item.code === teacher.employeeCode);
           if (!employee || employee.status !== "在职" || !employeeHasRole(employee, "老师")) return "关联员工已停用或不再具有老师角色，请重新选择";
         }
         if (!start || !end || teacherDate(start) > teacherDate(end)) return "请先填写有效的项目日期";
-        if (resourceType !== "框架服务" && role !== "teachingAssistants" && !teacherCourseOptions().some((item) => item.id === directionId)) return "请先选择采购包及课程";
-        if (resourceType !== "框架服务" && role !== "teachingAssistants" && !teacher.directions.includes(directionId)) return "老师教学方向不包含所选课程，请重新选择";
         if (teacherConflicts(teacherId, start, end, excludeProjectId).length) return "该日期已有安排，请重新选择";
         return "";
       }
       function teacherSelectionCandidates(directionId, start, end, role = "lecturers", excludeProjectId = "", resourceType = "") {
-        if ((!directionId && resourceType !== "框架服务") || !start || !end) return [];
+        if (!start || !end) return [];
         return teachers.filter((teacher) => !teacherEligibility(teacher.id, directionId, start, end, role, excludeProjectId, resourceType));
       }
       function teacherValidResidence(province, city) { return Boolean(province && city && Object.hasOwn(administrativeDivisions, province) && Object.hasOwn(administrativeDivisions[province], city)); }
@@ -144,7 +138,7 @@
         return `<div class="section-title">简历</div><div class="teacher-resume-list">${teacher.resumes.map((file) => `<div class="teacher-resume-row"><span>${escapeHtml(file.name)}<span class="list-sub"> · ${formatFileSize(file.size)}</span></span><span><button class="btn btn-sm" data-teacher-resume="${teacher.id}" data-resume-id="${file.id}">预览</button>${teacherCanResume(teacher, "delete") ? ` <button class="btn btn-sm" data-teacher-resume-delete="${teacher.id}" data-resume-id="${file.id}">删除</button>` : ""}${teacherCanResume(teacher, "download") ? ` <button class="btn btn-sm" data-teacher-resume="${teacher.id}" data-resume-id="${file.id}" data-resume-download>下载</button>` : ""}</span></div>`).join("") || '<div class="list-sub">暂未上传简历</div>'}</div>`;
       }
       function teacherDetailHtml(teacher, projectOnly = false) {
-        return `<div class="drawer-head"><div class="modal-title">老师详情</div><button class="icon-btn close" data-close aria-label="关闭">×</button></div><div class="drawer-body teacher-detail"><div class="detail-hero"><div class="avatar">${escapeHtml(teacherName(teacher).slice(0, 1))}</div><div><div class="detail-name">${escapeHtml(teacherName(teacher))}</div><div class="detail-sub">${teacher.type}老师 · ${teacher.status}</div></div></div>${teacherPublicHtml(teacher)}${!projectOnly && teacher.type === "外部" ? `<div class="detail-grid">${teacherInfoHtml("合作属性", teacher.cooperationType)}</div>` : ""}${teacherContactsHtml(teacher, projectOnly)}${projectOnly ? "" : teacherChannelsHtml(teacher) + teacherResumesHtml(teacher) + teacherScheduleHtml(teacher, !teacherManagementScheduleEntry())}</div><div class="drawer-foot"><button class="btn" data-close>关闭</button></div>`;
+        return `<div class="drawer-head"><div class="modal-title">老师详情</div><button class="icon-btn close" data-close aria-label="关闭">×</button></div><div class="drawer-body teacher-detail"><div class="detail-hero"><div class="avatar">${escapeHtml(teacherName(teacher).slice(0, 1))}</div><div><div class="detail-name">${escapeHtml(teacherName(teacher))}</div><div class="detail-sub">${teacher.type}老师 · ${teacher.status}</div></div></div>${teacherPublicHtml(teacher)}${!projectOnly && teacher.type === "外部" ? `<div class="detail-grid">${teacherInfoHtml("合作属性", teacher.cooperationType)}</div>` : ""}${teacherContactsHtml(teacher, projectOnly)}${projectOnly ? teacherStandardFeesHtml(teacher) : teacherChannelsHtml(teacher) + teacherMaterialsHtml(teacher) + teacherScheduleHtml(teacher, !teacherManagementScheduleEntry())}</div><div class="drawer-foot"><button class="btn" data-close>关闭</button></div>`;
       }
       function teacherHasCompanyScheduleAccess() {
         return teacherHasExecutiveScope();
@@ -152,9 +146,10 @@
       function teacherScheduleContext() {
         if (teacherScheduleState.actor !== currentUser) teacherScheduleState = { actor: currentUser, month: DEMO_TODAY.slice(0, 7), view: "calendar", selected: null };
         const companyViewer = teacherHasCompanyScheduleAccess();
-        const allowed = canAccessPage("teacher-schedule") && hasOperationPermission("teachers.view");
-        const managing = allowed && (companyViewer || teacherIsAdmin() || teacherIsFacultySupervisor() || currentRoleTemplateNames().includes("教学管理人员"));
-        const available = allowed ? teachers.filter((teacher) => companyViewer || (teacherCanView(teacher) && (managing ? teacherIsAdmin() || teacherIsFacultySupervisor() || teacherMatchesScope(teacher) : teacherIsSelf(teacher)))) : [];
+        const marketViewer = teacherHasMarketSchedule();
+        const allowed = canAccessPage("teacher-schedule") && (hasOperationPermission("teachers.view") || marketViewer);
+        const managing = allowed && (companyViewer || marketViewer || teacherIsAdmin() || teacherIsFacultySupervisor() || currentRoleTemplateNames().includes("教学管理人员"));
+        const available = allowed ? teachers.filter((teacher) => (marketViewer && teacher.type === "内部") || companyViewer || (teacherCanView(teacher) && (managing ? teacherIsAdmin() || teacherIsFacultySupervisor() || teacherMatchesScope(teacher) : teacherIsSelf(teacher)))) : [];
         const ids = new Set(available.map((teacher) => teacher.id));
         if (teacherScheduleState.selected !== null) teacherScheduleState.selected = teacherScheduleState.selected.filter((id) => ids.has(id));
         if (!managing) teacherScheduleState.view = "calendar";
@@ -169,7 +164,7 @@
       function teacherScheduleEvents(selected, month) {
         const range = teacherMonthRange(month);
         return selected.flatMap((teacher) => [
-          ...teacherProjectBookings(teacher.id).map((project) => ({ teacherId: teacher.id, id: project.id, kind: "project", start: teacherDate(project.startTime), end: teacherDate(project.endTime), label: teacherName(teacher) + " · " + project.name })),
+          ...teacherProjectBookings(teacher.id).map((project) => ({ teacherId: teacher.id, id: project.id, kind: "project", start: teacherDate(project.startTime), end: teacherDate(project.endTime), label: teacherName(teacher) + " · " + (teacherHasMarketSchedule() && !projectIsVisibleToCurrentUser(project) ? "项目占用" : project.name) })),
           ...teacher.unavailable.map((item) => ({ teacherId: teacher.id, id: item.id, kind: "unavailable", start: item.start, end: item.end, label: teacherName(teacher) + " · 人工不可用" })),
         ]).filter((event) => teacherDatesOverlap(event.start, event.end, range.start, range.end));
       }
@@ -207,7 +202,7 @@
       }
       function teacherSchedulePanelHtml() {
         const { managing, available, selected } = teacherScheduleContext(), state = teacherScheduleState, events = teacherScheduleEvents(selected, state.month);
-        return `<section class="panel teacher-schedule-panel"><div class="panel-head"><div class="teacher-schedule-controls"><label>月份 <input class="input" type="month" id="teacherScheduleMonth" value="${state.month}" aria-label="排期月份"></label>${managing ? `<details class="teacher-schedule-filter" id="teacherSchedulePicker"><summary class="btn teacher-schedule-select">选择老师</summary><div id="teacherScheduleOptions"><label><input type="checkbox" id="teacherScheduleAll" ${selected.length === available.length ? "checked" : ""}>${teacherHasCompanyScheduleAccess() ? "全部老师" : "全部负责老师"}</label>${available.map((teacher) => `<label><input type="checkbox" data-teacher-schedule-filter="${teacher.id}" ${selected.includes(teacher) ? "checked" : ""}>${escapeHtml(teacherName(teacher))}</label>`).join("")}</div></details><div class="teacher-view-switch" role="group" aria-label="排期视图">${[["calendar", "日历"], ["gantt", "甘特图"]].map(([view, label]) => `<button type="button" class="btn ${state.view === view ? 'btn-primary' : ''}" data-teacher-schedule-view="${view}" aria-pressed="${state.view === view}">${label}</button>`).join("")}</div>` : ""}</div></div><div class="teacher-schedule-legend"><span>项目授课</span><span>人工不可用</span></div>${selected.length ? state.view === "gantt" ? teacherGanttHtml(events, selected, state.month) : teacherCalendarHtml(events, state.month) : '<div class="empty">暂无选中的可查看老师</div>'}</section>`;
+        return `<section class="panel teacher-schedule-panel"><div class="panel-head"><div class="teacher-schedule-controls"><label>月份 <input class="input" type="month" id="teacherScheduleMonth" value="${state.month}" aria-label="排期月份"></label>${managing ? `<details class="teacher-schedule-filter" id="teacherSchedulePicker"><summary class="btn teacher-schedule-select">选择老师</summary><div id="teacherScheduleOptions"><label><input type="checkbox" id="teacherScheduleAll" ${selected.length === available.length ? "checked" : ""}>${teacherHasCompanyScheduleAccess() ? "全部老师" : teacherHasMarketSchedule() ? "全部内部老师" : "全部负责老师"}</label>${available.map((teacher) => `<label><input type="checkbox" data-teacher-schedule-filter="${teacher.id}" ${selected.includes(teacher) ? "checked" : ""}>${escapeHtml(teacherName(teacher))}</label>${teacherHasMarketSchedule()?`<button class="link teacher-market-profile" type="button" data-market-teacher="${teacher.id}">查看资料及标准课酬</button>`:""}`).join("")}</div></details><div class="teacher-view-switch" role="group" aria-label="排期视图">${[["calendar", "日历"], ["gantt", "甘特图"]].map(([view, label]) => `<button type="button" class="btn ${state.view === view ? 'btn-primary' : ''}" data-teacher-schedule-view="${view}" aria-pressed="${state.view === view}">${label}</button>`).join("")}</div>` : ""}</div></div><div class="teacher-schedule-legend"><span>项目授课</span><span>人工不可用</span></div>${selected.length ? state.view === "gantt" ? teacherGanttHtml(events, selected, state.month) : teacherCalendarHtml(events, state.month) : '<div class="empty">暂无选中的可查看老师</div>'}</section>`;
       }
       function openTeacherScheduleItem(teacherId, kind, id) {
         const { selected } = teacherScheduleContext();
@@ -217,7 +212,8 @@
         if (!event) return toast("安排已更新，请刷新");
         const project = kind === "project" ? projectById(id) : null;
         const item = teacher.unavailable.find((entry) => entry.id === id);
-        openModal(`<div class="modal-head"><div class="modal-title">排期详情</div><button class="icon-btn close" data-close aria-label="关闭">×</button></div><div class="modal-body"><div class="detail-grid">${teacherInfoHtml("老师", teacherName(teacher))}${teacherInfoHtml("安排类型", project ? "项目授课" : "人工不可用")}${teacherInfoHtml("开始日期", event.start)}${teacherInfoHtml("结束日期", event.end)}${project ? teacherInfoHtml("项目编号", project.id) + teacherInfoHtml("项目名称", project.name) : (teacherInfoHtml("登记人", employees.find((employee) => employee.code === item?.createdBy)?.name || "管理员") + `<div class="teacher-unavailable-reason">${teacherInfoHtml("备注/原因", item.reason)}</div>`)}</div></div><div class="modal-foot"><button class="btn" data-close>关闭</button></div>`);
+        openModal(`<div class="modal-head"><div class="modal-title">排期详情</div><button class="icon-btn close" data-close aria-label="关闭">×</button></div><div class="modal-body"><div class="detail-grid">${teacherInfoHtml("老师", teacherName(teacher))}${teacherInfoHtml("安排类型", project ? "项目授课" : "人工不可用")}${teacherInfoHtml("开始日期", event.start)}${teacherInfoHtml("结束日期", event.end)}${project ? (projectIsVisibleToCurrentUser(project) ? teacherInfoHtml("项目编号", project.id) + teacherInfoHtml("项目名称", project.name) : teacherInfoHtml("项目", "项目占用")) : teacherHasMarketSchedule() ? "" : (teacherInfoHtml("登记人", employees.find((employee) => employee.code === item?.createdBy)?.name || "管理员") + `<div class="teacher-unavailable-reason">${teacherInfoHtml("备注/原因", item.reason)}</div>`)}</div>${teacherStandardFeesHtml(teacher)}${project && projectIsVisibleToCurrentUser(project) ? `<button class="btn" data-project-open="${project.id}">查看项目</button>` : ""}</div><div class="modal-foot"><button class="btn" data-close>关闭</button></div>`);
+        bindProjectEvents();
       }
       function teacherPersonalScheduleView() {
         return !teacherHasGlobalScope() && !teacherIsFacultySupervisor() && currentRoleTemplateNames().includes("老师") && !currentRoleTemplateNames().includes("教学管理人员");
@@ -230,7 +226,7 @@
       }
       function renderTeacherSchedule() {
         const title = teacherPersonalScheduleView() && !teacherHasCompanyScheduleAccess() ? "我的排期" : "老师排期";
-        if (!canAccessPage("teacher-schedule") || !hasOperationPermission("teachers.view")) return forbiddenPage(title, "当前账号无老师查看权限。");
+        if (!canAccessPage("teacher-schedule") || !(hasOperationPermission("teachers.view") || teacherHasMarketSchedule())) return forbiddenPage(title, "当前账号无老师查看权限。");
         const self = teacherPersonalScheduleView() ? teacherScheduleContext().available.find(teacherIsSelf) : null;
         const actions = teacherScheduleCreateCandidates().length ? '<button class="btn btn-primary" id="teacherScheduleCreate">登记不可用日期</button>' : "";
         return `<div class="teacher-page">${pageHead(title, "查看授课与不可用日期。", actions)}${teacherSchedulePanelHtml()}${self ? `<section class="panel teacher-personal-schedule">${teacherScheduleHtml(self)}</section>` : ""}</div>`;
@@ -255,17 +251,17 @@
       function teacherListFiltersHtml() {
         const f = teacherListFilters();
         const select = (key, values, all) => `<select class="input" data-teacher-list-filter="${key}"><option value="">${all}</option>${values.map((value) => `<option value="${escapeHtml(value)}" ${f[key] === value ? "selected" : ""}>${escapeHtml(value)}</option>`).join("")}</select>`;
-        return `<form id="teacherListFilterForm" class="toolbar filter-toolbar">${filterField("老师姓名", `<input class="input" data-teacher-list-filter="name" value="${escapeHtml(f.name)}" placeholder="请输入老师姓名">`)}${filterField("老师来源", select("source", ["内部", "外部"], "全部来源"))}${filterField("合作属性", select("cooperationType", TEACHER_COOPERATION_TYPES, "全部合作属性"))}${filterField("授课类型", select("teachingType", TEACHER_TEACHING_TYPES, "全部类型"))}${filterField("常驻省份", select("province", Object.keys(administrativeDivisions), "全部省份"))}${filterField("常驻城市", `<select class="input" data-teacher-list-filter="city">${teacherListCityOptions(f.province, f.city)}</select>`)}${filterField("教学方向", `<select class="input" data-teacher-list-filter="direction"><option value="">全部教学方向</option>${teacherCourseOptions().map((course) => `<option value="${course.id}" ${f.direction === course.id ? "selected" : ""}>${escapeHtml(teacherDirectionName(course.id))}</option>`).join("")}</select>`, "filter-field-wide")}${filterField("状态", select("status", ["启用", "停用"], "全部状态"))}${filterActions('<button class="btn btn-primary" type="submit">查询</button><button class="btn" type="button" id="teacherListReset">重置</button>')}</form>`;
+        return `<form id="teacherListFilterForm" class="toolbar filter-toolbar">${filterField("老师姓名", `<input class="input" data-teacher-list-filter="name" value="${escapeHtml(f.name)}" placeholder="请输入老师姓名">`)}${filterField("老师来源", select("source", ["内部", "外部"], "全部来源"))}${filterField("合作属性", select("cooperationType", TEACHER_COOPERATION_TYPES, "全部合作属性"))}${filterField("授课类型", select("teachingType", TEACHER_TEACHING_TYPES, "全部类型"))}${filterField("常驻省份", select("province", Object.keys(administrativeDivisions), "全部省份"))}${filterField("常驻城市", `<select class="input" data-teacher-list-filter="city">${teacherListCityOptions(f.province, f.city)}</select>`)}${filterField("教学方向", `<select class="input" data-teacher-list-filter="direction"><option value="">全部教学方向</option>${teacherCourseOptions().map((course) => `<option value="${course.id}" ${f.direction === course.id ? "selected" : ""}>${escapeHtml(teacherDirectionName(course.id))}</option>`).join("")}</select>`, "filter-field-wide")}${filterField("状态", select("status", ["启用", "停用"], "全部状态"))}${filterActions('<div class="teacher-filter-actions"><button class="btn btn-primary" type="submit">查询</button><button class="btn" type="button" id="teacherListReset">重置</button></div>')}</form>`;
       }
       function renderTeachers() {
         const title = teacherPersonalScheduleView() ? "我的信息" : "老师管理";
-        if (!canAccessPage("teachers") || !hasOperationPermission("teachers.view")) return forbiddenPage(title, "当前账号无老师查看权限。");
+        if (!canAccessPage("teachers") || !(hasOperationPermission("teachers.view") || teacherHasMarketSchedule())) return forbiddenPage(title, "当前账号无老师查看权限。");
         if (teacherPersonalScheduleView()) {
           const teacher = teachers.find((item) => teacherIsSelf(item) && teacherCanView(item));
           return `<div class="teacher-page">${pageHead(title, "查看个人资料。")}<section class="panel teacher-personal-info">${teacher ? `<div class="detail-hero"><div class="avatar">${escapeHtml(teacherName(teacher).slice(0, 1))}</div><div><div class="detail-name">${escapeHtml(teacherName(teacher))}</div><div class="detail-sub">${teacher.type}老师 · ${teacher.status}</div></div></div>${teacherPublicHtml(teacher)}${teacherContactsHtml(teacher)}` : '<div class="empty">暂无可查看的老师</div>'}</section></div>`;
         }
         const rows = teacherListRows();
         const manager = teacherHasGlobalScope() || teacherIsFacultySupervisor() || (currentRoleTemplateNames().includes("教学管理人员") && hasOperationPermission("teachers.manage") && teacherScopes().length);
-        const actions = `${teacherCanConfigureScopes() ? '<button class="btn" id="teacherScopeManage">教学管理范围</button>' : ""}${teacherCanCreate() ? '<button class="btn btn-primary" id="teacherCreate">新增老师</button>' : ""}`;
-        return `<div class="teacher-page">${pageHead(title, manager ? "维护老师资料。" : "查看个人资料。", actions)}${teacherListFiltersHtml()}<section class="panel"><div class="table-wrap"><table data-paged-table="m13-teachers"><thead><tr><th>老师姓名</th><th>老师来源</th><th>授课类型</th><th>常驻地</th><th>教学方向</th><th>状态</th><th>操作</th></tr></thead><tbody>${rows.map((teacher) => `<tr data-page-row><td><strong>${escapeHtml(teacherName(teacher))}</strong></td><td>${teacher.type}${teacher.type === "外部" ? `<div>${teacher.cooperationType ? `<span class="tag">${escapeHtml(teacher.cooperationType)}</span>` : "—"}</div>` : ""}</td><td>${escapeHtml(teacher.teachingTypes.join("、"))}</td><td>${escapeHtml(teacherResidence(teacher))}</td><td>${teacher.directions.map(teacherDirectionName).map(escapeHtml).join("、")}</td><td><span class="tag ${teacher.status === "启用" ? "green" : ""}">${teacher.status}</span></td><td class="teacher-actions"><button class="btn btn-sm" data-teacher-detail="${teacher.id}">详情</button>${teacherCanManage(teacher) ? ` <button class="btn btn-sm" data-teacher-edit="${teacher.id}">编辑</button>${hasOperationPermission("teachers.status") ? ` <button class="btn btn-sm" data-teacher-status="${teacher.id}">${teacher.status === "启用" ? "停用" : "恢复"}</button>` : ""}` : ""}</td></tr>`).join("") || '<tr data-empty-row><td colspan="7"><div class="empty">暂无可查看的老师</div></td></tr>'}</tbody></table></div>${tablePagination("m13-teachers")}</section></div>`;
+        const actions = `${teacherCanManageDirections() ? '<button class="btn" id="teacherDirectionsManage">教学方向管理</button>' : ""}${rows.some(t=>teacherCanResume(t,"download")) ? '<button class="btn" id="teacherBulkDownload">批量下载资料</button>' : ""}${teacherCanConfigureScopes() ? '<button class="btn" id="teacherScopeManage">教学管理范围</button>' : ""}${teacherCanCreate() ? '<button class="btn btn-primary" id="teacherCreate">新增老师</button>' : ""}`;
+        return `<div class="teacher-page">${pageHead(title, manager ? "维护老师资料。" : "查看个人资料。", actions)}${teacherListFiltersHtml()}<section class="panel"><div class="table-wrap"><table data-paged-table="m13-teachers"><thead><tr><th>老师姓名</th><th>老师来源</th><th>授课类型</th><th>常驻地</th><th>教学方向</th><th>老师资料</th><th>状态</th><th>操作</th></tr></thead><tbody>${rows.map((teacher) => `<tr data-page-row><td><strong>${escapeHtml(teacherName(teacher))}</strong></td><td>${teacher.type}${teacher.type === "外部" ? `<div>${teacher.cooperationType ? `<span class="tag">${escapeHtml(teacher.cooperationType)}</span>` : "—"}</div>` : ""}</td><td>${escapeHtml(teacher.teachingTypes.join("、"))}</td><td>${escapeHtml(teacherResidence(teacher))}</td><td>${teacher.directions.map(teacherDirectionName).map(escapeHtml).join("、")}</td><td>${teacherCanResume(teacher) ? `<button type="button" class="btn btn-sm" data-teacher-materials="${teacher.id}" aria-label="${escapeHtml(teacherName(teacher))}的老师资料">${teacherMissingMaterials(teacher).length ? `缺 ${teacherMissingMaterials(teacher).length} 项` : "资料齐全"}</button>` : "—"}</td><td><span class="tag ${teacher.status === "启用" ? "green" : ""}">${teacher.status}</span></td><td class="teacher-actions"><button class="btn btn-sm" data-teacher-detail="${teacher.id}">详情</button>${teacherCanManage(teacher) ? ` <button class="btn btn-sm" data-teacher-edit="${teacher.id}">编辑</button>${hasOperationPermission("teachers.status") ? ` <button class="btn btn-sm" data-teacher-status="${teacher.id}">${teacher.status === "启用" ? "停用" : "恢复"}</button>` : ""}` : ""}</td></tr>`).join("") || '<tr data-empty-row><td colspan="8"><div class="empty">暂无可查看的老师</div></td></tr>'}</tbody></table></div>${tablePagination("m13-teachers")}</section></div>`;
       }

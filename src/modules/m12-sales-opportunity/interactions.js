@@ -396,7 +396,16 @@
         type.onchange = refreshType;
         if (ecosystemOwner) ecosystemOwner.onchange = refreshCustomerFacts;
         refreshType();
-        $("#cancelOpportunityCreate").onclick = () => salesNavigate("opportunities");
+        const referral = teacherRecommendations.find(x => x.id === pendingTeacherRecommendationId);
+        const referralVersion = referral?.version;
+        if (referral && teacherCanHandleRecommendation(referral)) {
+          type.value = referral.type; refreshType();
+          const referralCustomer = teacherRecommendationCustomer(referral);
+          customer.value = salesCustomerSelectionValue(referralCustomer, referral.type); refreshCustomerFacts();
+          type.disabled = true; customer.disabled = true;
+          $("#salesRequirement").value = referral.description;
+        }
+        $("#cancelOpportunityCreate").onclick = () => { pendingTeacherRecommendationId=''; salesNavigate("opportunities"); };
         let submitted = false;
         form.onsubmit = (event) => {
           event.preventDefault();
@@ -476,6 +485,7 @@
             setSalesFormError("salesOwner", "该省级客户不再由本人负责");
             valid = false;
           }
+          if (pendingTeacherRecommendationId && (!referral || !teacherCanHandleRecommendation(referral) || referral.version !== referralVersion || referral.type !== type.value || referral.customerId !== selectedCustomer?.id)) return toast('推荐、客户责任或权限已变化，请重新处理');
           if (!valid) return;
           const number = `SJ${DEMO_TODAY.slice(0, 7).replace("-", "")}${String(opportunities.length + 1).padStart(4, "0")}`;
           const item = {
@@ -509,6 +519,11 @@
             supports: [],
           };
           opportunities.unshift(item);
+          if (referral) {
+            const error = teacherCompleteRecommendation(referral.id, item.id, referralVersion);
+            if (error) { opportunities.splice(opportunities.indexOf(item),1); return toast(error); }
+          }
+          pendingTeacherRecommendationId = '';
           submitted = true;
           opportunityDetailContext = "sales";
           selectedOpportunitySupportId = null;
@@ -1488,6 +1503,7 @@
         document.querySelectorAll("[data-sales-page]").forEach((button) => {
           button.onclick = () => salesNavigate(button.dataset.salesPage);
         });
+        bindSupportResultEvents();
         bindSalesPeriod();
         bindSalesRegionGoal();
         bindSalesTargetMonth();

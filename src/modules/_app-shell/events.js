@@ -949,7 +949,7 @@
             if (!changed.length) return toast("当前没有需要保存的权限变化");
             const employeeCount = employees.filter(
               (employee) =>
-                employee.role === template.name && employee.status === "在职",
+                employeeHasRole(employee, template.name) && employee.status === "在职",
             ).length;
             const diffRows = [
               ["新增功能", diff.added],

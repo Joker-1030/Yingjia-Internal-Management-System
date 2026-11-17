@@ -288,7 +288,7 @@
       }
 
       function renderRegions() {
-        if (isPmCityManagementUser())
+        if (isPmCityManagementUser() && !currentRoleTemplateNames().includes("区域总监"))
           return forbiddenPage(
             "区域中心与地市配置",
             "PM 请通过地市管理查看本人所属区域和本人负责地市。",

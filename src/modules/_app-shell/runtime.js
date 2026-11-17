@@ -227,10 +227,15 @@
         support: "商机支撑",
         admin: "系统管理员",
       };
-      const currentRoleTemplateNames = () => [
-        ...(currentUser?.roles || []),
-        accountRoleTemplateNames[currentUser?.role],
-      ].filter((name, index, all) => name && all.indexOf(name) === index);
+      const currentRoleTemplateNames = () => {
+        const employee = employees.find(person => currentUser?.employeeCode
+          ? person.code === currentUser.employeeCode : person.name === currentUser?.name);
+        return [
+          ...(currentUser?.roles || []),
+          accountRoleTemplateNames[currentUser?.role],
+        ].filter((name, index, all) => name && all.indexOf(name) === index &&
+          (name !== "区域总监" || employeeHasRole(employee, "区域总监")));
+      };
       const currentRoleTemplates = () =>
         currentRoleTemplateNames()
           .map((name) =>
@@ -288,7 +293,7 @@
         if (page === "operations") return roleCanSeeBusiness();
         if (page === "city-management")
           return isPmCityManagementUser() && hasPermission(page);
-        if (page === "regions" && isPmCityManagementUser()) return false;
+        if (page === "regions" && isPmCityManagementUser() && !currentRoleTemplateNames().includes("区域总监")) return false;
         if (page === "project-detail") return hasPermission("projects");
         if (page === "project-create") return hasPermission("projects") && hasOperationPermission("projects.create");
         if (page === "project-edit") return hasPermission("projects") && hasOperationPermission("projects.edit");
@@ -395,8 +400,9 @@
         if (employeeHasRole(employee, "总裁")) return "公司全局";
         if (employeeHasRole(employee, "市场副总")) return "全国市场";
         if (employeeHasRole(employee, "区域总监")) {
+          const centerIds = employeeRegionDirectorDepartments(employee).map(item => item.regionId);
           const regions = regionsData
-            .filter((item) => item.director === employee.name)
+            .filter((item) => centerIds.includes(item.id))
             .map((item) => regionScopeName(item));
           return regions.join("、") || "待配置区域";
         }
@@ -408,26 +414,13 @@
         if (employeeHasRole(employee, "财务")) return "公司全部项目";
         if (employeeHasRole(employee, "HR/人事")) return "公司组织";
         const template = systemRoleTemplates.find(
-          (item) => item.name === employee.role,
+          (item) => employeeRoleNames(employee).includes(item.name),
         );
         return roleTemplateScopeText(template) || "待配置";
       }
       function syncEmployeeAccount(employee, credentials = {}) {
         if (!employee) return null;
         employee.scope = calculatedEmployeeScope(employee);
-        let account = accountForEmployeeName(employee.name);
-        if (!account && credentials.phone) {
-          account = {
-            username: employee.code.toLowerCase(),
-            phone: credentials.phone,
-            password: credentials.password || "123456",
-            name: employee.name,
-          };
-          accounts.push(account);
-        }
-        if (!account) return null;
-        account.employeeCode = employee.code;
-        account.phone = employee.phone;
         const effectiveRoles = employee.role === "系统管理员"
           ? ["系统管理员"]
           : employeeRoleNames(employee);
@@ -444,18 +437,38 @@
           "教学管理人员",
           "老师",
         ].find((roleName) => effectiveRoles.includes(roleName));
+        if (employee.role !== "系统管理员") {
+          employee.roles = effectiveRoles;
+          employee.role = primaryEffectiveRole || "";
+          employee.automaticRoleSources ||= {};
+          const centerIds = employeeRegionDirectorDepartments(employee).map(item => item.id);
+          if (centerIds.length) employee.automaticRoleSources["区域总监"] = centerIds;
+          else delete employee.automaticRoleSources["区域总监"];
+        }
+        let account = accountForEmployeeName(employee.name);
+        if (!account && credentials.phone) {
+          account = {
+            username: employee.code.toLowerCase(),
+            phone: credentials.phone,
+            password: credentials.password || "123456",
+            name: employee.name,
+          };
+          accounts.push(account);
+        }
+        if (!account) return null;
+        account.employeeCode = employee.code;
+        account.phone = employee.phone;
         account.roles = effectiveRoles;
         account.role = employeeRoleAccountMap[primaryEffectiveRole];
-        const managedRegion = regionsData.find(
-          (item) => item.director === employee.name,
-        );
+        const managedRegion = regionsData.find(item =>
+          employeeRegionDirectorDepartments(employee).some(department => department.regionId === item.id));
         account.roleName = effectiveRoles.length > 1
           ? effectiveRoles.join(" / ")
           : primaryEffectiveRole === "PM"
             ? "项目经理（PM）"
             : primaryEffectiveRole === "区域总监" && managedRegion
               ? `${regionScopeName(managedRegion)}总监`
-              : primaryEffectiveRole || employee.role;
+              : primaryEffectiveRole || "未关联业务角色";
         account.region = employee.scope;
         account.disabled = employee.status !== "在职";
         return account;

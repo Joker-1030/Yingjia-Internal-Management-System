@@ -199,12 +199,18 @@
           permissions: allPermissionCatalog.map((item) => item[0]),
         },
       ];
+      // DEC-256: the live supervisor relationship is the sole director authority.
+      const employeeRegionDirectorDepartments = (employee) => employee?.status === "在职"
+        ? organizationDepartments.filter(department => department.type === "region" &&
+            department.status === "启用" && department.supervisorCode === employee.code)
+        : [];
       const employeeRoleNames = (employee) => [
-        ...(employee?.manualRoles || employee?.roles || []),
-        ...Object.keys(employee?.automaticRoleSources || {}),
+        ...(employee?.manualRoles || employee?.roles || []).filter(role => role !== "区域总监"),
+        ...Object.keys(employee?.automaticRoleSources || {}).filter(role => role !== "区域总监"),
+        ...(employeeRegionDirectorDepartments(employee).length ? ["区域总监"] : []),
       ].filter((role, index, all) => role && all.indexOf(role) === index);
       const employeeHasRole = (employee, role) =>
-        employee?.role === role || employeeRoleNames(employee).includes(role);
+        (role !== "区域总监" && employee?.role === role) || employeeRoleNames(employee).includes(role);
       const employeeRoleDisplay = (employee) =>
         employeeRoleNames(employee).join("、") || "未关联业务角色";
 

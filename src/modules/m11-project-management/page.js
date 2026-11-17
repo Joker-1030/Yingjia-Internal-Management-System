@@ -1359,7 +1359,7 @@
           ...(project.snapshot?.managementFeeRate != null
             ? [["管理费比例", formatConfigPercent(project.snapshot.managementFeeRate)]]
             : []),
-          ...(project.resourceType !== "框架服务" ? [[
+          ...(project.resourceType !== "框架服务" && !project.snapshot?.teacherQuote ? [[
             "项目单价（含税，元/天）",
             project.type === "培训项目"
               ? formatProjectMoney(project.unitPrice)
@@ -1368,7 +1368,7 @@
           [
             "项目金额（含税，万元）",
             formatProjectAmount(project.amount),
-            projectAmountFormulaText(project.type, project.resourceType),
+            project.snapshot?.teacherQuote ? "已确认项目金额，开始后不随天数重算" : projectAmountFormulaText(project.type, project.resourceType),
           ],
           [
             "结账金额（含税，万元）",
@@ -1978,15 +1978,16 @@
       function projectTeacherTokenName(token) { return teacherById(token) ? teacherName(teacherById(token)) : ""; }
       function projectTeacherOptionHtml(tokens, context, role) {
         const candidates = teacherSelectionCandidates(context.directionId, context.start, context.end, role, context.excludeId, context.resourceType);
-        const ids = [...new Set([...candidates.filter(t=>!context.filterDirection || t.directions.includes(context.filterDirection)).map((teacher) => teacher.id), ...tokens])];
-        return ids.map((id) => { const teacher = teacherById(id), selected = tokens.includes(id); const reason = teacher ? teacherEligibility(id, context.directionId, context.start, context.end, role, context.excludeId, context.resourceType) : "老师档案不可用，请重新选择";
-          return `<div class="multi-select-option" data-instructor-option><label><input type="checkbox" data-instructor value="${escapeHtml(id)}" ${selected ? "checked" : ""} ${reason ? "disabled" : ""}><span>${escapeHtml(projectTeacherTokenName(id))}${teacher ? `<span class="list-sub">${escapeHtml(teacher.teachingTypes.join("、"))} · ${escapeHtml(teacherResidence(teacher))}</span>` : ""}</span></label>${reason ? `<span class="list-sub">${escapeHtml(reason)}</span>` : `<button type="button" class="btn btn-sm" data-project-teacher-profile="${teacher.id}">资料</button>`}</div>`;
-        }).join("") || (context.resourceType === "框架服务" ? '<div class="list-sub">暂无符合当前筛选条件的老师，请检查日期及筛选。</div>' : '<div class="list-sub">暂无符合当前筛选条件的老师，请检查日期及筛选。</div>');
+        const ids = [...new Set([...candidates.filter(t=>!context.filterDirection || t.directions.includes(context.filterDirection)).map(t=>t.id), ...tokens])];
+        return ids.map(id => {
+          const teacher = teacherById(id), selected = tokens.includes(id);
+          const reason = teacher ? teacherEligibility(id, context.directionId, context.start, context.end, role, context.excludeId, context.resourceType) : "老师档案不可用，请重新选择";
+          return `<article class="project-teacher-card ${selected ? "is-selected" : ""}" data-instructor-option data-instructor-name="${escapeHtml(projectTeacherTokenName(id))}"><label class="project-teacher-card-choice">${teacher ? teacherPortraitHtml(teacher, "project-teacher-portrait") : ""}<span class="project-teacher-card-info"><span class="project-teacher-card-heading"><span class="project-teacher-card-name">${escapeHtml(projectTeacherTokenName(id))}</span>${teacher ? teacher.directions.map(direction=>`<span class="tag">${escapeHtml(teacherDirectionName(direction))}</span>`).join("") : ""}</span>${teacher ? `<span class="list-sub">${escapeHtml(teacher.teachingTypes.join("、"))} · ${escapeHtml(teacherResidence(teacher))}</span><span class="project-teacher-card-intro">${escapeHtml(teacher.intro || "—")}</span>` : ""}</span><input type="checkbox" data-instructor value="${escapeHtml(id)}" ${selected ? "checked" : ""} ${reason ? "disabled" : ""}></label>${reason ? `<div class="project-teacher-card-foot list-sub">${escapeHtml(reason)}</div>` : `<div class="project-teacher-card-foot"><button type="button" class="link" data-project-teacher-profile="${teacher.id}">资料</button></div>`}</article>`;
+        }).join("") + `<div class="empty" data-instructor-empty${ids.length ? " hidden" : ""}>暂无符合当前筛选条件的老师，请检查日期及筛选。</div>`;
       }
       function instructorSelectHtml(id, roleLabel, selectedNames, project = null) {
         const tokens = projectSelectedTokens(project, projectStaffRole(id), selectedNames);
-        const context = { directionId: "", start: project?.startTime || "", end: project?.endTime || "", excludeId: project?.id || "", resourceType: project?.resourceType || "" };
-        return `<div class="instructor-picker" id="${id}" data-instructor-picker data-instructor-label="${escapeHtml(roleLabel)}"><div class="multi-select instructor-select"><button class="multi-select-trigger" type="button" data-instructor-trigger aria-haspopup="listbox" aria-expanded="false"><span>搜索并选择${escapeHtml(roleLabel)}</span><span aria-hidden="true">⌄</span></button><div class="multi-select-menu hidden" data-instructor-menu>${projectStaffRole(id)!=="teachingAssistants" ? `<label class="form-group"><span class="form-label">教学方向筛选</span><select class="input" data-instructor-direction><option value="">全部教学方向</option>${teacherCourseOptions().map(d=>`<option value="${d.id}">${escapeHtml(d.name)}</option>`).join("")}</select></label>` : ""}<input class="input" type="search" data-instructor-search placeholder="搜索${escapeHtml(roleLabel)}" aria-label="搜索${escapeHtml(roleLabel)}"><div data-instructor-options>${projectTeacherOptionHtml(tokens, context, projectStaffRole(id))}</div></div></div><div class="instructor-selected-list" data-instructor-selected aria-live="polite">${tokens.map((token) => `<span class="instructor-selected-item"><span>${escapeHtml(projectTeacherTokenName(token))}</span><button type="button" class="instructor-selected-remove" data-instructor-remove="${escapeHtml(token)}" aria-label="移除${escapeHtml(projectTeacherTokenName(token))}">×</button></span>`).join("")}</div></div>`;
+        return `<div class="instructor-picker" id="${id}" data-instructor-picker data-instructor-label="${escapeHtml(roleLabel)}"><button class="multi-select-trigger" type="button" data-instructor-trigger aria-haspopup="dialog"><span>选择${escapeHtml(roleLabel)}</span><span aria-hidden="true">＋</span></button><div hidden data-instructor-values>${tokens.map(token=>`<input type="checkbox" data-instructor value="${escapeHtml(token)}" checked>`).join("")}</div><div class="instructor-selected-list" data-instructor-selected aria-live="polite">${tokens.map(token=>`<span class="instructor-selected-item"><span>${escapeHtml(projectTeacherTokenName(token))}</span><button type="button" class="instructor-selected-remove" data-instructor-remove="${escapeHtml(token)}" aria-label="移除${escapeHtml(projectTeacherTokenName(token))}">×</button></span>`).join("")}</div></div>`;
       }
       function projectCreateCustomerIsPlatform(customerId) {
         return platformCompanies.some(item => item.id === customerId);
@@ -2029,7 +2030,7 @@
       function projectFormHtml(project) {
         const editing = Boolean(project);
         const type = project?.type || "";
-        const daysHelpText =
+        const daysHelpText = project?.snapshot?.teacherQuote ? "确认天数用于计算老师报价参考，项目金额可修改" :
           type === "培训项目" && project?.resourceType !== "框架服务"
             ? "项目费用按此天数计算"
             : type === "AI软件项目" || project?.resourceType === "框架服务"
@@ -2116,9 +2117,9 @@
               null
             : null;
         const isTraining = type === "培训项目";
-        const amountField = isTraining && resourceType !== "框架服务"
+        const amountField = isTraining && resourceType !== "框架服务" && !projectUsesTeacherQuotes(project, resourceType)
           ? `<input class="input" id="pfAmount" value="${project ? wanMoneyInput(project.amount) : ""}" disabled>`
-          : `<input class="input" id="pfAmount" type="number" min="0.000001" step="0.000001" value="${project ? wanMoneyInput(project.amount) : ""}">`;
+          : `<input class="input" id="pfAmount" type="number" min="0.000001" step="0.000001" data-quote-edited="${project?.snapshot?.teacherQuote ? "true" : "false"}" value="${project ? wanMoneyInput(project.amount) : ""}">`;
         const personnelHtml =
           `<div class="form-group full"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>主讲师</label>${instructorSelectHtml("pfLecturers", "主讲师", project?.lecturers || [], project)}<div class="field-error" id="err-pfLecturers"></div></div>` +
           `<div class="form-group full"><label class="form-label">辅训老师</label>${instructorSelectHtml("pfAssistants", "辅训老师", project?.assistantLecturers || [], project)}</div>` +
@@ -2209,9 +2210,9 @@
           projectFormFieldHtml(
             "pfAmount",
             "项目金额（含税，万元）",
-            amountField,
-            !isTraining || resourceType === "框架服务",
-            projectAmountFormulaText(type, resourceType),
+            amountField + '<div class="list-sub" id="pfTeacherQuoteReference" aria-live="polite" hidden></div>' + (!project ? '<div class="list-sub" id="pfOpportunityAmountReference" aria-live="polite" hidden></div>' : ""),
+            !isTraining || resourceType === "框架服务" || projectUsesTeacherQuotes(project, resourceType),
+            projectUsesTeacherQuotes(project, resourceType) ? "按老师报价提供参考，项目金额可修改" : projectAmountFormulaText(type, resourceType),
             "pfAmountFormula",
           ) +
           projectFormFieldHtml(
@@ -2224,7 +2225,7 @@
           ) +
           `</div>` +
           `<div id="pfPersonnelSection" ${isTraining ? "" : 'style="display:none"'}>` +
-          `<div class="section-title">项目人员</div>${personnelHtml}` +
+          `<div class="section-title">项目人员</div>${personnelHtml}<div id="pfTeacherQuotes" hidden></div>` +
           `</div>` +
           `<div class="field-error" id="err-pfConflicts"></div>`
         );
@@ -2275,14 +2276,14 @@
               projectFormFieldHtml(
                 "pfDays",
                 "项目确认天数",
-                `<input class="input" id="pfDays" type="number" step="0.5" min="0.5" value="${project.days}" data-user-edited="${confirmationDaysEdited}"><div class="list-sub" id="pfDaysHelp">${isTraining && project.resourceType !== "框架服务" ? "项目费用按此天数计算" : "仅用于记录项目周期，不参与项目金额计算"}</div>`,
+                `<input class="input" id="pfDays" type="number" step="0.5" min="0.5" value="${project.days}" data-user-edited="${confirmationDaysEdited}"><div class="list-sub" id="pfDaysHelp">${project.snapshot?.teacherQuote ? "项目金额已确认，调整天数不重新计算金额" : isTraining && project.resourceType !== "框架服务" ? "项目费用按此天数计算" : "仅用于记录项目周期，不参与项目金额计算"}</div>`,
               ) +
               projectFormFieldHtml(
                 "pfAmount",
                 "项目金额（含税，万元）",
                 `<input class="input" id="pfAmount" value="${formatProjectAmount(project.amount)}" disabled>`,
                 false,
-                projectAmountFormulaText(project.type, project.resourceType),
+                project.snapshot?.teacherQuote ? "已确认项目金额，开始后不随天数重算" : projectAmountFormulaText(project.type, project.resourceType),
                 "pfAmountFormula",
               ) +
               projectFormFieldHtml(
@@ -2450,10 +2451,23 @@
         if (Math.round(amount * 100) > Math.round(projectFrameworkUsage(framework.id, excludeId).available * 100)) return "框架待使用金额不足";
         return "";
       }
+      let frameworkListFilterState={actor:null,filters:{}};
+      function frameworkListFilters(){
+        if(frameworkListFilterState.actor!==currentUser)frameworkListFilterState={actor:currentUser,filters:{}};
+        return frameworkListFilterState.filters;
+      }
+      function frameworkMatchesListFilters(item,f){
+        return (!f.code || item.code===f.code) && listFilterContains(item.name,f.name) && (!f.customer || String(item.customerId)===f.customer) &&
+          (!f.status || projectFrameworkStatus(item)===f.status) && (!f.from || Boolean(item.validTo && item.validTo>=f.from)) && (!f.to || Boolean(item.validTo && item.validTo<=f.to));
+      }
       function renderProjectFrameworks() {
         if (!hasPermission("frameworks")) return '<div class="empty">无权查看框架</div>';
         const canManage = isProjectConfigAdmin();
-        const rows = projectFrameworks.filter(projectFrameworkCanView).map(item => {
+        const all=projectFrameworks.filter(projectFrameworkCanView),f=frameworkListFilters();
+        const filters=listFilterFormHtml('frameworkListFilters',f,[['code','框架编号'],['name','框架名称'],
+          ['customer','客户公司',[...new Map(all.map(item=>[String(item.customerId),customers.find(c=>String(c.id)===String(item.customerId))?.name || '—'])).entries()]],
+          ['status','状态',listFilterOptions(['启用','停用','已到期'])],['from','到期日期起','date'],['to','到期日期止','date']]);
+        const rows = all.filter(item=>frameworkMatchesListFilters(item,f)).map(item => {
           const customer = customers.find(customer => String(customer.id) === String(item.customerId));
           const usage = projectFrameworkUsage(item.id);
           const status = projectFrameworkStatus(item);
@@ -2461,5 +2475,5 @@
         }).join("");
         return '<div class="project-page project-config-page">' +
           pageHead("框架管理", "查看客户框架与额度使用情况。", canManage ? '<button class="btn btn-primary" id="addProjectFramework">新增框架</button>' : "") +
-          `<section class="panel project-config-panel"><div class="table-wrap project-config-table-wrap"><table class="project-config-table project-framework-table" data-paged-table="m11-frameworks"><thead><tr><th>框架编号</th><th>框架名称</th><th>客户公司</th><th>框架金额（含税，万元）</th><th>开始日期</th><th>到期日期</th><th>已使用（含冻结，万元）</th><th>待使用金额（含税，万元）</th><th>关联项目数</th><th>状态</th><th>操作</th></tr></thead><tbody>${rows || '<tr data-empty-row><td colspan="11"><div class="empty">暂无框架</div></td></tr>'}</tbody></table></div>${tablePagination("m11-frameworks")}</section></div>`;
+          `<section class="panel project-config-panel">${filters}<div class="table-wrap project-config-table-wrap"><table class="project-config-table project-framework-table" data-paged-table="m11-frameworks"><thead><tr><th>框架编号</th><th>框架名称</th><th>客户公司</th><th>框架金额（含税，万元）</th><th>开始日期</th><th>到期日期</th><th>已使用（含冻结，万元）</th><th>待使用金额（含税，万元）</th><th>关联项目数</th><th>状态</th><th>操作</th></tr></thead><tbody>${rows || `<tr data-empty-row><td colspan="11"><div class="empty">${all.length?'未找到符合条件的框架':'暂无框架'}</div></td></tr>`}</tbody></table></div>${tablePagination("m11-frameworks")}</section></div>`;
       }

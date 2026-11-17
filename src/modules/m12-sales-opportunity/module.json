@@ -7,8 +7,7 @@
     "opportunities",
     "opportunity-create",
     "opportunity-detail",
-    "sales-supports",
-    "support-results"
+    "sales-supports"
   ],
   "pageStates": [
     "销售周期目标与当前商机快照",
@@ -21,8 +20,8 @@
     "负责人改派",
     "结构化跟进",
     "多人方案支撑",
-    "我的方案支撑",
-    "支撑结果与月度参考",
+    "方案支撑",
+    "工作台方案支撑概览与已立项项目成果",
     "老师推荐接收"
   ],
   "dataReferences": [

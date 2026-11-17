@@ -247,9 +247,7 @@
       }
 
       function salesCanViewSupportOpportunity(item) {
-        const employee = salesCurrentSupportEmployee();
-        return Boolean(employee && hasPermission("sales-supports") &&
-          item?.supports.some((support) => support.assigneeCode === employee.code));
+        return Boolean(opportunities.includes(item) && item?.supports.some(support=>salesCanReadSupportRequest(item,support)));
       }
 
       function salesSupportActorActive() {
@@ -260,8 +258,7 @@
 
       function salesCanViewSupportFile(item, support) {
         return Boolean(salesSupportActorActive() && opportunities.includes(item) && item?.supports.includes(support) &&
-          (hasPermission("opportunities") && salesVisibleOpportunities().includes(item) ||
-           (salesCanViewSupportOpportunity(item) && support.assigneeCode === salesCurrentSupportEmployee()?.code)));
+          (hasPermission("opportunities") && salesVisibleOpportunities().includes(item) || salesCanReadSupportRequest(item,support)));
       }
 
       function salesSupportDeliveryFiles(support) {
@@ -342,6 +339,14 @@
 
       function salesStageTag(stage) {
         return `<span class="tag ${salesStageTone(stage)}">${salesStageLabel(stage)}</span>`;
+      }
+
+      function salesSupportStatusLabel(status) {
+        return status === "已交付" ? "方案已提交" : status;
+      }
+
+      function salesSupportStatusTag(status) {
+        return `<span class="tag ${salesStageTone(status)}">${escapeHtml(salesSupportStatusLabel(status))}</span>`;
       }
 
       function salesPriorityTag(priority) {
@@ -647,11 +652,8 @@
 
       function salesWorkbenchPersonalSection() {
         if (!salesWorkbenchAllowed() || salesWorkbenchRole() !== "director") return "";
-        const months = salesPeriodMonths();
-        const events = salesPerformanceRows(opportunities, true).filter(item => months.includes(item.selectedDate?.slice(0, 7)));
-        const goal = salesGoalMetrics(salesPersonalTargetValue(salesPeriodApplied), salesSumMoney(events, item => item.expectedContractAmount));
         const rows = salesWorkbenchStaffRows();
-        return `<div class="sales-workbench-personal"><div class="panel-head"><div class="panel-title">我的业绩</div></div><div class="metrics sales-metrics">${salesGoalMetricCards(goal).join("")}</div><div class="panel-head"><div class="panel-title">个人目标完成</div></div><div class="table-wrap sales-staff-table" tabindex="0" role="region" aria-label="个人目标完成"><table><thead><tr><th>运营中心</th><th>员工</th><th>成交金额目标（含税，万元）${salesStatisticsHelp("staffTarget", "成交金额目标")}</th><th>周期成交金额（含税，万元）${salesStatisticsHelp("staffCompleted", "周期成交金额")}</th><th>差额（含税，万元）${salesStatisticsHelp("difference", "差额")}</th><th>完成率${salesStatisticsHelp("rate", "完成率")}</th></tr></thead><tbody>${rows.map(row => `<tr><td>${escapeHtml(row.region)}</td><td>${escapeHtml(row.name)}<div class="cell-sub">${escapeHtml(row.code)}</div></td><td>${row.target === null ? "未分配" : salesStatsMoney(row.target)}</td><td>${salesStatsMoney(row.completed)}</td><td>${row.difference === null ? "—" : `${row.difference > 0 ? "+" : ""}${salesStatsMoney(row.difference)}`}</td><td>${row.rate}</td></tr>`).join("") || '<tr><td colspan="6"><div class="empty">暂无个人目标数据</div></td></tr>'}</tbody></table></div></div>`;
+        return `<div class="sales-workbench-personal"><div class="panel-head"><div class="panel-title">个人目标完成</div></div><div class="table-wrap sales-staff-table" tabindex="0" role="region" aria-label="个人目标完成"><table><thead><tr><th>运营中心</th><th>员工</th><th>成交金额目标（含税，万元）${salesStatisticsHelp("staffTarget", "成交金额目标")}</th><th>周期成交金额（含税，万元）${salesStatisticsHelp("staffCompleted", "周期成交金额")}</th><th>差额（含税，万元）${salesStatisticsHelp("difference", "差额")}</th><th>完成率${salesStatisticsHelp("rate", "完成率")}</th></tr></thead><tbody>${rows.map(row => `<tr><td>${escapeHtml(row.region)}</td><td>${escapeHtml(row.name)}<div class="cell-sub">${escapeHtml(row.code)}</div></td><td>${row.target === null ? "未分配" : salesStatsMoney(row.target)}</td><td>${salesStatsMoney(row.completed)}</td><td>${row.difference === null ? "—" : `${row.difference > 0 ? "+" : ""}${salesStatsMoney(row.difference)}`}</td><td>${row.rate}</td></tr>`).join("") || '<tr><td colspan="6"><div class="empty">暂无个人目标数据</div></td></tr>'}</tbody></table></div></div>`;
       }
 
       function salesPresidentMetrics(rows, months) {
@@ -802,19 +804,18 @@
         const appliedPeriodLabel = salesPeriodOptions().find(([value]) => value === salesPeriodApplied)?.[1] || salesPeriodApplied;
         const trend = `<div class="sales-trend-panel"><div class="panel-head"><div class="panel-title" id="salesTrendTitle">商机趋势</div><div class="spacer"></div><div class="sales-trend-mode"><span>类别</span><div class="tabs assignment-view-switch"><button class="tab ${!money ? "active" : ""}" aria-pressed="${!money}" type="button" data-sales-trend="count">数量</button><button class="tab ${money ? "active" : ""}" aria-pressed="${money}" type="button" data-sales-trend="amount">金额</button></div></div></div>${salesTrendChart(trendData)}</div>`;
         const currentCard = `<section class="panel sales-snapshot-panel" aria-labelledby="salesSnapshotTitle"><div class="panel-head"><div class="panel-title" id="salesSnapshotTitle">${president ? "当前商机推进" : "当前销售快照"}</div></div><div class="metrics sales-metrics${president ? " sales-primary-metrics" : ""}">${currentMetrics.join("")}</div></section>`;
-        const periodCard = `<section class="panel sales-period-panel" aria-labelledby="salesPeriodTitle"><div class="panel-head sales-period-head"><div class="sales-period-heading"><div class="panel-title" id="salesPeriodTitle">${role === "director" ? "区域周期销售" : role === "pm" ? "我的周期销售" : "周期销售"}</div><div class="panel-sub">${escapeHtml(appliedPeriodLabel)}</div></div>${salesPeriodFilter()}</div><div class="metrics sales-metrics sales-primary-metrics">${periodMetrics.join("")}</div>${trend}${president ? `<div class="metrics sales-metrics sales-secondary-metrics sales-primary-metrics">${salesDashboardMetric("周期新建商机", periodRows.length, "created")}${salesDashboardMetric("周期中选商机", won.length, "periodWon")}</div>` : ""}${salesWorkbenchPersonalSection()}</section>`;
-        return `<section class="sales-workbench" aria-label="销售概况">${president ? currentCard + periodCard : periodCard + currentCard}` +
+        const periodCard = `<section class="panel sales-period-panel" aria-labelledby="salesPeriodTitle"><div class="panel-head sales-period-head"><div class="sales-period-heading"><div class="panel-title" id="salesPeriodTitle">${role === "director" ? "区域周期销售" : role === "pm" ? "我的周期销售" : "周期销售"}</div><div class="panel-sub">${escapeHtml(appliedPeriodLabel)}</div></div>${salesPeriodFilter()}</div>${role === "pm" ? "" : `<div class="metrics sales-metrics sales-primary-metrics">${periodMetrics.join("")}</div>`}${trend}${president ? `<div class="metrics sales-metrics sales-secondary-metrics sales-primary-metrics">${salesDashboardMetric("周期新建商机", periodRows.length, "created")}${salesDashboardMetric("周期中选商机", won.length, "periodWon")}</div>` : ""}${salesWorkbenchPersonalSection()}</section>`;
+        return `<section class="sales-workbench" aria-label="销售概况">${["pm","director"].includes(role) && canAccessPage("sales-targets") ? renderPersonalSalesTargets() : ""}${president ? currentCard + periodCard : periodCard + currentCard}` +
           `<div class="sales-dashboard-grid"><section class="panel sales-overview-panel"><div class="panel-head"><div class="panel-title">商机概况${salesStatisticsHelp("overviewScope", "商机概况")}</div></div><div class="sales-overview-body">${salesOverviewControls()}<div id="salesOverviewVisualization">${salesOverviewChart()}</div></div></section>` +
           (salesRegionTargetsAllowed() ? salesRegionGoalCard() : role === "pm" ? "" : `<section class="panel sales-region-panel"><div class="panel-head"><div class="panel-title">当前区域对比</div></div><div class="table-wrap" tabindex="0" role="region" aria-label="当前区域对比"><table><thead><tr><th>运营中心</th><th>活跃商机${salesStatisticsHelp("regionActive", "活跃商机")}</th><th>活跃金额（含税，万元）${salesStatisticsHelp("regionAmount", "活跃金额")}</th><th>中选结果${salesStatisticsHelp("regionSelected", "中选结果")}</th></tr></thead><tbody>${regionRows || '<tr><td colspan="4"><div class="empty">暂无数据</div></td></tr>'}</tbody></table></div></section>` ) + "</div></section>";
       }
 
       let salesTargetSelectedRegion = "";
       let salesTargetSelectionUser = null;
+      let salesTargetHistoryState = null;
 
       function salesTargetToday() { return salesSupportNow().slice(0,10); }
       const salesTargetAdjustments = new Map();
-      let salesTargetPersonalContext = false;
-      let salesTargetPersonalActor = null;
       function salesTargetPending() { return salesTargetAdjustments.get(salesTargetMonth.slice(0,4)); }
       function salesTargetEditingYear() { return salesTargetPending()?.candidate.year || salesTargetYear(); }
       function salesTargetEditingMonths() { return salesTargetPending()?.candidate.months || salesTargetMonths; }
@@ -827,12 +828,13 @@
         const values=year.regions.filter(region=>region.salespeople.some(person=>person.code===code)).map(region=>row?.regions.find(item=>item.name===region.name)?.salespeople.find(person=>person.code===code)?.target);
         return salesSumMoney(values,value=>value);
       }
-      function salesTargetPendingNotice() {
+      function salesTargetPendingNotice(personal = false) {
         const pending=salesTargetPending();
         if (!pending) return "";
+        if (personal) return `<div class="role-note">调整尚未完成，本页显示已生效目标。</div>`;
         const root=salesCanAdjustTarget("company","");
         const company=currentUser?.fullAccess || salesIsRole("总裁") || salesIsRole("市场副总");
-        return `<div class="role-note">调整尚未完成，统计仍使用原目标。${company ? `<div>原有效目标：${salesTargetAmount(pending.base.year.companyTarget)} 万元；调整后目标：${salesTargetAmount(pending.candidate.year.companyTarget)} 万元；差额：${salesTargetWanMoney(pending.candidate.year.companyTarget-pending.base.year.companyTarget)} 万元</div>` : ""}${root ? '<button class="btn btn-primary" data-sales-target-finish>完成调整</button> <button class="btn" data-sales-target-cancel>取消本轮调整</button>' : ""}</div>`;
+        return `<div class="role-note">调整尚未完成，统计仍使用原目标。以下分配区显示本轮待生效目标。${company ? `<div>原有效目标：${salesTargetAmount(pending.base.year.companyTarget)} 万元；调整后目标：${salesTargetAmount(pending.candidate.year.companyTarget)} 万元；差额：${salesTargetWanMoney(pending.candidate.year.companyTarget-pending.base.year.companyTarget)} 万元</div>` : ""}${root ? '<button class="btn btn-primary" data-sales-target-finish>完成调整</button> <button class="btn" data-sales-target-cancel>取消本轮调整</button>' : ""}</div>`;
       }
 
       function salesTargetYear() {
@@ -879,7 +881,7 @@
         return target.regions.filter(region => salesManagedRegions().some(item => regionsMatch(regionScopeName(item), region.name)));
       }
       function salesTargetCanSeePm(region) {
-        return Boolean(currentUser?.fullAccess || salesIsRole("总裁") ||
+        return Boolean(currentUser?.fullAccess || salesIsRole("总裁") || salesIsRole("市场副总") ||
           (salesIsRole("区域总监") && salesManagedRegions().some(item => regionsMatch(regionScopeName(item), region.name))));
       }
       function salesTargetCurrentRegion(target = salesTargetYear()) {
@@ -893,7 +895,7 @@
       }
       function salesTargetHistoryIsVisible(item) {
         if (currentUser?.fullAccess || salesIsRole("总裁")) return true;
-        if (salesIsRole("市场副总")) return ["公司", "区域"].includes(item.level);
+        if (salesIsRole("市场副总")) return true;
         if (salesIsRole("区域总监")) return salesManagedRegions().some(region => {
           const name = regionScopeName(region);
           return item.level === "区域" ? regionsMatch(name, item.object) : item.level === "PM" && item.object.startsWith(`${name} / `);
@@ -905,12 +907,51 @@
       function salesTargetWanMoney(value) { return formatWanMoney(value); }
       function salesTargetWanInput(value) { return wanMoneyInput(value); }
       function salesTargetParseWan(text) { return parseWanMoney(text); }
+      function salesTargetPersonalView() {
+        return currentPage === "dashboard" && ["pm","director"].includes(salesWorkbenchRole());
+      }
+      function salesTargetHistoryAccess() {
+        const employee = employees.find(item => item.code === currentUser?.employeeCode);
+        return Boolean(currentUser && accounts.includes(currentUser) && !currentUser.disabled && employee?.status === "在职" && employee.accountStatus !== "停用" && canAccessPage("sales-targets"));
+      }
+      function salesTargetHistoryItems(personal = salesTargetPersonalView()) {
+        if (!salesTargetHistoryAccess()) return [];
+        return salesTargetHistory.filter(item => (item.period || item.month || "").slice(0,4) === salesTargetMonth.slice(0,4) && (personal
+          ? item.level === "PM" && (item.employeeCode ? item.employeeCode === salesTargetEmployeeCode() : item.object.split(" / ")[1] === currentUser.name)
+          : salesTargetHistoryIsVisible(item)));
+      }
+      function salesTargetHistoryCenter(item) {
+        return item.level === "公司" ? "" : item.region || (item.level === "区域" ? item.object : item.object.split(" / ")[0]);
+      }
+      function salesTargetHistoryPerson(item) { return item.level === "PM" ? item.employeeCode || item.object : ""; }
+      function salesTargetHistoryPeople(rows, center = "") {
+        return [...new Map(rows.filter(item => item.level === "PM" && (!center || salesTargetHistoryCenter(item) === center)).map(item => [salesTargetHistoryPerson(item), {
+          value: salesTargetHistoryPerson(item), label: `${item.object.split(" / ").slice(1).join(" / ")}${item.employeeCode ? `（${item.employeeCode}）` : ""}`,
+        }])).values()];
+      }
+      function salesTargetHistoryOptions(items, value, allLabel) {
+        return `<option value="">${allLabel}</option>` + items.map(item => `<option value="${escapeHtml(item.value)}" ${item.value === value ? "selected" : ""}>${escapeHtml(item.label)}</option>`).join("");
+      }
+      function salesTargetHistoryType(item) {
+        if (item.effectiveMode === "责任交接" || item.fromEmployeeCode && item.toEmployeeCode) return "责任交接";
+        return item.before == null || item.before === "未分配" ? "首次分配" : "目标调整";
+      }
+      function salesTargetHistoryDelta(item) {
+        if (typeof item.before !== "number" || typeof item.after !== "number") return "—";
+        const before = salesMoneyCents(item.before), after = salesMoneyCents(item.after);
+        if (before == null || after == null) return "—";
+        const delta = (after-before)/100;
+        return (delta > 0 ? "+" : delta < 0 ? "−" : "") + salesTargetWanMoney(Math.abs(delta));
+      }
       function salesTargetHistoryTable() {
-        const personal = salesTargetPersonalContext || salesIsRole("PM") && !(currentUser?.fullAccess || salesIsRole("总裁") || salesIsRole("区域总监") || salesIsRole("市场副总"));
+        const personal = salesTargetPersonalView();
         const key = personal ? "m12-personal-target-history" : "m12-sales-target-history";
-        const rows = salesTargetHistory.filter(item => (item.period || item.month || "").slice(0, 4) === salesTargetMonth.slice(0, 4) && (personal ? (item.employeeCode ? item.employeeCode === salesTargetEmployeeCode() : item.level === "PM" && item.object.split(" / ")[1] === currentUser.name) : salesTargetHistoryIsVisible(item)))
-          .map(item => `<tr data-page-row><td>${escapeHtml(item.period || item.month)}</td>${personal ? "" : `<td>${item.level === "区域" ? "运营中心" : escapeHtml(item.level)}</td><td>${escapeHtml(item.object)}</td>`}<td>${typeof item.before === "number" ? salesTargetWanMoney(item.before) : escapeHtml(item.before ?? "未分配")}</td><td>${typeof item.after === "number" ? salesTargetWanMoney(item.after) : escapeHtml(item.after ?? "未分配")}</td><td>${escapeHtml(item.reason || "—")}</td><td>${escapeHtml(item.operator)}</td>${personal ? "" : `<td>${escapeHtml(item.effectiveMode)}</td>`}<td>${escapeHtml(item.effectiveAt)}</td></tr>`).join("");
-        return `<div class="table-wrap"><table class="sales-target-history-table" data-paged-table="${key}"><thead><tr><th>目标周期</th>${personal ? "" : "<th>层级</th><th>对象</th>"}<th>调整前目标（含税，万元）</th><th>调整后目标（含税，万元）</th><th>原因</th><th>操作人</th>${personal ? "" : "<th>生效方式</th>"}<th>生效时间</th></tr></thead><tbody>${rows || `<tr data-empty-row><td colspan="${personal ? 6 : 9}"><div class="empty">暂无调整记录</div></td></tr>`}</tbody></table></div>${tablePagination(key)}`;
+        const state = salesTargetHistoryState;
+        const filter = !personal && state?.actor === currentUser && state.year === salesTargetMonth.slice(0,4) ? state.filters : {};
+        const rows = salesTargetHistoryItems(personal).filter(item => (!filter.center || salesTargetHistoryCenter(item) === filter.center) && (!filter.person || salesTargetHistoryPerson(item) === filter.person) && (!filter.level || item.level === filter.level))
+          .map(item => `<tr data-page-row><td>${escapeHtml(item.period || item.month)}</td>${personal ? "" : `<td>${item.level === "区域" ? "运营中心" : item.level === "PM" ? "个人" : escapeHtml(item.level)}</td><td class="sales-target-history-object">${escapeHtml(item.object)}${item.employeeCode ? `<span class="muted">${escapeHtml(item.employeeCode)}</span>` : ""}</td>`}<td>${salesTargetHistoryType(item)}</td><td class="sales-target-history-money">${typeof item.before === "number" ? salesTargetWanMoney(item.before) : escapeHtml(item.before ?? "未分配")}</td><td class="sales-target-history-money">${typeof item.after === "number" ? salesTargetWanMoney(item.after) : escapeHtml(item.after ?? "未分配")}</td><td class="sales-target-history-money">${salesTargetHistoryDelta(item)}</td><td class="sales-target-history-reason">${escapeHtml(item.reason || "—")}</td><td>${escapeHtml(item.operator || "—")}</td><td>${item.effectiveMode === "整体生效" ? "整体生效" : "直接生效"}</td><td class="sales-target-history-time">${escapeHtml(item.effectiveAt || "—")}</td></tr>`).join("");
+        const size = unifiedTablePaginationStates[key]?.pageSize || 20;
+        return `<div class="sales-target-history-unit">金额单位：含税，万元</div><div class="table-wrap sales-target-history-scroll"><table class="sales-target-history-table ${personal ? "sales-target-history-personal" : ""}" data-paged-table="${key}"><thead><tr><th>目标周期</th>${personal ? "" : "<th>层级</th><th>对象</th>"}<th>变更类型</th><th>变更前目标</th><th>变更后目标</th><th>增减额</th><th>原因</th><th>操作人</th><th>生效方式</th><th>生效时间</th></tr></thead><tbody>${rows || `<tr data-empty-row><td colspan="${personal ? 9 : 11}"><div class="empty">暂无目标变更记录</div></td></tr>`}</tbody></table></div>${tablePagination(key,size)}`;
       }
       function salesTargetAction(level, object, label = "分配") {
         return salesCanAdjustTarget(level, object) ? `<button class="link" type="button" data-sales-target-edit="${level}" data-sales-target-object="${escapeHtml(object)}">${label}</button>` : "";
@@ -927,8 +968,8 @@
       function salesTargetMonthCard(month, value) {
         return `<button type="button" data-sales-target-month="${month}" aria-pressed="${month === salesTargetMonth}" class="sales-target-period-cell ${month === salesTargetMonth ? "selected" : ""}"><span>${Number(month.slice(5))}月</span><strong>${salesTargetAmount(value)}</strong></button>`;
       }
-      function salesTargetPeriodControls() {
-        return `<section class="panel sales-filter-panel"><div class="toolbar filter-toolbar sales-period-toolbar">${filterField("目标年度", `<select class="input" id="salesTargetYear">${salesTargetYears.map(item => `<option value="${item.year}" ${item.year === salesTargetMonth.slice(0,4) ? "selected" : ""}>${item.year}年</option>`).join("")}</select>`)}${filterField("季度", `<select class="input" id="salesTargetQuarter">${[1,2,3,4].map(q => `<option value="${q}" ${q === salesTargetQuarter() ? "selected" : ""}>第${q}季度</option>`).join("")}</select>`)}</div></section>`;
+      function salesTargetPeriodControls(embedded = false) {
+        return `${embedded ? "" : '<section class="panel sales-filter-panel">'}<div class="toolbar filter-toolbar sales-period-toolbar">${filterField("目标年度", `<select class="input" id="salesTargetYear">${salesTargetYears.map(item => `<option value="${item.year}" ${item.year === salesTargetMonth.slice(0,4) ? "selected" : ""}>${item.year}年</option>`).join("")}</select>`)}${filterField("季度", `<select class="input" id="salesTargetQuarter">${[1,2,3,4].map(q => `<option value="${q}" ${q === salesTargetQuarter() ? "selected" : ""}>第${q}季度</option>`).join("")}</select>`)}</div>${embedded ? "" : "</section>"}`;
       }
       function salesTargetRegionAllocated(region, year) {
         const assigned = value => value != null && salesMoneyCents(value) != null;
@@ -940,9 +981,6 @@
         });
       }
       function renderSalesTargets() {
-        if (salesTargetPersonalActor !== currentUser) {salesTargetPersonalActor=currentUser;salesTargetPersonalContext=false;}
-        if (salesIsRole("PM") && !(currentUser?.fullAccess || salesIsRole("总裁") || salesIsRole("市场副总") || salesIsRole("区域总监"))) return renderPersonalSalesTargets();
-        if (salesTargetPersonalContext && salesIsRole("区域总监")) return renderPersonalSalesTargets();
         const target = salesTargetEditingYear(), region = salesTargetCurrentRegion(target);
         const q = salesTargetQuarter() - 1, months = salesPeriodMonths(salesTargetQuarterPeriod());
         const showPm = region && salesTargetCanSeePm(region);
@@ -955,19 +993,16 @@
         const quarters = region ? `<div class="sales-target-section-head"><strong>区域季度目标</strong>${salesTargetAction("region-quarter", region.name, "拆分4个季度")}</div><div class="sales-target-quarter-grid">${region.quarters.map((value,index) => `<button type="button" data-sales-target-quarter="${index+1}" aria-pressed="${index === q}" class="sales-target-period-cell ${index === q ? "selected" : ""}"><span>第${index+1}季度</span><strong>${salesTargetAmount(value)}</strong></button>`).join("")}</div>` : "";
         const monthTargets = region ? `<div class="sales-target-section-head"><strong>第${q+1}季度 · 区域月度目标</strong>${salesTargetAction("region-month", region.name, "拆分到月份")}</div><div class="sales-target-month-grid">${months.map(month => salesTargetMonthCard(month,salesTargetMonthRegion(month,region.name,salesTargetEditingMonths())?.target)).join("")}</div>` : "";
         const people = showPm ? `<div class="sales-target-section-head"><strong>个人目标 · 第${q+1}季度</strong><div>${salesTargetPersonalAction("person-quarter",region.name,"分配个人季度")}${salesTargetPersonalAction("coordinate-month",region.name,"分配个人月度")}</div></div><div class="table-wrap sales-target-pm-scroll"><table><thead><tr><th>人员</th><th>第${q+1}季度目标</th>${months.map(month => `<th class="${month === salesTargetMonth ? "sales-target-selected-month" : ""}">${Number(month.slice(5))}月目标</th>`).join("")}</tr></thead><tbody>${region.salespeople.map(person => `<tr class="sales-target-person"><td>${escapeHtml(person.name)}</td><td>${salesTargetAmount(person.quarters[q])}</td>${months.map(month => `<td class="${month === salesTargetMonth ? "sales-target-selected-month" : ""}">${salesTargetAmount(salesTargetMonthRegion(month,region.name,salesTargetEditingMonths())?.salespeople.find(item => item.code === person.code)?.target)}</td>`).join("")}</tr>`).join("") || '<tr><td colspan="5"><div class="empty">暂无数据</div></td></tr>'}</tbody></table></div>` : "";
-        return pageHead("销售指标", "按年度逐级分配成交金额目标。", `<button class="btn" type="button" data-sales-target-history>调整记录</button>${salesIsRole("区域总监") ? '<button class="btn" data-sales-personal-targets>我的销售指标</button>' : ""}`) + salesTargetPeriodControls() + salesTargetPendingNotice() +
-          `<section class="panel sales-target-allocation"><div class="panel-head"><div class="panel-title">目标分配</div><span class="panel-sub">成交金额目标（含税，万元）</span></div>${company}<div class="sales-target-columns"><nav class="sales-target-navigation" aria-label="运营中心年度目标"><div class="sales-target-navigation-head">运营中心<span>${target.year}年目标</span></div><div class="sales-target-region-list">${navigation || '<div class="empty">暂无数据</div>'}</div></nav><div class="sales-target-detail"><div class="sales-target-detail-head"><div class="panel-title">${escapeHtml(region?.name || "运营中心目标")}</div></div>${quarters}${monthTargets}${people}${region ? "" : '<div class="empty">暂无数据</div>'}</div></div></section>`;
+        return pageHead("销售指标", "按年度逐级分配成交金额目标。", `<button class="btn" type="button" data-sales-target-history>目标变更记录</button>`) + salesTargetPeriodControls() + salesTargetPendingNotice() +
+          `<section class="panel sales-target-allocation"><div class="panel-head"><div class="panel-title">${salesTargetPending() ? "目标分配 · 本轮待生效目标" : "目标分配"}</div><span class="panel-sub">成交金额目标（含税，万元）</span></div>${company}<div class="sales-target-columns"><nav class="sales-target-navigation" aria-label="运营中心年度目标"><div class="sales-target-navigation-head">运营中心<span>${target.year}年目标</span></div><div class="sales-target-region-list">${navigation || '<div class="empty">暂无数据</div>'}</div></nav><div class="sales-target-detail"><div class="sales-target-detail-head"><div class="panel-title">${escapeHtml(region?.name || "运营中心目标")}</div></div>${quarters}${monthTargets}${people}${region ? "" : '<div class="empty">暂无数据</div>'}</div></div></section>`;
       }
       function renderPersonalSalesTargets() {
-        const region = salesTargetEditingYear()?.regions.find(item => item.salespeople.some(person => person.code === salesTargetEmployeeCode()));
-        const person = region?.salespeople.find(item => item.code === salesTargetEmployeeCode());
         const months = salesPeriodMonths(salesTargetQuarterPeriod());
         const won = salesPerformanceRows(opportunities,true).filter(item => (item.performanceOwnerCode || employees.find(person => person.name === item.owner)?.code) === currentUser.employeeCode && item.selectedDate?.startsWith(salesTargetMonth));
         const goal = salesGoalMetrics(salesPersonalTargetValue(salesTargetMonth), salesSumMoney(won, item => item.expectedContractAmount));
-        return pageHead("我的销售指标", "查看本人的销售目标与完成情况。", salesIsRole("区域总监") ? '<button class="btn" data-sales-management-targets>目标分配</button>' : canAccessPage("dashboard") ? '<button class="btn" data-sales-page="dashboard">返回工作台</button>' : "") + salesTargetPeriodControls() + salesTargetPendingNotice() +
-          `<section class="panel"><div class="panel-head"><div class="panel-title">${salesTargetQuarterPeriod()} · 本人季度目标</div><div class="spacer"></div></div><div class="sales-target-personal-quarter"><strong>${salesTargetAmount(salesPersonalTargetValue(salesTargetQuarterPeriod(),salesTargetEditingYear(),salesTargetEditingMonths()))}</strong><span>成交金额目标（含税，万元）</span></div><div class="sales-target-month-grid">${months.map(month => salesTargetMonthCard(month,salesPersonalTargetValue(month,salesTargetEditingYear(),salesTargetEditingMonths()))).join("")}</div></section>` +
-          `<section class="panel sales-filter-panel"><div class="toolbar">${filterField("业绩月份", `<select class="input" id="salesTargetMonth">${months.map(month => `<option value="${month}" ${month === salesTargetMonth ? "selected" : ""}>${month}</option>`).join("")}</select>`)}</div></section><div class="metrics sales-metrics">${salesGoalMetricCards(goal).join("")}</div>` +
-          `<section class="panel sales-history-panel"><div class="panel-head"><div class="panel-title">调整记录</div></div>${salesTargetHistoryTable()}</section>`;
+        return `<section class="panel sales-personal-target-panel" aria-label="我的销售指标"><div class="panel-head"><div class="panel-title">我的销售指标</div><div class="spacer"></div><button class="btn" type="button" data-sales-target-history>变更记录</button></div>` + salesTargetPeriodControls(true) + salesTargetPendingNotice(true) +
+          `<div class="panel-head"><div class="panel-title">${salesTargetQuarterPeriod()} · 本人季度目标</div></div><div class="sales-target-personal-quarter"><strong>${salesTargetAmount(salesPersonalTargetValue(salesTargetQuarterPeriod(),salesTargetYear(),salesTargetMonths))}</strong><span>成交金额目标（含税，万元）</span></div><div class="sales-target-month-grid">${months.map(month => salesTargetMonthCard(month,salesPersonalTargetValue(month,salesTargetYear(),salesTargetMonths))).join("")}</div>` +
+          `<div class="toolbar">${filterField("业绩月份", `<select class="input" id="salesTargetMonth">${months.map(month => `<option value="${month}" ${month === salesTargetMonth ? "selected" : ""}>${month}</option>`).join("")}</select>`)}</div><div class="metrics sales-metrics">${salesGoalMetricCards(goal).join("")}</div></section>`;
       }
 
       function salesSupportDeadlineTime(support) {
@@ -991,9 +1026,8 @@
 
       function salesVisibleSupportRequests() {
         if (!canAccessPage("sales-supports")) return [];
-        const employeeCode = salesCurrentSupportEmployee()?.code;
         return opportunities.flatMap((opportunity) => opportunity.supports
-          .filter((support) => currentUser?.fullAccess || support.assigneeCode === employeeCode)
+          .filter((support) => salesCanReadSupportRequest(opportunity,support))
           .map((support) => ({ opportunity, support })));
       }
 
@@ -1001,7 +1035,9 @@
         const filter = appliedSupportFilters;
         const validDeadline = Number.isFinite(salesSupportDeadlineTime(support));
         const day = String(support.deadline || "").slice(0, 10);
-        return (!filter.name || opportunity.name.toLowerCase().includes(filter.name.toLowerCase())) &&
+        return (!filter.requestCode || support.id===filter.requestCode) && (!filter.opportunityCode || opportunity.id===filter.opportunityCode) &&
+          (!filter.employee || support.assigneeCode===filter.employee) &&
+          (!filter.name || opportunity.name.toLowerCase().includes(filter.name.toLowerCase())) &&
           (!filter.customer || opportunity.customer === filter.customer) &&
           (!filter.status || support.status === filter.status) &&
           (!filter.deadlineFrom || (validDeadline && day >= filter.deadlineFrom)) &&
@@ -1019,14 +1055,9 @@
       function salesSupportFiltersHtml(requests) {
         const filter = appliedSupportFilters;
         const options = (values, selected) => values.map((value) => `<option value="${escapeHtml(value)}" ${value === selected ? "selected" : ""}>${escapeHtml(value)}</option>`).join("");
-        const statusTabs = SALES_SUPPORT_STATUS_TABS.map((status) => {
-          const value = status === "全部" ? "" : status;
-          const active = filter.status === value;
-          return `<button class="tab${active ? " active" : ""}" type="button" role="tab" aria-selected="${active}" data-sales-support-status="${escapeHtml(value)}">${status}</button>`;
-        }).join("");
-        return `<div class="tabs sales-support-status-tabs" role="tablist" aria-label="方案支撑状态">${statusTabs}</div><div class="toolbar filter-toolbar sales-opportunity-filters">${filterField("商机名称",
+        return `<div class="toolbar filter-toolbar sales-opportunity-filters">${filterField('请求编号',`<input class="input" id="supportRequestCodeFilter" maxlength="100" value="${escapeHtml(filter.requestCode || '')}">`)}${filterField('商机编号',`<input class="input" id="supportOpportunityCodeFilter" maxlength="100" value="${escapeHtml(filter.opportunityCode || '')}">`)}${filterField("商机名称",
           `<input class="input" id="supportNameFilter" value="${escapeHtml(filter.name)}" placeholder="请输入商机名称">`)}${filterField("客户单位",
-          `<select class="input" id="supportCustomerFilter"><option value="">全部客户</option>${options([...new Set(requests.map(({ opportunity }) => opportunity.customer))], filter.customer)}</select>`)}${filterField("交付截止日期",
+          `<select class="input" id="supportCustomerFilter"><option value="">全部客户</option>${options([...new Set(requests.map(({ opportunity }) => opportunity.customer))], filter.customer)}</select>`)}${salesSupportReferenceScope().company || salesSupportReferenceScope().department ? filterField('支撑人员',`<select class="input" id="supportEmployeeFilter"><option value="">全部支撑人员</option>${[...new Map(requests.map(({support})=>[support.assigneeCode,support.assignee])).entries()].map(([code,name])=>`<option value="${escapeHtml(code)}" ${filter.employee===code?'selected':''}>${escapeHtml(name)}</option>`).join('')}</select>`) : ''}${filterField("交付截止日期",
           `<span class="date-range"><input class="input" id="supportDeadlineFromFilter" type="date" value="${escapeHtml(filter.deadlineFrom)}"><span>至</span><input class="input" id="supportDeadlineToFilter" type="date" value="${escapeHtml(filter.deadlineTo)}"></span>`)}${filterActions(
           '<button class="btn btn-primary" id="applySupportFilters" type="button">筛选</button><button class="btn" id="resetSupportFilters" type="button">重置</button>')}</div>`;
       }
@@ -1034,22 +1065,22 @@
       function renderSalesSupports() {
         if (!canAccessPage("sales-supports")) return "";
         const isAdminManagement = Boolean(currentUser?.fullAccess);
+        salesSupportStates();
+        if(supportProjectsState.selected) return pageHead(isAdminManagement?'方案支撑管理':'方案支撑','查看方案支撑请求与项目成果。')+`<section class="panel">${salesSupportTabsHtml()}${renderSupportProjectResults()}</section>`;
         const requests = salesVisibleSupportRequests();
         const now = Date.now();
         const rows = requests.filter(salesSupportMatchesFilters).sort(salesCompareSupportRequests)
           .map(({ opportunity, support }) =>
-            `<tr data-page-row><td>${support.id}</td><td>${opportunity.id}</td><td>${opportunity.name}</td><td>${opportunity.customer}</td><td>${support.content}</td><td>${support.deadline}</td><td data-support-remaining="${support.id}">${salesSupportRemainingText(support, now)}</td><td>${salesStageTag(support.status)}</td><td><button class="link" data-opportunity-open="${opportunity.id}" data-opportunity-context="support" data-opportunity-support="${support.id}">商机详情</button> <button class="link" data-support-outcome="${opportunity.id}">业务结果</button> ${supportDeliveryAction(opportunity, support)} ${supportHistoryAction(opportunity, support)} ${supportStatusAction(opportunity, support).replaceAll("data-support-id", `data-support-opportunity=\"${opportunity.id}\" data-support-id`)}</td></tr>`,
+            `<tr data-page-row><td>${support.id}</td><td>${opportunity.id}</td><td>${opportunity.name}</td><td>${opportunity.customer}</td><td>${support.content}</td><td>${support.deadline}</td><td data-support-remaining="${support.id}">${salesSupportRemainingText(support, now)}</td><td>${salesSupportStatusTag(support.status)}</td><td><button class="link" data-opportunity-open="${opportunity.id}" data-opportunity-context="support" data-opportunity-support="${support.id}">商机详情</button> ${supportDeliveryAction(opportunity, support)} ${supportHistoryAction(opportunity, support)} ${(salesCanProcessSupportListRow(support)?supportStatusAction(opportunity, support):"").replaceAll("data-support-id", `data-support-opportunity=\"${opportunity.id}\" data-support-id`)}</td></tr>`,
           )
           .join("");
         return (
           pageHead(
-            isAdminManagement ? "方案支撑管理" : "我的方案支撑",
-            isAdminManagement
-              ? "查看方案支撑需求，跟进协作进展。"
-              : "处理方案支撑请求，提交支撑成果。",
+            isAdminManagement ? "方案支撑管理" : "方案支撑",
+            "查看方案支撑请求与项目成果。",
             hasPermission("opportunities") ? '<button class="btn" data-sales-page="opportunities">商机列表</button>' : "",
           ) +
-          `<section class="panel">${salesSupportFiltersHtml(requests)}<div class="table-wrap"><table style="min-width:1420px" data-paged-table="m12-supports"><thead><tr><th>请求编号</th><th>商机编号</th><th>商机名称</th><th>客户单位</th><th>支撑需求</th><th>交付截止时间</th><th>剩余时间</th><th>状态</th><th>操作</th></tr></thead><tbody>${rows || '<tr data-empty-row><td colspan="9"><div class="empty">当前没有方案支撑请求</div></td></tr>'}</tbody></table></div>${tablePagination("m12-supports")}</section>`
+          `<section class="panel">${salesSupportTabsHtml()}${salesSupportFiltersHtml(requests)}<div class="table-wrap"><table style="min-width:1420px" data-paged-table="m12-supports"><thead><tr><th>请求编号</th><th>商机编号</th><th>商机名称</th><th>客户单位</th><th>支撑需求</th><th>交付截止时间</th><th>剩余时间</th><th>支撑状态</th><th>操作</th></tr></thead><tbody>${rows || '<tr data-empty-row><td colspan="9"><div class="empty">当前没有方案支撑请求</div></td></tr>'}</tbody></table></div>${tablePagination("m12-supports")}</section>`
         );
       }
 
@@ -1059,6 +1090,7 @@
           (!filter.code || item.id === filter.code) &&
           (!filter.name || item.name.toLowerCase().includes(filter.name.toLowerCase())) &&
           (!filter.type || item.type === filter.type) &&
+          (!filter.source || ((item.teacherSources || []).length ? "老师推荐" : "自主创建") === filter.source) &&
           (!filter.stage || item.stage === filter.stage) &&
           (!filter.customer || item.customer === filter.customer) &&
           (!filter.region || item.region === filter.region) &&
@@ -1085,7 +1117,7 @@
         )}${filterField(
           "商机类型",
           `<select class="input" id="opportunityTypeFilter"><option value="">全部类型</option>${SALES_TYPES.map((value) => `<option value="${value}" ${option(value, appliedOpportunityFilters.type)}>${value}</option>`).join("")}</select>`,
-        )}${filterField(
+        )}${filterField("来源", `<select class="input" id="opportunitySourceFilter"><option value="">全部来源</option>${["自主创建","老师推荐"].map(value=>`<option ${option(value, appliedOpportunityFilters.source)}>${value}</option>`).join("")}</select>`)}${filterField(
           "阶段",
           `<select class="input" id="opportunityStageFilter"><option value="">全部阶段</option>${SALES_STAGES.map((value) => `<option value="${value}" ${option(value, appliedOpportunityFilters.stage)}>${salesStageLabel(value)}</option>`).join("")}</select>`,
         )}${filterField(
@@ -1152,16 +1184,16 @@
           .sort((left, right) => Number(salesOpportunityIsUnread(right)) - Number(salesOpportunityIsUnread(left)) || right.updatedAt.localeCompare(left.updatedAt) || right.id.localeCompare(left.id))
           .map(
             (item) =>
-              `<tr data-page-row><td>${item.id}</td><td>${salesOpportunityIsUnread(item) ? '<span class="opportunity-unread-dot" title="有更新未读" aria-label="有更新未读"></span>' : ""}${item.name}</td><td>${item.type}</td><td>${salesStageTag(item.stage)}</td><td>${item.customer}</td><td>${salesMoney(item.estimateAmount)}</td><td>${salesPriorityTag(item.priority)}</td><td>${salesStageDays(item)} 天</td><td>${escapeHtml(salesOpportunityOwnerName(item))}</td><td>${item.createdDate}</td><td>${item.updatedAt}</td><td>${item.createdBy}</td><td><button class="link" type="button" data-opportunity-open="${item.id}">详情</button></td></tr>`,
+              `<tr data-page-row><td>${item.id}</td><td>${salesOpportunityIsUnread(item) ? '<span class="opportunity-unread-dot" title="有更新未读" aria-label="有更新未读"></span>' : ""}${item.name}</td><td>${item.type}</td><td>${(item.teacherSources || []).length ? "老师推荐" : "自主创建"}</td><td>${salesStageTag(item.stage)}</td><td>${item.customer}</td><td>${salesMoney(item.estimateAmount)}</td><td>${salesPriorityTag(item.priority)}</td><td>${salesStageDays(item)} 天</td><td>${escapeHtml(salesOpportunityOwnerName(item))}</td><td>${item.createdDate}</td><td>${item.updatedAt}</td><td>${item.createdBy}</td><td><button class="link" type="button" data-opportunity-open="${item.id}">详情</button></td></tr>`,
           )
           .join("");
-        const emptyRow = '<tr data-empty-row><td colspan="13"><div class="empty">暂无数据</div></td></tr>';
+        const emptyRow = '<tr data-empty-row><td colspan="14"><div class="empty">暂无数据</div></td></tr>';
         const tableHtml = [
           '<section class="panel">',
           opportunityFiltersHtml(),
-          '<div class="table-wrap"><table style="min-width:1740px" data-paged-table="m12-opportunities">',
-          '<thead><tr><th>商机编号</th><th>商机名称</th><th>商机类型</th><th>阶段</th><th>客户单位</th><th>当前预估金额（含税，万元）</th><th>优先级</th><th>当前阶段停留时间</th><th>负责人</th><th>创建时间</th><th>最近更新时间</th><th>创建人</th><th>操作</th></tr></thead>',
-          `<tbody>${body || emptyRow}<tr data-filter-empty style="display:none"><td colspan="13"><div class="empty">暂无数据</div></td></tr></tbody>`,
+          '<div class="table-wrap"><table style="min-width:1840px" data-paged-table="m12-opportunities">',
+          '<thead><tr><th>商机编号</th><th>商机名称</th><th>商机类型</th><th>来源</th><th>阶段</th><th>客户单位</th><th>当前预估金额（含税，万元）</th><th>优先级</th><th>当前阶段停留时间</th><th>负责人</th><th>创建时间</th><th>最近更新时间</th><th>创建人</th><th>操作</th></tr></thead>',
+          `<tbody>${body || emptyRow}<tr data-filter-empty style="display:none"><td colspan="14"><div class="empty">暂无数据</div></td></tr></tbody>`,
           `</table></div>${tablePagination("m12-opportunities")}</section>`,
         ].join("");
         return (
@@ -1186,7 +1218,9 @@
 
       function opportunitySelected() {
         return opportunities.find((item) => item.id === selectedOpportunityId &&
-          (salesVisibleOpportunities().includes(item) || salesCanViewSupportOpportunity(item)));
+          (opportunityDetailContext === "support"
+            ? (selectedOpportunitySupportId ? salesCanReadSupportRequest(item,item.supports.find(s=>s.id===selectedOpportunitySupportId)) : salesCanViewSupportOpportunity(item))
+            : (salesVisibleOpportunities().includes(item) || salesCanViewSupportOpportunity(item))));
       }
 
       function isSupportOpportunityDetail(item) {
@@ -1221,14 +1255,14 @@
         const rows = item.followUps
           .map(
             (record) =>
-              `<tr><td>${record.time}</td><td>${record.method}</td>${isEcosystemOpportunity(item) ? "" : `<td>${record.people}</td>`}<td>${record.result}</td><td>${record.risk}</td><td>${record.nextAction}</td><td>${record.nextDate}</td><td>${record.attachment || "—"}</td><td>${record.operator}</td></tr>`,
+              `<tr><td>${escapeHtml(record.time)}</td><td>${escapeHtml(record.method)}${record.otherMethod ? `<div class="list-sub">${escapeHtml(record.otherMethod)}</div>` : ""}</td>${isEcosystemOpportunity(item) ? "" : `<td>${escapeHtml(record.people)}</td>`}<td>${escapeHtml(record.summary)}</td><td>${escapeHtml(record.feedback)}</td><td>${escapeHtml(record.risk)}</td><td>${escapeHtml(record.nextAction)}</td><td>${escapeHtml(record.nextDate)}</td><td>${record.attachments.map(name => escapeHtml(name)).join("<br>") || "—"}</td><td>${escapeHtml(record.operator)}</td></tr>`,
           )
           .join("");
         const action =
           salesCanProgress(item) && item.stage !== "落选"
             ? '<div class="sales-tab-toolbar"><button class="btn btn-primary" type="button" data-sales-followup-add>新增跟进</button></div>'
             : "";
-        return `${action}${salesCanViewSupportOutcome(item) ? `<div class="sales-tab-toolbar"><button class="btn" data-support-outcome="${item.id}">查看支撑业务结果</button></div>` : ""}<div class="table-wrap"><table style="min-width:1280px"><thead><tr><th>跟进时间</th><th>跟进方式</th>${isEcosystemOpportunity(item) ? "" : "<th>参与关键人</th>"}<th>内容与结果</th><th>当前风险</th><th>下一步行动</th><th>下次跟进日期</th><th>附件</th><th>操作人</th></tr></thead><tbody>${rows || `<tr><td colspan="${isEcosystemOpportunity(item) ? 8 : 9}"><div class="empty">暂无跟进记录</div></td></tr>`}</tbody></table></div>`;
+        return `${action}<div class="table-wrap"><table style="min-width:1280px"><thead><tr><th>维系时间</th><th>维系方式</th>${isEcosystemOpportunity(item) ? "" : "<th>参与关键人</th>"}<th>沟通摘要</th><th>客户反馈</th><th>当前风险</th><th>下一步计划</th><th>下次跟进日期</th><th>附件</th><th>操作人</th></tr></thead><tbody>${rows || `<tr><td colspan="${isEcosystemOpportunity(item) ? 9 : 10}"><div class="empty">暂无跟进记录</div></td></tr>`}</tbody></table></div>`;
       }
 
       function supportStatusAction(item, support) {
@@ -1242,14 +1276,14 @@
           .filter((support) => salesVisibleOpportunities().includes(item) || support.assigneeCode === salesCurrentSupportEmployee()?.code)
           .map(
             (support) =>
-              `<tr><td>${support.id}</td><td>${support.assignee}</td><td>${support.deadline}</td><td>${support.content}</td><td>${salesStageTag(support.status)}</td><td>${supportDeliveryAction(item, support)} ${supportHistoryAction(item, support)} ${supportStatusAction(item, support)}</td></tr>`,
+              `<tr><td>${support.id}</td><td>${support.assignee}</td><td>${support.deadline}</td><td>${support.content}</td><td>${salesSupportStatusTag(support.status)}</td><td>${supportDeliveryAction(item, support)} ${supportHistoryAction(item, support)} ${supportStatusAction(item, support)}</td></tr>`,
           )
           .join("");
         const action =
           salesCanInitiateSupport(item)
-            ? '<div class="sales-tab-toolbar"><button class="btn btn-primary" type="button" data-sales-support-add>发起支撑</button></div>'
+            ? '<div class="sales-tab-toolbar"><button class="btn btn-primary" type="button" data-sales-support-add>请求支撑</button></div>'
             : "";
-        return `${action}${salesCanViewSupportOutcome(item) ? `<div class="sales-tab-toolbar"><button class="btn" data-support-outcome="${item.id}">查看支撑业务结果</button></div>` : ""}<div class="table-wrap"><table style="min-width:1180px"><thead><tr><th>请求编号</th><th>支撑人员</th><th>交付截止时间</th><th>支撑需求</th><th>状态</th><th>操作</th></tr></thead><tbody>${rows || '<tr><td colspan="6"><div class="empty">暂无方案支撑请求</div></td></tr>'}</tbody></table></div>`;
+        return `${action}<div class="table-wrap"><table style="min-width:1180px"><thead><tr><th>请求编号</th><th>支撑人员</th><th>交付截止时间</th><th>支撑需求</th><th>支撑状态</th><th>操作</th></tr></thead><tbody>${rows || '<tr><td colspan="6"><div class="empty">暂无方案支撑请求</div></td></tr>'}</tbody></table></div>`;
       }
 
       function opportunityHistoryHtml(item) {
@@ -1269,7 +1303,7 @@
           return pageHead(
             item.name,
             "查看商机背景与需求。",
-            '<button class="btn" id="backToOpportunities">返回我的方案支撑</button>' + receiveButton,
+            '<button class="btn" id="backToOpportunities">返回方案支撑</button>' + receiveButton,
           ) + `<section class="panel sales-detail-panel"><div class="sales-detail-identity"><div><span class="list-sub">当前阶段</span><div class="sales-detail-stage">${salesStageTag(item.stage)}</div></div><div><span class="list-sub">负责人</span><strong>${escapeHtml(salesOpportunityOwnerName(item))}</strong></div></div><div class="panel-body sales-detail-body">${opportunityOverviewHtml(item, true)}</div></section>`;
         }
         const tabs = [
@@ -1289,7 +1323,7 @@
           pageHead(
             item.name,
             "查看商机信息、跟进记录与方案支撑。",
-            `<button class="btn" id="backToOpportunities">返回列表</button>${canOperate ? '<button class="btn" data-sales-edit>编辑</button>' : ""}${salesCanCorrect(item) ? '<button class="btn btn-primary" data-sales-stage-open>推进阶段</button>' : ""}`,
+            `<button class="btn" id="backToOpportunities">返回列表</button>${canOperate ? '<button class="btn" data-sales-edit>编辑</button><button class="btn" type="button" data-sales-followup-add>新增跟进</button>' : ""}${salesCanCorrect(item) ? '<button class="btn btn-primary" data-sales-stage-open>推进阶段</button>' : ""}`,
           ) +
           `<section class="panel sales-detail-panel"><div class="sales-detail-identity"><div><span class="list-sub">当前阶段</span><div class="sales-detail-stage">${salesStageTag(item.stage)}</div></div><div><span class="list-sub">负责人</span><strong>${escapeHtml(salesOpportunityOwnerName(item))}</strong></div><div><span class="list-sub">下次跟进日期</span><strong>${item.nextFollowDate || "—"}</strong></div></div><div class="tabs detail-tabs">${tabs
             .map(

@@ -893,7 +893,8 @@
       });
 
       function renderDashboard() {
-        if (!currentUser || !canAccessPage("dashboard") || ["hr", "support"].includes(currentUser.role)) return "";
+        if (!currentUser || !canAccessPage("dashboard")) return "";
+        if(!hasPermission("dashboard") || ["hr", "support"].includes(currentUser.role)) return pageHead("工作台","查看方案支撑概览。")+`<div class="workbench">${renderWorkbenchSupport()}</div>`;
         if (lastRenderedPage !== "dashboard" || dashboardNewContactOwner !== dashboardStatActor()) resetDashboardContactRange();
         if (lastRenderedPage !== "dashboard" || dashboardTaskViewOwner !== dashboardStatActor()) resetDashboardTaskView();
         const invalidMeasure = !dashboardProjectMeasureOptions().some(([value]) => value === dashboardProjectMeasure);
@@ -911,7 +912,7 @@
         }
         if (invalidMeasure) dashboardProjectMeasure = "amount";
         if (currentUser.role === "admin" && adminDashboardView === "system")
-          return renderAdminDashboard();
+          return renderAdminDashboard()+renderWorkbenchSupport();
         const { companies, people } = dashboardBusinessRows();
         const coverage = dashboardCoverageRate(companies, people);
         const canSeePeople = hasDataObject("客户单位") && hasDataObject("关键人");
@@ -919,10 +920,10 @@
         const taskCard = dashboardTaskStatsCard();
         const projectCard = hasPermission("projects") ? `<section class="panel workbench-card workbench-projects"><div class="panel-head"><div class="panel-title" id="workbenchProjectsTitle">项目概况</div></div><div class="workbench-project-body" role="region" aria-labelledby="workbenchProjectsTitle">${dashboardProjectControls()}<div class="workbench-project-visualization" id="workbenchProjectVisualization">${dashboardProjectChart(dashboardProjectSummary())}</div></div></section>` : "";
         const todoCard = currentUser.role === "finance" ? "" : `<section class="panel workbench-card workbench-todos"><div class="panel-head"><div class="panel-title" id="workbenchTodosTitle">我的待办</div></div>${dashboardTodosBody()}</section>`;
-        if (currentUser.role === "finance") return pageHead("工作台", "查看项目进展与金额概况。") + `<div class="workbench"><div class="workbench-bottom">${projectCard}</div></div>`;
+        if (currentUser.role === "finance") return pageHead("工作台", "查看项目进展与金额概况。") + `<div class="workbench">${renderWorkbenchSupport()}<div class="workbench-bottom">${projectCard}</div></div>`;
         return pageHead("工作台", currentUser.role === "ecology" ? "查看项目概况，安排项目待办。" : "查看关键人、任务、销售与项目概况，安排待办事项。",
           currentUser.role === "admin" ? '<button class="btn" type="button" data-admin-dashboard-view="system">系统运行</button>' : "") +
-          `<div class="workbench">${peopleCard}${currentUser.role === "pm" ? "" : dashboardNewContactsCard()}${taskCard}${renderWorkbenchSales()}<div class="workbench-bottom">${projectCard}${todoCard}</div></div>`;
+          `<div class="workbench">${peopleCard}${currentUser.role === "pm" ? "" : dashboardNewContactsCard()}${taskCard}${renderWorkbenchSales()}${renderWorkbenchSupport()}<div class="workbench-bottom">${projectCard}${todoCard}</div></div>`;
       }
 
       function renderAdminDashboard() {

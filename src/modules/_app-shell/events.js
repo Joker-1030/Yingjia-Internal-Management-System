@@ -1,5 +1,6 @@
       function bindPageEvents() {
         bindEmployeeUsageEvents();
+        bindRegionListFilters();
         bindTeacherEvents();
         bindSalesEvents();
         bindProjectEvents();

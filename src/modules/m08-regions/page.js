@@ -1,4 +1,25 @@
       let regionWorkspaceTab = "cities";
+      let regionListFilterState={actor:null,centers:{}};
+      function regionListFilters(region,key){
+        if(regionListFilterState.actor!==currentUser)regionListFilterState={actor:currentUser,centers:{}};
+        const center=regionListFilterState.centers[region.id] ||= {rules:{},customers:{}};
+        return center[key];
+      }
+      function regionRuleLabel(rule){return rule.dimension==='客户公司'?customers.find(c=>String(c.id)===String(rule.value))?.name || '客户已失效':rule.value;}
+      function regionRuleMatchesListFilters(rule,f){return (!f.dimension || rule.dimension===f.dimension) && listFilterContains(regionRuleLabel(rule),f.name) && (!f.pm || rule.pm===f.pm) && (!f.status || rule.status===f.status);}
+      function regionCustomerMatchesListFilters(c,region,f){return listFilterContains(c.name,f.name) && (!f.level || c.level===f.level) && (!f.province || customerBusinessProvince(c)===f.province) && (!f.city || customerBusinessCity(c)===f.city) && (!f.owner || responsibilityOwnerForCustomer(c,region)===f.owner);}
+      function bindRegionListFilters(){
+        const region=regionsData.find(item=>String(item.id)===String(selectedRegionId));
+        if(!region)return;
+        for(const [id,key] of [['regionRulesFilters','rules'],['regionCustomersFilters','customers']]){
+          const set=values=>{regionListFilters(region,key);regionListFilterState.centers[region.id][key]=values;};
+          bindListFilterForm(id,set,()=>set({}));
+        }
+        const form=$('#regionCustomersFilters');
+        if(form){const province=form.querySelector('[name="province"]'),city=form.querySelector('[name="city"]');
+          if(province && city)province.onchange=()=>{city.innerHTML='<option value="">全部</option>'+listFilterOptions(centerCustomers(region).filter(c=>!province.value || customerBusinessProvince(c)===province.value).map(customerBusinessCity)).map(([value,text])=>`<option value="${escapeHtml(value)}">${escapeHtml(text)}</option>`).join('');};
+        }
+      }
 
       function regionProvinceList(region) {
         return String(region?.provinces || "")
@@ -217,18 +238,23 @@
       function renderCityResponsibilityRules(region, canEdit) {
         const rules = cityResponsibilityRules.filter(rule => ["客户公司", "集团"].includes(rule.dimension) && rule.regionId === region.id &&
           (rule.dimension !== "客户公司" || centerCustomers(region).some(customer => String(customer.id) === String(rule.value))));
-        const rows = rules.map(rule => {
+        const rf=regionListFilters(region,'rules'),cf=regionListFilters(region,'customers'),allCustomers=centerCustomers(region);
+        const ruleFilters=listFilterFormHtml('regionRulesFilters',rf,[['dimension','对象类型',listFilterOptions(['客户公司','集团'])],['name','客户 / 集团名称'],['pm','PM',listFilterOptions(rules.map(rule=>rule.pm))],['status','状态',listFilterOptions(['启用','停用'])]]);
+        const customerFilters=listFilterFormHtml('regionCustomersFilters',cf,[['name','客户名称'],['level','责任层级',listFilterOptions(['省公司','市公司','区县公司'])],
+          ['province','业务责任省份',listFilterOptions(allCustomers.map(customerBusinessProvince))],['city','业务责任城市',listFilterOptions(allCustomers.filter(c=>!cf.province || customerBusinessProvince(c)===cf.province).map(customerBusinessCity))],
+          ['owner','负责人',listFilterOptions(allCustomers.map(c=>responsibilityOwnerForCustomer(c,region)))]]);
+        const rows = rules.filter(rule=>regionRuleMatchesListFilters(rule,rf)).map(rule => {
           const label = rule.dimension === "客户公司" ? customers.find(customer => String(customer.id) === String(rule.value))?.name || "客户已失效" : rule.value;
           return `<tr><td>${escapeHtml(rule.dimension)}</td><td>${escapeHtml(label)}</td><td>${escapeHtml(rule.pm)}</td><td>${escapeHtml(rule.effective || "—")}</td><td><span class="tag ${rule.status === "启用" ? "green" : "yellow"}">${rule.status}</span></td><td>${canEdit ? `<button class="link" data-city-rule-edit="${rule.id}">编辑</button> · <button class="link" data-city-rule-toggle="${rule.id}">${rule.status === "启用" ? "停用" : "启用"}</button>` : "—"}</td></tr>`;
         }).join("");
-        const actual = centerCustomers(region).map(customer => `<tr><td>${escapeHtml(customer.name)}</td><td>${escapeHtml(customer.level)}</td><td>${escapeHtml(customerBusinessProvince(customer))} · ${escapeHtml(customerBusinessCity(customer) || "—")}</td><td>${escapeHtml(responsibilityOwnerForCustomer(customer, region) || "未分配")}</td></tr>`).join("");
-        return `<div class="region-data-pane" id="region-pane-rules" role="tabpanel" aria-labelledby="region-tab-rules" ${regionWorkspaceTab !== "rules" ? "hidden" : ""}><div class="panel-head"><div class="panel-title">客户 / 集团 PM 分配</div><div class="spacer"></div></div><div class="table-wrap"><table><thead><tr><th>对象</th><th>客户 / 集团</th><th>PM</th><th>生效日期</th><th>状态</th><th>操作</th></tr></thead><tbody>${rows || '<tr><td colspan="6"><div class="empty">暂无客户或集团分配</div></td></tr>'}</tbody></table></div></div><div class="region-data-pane" id="region-pane-customers" role="tabpanel" aria-labelledby="region-tab-customers" ${regionWorkspaceTab !== "customers" ? "hidden" : ""}><div class="panel-head"><div class="panel-title">客户归属与划转</div></div><div class="table-wrap"><table><thead><tr><th>客户公司</th><th>责任层级</th><th>所在地</th><th>负责人</th></tr></thead><tbody>${actual || '<tr><td colspan="4"><div class="empty">暂无责任客户</div></td></tr>'}</tbody></table></div><details class="region-group-routes"><summary>按集团和省份持续分流</summary>${renderGroupProvinceRoutes(region)}</details></div>`;
+        const actual = allCustomers.filter(c=>regionCustomerMatchesListFilters(c,region,cf)).map(customer => `<tr><td>${escapeHtml(customer.name)}</td><td>${escapeHtml(customer.level)}</td><td>${escapeHtml(customerBusinessProvince(customer))} · ${escapeHtml(customerBusinessCity(customer) || "—")}</td><td>${escapeHtml(responsibilityOwnerForCustomer(customer, region) || "未分配")}</td></tr>`).join("");
+        return `<div class="region-data-pane" id="region-pane-rules" role="tabpanel" aria-labelledby="region-tab-rules" ${regionWorkspaceTab !== "rules" ? "hidden" : ""}><div class="panel-head"><div class="panel-title">客户 / 集团 PM 分配</div><div class="spacer"></div></div>${ruleFilters}<div class="table-wrap"><table><thead><tr><th>对象</th><th>客户 / 集团</th><th>PM</th><th>生效日期</th><th>状态</th><th>操作</th></tr></thead><tbody>${rows || `<tr><td colspan="6"><div class="empty">${rules.length?'未找到符合条件的分配':'暂无客户或集团分配'}</div></td></tr>`}</tbody></table></div></div><div class="region-data-pane" id="region-pane-customers" role="tabpanel" aria-labelledby="region-tab-customers" ${regionWorkspaceTab !== "customers" ? "hidden" : ""}><div class="panel-head"><div class="panel-title">客户归属与划转</div></div>${customerFilters}<div class="table-wrap"><table><thead><tr><th>客户公司</th><th>责任层级</th><th>所在地</th><th>负责人</th></tr></thead><tbody>${actual || `<tr><td colspan="4"><div class="empty">${allCustomers.length?'未找到符合条件的责任客户':'暂无责任客户'}</div></td></tr>`}</tbody></table></div><section class="region-group-routes" aria-label="按集团和省份持续分流">${renderGroupProvinceRoutes(region)}</section></div>`;
       }
 
       function renderRegionAssignmentHelp() {
-        return `<details class="region-assignment-help">
-          <summary><strong>分配说明</strong><span>中心类型、分配优先级与操作方法</span></summary>
-          <div class="region-assignment-help-body">
+        return `<section class="region-assignment-help">
+          <div class="region-assignment-help-head"><strong>分配说明</strong><span>中心类型、分配优先级与操作方法</span></div>
+          <div class="region-assignment-help-body" tabindex="0" role="region" aria-label="分配说明">
             <section>
               <h3>先确定经营中心</h3>
               <p><strong>地理区域</strong>按关联省份经营；<strong>行业中心</strong>负责对应行业的全国客户。单独划转的客户优先归指定区域中心；其次匹配集团＋省份分流，其余按行业、地理区域依次匹配。</p>
@@ -258,7 +284,7 @@
               <p>交接包含适用任务、六阶段普通项目和未落选普通商机。项目终态、历史记录、历史业绩和目标不追溯改写；平台师资合作业务不随地区责任交接。</p>
             </section>
           </div>
-        </details>`;
+        </section>`;
       }
 
       function renderRegions() {

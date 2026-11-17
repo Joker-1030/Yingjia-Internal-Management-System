@@ -51,14 +51,14 @@
       }
       function employeeUsageReset() {
         const yesterday = addDays(DEMO_TODAY, -1);
-        employeeUsageState = { actor: employeeUsageEmployee()?.code || "", start: yesterday, end: yesterday };
+        employeeUsageState = { actor: employeeUsageEmployee()?.code || "", start: yesterday, end: yesterday, name: "", code: "", department: "" };
         employeeUsageSort = { key: "", direction: "asc" };
       }
-      function employeeUsageApply(start, end) {
+      function employeeUsageApply(start, end, filters = {}) {
         if (!employeeUsageAccess()) return "无权查看员工使用统计";
         if (!employeeUsageValidDate(start) || !employeeUsageValidDate(end)) return "请选择有效的开始和结束日期";
         if (start > end) return "开始日期不能晚于结束日期";
-        employeeUsageState = { actor: employeeUsageEmployee().code, start, end };
+        employeeUsageState = { actor: employeeUsageEmployee().code, start, end, name: (filters.name || '').trim(), code: (filters.code || '').trim(), department: filters.department || '' };
         return "";
       }
       function employeeUsageInRange(at, range = employeeUsageState) {
@@ -82,7 +82,8 @@
           .slice().sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)));
       }
       function employeeUsageRows() {
-        const rows = employeeUsageEmployees().map(employee => ({ employee,
+        const f=employeeUsageState;
+        const rows = employeeUsageEmployees().filter(employee=>listFilterContains(employee.name,f.name) && (!f.code || employee.code===f.code) && (!f.department || employeeDepartmentNames(employee).includes(f.department))).map(employee => ({ employee,
           days: new Set(employeeUsageVisits.filter(item => item.employeeCode === employee.code && employeeUsageInRange(item.at)).map(item => employeeUsageDate(item.at))).size,
           operations: employeeUsageOperationsFor(employee.code), records: employeeUsageMaintenanceFor(employee.code),
         }));
@@ -121,8 +122,8 @@
         const escape = escapeDashboardHtml;
         const rows = employeeUsageRows();
         return pageHead("员工使用统计", "查看员工的系统使用、业务操作与维系记录新增情况。") +
-          `<section class="panel"><form class="toolbar filter-toolbar" id="employeeUsageFilterForm">${filterField("开始日期", `<input class="input" type="date" id="employeeUsageStart" value="${escape(employeeUsageState.start)}" required>`)}${filterField("结束日期", `<input class="input" type="date" id="employeeUsageEnd" value="${escape(employeeUsageState.end)}" required>`)}${filterActions('<button class="btn btn-primary" type="submit">查询</button><button class="btn" type="button" id="employeeUsageReset">重置</button>')}</form>` +
-          `<div class="panel-head"><div class="panel-title">员工使用情况</div><div class="spacer"></div><span class="panel-sub">${escape(employeeUsageState.start)} 至 ${escape(employeeUsageState.end)}</span></div><div class="table-wrap"><table class="employee-usage-table" data-paged-table="employee-usage"><thead><tr><th>员工</th><th>所属部门</th><th>系统角色</th><th>员工状态</th>${employeeUsageSortHeader("days", "登录使用天数", "同一员工北京时间同一天实际进入系统计1天，重复进入、刷新和后台续期不重复计数。")}${employeeUsageSortHeader("operations", "操作次数", "一次成功业务提交计1次，多字段或批量提交仍计1次；浏览、查询和失败不计。")}${employeeUsageSortHeader("records", "维系新增次数", "按正式维系记录创建时间统计，归实际录入人；追加附件不重复，补录不按维系日期回算。")}</tr></thead><tbody id="employeeUsageBody">${rows.map(({employee, days, operations, records}) => `<tr data-page-row><td><strong>${escape(employee.name)}</strong><div class="list-sub">${escape(employee.code)}</div></td><td>${employeeDepartmentNames(employee).map(name => escape(name)).join("<br>") || "—"}</td><td>${escape(employeeUsageRoleNames(employee).join("、")) || "—"}</td><td><span class="tag ${employee.status === "在职" ? "green" : "yellow"}">${employee.status === "在职" ? "在职" : "已停用"}</span></td><td>${days}</td><td><button type="button" class="link" data-employee-usage-detail="operations" data-employee-code="${escape(employee.code)}" aria-label="查看${escape(employee.name)}的操作明细">${operations.length}</button></td><td><button type="button" class="link" data-employee-usage-detail="maintenance" data-employee-code="${escape(employee.code)}" aria-label="查看${escape(employee.name)}的维系新增明细">${records.length}</button></td></tr>`).join("") || '<tr data-empty-row><td colspan="7" class="panel-sub">暂无可查看的员工</td></tr>'}</tbody></table></div>${tablePagination("employee-usage", unifiedTablePaginationStates["employee-usage"]?.pageSize || 20)}</section>`;
+          `<section class="panel"><form class="toolbar filter-toolbar" id="employeeUsageFilterForm">${filterField("开始日期", `<input class="input" type="date" id="employeeUsageStart" value="${escape(employeeUsageState.start)}" required>`)}${filterField("结束日期", `<input class="input" type="date" id="employeeUsageEnd" value="${escape(employeeUsageState.end)}" required>`)}${filterField('员工姓名',`<input class="input" id="employeeUsageName" maxlength="100" value="${escape(employeeUsageState.name || '')}">`)}${filterField('工号',`<input class="input" id="employeeUsageCode" maxlength="100" value="${escape(employeeUsageState.code || '')}">`)}${filterField('所属部门',`<select class="input" id="employeeUsageDepartment"><option value="">全部部门</option>${listFilterOptions(employeeUsageEmployees().flatMap(employeeDepartmentNames)).map(([value,text])=>`<option value="${escape(value)}" ${employeeUsageState.department===value?'selected':''}>${escape(text)}</option>`).join('')}</select>`)}${filterActions('<button class="btn btn-primary" type="submit">查询</button><button class="btn" type="button" id="employeeUsageReset">重置</button>')}</form>` +
+          `<div class="panel-head"><div class="panel-title">员工使用情况</div><div class="spacer"></div><span class="panel-sub">${escape(employeeUsageState.start)} 至 ${escape(employeeUsageState.end)}</span></div><div class="table-wrap"><table class="employee-usage-table" data-paged-table="employee-usage"><thead><tr><th>员工</th><th>所属部门</th><th>系统角色</th><th>员工状态</th>${employeeUsageSortHeader("days", "登录使用天数", "同一员工北京时间同一天实际进入系统计1天，重复进入、刷新和后台续期不重复计数。")}${employeeUsageSortHeader("operations", "操作次数", "一次成功业务提交计1次，多字段或批量提交仍计1次；浏览、查询和失败不计。")}${employeeUsageSortHeader("records", "维系新增次数", "按正式维系记录创建时间统计，归实际录入人；追加附件不重复，补录不按维系日期回算。")}</tr></thead><tbody id="employeeUsageBody">${rows.map(({employee, days, operations, records}) => `<tr data-page-row><td><strong>${escape(employee.name)}</strong><div class="list-sub">${escape(employee.code)}</div></td><td>${employeeDepartmentNames(employee).map(name => escape(name)).join("<br>") || "—"}</td><td>${escape(employeeUsageRoleNames(employee).join("、")) || "—"}</td><td><span class="tag ${employee.status === "在职" ? "green" : "yellow"}">${employee.status === "在职" ? "在职" : "已停用"}</span></td><td>${days}</td><td><button type="button" class="link" data-employee-usage-detail="operations" data-employee-code="${escape(employee.code)}" aria-label="查看${escape(employee.name)}的操作明细">${operations.length}</button></td><td><button type="button" class="link" data-employee-usage-detail="maintenance" data-employee-code="${escape(employee.code)}" aria-label="查看${escape(employee.name)}的维系新增明细">${records.length}</button></td></tr>`).join("") || `<tr data-empty-row><td colspan="7" class="panel-sub">${employeeUsageEmployees().length?'未找到符合条件的员工':'暂无可查看的员工'}</td></tr>`}</tbody></table></div>${tablePagination("employee-usage", unifiedTablePaginationStates["employee-usage"]?.pageSize || 20)}</section>`;
       }
       function employeeUsageHelp(text) {
         return `<span class="workbench-help" tabindex="0" role="img" title="${escapeDashboardHtml(text)}" aria-label="${escapeDashboardHtml(text)}">?</span>`;
@@ -145,7 +146,7 @@
         const form = $("#employeeUsageFilterForm");
         if (form) form.onsubmit = event => {
           event.preventDefault();
-          const error = employeeUsageApply($("#employeeUsageStart").value, $("#employeeUsageEnd").value);
+          const error = employeeUsageApply($("#employeeUsageStart").value, $("#employeeUsageEnd").value, {name:$('#employeeUsageName').value,code:$('#employeeUsageCode').value,department:$('#employeeUsageDepartment').value});
           if (error) return toast(error);
           refreshUnifiedTablePagination("employee-usage", true);
           renderPage();

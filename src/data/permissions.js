@@ -13,11 +13,11 @@
         ["teacher-schedule", "内部老师排期（只读）"],
         ["teacher-work", "授课复盘"],
         ["teacher-recommendations", "我的推荐"],
-        ["support-results", "支撑结果与月度参考"],
+        ["support-results", "方案支撑概览与已立项成果"],
         ["packages", "采购包管理"],
         ["platform-companies", "平台公司管理"],
         ["opportunities", "商机列表"],
-        ["sales-supports", "我的方案支撑"],
+        ["sales-supports", "方案支撑"],
         ["sales-targets", "销售指标"],
       ];
       const adminOnlyPermission = ["permissions", "权限授权"];
@@ -227,7 +227,7 @@
         { name: "客户经营", items: [["customers", "客户经营", "三栏查看 / 新增 / 维护"], ["tasks", "维系管理", "任务与记录"]] },
         { name: "项目管理", items: [["projects", "项目管理", "查看项目列表与详情"], ["packages", "采购包管理", "查看与维护"], ["platform-companies", "平台公司管理", "查看与维护"]] },
         { name: "培训老师", items: [["teachers", "培训老师管理", "老师档案与排期"]] },
-        { name: "销售管理", items: [["opportunities", "商机列表", "查看与推进商机"], ["sales-supports", "我的方案支撑", "处理本人方案支撑请求"], ["sales-targets", "销售指标", "查看与分配成交金额目标"]] },
+        { name: "销售管理", items: [["opportunities", "商机列表", "查看与推进商机"], ["sales-supports", "方案支撑", "处理本人方案支撑请求"], ["sales-targets", "销售指标", "查看与分配成交金额目标"]] },
         { name: "组织与配置", items: [["employees", "组织与员工", "组织、员工与异动"], ["regions", "区域中心与地市配置", "区域与地市责任"], ["city-management", "地市管理", "PM 本人地市责任"], ["settings", "客户基础配置", "配置项维护"], ["imports", "数据导入", "上传、确认与结果"]] },
       ];
       const operationPermissionCatalog = [
@@ -395,12 +395,11 @@
       for (const name of ["PM", "区域总监"]) {
         systemRoleTemplates.find(t => t.name === name).permissions.push("teacher-schedule");
         roleOperationPermissions[name].push("teachers.schedule.read");
-        roleFieldPermissions[name].push("teacher_standard_fee_view");
       }
       for (const template of systemRoleTemplates) {
-        if (["系统管理员","总裁","市场副总","老师","教学管理人员","PM","区域总监"].includes(template.name)) template.permissions.push("teacher-work");
+        if (["系统管理员","总裁","老师","教学管理人员"].includes(template.name)) template.permissions.push("teacher-work");
         if (template.name === "老师") template.permissions.push("teacher-recommendations");
-        if (["系统管理员","总裁","市场副总","商机支撑"].includes(template.name)) template.permissions.push("support-results");
+        if (!["老师", "财务", "HR/人事"].includes(template.name)) template.permissions.push("support-results"); // DEC-250 excludes these roles; other eligible identities retain their original scope.
       }
       const permissionVersions = Object.fromEntries(
         systemRoleTemplates.map((template, position) => {

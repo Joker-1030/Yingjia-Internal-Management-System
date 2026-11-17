@@ -67,7 +67,7 @@
           ["projects", "普通项目（全部六阶段）", item => [item.name || item.title || item.id, item.stage, `负责 PM：${projectCurrentOwner(item) || "未分配"}`]],
           ["opportunities", "未落选普通商机", item => [item.name || item.title || item.id, item.stage, item.owner]],
         ];
-        return `<div class="region-handover-items">${sections.map(([key, label, describe]) => `<details><summary>${label}<strong>${items[key].length}</strong><span class="panel-sub">展开明细</span></summary><div class="region-handover-list">${items[key].map(item => `<div class="region-handover-row">${describe(item).filter(Boolean).map(text => `<span>${escapeHtml(text)}</span>`).join("")}</div>`).join("") || '<div class="empty">无交接事项</div>'}</div></details>`).join("")}</div>`;
+        return `<div class="region-handover-items">${sections.map(([key, label, describe]) => `<section class="region-handover-section"><h3>${label}<strong>${items[key].length}</strong></h3><div class="region-handover-list" tabindex="0" role="region" aria-label="${label}明细">${items[key].map(item => `<div class="region-handover-row">${describe(item).filter(Boolean).map(text => `<span>${escapeHtml(text)}</span>`).join("")}</div>`).join("") || '<div class="empty">无交接事项</div>'}</div></section>`).join("")}</div>`;
       }
 
       function pushCityTransferNotice(handover, owners) {

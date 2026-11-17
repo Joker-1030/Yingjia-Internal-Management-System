@@ -827,6 +827,60 @@
           .filter((n) => Number.isFinite(n));
         return `MAT${String((seqs.length ? Math.max(...seqs) : 0) + 1).padStart(6, "0")}`;
       }
+      // M11 §7.4 / DEC-253: only new ecosystem projects consume selected public quotations.
+      function projectUsesTeacherQuotes(project, resource = project?.resourceType) {
+        return resource === "平台师资合作" && (!project || Boolean(project.snapshot?.teacherQuote));
+      }
+      function projectTeacherQuoteChoices(project = null) {
+        const host = $("#pfTeacherQuotes");
+        const choices = Object.fromEntries((project?.snapshot?.teacherQuote?.rows || []).map(row => [row.role + ":" + row.teacherId, row.channelId || ""]));
+        if (host?.dataset.choices) Object.assign(choices, JSON.parse(host.dataset.choices));
+        document.querySelectorAll("[data-project-quote-channel]").forEach(select => { choices[select.dataset.projectQuoteChannel] = select.value; });
+        return choices;
+      }
+      function projectTeacherQuoteCalculation(assignments, choices, days) {
+        const rows = [], errors = [];
+        for (const [role, type] of Object.entries(TEACHER_ROLE_TYPES)) {
+          for (const id of new Set(assignments[role] || [])) {
+            const teacher = teacherById(id);
+            if (!teacher) { errors.push("请选择已建档老师"); continue; }
+            const name = teacherName(teacher), key = role + ":" + id;
+            const channel = teacher.type === "外部" ? teacher.channels.find(c => c.id === choices[key]) : null;
+            const price = teacher.type === "内部" ? teacher.roleFees?.[type]?.standard?.fee : channel?.roleFees?.[type]?.reference?.fee;
+            const channelName = channel ? channel.kind === "personal" ? "个人合作" : channel.agencyName : "";
+            rows.push({ teacherId: id, teacherName: name, role, teachingType: type, channelId: channel?.id || "", channelName, unitPrice: price == null ? null : Number(price) });
+            if (teacher.type === "外部" && !channel) errors.push(`${name}（${type}）：请选择合作渠道`);
+            else if (price == null || teacherFeeError(price)) errors.push(`${name}（${type}）：请先补齐对应报价`);
+          }
+        }
+        const complete = rows.length > 0 && !errors.length && Number.isFinite(days) && days >= 0.5 && days % 0.5 === 0;
+        return { rows, days, amount: complete ? round2(rows.reduce((sum, row) => sum + row.unitPrice, 0) * days) : null, errors };
+      }
+      function refreshProjectTeacherQuotes(project) {
+        const host = $("#pfTeacherQuotes"), reference = $("#pfTeacherQuoteReference");
+        if (!host || !reference) return null;
+        const canRead = project ? projectEditMode(project) === "pre-start" : currentPage === "project-create" && hasOperationPermission("projects.create") && Boolean(currentUser?.fullAccess || currentEcosystemEmployee());
+        const enabled = canRead && projectUsesTeacherQuotes(project, $("#pfResource")?.value);
+        host.hidden = !enabled; reference.hidden = !enabled;
+        if (!enabled) { host.innerHTML = ""; reference.textContent = ""; return null; }
+        const choices = projectTeacherQuoteChoices(project);
+        const quote = projectTeacherQuoteCalculation(projectFormTeacherAssignments(), choices, Number($("#pfDays").value));
+        host.dataset.choices = JSON.stringify(Object.fromEntries(quote.rows.map(row => [row.role + ":" + row.teacherId, choices[row.role + ":" + row.teacherId] || ""])));
+        host.innerHTML = `<div class="section-title">老师报价</div><div class="table-wrap"><table><thead><tr><th>授课身份</th><th>老师</th><th>合作渠道</th><th>报价（含税，元/天）</th></tr></thead><tbody>${quote.rows.map(row => {
+          const teacher = teacherById(row.teacherId), key = row.role + ":" + row.teacherId;
+          return `<tr><td>${row.teachingType}</td><td>${escapeHtml(row.teacherName)}</td><td>${teacher.type === "外部" ? `<select class="input" data-project-quote-channel="${key}" aria-label="${escapeHtml(row.teacherName)}${row.teachingType}合作渠道"><option value="">请选择合作渠道</option>${teacher.channels.map(channel=>`<option value="${escapeHtml(channel.id)}" ${choices[key] === channel.id ? "selected" : ""}>${escapeHtml(channel.kind === "personal" ? "个人合作" : channel.agencyName)}</option>`).join("")}</select>` : "—"}</td><td>${row.unitPrice == null ? "待补齐" : formatProjectMoney(row.unitPrice)}</td></tr>`;
+        }).join("") || '<tr><td colspan="4">请先选择授课老师</td></tr>'}</tbody></table></div><div class="field-error">${quote.errors.map(escapeHtml).join("；")}</div>`;
+        host.querySelectorAll("[data-project-quote-channel]").forEach(select => select.onchange = refreshProjectFormAmounts);
+        reference.textContent = `老师报价参考金额（含税，万元）：${quote.amount == null ? "待补齐老师、渠道、报价及确认天数" : formatProjectAmount(quote.amount)}`;
+        const amount = $("#pfAmount");
+        if (amount.dataset.quoteEdited !== "true") amount.value = quote.amount == null ? "" : wanMoneyInput(quote.amount);
+        return quote;
+      }
+      function openProjectQuoteConfirm(quote, amount, onConfirm) {
+        const actor = currentUser, form = $("#projectForm");
+        openModal(`<div class="modal-head project-modal-head"><div class="modal-title">确认使用不同的项目金额</div><button class="icon-btn close" data-close aria-label="返回修改">×</button></div><div class="modal-body project-modal-body"><div>老师报价参考金额（含税，万元）：${formatProjectAmount(quote.amount)}</div><div>项目金额（含税，万元）：${formatProjectAmount(amount)}</div><div>差额（万元）：${formatProjectAmount(round2(amount - quote.amount))}</div></div><div class="modal-foot project-modal-foot"><button class="btn" type="button" data-close>返回修改</button><button class="btn btn-primary" type="button" id="confirmProjectQuoteSave">确认保存</button></div>`);
+        $("#confirmProjectQuoteSave").onclick = () => { closeOverlay(); if (currentUser !== actor || $("#projectForm") !== form) return toast("页面或账号已变化，请重新保存"); onConfirm(); };
+      }
       function selectedTeacherIds(containerId) { return [...new Set([...document.querySelectorAll(`#${containerId} input[data-instructor]:checked`)].map((input) => input.value))]; }
       function selectedInstructorNames(containerId) { return selectedTeacherIds(containerId).map(projectTeacherTokenName); }
       function projectFormTeacherAssignments(stage = false) {
@@ -849,35 +903,62 @@
         }
         return errors.join("；");
       }
+      function projectTeacherSelectionContext() {
+        const project = currentPage === "project-edit" ? projectById(selectedProjectId) : null;
+        return { directionId: projectFormCourseId(project), start: $("#pfStart")?.value.replace("T", " ") || project?.startTime || "", end: $("#pfEnd")?.value.replace("T", " ") || $("#pfStageEnd")?.value.replace("T", " ") || project?.endTime || "", excludeId: project?.id || "", resourceType: $("#pfResource")?.value || project?.resourceType || "" };
+      }
       function refreshProjectTeacherCandidates() {
         const form = $("#projectForm"); if (!form) return;
-        const project = currentPage === "project-edit" ? projectById(selectedProjectId) : null;
-        const context = { directionId: projectFormCourseId(project), start: $("#pfStart")?.value.replace("T", " ") || project?.startTime || "", end: $("#pfEnd")?.value.replace("T", " ") || $("#pfStageEnd")?.value.replace("T", " ") || project?.endTime || "", excludeId: project?.id || "", resourceType: $("#pfResource")?.value || project?.resourceType || "" };
-        form.querySelectorAll("[data-instructor-picker]").forEach((picker) => {
-          const tokens = [...picker.querySelectorAll("input[data-instructor]:checked")].map((input) => input.value);
-          picker.querySelector("[data-instructor-options]").innerHTML = projectTeacherOptionHtml(tokens, {...context, filterDirection:picker.querySelector("[data-instructor-direction]")?.value || ""}, projectStaffRole(picker.id));
-          renderInstructorSelected(picker);
-          const directionFilter=picker.querySelector("[data-instructor-direction]");
-          if(directionFilter) directionFilter.onchange=()=>{refreshProjectTeacherCandidates();setInstructorSelectOpen(picker,true);};
-        });
-        bindInstructorSelects(form); bindTeacherEvents();
+        form.querySelectorAll("[data-instructor-picker]").forEach(renderInstructorSelected);
+        bindInstructorSelects(form);
       }
-      let projectInstructorOutsideClickBound = false;
-      function setInstructorSelectOpen(picker, open) {
-        const trigger = picker.querySelector("[data-instructor-trigger]");
-        const menu = picker.querySelector("[data-instructor-menu]");
-        const search = picker.querySelector("[data-instructor-search]");
-        if (!trigger || !menu) return;
-        trigger.setAttribute("aria-expanded", open ? "true" : "false");
-        menu.classList.toggle("hidden", !open);
-        if (open) {
-          search?.focus();
-          return;
-        }
-        if (search) search.value = "";
-        picker
-          .querySelectorAll("[data-instructor-option]")
-          .forEach((option) => (option.hidden = false));
+      function filterInstructorOptions(picker) {
+        const keyword = picker.querySelector("[data-instructor-search]")?.value.trim().toLocaleLowerCase("zh-CN") || "";
+        const options = [...picker.querySelectorAll("[data-instructor-option]")];
+        options.forEach(option => { option.hidden = !(option.dataset.instructorName || "").toLocaleLowerCase("zh-CN").includes(keyword); });
+        const empty = picker.querySelector("[data-instructor-empty]");
+        if (empty) empty.hidden = options.some(option => !option.hidden);
+      }
+      function openInstructorPicker(picker) {
+        const form = $("#projectForm"), actor = currentUser, role = projectStaffRole(picker.id);
+        if (!form || !teacherProjectProfileContext()) return;
+        const tokens = () => [...picker.querySelectorAll("input[data-instructor]:checked")].map(input=>input.value);
+        openModal(`<div class="modal-head"><div class="modal-title">选择${escapeHtml(picker.dataset.instructorLabel)}</div><button type="button" class="icon-btn close" data-close aria-label="关闭">×</button></div><div class="project-teacher-filters">${role !== "teachingAssistants" ? `<div class="tabs project-teacher-direction-tabs" role="tablist" aria-label="教学方向"><button type="button" class="tab active" role="tab" aria-selected="true" data-instructor-direction="">全部</button>${teacherCourseOptions().map(d=>`<button type="button" class="tab" role="tab" aria-selected="false" data-instructor-direction="${d.id}">${escapeHtml(d.name)}</button>`).join("")}</div>` : ""}<label class="project-teacher-search"><span class="form-label">老师姓名</span><input class="input" type="search" data-instructor-search placeholder="输入姓名搜索"></label></div><div class="modal-body project-teacher-card-grid" id="projectTeacherCards"></div><div class="modal-foot"><button type="button" class="btn btn-primary" data-close>完成</button></div>`);
+        $("#modalLayer .modal").classList.add("project-teacher-picker-modal");
+        const modal = $("#modalLayer .modal"), list = $("#projectTeacherCards");
+        let direction = "";
+        const valid = () => currentUser === actor && $("#projectForm") === form && teacherProjectProfileContext();
+        const render = () => {
+          if (!valid()) return closeOverlay();
+          list.innerHTML = projectTeacherOptionHtml(tokens(), {...projectTeacherSelectionContext(), filterDirection: direction}, role);
+          filterInstructorOptions(modal);
+          bindTeacherPortraits(list);
+          list.querySelectorAll("input[data-instructor]").forEach(input=>input.onchange=()=>{
+            if (!valid()) return closeOverlay();
+            const selected = new Set(tokens());
+            if (input.checked) selected.add(input.value); else selected.delete(input.value);
+            picker.querySelector("[data-instructor-values]").innerHTML = [...selected].map(id=>`<input type="checkbox" data-instructor value="${escapeHtml(id)}" checked>`).join("");
+            input.closest("[data-instructor-option]").classList.toggle("is-selected",input.checked);
+            renderInstructorSelected(picker);
+          });
+          list.querySelectorAll("[data-project-teacher-profile]").forEach(button=>button.onclick=()=>{
+            if (!valid()) return closeOverlay();
+            const layer = $("#modalLayer"), nodes = [...layer.childNodes];
+            openProjectTeacherProfile(button.dataset.projectTeacherProfile,()=>{
+              if (!valid()) return closeOverlay();
+              layer.replaceChildren(...nodes);bindOverlay();
+            });
+          });
+        };
+        modal.querySelectorAll("[data-instructor-direction]").forEach(button=>button.onclick=()=>{
+          direction=button.dataset.instructorDirection;
+          modal.querySelectorAll("[data-instructor-direction]").forEach(tab=>{const active=tab===button;tab.classList.toggle("active",active);tab.setAttribute("aria-selected",String(active));});
+          render();
+        });
+        const search = modal.querySelector("[data-instructor-search]");
+        search.oninput=()=>filterInstructorOptions(modal);
+        search.onkeydown=event=>{if(event.key==="Enter")event.preventDefault();if(event.key==="Escape"){event.preventDefault();closeOverlay();picker.querySelector("[data-instructor-trigger]").focus();}};
+        render();
       }
       function renderInstructorSelected(picker) {
         const selectedContainer = picker.querySelector(
@@ -893,73 +974,17 @@
               `<span class="instructor-selected-item"><span>${escapeHtml(projectTeacherTokenName(name))}</span><button class="instructor-selected-remove" type="button" data-instructor-remove="${escapeHtml(name)}" title="移除${escapeHtml(projectTeacherTokenName(name))}" aria-label="移除${escapeHtml(projectTeacherTokenName(name))}">×</button></span>`,
           )
           .join("");
+        if ($("#pfTeacherQuotes") && $("#pfResource")?.value === "平台师资合作") refreshProjectFormAmounts();
       }
       function bindInstructorSelects(form) {
-        const pickers = [...form.querySelectorAll("[data-instructor-picker]")];
-        pickers.forEach((picker) => {
-          const trigger = picker.querySelector("[data-instructor-trigger]");
-          const search = picker.querySelector("[data-instructor-search]");
-          const selectedContainer = picker.querySelector(
-            "[data-instructor-selected]",
-          );
-          const directionFilter = picker.querySelector("[data-instructor-direction]");
-          if(directionFilter) directionFilter.onchange=()=>{refreshProjectTeacherCandidates();setInstructorSelectOpen(picker,true);};
-          trigger.onclick = () => {
-            const open = trigger.getAttribute("aria-expanded") !== "true";
-            document
-              .querySelectorAll("[data-instructor-picker]")
-              .forEach((other) => setInstructorSelectOpen(other, false));
-            setInstructorSelectOpen(picker, open);
-          };
-          search.oninput = () => {
-            const keyword = search.value.trim().toLocaleLowerCase("zh-CN");
-            picker
-              .querySelectorAll("[data-instructor-option]")
-              .forEach((option) => {
-                option.hidden = !option.textContent
-                  .toLocaleLowerCase("zh-CN")
-                  .includes(keyword);
-              });
-          };
-          search.onkeydown = (event) => {
-            if (event.key === "Enter") event.preventDefault();
-            if (event.key === "Escape") {
-              event.preventDefault();
-              setInstructorSelectOpen(picker, false);
-              trigger.focus();
-            }
-          };
-          picker
-            .querySelectorAll("input[data-instructor]")
-            .forEach((input) => {
-              input.onchange = () => renderInstructorSelected(picker);
-            });
-          selectedContainer.onclick = (event) => {
-            const removeButton = event.target.closest(
-              "[data-instructor-remove]",
-            );
-            if (!removeButton) return;
-            const input = [
-              ...picker.querySelectorAll("input[data-instructor]"),
-            ].find(
-              (candidate) =>
-                candidate.value === removeButton.dataset.instructorRemove,
-            );
-            if (input) input.checked = false;
-            renderInstructorSelected(picker);
+        form.querySelectorAll("[data-instructor-picker]").forEach(picker=>{
+          picker.querySelector("[data-instructor-trigger]").onclick=()=>openInstructorPicker(picker);
+          picker.querySelector("[data-instructor-selected]").onclick=event=>{
+            const button=event.target.closest("[data-instructor-remove]");if(!button)return;
+            const input=[...picker.querySelectorAll("input[data-instructor]")].find(item=>item.value===button.dataset.instructorRemove);
+            if(input)input.remove();renderInstructorSelected(picker);
           };
         });
-        if (!projectInstructorOutsideClickBound) {
-          document.addEventListener("click", (event) => {
-            document
-              .querySelectorAll("[data-instructor-picker]")
-              .forEach((picker) => {
-                if (!picker.contains(event.target))
-                  setInstructorSelectOpen(picker, false);
-              });
-          });
-          projectInstructorOutsideClickBound = true;
-        }
       }
       function clearProjectFormErrors() {
         document
@@ -1156,7 +1181,8 @@
             unitPrice = company.cooperationPay;
           }
         }
-        if (type === "培训项目" && resourceType !== "框架服务") {
+        refreshProjectTeacherQuotes(editingProject);
+        if (type === "培训项目" && resourceType !== "框架服务" && !projectUsesTeacherQuotes(editingProject, resourceType)) {
           $("#pfUnitPrice").value =
             unitPrice != null ? formatProjectMoney(unitPrice) : "—";
           $("#pfAmount").value = unitPrice != null && days ? wanMoneyInput(round2(unitPrice * days)) : "";
@@ -1184,7 +1210,7 @@
         if (!amountInput || !settlementInput) return;
         const days = Number($("#pfDays")?.value);
         let amount = Number(project.amount);
-        if (project.type === "培训项目" && project.resourceType !== "框架服务") {
+        if (project.type === "培训项目" && project.resourceType !== "框架服务" && !project.snapshot?.teacherQuote) {
           amount =
             Number.isFinite(days) && days > 0 && project.snapshot?.unitPrice != null
               ? round2(project.snapshot.unitPrice * days)
@@ -1203,12 +1229,22 @@
         amountInput.value = wanMoneyInput(amount);
         settlementInput.value = formatProjectAmount(settlement);
       }
+      function refreshProjectOpportunityAmountReference() {
+        if (currentPage === "project-edit") return;
+        const reference = $("#pfOpportunityAmountReference");
+        if (!reference) return;
+        const deal = projectCustomerOpportunityCandidates($("#pfCustomer")?.value || "", $("#pfOwner")?.value || "")
+          .find(item => item.id === $("#pfOpportunity")?.value);
+        reference.hidden = !deal;
+        reference.textContent = deal ? `商机成交金额（含税，万元）：${Number.isFinite(deal.expectedContractAmount) && deal.expectedContractAmount >= 0 ? formatWanMoney(deal.expectedContractAmount) : "未记录"}，仅供参考` : "";
+      }
       function refreshProjectFormDynamics() {
         refreshProjectCustomerField();
         refreshProjectOwnerField();
         if (currentPage !== "project-edit") {
           refreshProjectOpportunityOptions();
           refreshProjectCreateResources();
+          refreshProjectOpportunityAmountReference();
         }
         refreshProjectCompanyOptions();
         const type = $("#pfType").value;
@@ -1217,7 +1253,7 @@
         const showPersonnel = type === "培训项目";
         const showPackage = showPersonnel && ["采购包课程", "平台师资合作"].includes(resourceType);
         const showCompany = ["师资合作", "走账合作"].includes(cooperation);
-        const showUnitPrice = type === "培训项目" && resourceType !== "框架服务";
+        const showUnitPrice = type === "培训项目" && resourceType !== "框架服务" && !projectUsesTeacherQuotes(currentPage === "project-edit" ? projectById(selectedProjectId) : null, resourceType);
         $("#pfAmount").disabled = showUnitPrice;
         $("#pfAmount").type = showUnitPrice ? "text" : "number";
         if (!showUnitPrice) { $("#pfAmount").min = "0.000001"; $("#pfAmount").step = "0.000001"; }
@@ -1228,7 +1264,7 @@
         if (personnelSection)
           personnelSection.style.display = showPersonnel ? "" : "none";
         if (daysHelp) {
-          daysHelp.textContent = type
+          daysHelp.textContent = projectUsesTeacherQuotes(currentPage === "project-edit" ? projectById(selectedProjectId) : null, resourceType) ? "确认天数用于计算老师报价参考，项目金额可修改" : type
             ? showUnitPrice
               ? "项目费用按此天数计算"
               : "仅用于记录项目周期，不参与项目金额计算"
@@ -1247,7 +1283,7 @@
         setProjectFieldVisible("pfUnitPrice", showUnitPrice);
         refreshProjectFormulaText(
           "#pfAmountFormula",
-          projectAmountFormulaText(type, resourceType),
+          projectUsesTeacherQuotes(currentPage === "project-edit" ? projectById(selectedProjectId) : null, resourceType) ? "按老师报价提供参考，项目金额可修改" : projectAmountFormulaText(type, resourceType),
         );
         refreshProjectFormulaText(
           "#pfSettlementFormula",
@@ -1436,7 +1472,7 @@
               errors.pfDays =
                 "项目确认天数最小为0.5天，且必须为0.5天的整数倍";
           }
-          if (isTraining && project.resourceType !== "框架服务" && project.snapshot?.unitPrice != null) {
+          if (isTraining && project.resourceType !== "框架服务" && !project.snapshot?.teacherQuote && project.snapshot?.unitPrice != null) {
             amount = round2(project.snapshot.unitPrice * days);
             const feeRate =
               project.cooperation === "走账合作"
@@ -1595,7 +1631,7 @@
         renderPage();
         toast("保存成功");
       }
-      function handleProjectFormSubmit(editing, daysConfirmed = false) {
+      function handleProjectFormSubmit(editing, daysConfirmed = false, quoteConfirmedKey = "") {
         if (!editing && !hasOperationPermission("projects.create")) return;
         const project = editing ? projectById(selectedProjectId) : null;
         if (editing) {
@@ -1636,6 +1672,7 @@
           type === "培训项目" ? selectedInstructorNames("pfHelpers") : [];
 
         const opportunityId = editing ? project.opportunityId || "" : $("#pfOpportunity")?.value || "";
+        const usesTeacherQuote = projectUsesTeacherQuotes(project, resourceType);
         const errors = {};
         if (!editing) {
           if (!opportunityId) errors.pfOpportunity = "请选择所属商机";
@@ -1737,12 +1774,15 @@
             errors.pfDays =
               "项目确认天数最小为0.5天，且必须为0.5天的整数倍";
         }
-        if ((type === "AI软件项目" || resourceType === "框架服务") && (!Number.isFinite(amount) || amount <= 0))
+        if ((type === "AI软件项目" || resourceType === "框架服务" || usesTeacherQuote) && (!Number.isFinite(amount) || amount <= 0))
           errors.pfAmount = "请填写大于 0 且最多6位小数的项目金额（含税，万元）";
         if (type === "培训项目" && !lecturers.length)
           errors.pfLecturers = "培训项目至少需要选择一名主讲师";
 
         const teacherAssignments = type === "培训项目" ? projectFormTeacherAssignments() : {};
+        const teacherQuote = usesTeacherQuote ? projectTeacherQuoteCalculation(teacherAssignments, projectTeacherQuoteChoices(project), Number(daysValue)) : null;
+        if (teacherQuote?.errors.length) errors.pfConflicts = teacherQuote.errors.join("；");
+        if (usesTeacherQuote && teacherQuote.amount == null && !teacherQuote.errors.length) errors.pfConflicts = "请补齐老师报价及项目确认天数";
         if (type === "培训项目" && resourceType !== "框架服务" && !projectPackages.find(pkg=>pkg.id===effPackageId)?.directions.some(course=>course.directionId===selectedCourseId)) errors.pfDirection = "请选择有效采购包课程";
         const conflictPersonnel = {
           teacherAssignments,
@@ -1829,7 +1869,8 @@
           };
         }
 
-        if (type === "培训项目" && resourceType !== "框架服务" && unitPrice == null) {
+        if (usesTeacherQuote) { snapshot.teacherQuote = teacherQuote; snapshot.unitPrice = null; unitPrice = null; }
+        if (type === "培训项目" && resourceType !== "框架服务" && !usesTeacherQuote && unitPrice == null) {
           showProjectFormError(
             "pfResource",
             "当前项目类型、资源类型与合作形式不匹配，请重新选择",
@@ -1839,7 +1880,7 @@
         const days = Number(daysValue);
         const calculatedDays = naturalDayCount(startTime, endTime);
         const projectAmount =
-          type === "培训项目" && resourceType !== "框架服务" ? round2(unitPrice * days) : round2(amount);
+          type === "培训项目" && resourceType !== "框架服务" && !usesTeacherQuote ? round2(unitPrice * days) : round2(amount);
         const feeRate =
           cooperation === "走账合作"
             ? preserveExistingSnapshot && project.snapshot?.managementFeeRate != null
@@ -1875,10 +1916,16 @@
           assistantLecturers: assistants,
           teachingAssistants: helpers,
         };
-        if (!daysConfirmed && days !== calculatedDays) {
+        const daysConfirmationKey = JSON.stringify({ calculatedDays, days });
+        if (days !== calculatedDays && (usesTeacherQuote ? daysConfirmed !== daysConfirmationKey : !daysConfirmed)) {
           openProjectDaysConfirm(calculatedDays, days, () =>
-            handleProjectFormSubmit(editing, true),
+            handleProjectFormSubmit(editing, usesTeacherQuote ? daysConfirmationKey : true, quoteConfirmedKey),
           );
+          return;
+        }
+        const quoteKey = usesTeacherQuote ? JSON.stringify({ actor: currentUser.username, customerId, opportunityId, quote: teacherQuote, amount: projectAmount }) : "";
+        if (usesTeacherQuote && projectAmount !== teacherQuote.amount && quoteKey !== quoteConfirmedKey) {
+          openProjectQuoteConfirm(teacherQuote, projectAmount, () => handleProjectFormSubmit(editing, daysConfirmed, quoteKey));
           return;
         }
         if (editing) {
@@ -2727,14 +2774,14 @@
         if (cooperationSelect)
           cooperationSelect.onchange = refreshProjectFormDynamics;
         const amountInput = $("#pfAmount");
-        if (amountInput) amountInput.oninput = refreshProjectFormAmounts;
+        if (amountInput) amountInput.oninput = () => { if (projectUsesTeacherQuotes(editing ? projectById(selectedProjectId) : null, $("#pfResource")?.value)) amountInput.dataset.quoteEdited = "true"; refreshProjectFormAmounts(); };
         ["#pfDirection", "#pfCompany"].forEach((selector) => {
           const el = $(selector);
           if (el) el.onchange = () => { refreshProjectFormAmounts(); refreshProjectTeacherCandidates(); };
         });
         const confirmedDays = $("#pfDays");
         if (confirmedDays)
-          confirmedDays.onchange = () => {
+          confirmedDays.oninput = confirmedDays.onchange = () => {
             confirmedDays.dataset.userEdited = "true";
             refreshProjectFormAmounts();
           };
@@ -2770,6 +2817,8 @@
         select.innerHTML = projectFrameworkOptions($("#pfCustomer")?.value, selected, currentPage === "project-edit" ? selectedProjectId : "");
       }
       function bindProjectFrameworkEvents() {
+        const set=filters=>{frameworkListFilterState={actor:currentUser,filters};if(unifiedTablePaginationStates['m11-frameworks'])unifiedTablePaginationStates['m11-frameworks'].page=1;};
+        bindListFilterForm('frameworkListFilters',set,()=>set({}),[['from','to']]);
         document.querySelectorAll("[data-framework-projects]").forEach(button => {
           button.onclick = () => {
             const framework = projectFrameworks.find(item => item.id === button.dataset.frameworkProjects);

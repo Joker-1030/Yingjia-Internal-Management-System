@@ -31,6 +31,42 @@
         return `<div class="filter-actions">${actions}</div>`;
       }
 
+      // Shared presentation mechanics; each owning module retains its query scope and state.
+      function listFilterContains(value, query) {
+        return !query || String(value || "").toLocaleLowerCase().includes(String(query).trim().toLocaleLowerCase());
+      }
+      function listFilterOptions(values) {
+        return [...new Set(values.filter(value => value != null && value !== ""))].map(value => [String(value), String(value)]);
+      }
+      function listFilterFormHtml(id, values, fields) {
+        return `<form class="toolbar filter-toolbar list-query-form" id="${id}">${fields.map(([key,label,optionsOrType]) => {
+          const value=values[key] || "", control=Array.isArray(optionsOrType)
+            ? `<select class="input" name="${key}"><option value="">全部</option>${optionsOrType.map(([v,text])=>`<option value="${escapeHtml(v)}" ${String(v)===value?'selected':''}>${escapeHtml(text)}</option>`).join('')}</select>`
+            : `<input class="input" name="${key}" type="${optionsOrType || 'text'}" ${optionsOrType==='date'?'':'maxlength="100"'} value="${escapeHtml(value)}">`;
+          return filterField(label,control);
+        }).join('')}${filterActions('<button class="btn btn-primary" type="submit">查询</button><button class="btn" type="button" data-list-query-reset>重置</button>')}</form>`;
+      }
+      function listFilterDateError(values, pairs) {
+        for(const [from,to] of pairs){
+          for(const key of [from,to])if(values[key] && (!/^\d{4}-\d{2}-\d{2}$/.test(values[key]) || Number.isNaN(Date.parse(values[key])) || new Date(values[key]).toISOString().slice(0,10)!==values[key]))return '请选择有效的开始和结束日期';
+          if(values[from] && values[to] && values[from]>values[to])return '开始日期不能晚于结束日期';
+        }
+        return '';
+      }
+      function bindListFilterForm(id, apply, reset, pairs=[]) {
+        const form=$('#'+id);if(!form)return;
+        const actor=currentUser;
+        const active=()=>currentUser===actor && $('#'+id)===form && canAccessPage(currentPage);
+        form.onsubmit=event=>{
+          event.preventDefault();if(!active())return;
+          const values=Object.fromEntries([...form.querySelectorAll('[name]')].map(input=>[input.name,input.value.trim()]));
+          const error=listFilterDateError(values,pairs);if(error)return toast(error);
+          apply(values);renderPage();
+        };
+        const button=form.querySelector('[data-list-query-reset]');
+        if(button)button.onclick=()=>{if(active()){reset();renderPage();}};
+      }
+
       const unifiedTablePaginationStates = {};
       function tablePagination(
         key,
@@ -213,6 +249,7 @@
       const isProjectConfigAdmin = () =>
         Boolean(currentUser?.username === "admin" && currentUser?.role === "admin" && currentUser?.fullAccess);
       const templatePagePermissionAllowed = (template, permission) =>
+        permission === "support-results" ? !["老师", "财务", "HR/人事"].includes(template.name) :
         permission === "employee-usage" ? true :
         template.name === "财务" ? ["dashboard", "projects"].includes(permission) :
         (["老师", "教学管理人员"].includes(template.name) ? permission === "teachers" : template.name !== "生态合作员" || ["dashboard", "projects", "opportunities"].includes(permission));
@@ -242,9 +279,10 @@
       const canAccessPage = (page) => {
         if (["approvals", "archive", "sales-dashboard"].includes(page)) return false;
         if (page === "employee-usage") return employeeUsageAccess();
-        if (page === "teacher-work") return (hasPermission("teacher-work") || teacherIsFacultySupervisor()) && teacherWorkAccess();
+        if (page === "teacher-work") return teacherWorkAccess();
         if (page === "teacher-recommendations") return hasPermission("teacher-recommendations") && Boolean(teacherWorkSelf());
-        if (page === "support-results") return salesCanViewSupportResults();
+        if (page === "support-results") return false;
+        if (page === "dashboard") return hasPermission(page) || salesCanViewSupportResults();
         if (page === "teacher-schedule" && teacherHasMarketSchedule()) return true;
         if (["teachers", "teacher-schedule"].includes(page)) return (typeof teacherIsFacultySupervisor === "function" && teacherIsFacultySupervisor()) || (hasPermission("teachers") && currentRoleTemplateNames().some((role) => ["系统管理员", "总裁", "市场副总", "老师", "教学管理人员"].includes(role)));
         if (page === "operations") return roleCanSeeBusiness();
@@ -257,9 +295,7 @@
         if (page === "opportunity-detail") return hasPermission("opportunities") || salesCanViewSupportOpportunity(opportunities.find((item) => item.id === selectedOpportunityId));
         if (page === "opportunity-create") return hasPermission("opportunities");
         if (page === "sales-supports") {
-          if (!hasPermission("sales-supports")) return false;
-          if (currentUser?.fullAccess) return true;
-          return salesCurrentSupportEmployee() !== null;
+          return salesCanProcessSupportRequests() || salesCanViewSupportResults();
         }
         return hasPermission(page);
       };
@@ -276,7 +312,9 @@
         Boolean(
           (permission.startsWith("teacher_") && typeof teacherIsFacultySupervisor === "function" && teacherIsFacultySupervisor()) || currentUser?.fullAccess ||
             currentRoleTemplateNames().some((roleName) =>
-              roleName !== "财务" && roleFieldPermissions?.[roleName]?.includes(permission),
+              roleName !== "财务" &&
+              !(["PM", "区域总监"].includes(roleName) && ["teacher_standard_fee_view", "teacher_fee_view"].includes(permission)) &&
+              roleFieldPermissions?.[roleName]?.includes(permission),
             ),
         );
       const hasAttachmentPermission = (permission) =>
@@ -1231,6 +1269,11 @@
         currentUser = account;
         employeeUsageRecordVisit();
         teacherListState = { actor: account, filters: teacherEmptyListFilters() };
+        teacherWorkFilterState = { actor: account, recaps: {}, recommendations: {} };
+        frameworkListFilterState = { actor: account, filters: {} };
+        regionListFilterState = { actor: account, centers: {} };
+        supportResultsState = { actor: account, month: DEMO_TODAY.slice(0, 7), employee: "" };
+        supportProjectsState = { actor: null, selected: false, employee: "" };
         const personalTeacherLanding = defaultLandingPage() === "teacher-schedule";
         if (personalTeacherLanding) teacherScheduleState = { actor: account, month: DEMO_TODAY.slice(0, 7), view: "calendar", selected: null };
         const loginEmployee = employees.find(
@@ -1239,7 +1282,7 @@
         if (loginEmployee) loginEmployee.lastLogin = recordCreatedAt();
         const requestedExplicitly = Boolean(window.location.hash.slice(1));
         const requestedPage = normalizedPageHash();
-        const requestedPageAllowed = canAccessPage(requestedPage);
+        const requestedPageAllowed = canAccessPage(requestedPage) && (requestedExplicitly || requestedPage !== "dashboard" || hasPermission("dashboard"));
         currentPage = personalTeacherLanding && canAccessPage("teacher-schedule") ? "teacher-schedule" : requestedPageAllowed
           ? requestedPage
           : requestedExplicitly
@@ -1251,7 +1294,6 @@
         approvalView = "pending";
         dashboardTaskFilter = null;
         dashboardEmployeeStatusFilter = "在职";
-        customerFilterExpanded = false;
         selectedCustomerGroup = "";
         customerTreeDimension = "group";
         selectedOperationRegion = "";
@@ -1263,12 +1305,14 @@
         opportunityDetailTab = "overview";
         salesPeriodDraft = DEMO_TODAY.slice(0, 7);
         salesPeriodApplied = DEMO_TODAY.slice(0, 7);
-        salesTargetMonth = "2026-09";
+        salesTargetMonth = DEMO_TODAY.slice(0,7);
+        salesTargetHistoryState = null;
         salesTrendMode = "count";
         appliedOpportunityFilters = {
           code: "",
           name: "",
           type: "",
+          source: "",
           stage: "",
           customer: "",
           region: "",
@@ -1377,7 +1421,7 @@
         $("#nav").innerHTML = navGroups
           .map((g) => {
             const items = g.items.filter((i) =>
-              i.id === "customers"
+              i.id === "customers" || i.id === "sales-targets" && salesWorkbenchRole() === "pm"
                 ? false
                 : i.id === "operations"
                   ? roleCanSeeBusiness()
@@ -1394,13 +1438,6 @@
                     ? "我的排期"
                     : i.id === "sales-supports" && currentUser?.fullAccess
                     ? "方案支撑管理"
-                    : i.id === "sales-targets" &&
-                        currentRoleTemplateNames().includes("PM") &&
-                        !currentUser?.fullAccess &&
-                        !currentRoleTemplateNames().some((role) =>
-                          ["总裁", "市场副总", "区域总监"].includes(role),
-                        )
-                      ? "我的销售指标"
                       : i.label;
                 return `<button class="nav-item ${currentPage === i.id ? "active" : ""}" data-page="${i.id}" title="${label}"><span class="nav-icon">${i.icon}</span><span>${label}</span></button>`;
               })
@@ -1448,7 +1485,6 @@
         "teacher-schedule": "老师排期",
         "teacher-work": "授课复盘",
         "teacher-recommendations": "我的推荐",
-        "support-results": "支撑结果与月度参考",
         projects: "项目管理",
         "project-detail": "项目详情",
         "project-create": "创建项目",
@@ -1460,9 +1496,13 @@
         "opportunity-detail": "商机详情",
         "opportunity-create": "新建商机",
         "sales-targets": "销售指标",
-        "sales-supports": "我的方案支撑",
+        "sales-supports": "方案支撑",
       };
       function renderPage() {
+        if (currentPage === "sales-targets" && salesWorkbenchRole() === "pm" && canAccessPage("sales-targets")) {
+          currentPage = "dashboard";
+          window.history.replaceState(null, "", "#dashboard");
+        }
         employeeUsageGuard();
         normalizeTaskStates();
         teacherEnsureRecapTasks();
@@ -1506,7 +1546,6 @@
           "teacher-schedule": renderTeacherSchedule,
           "teacher-work": renderTeacherWork,
           "teacher-recommendations": () => renderTeacherRecommendations(true),
-          "support-results": renderSupportResults,
           projects: renderProjects,
           "project-detail": renderProjectDetail,
           "project-create": renderProjectCreate,

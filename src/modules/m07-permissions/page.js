@@ -46,6 +46,8 @@
           toast("系统管理员模板固定全权限，不允许修改");
           return false;
         }
+        if (["老师", "财务", "HR/人事"].includes(template.name) && permissions.includes("support-results")) return false;
+        if (["PM", "区域总监"].includes(template.name) && fields.some(key => ["teacher_standard_fee_view", "teacher_fee_view"].includes(key))) return false;
         if (permissions.some(isAdminOnlyProjectConfigPage) ||
             operations.some((operation) => isAdminOnlyProjectConfigPage(operation.split(".")[0]))) {
           toast("采购包和平台公司管理仅限 admin");
@@ -123,6 +125,7 @@
           .join("");
         const fields = fieldPermissionCatalog
           .filter(() => !["生态合作员", "财务"].includes(template.name))
+          .filter(([id]) => !(["PM", "区域总监"].includes(template.name) && ["teacher_standard_fee_view", "teacher_fee_view"].includes(id)))
           .map(([id, label, type, dependsOn]) => `<label class="permission-tree-node"><input type="checkbox" data-field-permission="${id}" data-field-type="${type}" ${dependsOn ? `data-field-depends="${dependsOn}"` : ""} ${draft.fields.includes(id) ? "checked" : ""} ${immutable ? "disabled" : ""}><span>${label}</span><small>${type === "edit" ? "编辑" : "查看"}${dependsOn ? " · 依赖查看" : ""}</small></label>`)
           .join("");
         const attachments = attachmentPermissionCatalog

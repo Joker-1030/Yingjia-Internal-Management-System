@@ -27,8 +27,7 @@
           title: "销售管理",
           items: [
             { id: "opportunities", icon: "◎", label: "商机列表" },
-            { id: "sales-supports", icon: "◇", label: "我的方案支撑" },
-            { id: "support-results", icon: "▥", label: "支撑结果与月度参考" },
+            { id: "sales-supports", icon: "◇", label: "方案支撑" },
             { id: "sales-targets", icon: "▥", label: "销售指标" },
           ],
         },
@@ -104,6 +103,7 @@
         code: "",
         name: "",
         type: "",
+        source: "",
         stage: "",
         customer: "",
         region: "",
@@ -115,7 +115,7 @@
         createdTo: "",
         overdue: "",
       };
-      let appliedSupportFilters = { name: "", customer: "", status: "", deadlineFrom: "", deadlineTo: "" };
+      let appliedSupportFilters = { name: "", customer: "", status: "", deadlineFrom: "", deadlineTo: "", requestCode: "", opportunityCode: "", employee: "" };
       let supportRemainingTimer = null;
       const expandedCustomerOrgNodes = new Set([
         "industry:通信",

@@ -3,10 +3,9 @@
         return teacherCanView(teacher) && (teacherIsFacultySupervisor() || hasOperationPermission("teachers.unavailable")) && (teacherCanManage(teacher) || (teacherIsSelf(teacher) && (!item || item.createdBy === teacherEmployee()?.code)));
       }
       function teacherCanCreate() { return teacherIsAdmin() || teacherIsFacultySupervisor() || (hasPermission("teachers") && hasOperationPermission("teachers.manage") && teacherScopes().length > 0); }
-      function teacherFeeError(fee, tax) {
-        if (fee != null && !["number", "string"].includes(typeof fee)) return "课酬须为有效金额";
-        if (fee == null && tax) return "课酬金额与含税／不含税口径须一起填写";
-        return fee != null && (!Number.isFinite(Number(fee)) || Number(fee) < 0 || !/^(\d{1,6})(\.\d{1,2})?$/.test(String(fee)) || !["含税", "不含税"].includes(tax)) ? "课酬须为非负金额、最多6位整数、最多两位小数，并选择含税或不含税" : "";
+      function teacherFeeError(fee) {
+        if (fee == null) return "";
+        return !["number", "string"].includes(typeof fee) || !Number.isFinite(Number(fee)) || Number(fee) < 0 || !/^(\d{1,6})(\.\d{1,2})?$/.test(String(fee)) ? "课酬须为非负金额、最多6位整数、最多两位小数" : "";
       }
       function teacherNormalizeRoleFees(input, internal) {
         if (input != null && (typeof input !== "object" || Array.isArray(input))) return { error: "课酬格式不正确" };
@@ -19,10 +18,9 @@
             const value = row?.[key];
             if (value != null && (typeof value !== "object" || Array.isArray(value))) return { error: "课酬格式不正确" };
             const amount = value?.fee == null || value.fee === "" ? null : value.fee;
-            const tax = value?.tax || "";
-            const error = teacherFeeError(amount, tax);
+            const error = teacherFeeError(amount);
             if (error) return { error: `${type}：${error}` };
-            fees[type][key] = { fee: amount == null ? null : Number(amount), tax };
+            fees[type][key] = { fee: amount == null ? null : Number(amount) };
           }
         }
         return { fees };
@@ -42,10 +40,38 @@
         document.querySelectorAll("#modalLayer [data-close], #modalLayer .modal-mask").forEach((button) => button.onclick = onCancel);
         $("#teacherTypeConfirmSave").onclick = () => onConfirm(impact.key);
       }
+      function teacherPortraitError(portrait) {
+        if (portrait == null) return "";
+        if (typeof portrait !== "object" || typeof portrait.name !== "string" || typeof portrait.source !== "string" || typeof portrait.size !== "number" || !Number.isInteger(portrait.size)) return "证件照文件不可用，请重新上传";
+        const ext = fileExtension(portrait.name || "");
+        if (![".jpg", ".jpeg", ".png"].includes(ext) || portrait.type !== (ext === ".png" ? "image/png" : "image/jpeg")) return "证件照仅支持JPG、JPEG或PNG图片";
+        if (!portrait.size || portrait.size > 20 * 1024 * 1024) return "证件照须为非空图片，且不超过20MB";
+        if (!portrait.name || portrait.name.length > 200) return "文件名长度需为1-200字";
+        if (DANGEROUS_FILE_EXTENSIONS.includes(fileExtension(portrait.name.slice(0,portrait.name.lastIndexOf("."))))) return "禁止双扩展名伪装";
+        if (!String(portrait.source || "").startsWith(`data:${portrait.type};base64,`)) return "证件照文件不可用，请重新上传";
+        try {
+          const bytes = atob(portrait.source.split(",")[1]);
+          if (bytes.length !== portrait.size || !fileHeaderMatches(ext, Uint8Array.from(bytes.slice(0,32),c=>c.charCodeAt(0)))) return "证件照文件内容与类型不匹配";
+        } catch { return "证件照文件不可用，请重新上传"; }
+        return "";
+      }
+      async function teacherPreparePortrait(file) {
+        if (file.size > 20 * 1024 * 1024) return {error:"证件照不超过20MB"};
+        try {
+          const result = await validateProjectFile(file,{kinds:["image"]});
+          if (!result.ok) return {error:result.reason};
+          const bytes = new Uint8Array(await file.arrayBuffer());let binary="";
+          for(let i=0;i<bytes.length;i+=32768)binary+=String.fromCharCode(...bytes.subarray(i,i+32768));
+          const portrait={name:file.name,type:file.type,size:file.size,source:`data:${file.type};base64,${btoa(binary)}`};
+          const error=teacherPortraitError(portrait);return error?{error}:{portrait};
+        } catch { return {error:"文件读取失败，请重试"}; }
+      }
       function teacherSaveProfile(id, draft, typeRemovalKey = "") {
         const existing = id ? teacherById(id) : null;
         if (id ? !teacherCanManage(existing) : !teacherCanCreate()) return { error: "无权维护该老师" };
         if (existing && draft.version !== existing.version) return { error: "资料已更新，请重新打开后编辑" };
+        const portrait = draft.portrait === undefined ? existing?.portrait || null : draft.portrait;
+        const portraitError = teacherPortraitError(portrait);if(portraitError)return {error:portraitError,field:"tfPortrait"};
         const type = existing?.type || draft.type;
         const scopes = teacherIsAdmin() || teacherIsFacultySupervisor() ? Object.keys(TEACHER_SCOPE_NAMES) : teacherScopes();
         if (!["内部", "外部"].includes(type) || (type === "内部" && !scopes.includes("internal"))) return { error: "请选择有权维护的老师来源" };
@@ -108,7 +134,7 @@
         const confirmation = existing ? teacherTypeRemovalImpact(existing, draft) : null;
         if (confirmation && confirmation.key !== typeRemovalKey) return { typeRemovalConfirmation: confirmation };
         const newId = existing?.id || `T${String(Math.max(0, ...teachers.map((teacher) => Number(teacher.id.slice(1)) || 0)) + 1).padStart(3, "0")}`;
-        const payload = { id: newId, type, employeeCode: type === "内部" ? employeeCode : "", name, phone: type === "内部" ? "" : phone, intro: String(draft.intro || "").trim(), gender: String(draft.gender || ""), birthDate: draft.birthDate || "", education: String(draft.education || "").trim(), email: String(draft.email || "").trim(), wechat, directions: [...new Set(draft.directions)], teachingTypes: [...new Set(draft.teachingTypes)], residenceProvince: draft.residenceProvince, residenceCity: draft.residenceCity, channels, ...(type === "内部" ? { roleFees } : { cooperationType }), version: (existing?.version || 0) + 1 };
+        const payload = { id: newId, type, portrait: portrait ? {...portrait} : null, employeeCode: type === "内部" ? employeeCode : "", name, phone: type === "内部" ? "" : phone, intro: String(draft.intro || "").trim(), gender: String(draft.gender || ""), birthDate: draft.birthDate || "", education: String(draft.education || "").trim(), email: String(draft.email || "").trim(), wechat, directions: [...new Set(draft.directions)], teachingTypes: [...new Set(draft.teachingTypes)], residenceProvince: draft.residenceProvince, residenceCity: draft.residenceCity, channels, ...(type === "内部" ? { roleFees } : { cooperationType }), version: (existing?.version || 0) + 1 };
         if (existing) Object.assign(existing, payload);
         else teachers.push({ ...payload, status: type === "外部" ? "停用" : "启用", resumes: [], materials: [], unavailable: [] });
         return { teacher: teacherById(newId) };
@@ -150,10 +176,16 @@
         if (project) return canEditProject(project) ? project : null;
         return currentPage === "project-create" && hasOperationPermission("projects.create") ? { creating: true } : null;
       }
-      function openProjectTeacherProfile(id) {
+      function openProjectTeacherProfile(id, returnToPicker = null) {
         const teacher = teacherById(id), context = teacherProjectProfileContext();
         if (!context || !teacher || teacher.status !== "启用") return toast("无权查看该老师");
-        openDrawer(teacherDetailHtml(teacher, true));
+        if (returnToPicker) {
+          openModal(teacherDetailHtml(teacher,true));
+          $("#modalLayer .modal").classList.add("project-teacher-profile-modal");
+          document.querySelectorAll("#modalLayer [data-close], #modalLayer .modal-mask").forEach(button=>button.onclick=returnToPicker);
+          $("#modalLayer .drawer-foot button").textContent="返回选择";
+        } else openDrawer(teacherDetailHtml(teacher, true));
+        bindTeacherPortraits();
       }
       function teacherInput(label, id, value = "", type = "text", extra = "") {
         return `<label class="form-group"><span class="form-label">${label}</span><input class="input" id="${id}" type="${type}" value="${escapeHtml(value)}" ${extra}></label>`;
@@ -166,16 +198,19 @@
       }
       function teacherRoleFeeForm(prefix, fees, internal) {
         const kinds = teacherFeeKinds(internal);
-        return `<div class="form-group full"><span class="form-label">课酬（元/天）</span><div class="table-wrap"><table class="teacher-fee-table"><thead><tr><th>授课类型</th>${kinds.map(([, label]) => `<th>${label}</th><th>税务口径</th>`).join("")}</tr></thead><tbody>${TEACHER_TEACHING_TYPES.map((type, index) => `<tr data-teacher-fee-type="${type}" hidden><th>${type}</th>${kinds.map(([key, label]) => { const value = fees?.[type]?.[key]; const id = prefix + index + key; return `<td><input class="input" id="${id}Fee" type="number" min="0" step="0.01" aria-label="${type}${label}（元/天）" value="${escapeHtml(value?.fee ?? "")}"></td><td><select class="input" id="${id}Tax" aria-label="${type}${label}税务口径"><option value="">请选择</option>${["含税", "不含税"].map((tax) => `<option ${value?.tax === tax ? "selected" : ""}>${tax}</option>`).join("")}</select></td>`; }).join("")}</tr>`).join("")}</tbody></table></div></div>`;
+        return `<div class="form-group full"><span class="form-label">报价与课酬（元/天，选填）</span><div class="list-sub">对外标准报价及渠道参考报价统一为含税价。</div><div class="table-wrap"><table class="teacher-fee-table" data-teacher-fee-table><thead><tr><th>授课类型</th>${kinds.map(([key, label]) => `<th>${label}（${key === "settlement" ? "" : "含税，"}元/天）</th>`).join("")}</tr></thead><tbody>${TEACHER_TEACHING_TYPES.map((type, index) => `<tr data-teacher-fee-type="${type}" hidden><th>${type}</th>${kinds.map(([key, label]) => { const value = fees?.[type]?.[key]; const id = prefix + index + key; return `<td><input class="input" id="${id}Fee" type="number" min="0" step="0.01" placeholder="选填" aria-label="${type}${label}（${key === "settlement" ? "" : "含税，"}元/天）" value="${escapeHtml(value?.fee ?? "")}"></td>`; }).join("")}</tr>`).join("")}</tbody></table></div></div>`;
       }
       function teacherSyncFeeTypes(form) {
         const selected = new Set([...form.querySelectorAll("[data-teacher-type]:checked")].map((input) => input.value));
         form.querySelectorAll("[data-teacher-fee-type]").forEach((row) => row.hidden = !selected.has(row.dataset.teacherFeeType));
+        form.querySelectorAll("[data-teacher-fee-table]").forEach((table) => table.hidden = !selected.size);
+        const empty = form.querySelector("[data-teacher-fee-empty]");
+        if (empty) empty.hidden = Boolean(selected.size);
       }
       function teacherReadRoleFees(prefix, internal, before) {
         return Object.fromEntries(TEACHER_TEACHING_TYPES.map((type, index) => [type, Object.fromEntries(teacherFeeKinds(internal).map(([key]) => {
-          const id = prefix + index + key, fee = $("#" + id + "Fee"), tax = $("#" + id + "Tax");
-          return [key, fee && tax ? { fee: fee.value.trim(), tax: tax.value } : before?.[type]?.[key] || { fee: null, tax: "" }];
+          const id = prefix + index + key, fee = $("#" + id + "Fee");
+          return [key, fee ? { fee: fee.value.trim() } : before?.[type]?.[key] || { fee: null }];
         }))]));
       }
       function teacherContactInput(label, key, value, prefix = "tf") {
@@ -183,7 +218,7 @@
       }
       function teacherChannelForm(channel = {}, index = 0) {
         const prefix = "tc" + index;
-        return `<details class="teacher-channel-card teacher-channel-editor" ${channel.id ? "" : "open"} data-teacher-channel-row data-channel-id="${escapeHtml(channel.id || "")}" data-channel-kind="${channel.kind || "agency"}" data-channel-prefix="${prefix}"><summary><strong data-channel-title>${channel.kind === "personal" ? "个人合作" : escapeHtml(channel.agencyName || "机构合作")}</strong><button type="button" class="btn btn-sm" data-remove-teacher-channel>移除</button></summary><div class="form-grid teacher-channel-body">${channel.kind !== "personal" ? teacherInput("机构名称 *", prefix + "Agency", channel.agencyName || "") + teacherInput("联系人", prefix + "Contact", channel.contact || "") + teacherContactInput("联系电话", "phone", channel.phone, prefix) + teacherContactInput("联系人微信号", "wechat", channel.wechat, prefix) + teacherContactInput("联系人邮箱", "email", channel.email, prefix) : ""}${(teacherIsFacultySupervisor() || hasFieldPermission("teacher_fee_view")) ? teacherRoleFeeForm(prefix, channel.roleFees, false) : ""}</div></details>`;
+        return `<section class="teacher-channel-card teacher-channel-editor" data-teacher-channel-row data-channel-id="${escapeHtml(channel.id || "")}" data-channel-kind="${channel.kind || "agency"}" data-channel-prefix="${prefix}"><div class="teacher-channel-head"><strong data-channel-title>${channel.kind === "personal" ? "个人合作" : escapeHtml(channel.agencyName || "机构合作")}</strong><button type="button" class="btn btn-sm" data-remove-teacher-channel>移除</button></div><div class="form-grid teacher-channel-body">${(teacherIsFacultySupervisor() || hasFieldPermission("teacher_fee_view")) ? teacherRoleFeeForm(prefix, channel.roleFees, false) : ""}${channel.kind !== "personal" ? teacherInput("机构名称 *", prefix + "Agency", channel.agencyName || "") + teacherInput("联系人", prefix + "Contact", channel.contact || "") + teacherContactInput("联系电话", "phone", channel.phone, prefix) + teacherContactInput("联系人微信号", "wechat", channel.wechat, prefix) + teacherContactInput("联系人邮箱", "email", channel.email, prefix) : ""}</div></section>`;
       }
       function openTeacherForm(id = "") {
         const teacher = id ? teacherById(id) : null;
@@ -194,17 +229,31 @@
         const employeeOptions = employees.filter((employee) => employeeHasRole(employee, "老师") && (!teachers.some((item) => item.employeeCode === employee.code) || employee.code === teacher?.employeeCode));
         openModal(`<div class="modal-head"><div class="modal-title">${teacher ? "编辑老师 · " + escapeHtml(teacherName(teacher)) : "新增老师"}</div><button class="icon-btn close" data-close aria-label="关闭">×</button></div><form id="teacherForm" novalidate>
           <div class="tabs teacher-profile-tabs" role="tablist" aria-label="老师档案页签">${[["basic","基本信息"],["fees","课酬与渠道"],["materials","资料附件"]].map(([key,label])=>`<button type="button" role="tab" class="tab ${key==='basic'?'active':''}" data-profile-tab="${key}" aria-selected="${key==='basic'}">${label}</button>`).join('')}</div>
-          <div class="modal-body teacher-form"><div class="form-grid" data-profile-panel="basic"><label class="form-group"><span class="form-label">老师来源 *</span><select class="input" id="tfType" ${teacher ? "disabled" : ""}>${["内部", "外部"].filter((item) => item === "内部" ? scopes.includes("internal") : scopes.some((scope) => scope !== "internal")).map((item) => `<option ${type === item ? "selected" : ""}>${item}</option>`).join("")}</select></label><div id="tfCooperationGroup">${teacherSelect("合作属性", "tfCooperationType", teacher?.cooperationType || "", TEACHER_COOPERATION_TYPES)}</div><label class="form-group" id="tfEmployeeGroup"><span class="form-label">关联员工 *</span><select class="input" id="tfEmployee" ${teacher ? "disabled" : ""}><option value="">请选择老师角色员工</option>${employeeOptions.map((employee) => `<option value="${employee.code}" ${teacher?.employeeCode === employee.code ? "selected" : ""}>${escapeHtml(employee.name)}（${employee.code}）</option>`).join("")}</select></label>${teacherInput("老师姓名 *", "tfName", teacher ? teacherName(teacher) : "")}${teacherContactInput("手机号 *", "phone", teacher && teacherRawContact(teacher, "phone"))}${teacherContactInput("微信号", "wechat", teacher?.wechat)}${teacherSelect("性别", "tfGender", teacher?.gender || "", TEACHER_GENDERS)}${teacherSelect("学历 *", "tfEducation", teacher?.education || "", TEACHER_EDUCATIONS, true)}${teacherInput("出生日期", "tfBirth", teacher?.birthDate || "", "date")}${teacherContactInput("邮箱", "email", teacher?.email)}<div class="form-group full"><span class="form-label">授课类型 *</span><div class="choice-grid">${TEACHER_TEACHING_TYPES.map((item) => `<label class="choice-item"><input type="checkbox" data-teacher-type value="${item}" ${teacher?.teachingTypes.includes(item) ? "checked" : ""}><span>${item}</span></label>`).join("")}</div></div><label class="form-group"><span class="form-label">常驻省份 *</span><select class="input" id="tfResidenceProvince"><option value="">请选择省份</option>${Object.keys(administrativeDivisions).map((province) => `<option ${teacher?.residenceProvince === province ? "selected" : ""}>${escapeHtml(province)}</option>`).join("")}</select></label><label class="form-group"><span class="form-label">常驻城市 *</span><select class="input" id="tfResidenceCity"></select></label>${teacherDirectionPicker(teacher)}<label class="form-group full"><span class="form-label">简介</span><textarea class="input" id="tfIntro" rows="2">${escapeHtml(teacher?.intro || "")}</textarea></label></div><div class="form-grid" data-profile-panel="fees" hidden><div id="tfInternalFeeGroup" class="teacher-form-section">${teacherIsFacultySupervisor() || hasFieldPermission("teacher_fee_view") ? teacherRoleFeeForm("tfInternal", teacher?.roleFees, true) : ""}</div><div id="tfChannelsGroup" class="form-group full"><span class="form-label">合作渠道 *</span><div class="teacher-form-actions">${scopes.includes("agency") ? '<button type="button" class="btn btn-sm" id="tfAddAgency">添加机构渠道</button>' : ""}${scopes.includes("personal") ? '<button type="button" class="btn btn-sm" id="tfAddPersonal">添加个人渠道</button>' : ""}</div><div id="tfChannels">${(teacher?.channels || []).filter((channel) => scopes.includes(channel.kind)).map(teacherChannelForm).join("")}</div></div></div><div data-profile-panel="materials" hidden>${teacherProfileMaterialsEditor(teacher)}</div></div>
+          <div class="modal-body teacher-form"><div class="form-grid" data-profile-panel="basic"><div class="form-group full"><span class="form-label">证件照（选填）</span><div class="teacher-portrait-editor"><div id="tfPortraitPreview">${teacherPortraitHtml(teacher)}</div><div><label class="btn btn-sm teacher-upload-label">上传证件照<input id="tfPortrait" type="file" accept=".jpg,.jpeg,.png" aria-label="上传证件照"></label> <button class="btn btn-sm" type="button" id="tfPortraitRemove" ${teacher?.portrait ? "" : "hidden"}>移除</button><div class="list-sub">JPG、JPEG、PNG，不超过20MB</div><div class="field-error" id="tfPortraitError" role="alert"></div></div></div></div><label class="form-group"><span class="form-label">老师来源 *</span><select class="input" id="tfType" ${teacher ? "disabled" : ""}>${["内部", "外部"].filter((item) => item === "内部" ? scopes.includes("internal") : scopes.some((scope) => scope !== "internal")).map((item) => `<option ${type === item ? "selected" : ""}>${item}</option>`).join("")}</select></label><div id="tfCooperationGroup">${teacherSelect("合作属性", "tfCooperationType", teacher?.cooperationType || "", TEACHER_COOPERATION_TYPES)}</div><label class="form-group" id="tfEmployeeGroup"><span class="form-label">关联员工 *</span><select class="input" id="tfEmployee" ${teacher ? "disabled" : ""}><option value="">请选择老师角色员工</option>${employeeOptions.map((employee) => `<option value="${employee.code}" ${teacher?.employeeCode === employee.code ? "selected" : ""}>${escapeHtml(employee.name)}（${employee.code}）</option>`).join("")}</select></label>${teacherInput("老师姓名 *", "tfName", teacher ? teacherName(teacher) : "")}${teacherContactInput("手机号 *", "phone", teacher && teacherRawContact(teacher, "phone"))}${teacherContactInput("微信号", "wechat", teacher?.wechat)}${teacherSelect("性别", "tfGender", teacher?.gender || "", TEACHER_GENDERS)}${teacherSelect("学历 *", "tfEducation", teacher?.education || "", TEACHER_EDUCATIONS, true)}${teacherInput("出生日期", "tfBirth", teacher?.birthDate || "", "date")}${teacherContactInput("邮箱", "email", teacher?.email)}<div class="form-group full"><span class="form-label">授课类型 *</span><div class="choice-grid">${TEACHER_TEACHING_TYPES.map((item) => `<label class="choice-item"><input type="checkbox" data-teacher-type value="${item}" ${teacher?.teachingTypes.includes(item) ? "checked" : ""}><span>${item}</span></label>`).join("")}</div></div><label class="form-group"><span class="form-label">常驻省份 *</span><select class="input" id="tfResidenceProvince"><option value="">请选择省份</option>${Object.keys(administrativeDivisions).map((province) => `<option ${teacher?.residenceProvince === province ? "selected" : ""}>${escapeHtml(province)}</option>`).join("")}</select></label><label class="form-group"><span class="form-label">常驻城市 *</span><select class="input" id="tfResidenceCity"></select></label>${teacherDirectionPicker(teacher)}<label class="form-group full"><span class="form-label">简介</span><textarea class="input" id="tfIntro" rows="2">${escapeHtml(teacher?.intro || "")}</textarea></label></div><div class="form-grid" data-profile-panel="fees" hidden>${teacherIsFacultySupervisor() || hasFieldPermission("teacher_fee_view") ? '<div class="form-group full" data-teacher-fee-empty hidden><div class="list-sub">请先选择授课类型，才能填写对应报价。</div><div><button type="button" class="btn btn-sm" id="tfChooseFeeTypes">选择授课类型</button></div></div>' : ""}<div id="tfInternalFeeGroup" class="teacher-form-section">${teacherIsFacultySupervisor() || hasFieldPermission("teacher_fee_view") ? teacherRoleFeeForm("tfInternal", teacher?.roleFees, true) : ""}</div><div id="tfChannelsGroup" class="form-group full"><span class="form-label">合作渠道 *</span><div class="teacher-form-actions">${scopes.includes("agency") ? '<button type="button" class="btn btn-sm" id="tfAddAgency">添加机构渠道</button>' : ""}${scopes.includes("personal") ? '<button type="button" class="btn btn-sm" id="tfAddPersonal">添加个人渠道</button>' : ""}</div><div id="tfChannels">${(teacher?.channels || []).filter((channel) => scopes.includes(channel.kind)).map(teacherChannelForm).join("")}</div></div></div><div data-profile-panel="materials" hidden>${teacherProfileMaterialsEditor(teacher)}</div></div>
           <div class="modal-foot"><div class="field-error teacher-form-error" id="tfError" role="alert"></div><button type="button" class="btn" data-close>取消</button><button type="submit" class="btn btn-primary" id="tfSave">保存</button></div></form>`);
         $("#modalLayer .modal").classList.add("teacher-profile-modal");
         const form = $("#teacherForm");
         const profileUploads = [], profileRemoved = new Set();
         let profileMaterialRevision = 0;
+        let profilePortrait = teacher?.portrait || null, portraitRead = 0, portraitPending = false;
+        const renderPortrait=()=>{$("#tfPortraitPreview").innerHTML=teacherPortraitHtml({...teacher,name:teacher?teacherName(teacher):$("#tfName")?.value||"老师",portrait:profilePortrait});$("#tfPortraitRemove").hidden=!profilePortrait;bindTeacherPortraits(form);};
+        bindTeacherPortraits(form);
+        $("#tfPortrait").onchange=async event=>{
+          const file=event.target.files[0];if(!file)return;event.target.value="";
+          const revision=++portraitRead;profileMaterialRevision++;portraitPending=true;$("#tfSave").disabled=true;
+          const result=await teacherPreparePortrait(file);
+          if(revision!==portraitRead||$("#teacherForm")!==form||currentUser!==actor)return;
+          portraitPending=false;$("#tfSave").disabled=false;$("#tfPortraitError").textContent=result.error||"";
+          if(!result.error){profilePortrait=result.portrait;renderPortrait();}
+        };
+        $("#tfPortraitRemove").onclick=()=>{portraitRead++;profileMaterialRevision++;portraitPending=false;profilePortrait=null;$("#tfSave").disabled=false;$("#tfPortraitError").textContent="";renderPortrait();};
         const showProfileTab = (key) => {
           form.querySelectorAll('[data-profile-panel]').forEach(panel=>panel.hidden=panel.dataset.profilePanel!==key);
           form.querySelectorAll('[data-profile-tab]').forEach(button=>{button.classList.toggle('active',button.dataset.profileTab===key);button.setAttribute('aria-selected',String(button.dataset.profileTab===key));});
         };
         form.querySelectorAll('[data-profile-tab]').forEach(button=>button.onclick=()=>showProfileTab(button.dataset.profileTab));
+        const chooseFeeTypes = $("#tfChooseFeeTypes");
+        if (chooseFeeTypes) chooseFeeTypes.onclick = () => { showProfileTab("basic"); const first = form.querySelector("[data-teacher-type]"); first?.closest(".form-group")?.scrollIntoView({ block: "center" }); first?.focus(); };
         const renderProfileUploads = () => {
           form.querySelectorAll('[data-profile-pending]').forEach(list=>{list.innerHTML=profileUploads.map((item,index)=>({item,index})).filter(({item})=>item.category===list.dataset.profilePending).map(({item,index})=>`<div class="teacher-profile-file"><span>${escapeHtml(item.file.name)} <span class="list-sub">待上传 · ${formatFileSize(item.file.size)}</span></span><button type="button" class="link" data-remove-pending="${index}">移除</button></div>`).join('');});
           form.querySelectorAll('[data-remove-pending]').forEach(button=>button.onclick=()=>{profileUploads.splice(Number(button.dataset.removePending),1);profileMaterialRevision++;renderProfileUploads();});
@@ -253,18 +302,18 @@
         const bindRows = () => {
           document.querySelectorAll("[data-remove-teacher-channel]").forEach((button) => button.onclick = (event) => { event.preventDefault(); event.stopPropagation(); button.closest("[data-teacher-channel-row]").remove(); });
           document.querySelectorAll("[data-teacher-channel-row]").forEach((row) => {
-            row.ontoggle = () => { if (row.open) form.querySelectorAll("[data-teacher-channel-row]").forEach((other) => { if (other !== row) other.open = false; }); };
             const agency = row.querySelector("#" + row.dataset.channelPrefix + "Agency");
             if (agency) agency.oninput = () => row.querySelector("[data-channel-title]").textContent = agency.value.trim() || "机构合作";
           });
           document.querySelectorAll("[data-teacher-contact]").forEach((input) => input.oninput = () => input.dataset.unchanged = "false");
           teacherSyncFeeTypes(form);
         }; bindRows();
-        const addChannel = (kind) => { form.querySelectorAll("[data-teacher-channel-row]").forEach((row) => row.open = false); $("#tfChannels").insertAdjacentHTML("beforeend", teacherChannelForm({ kind }, channelIndex++)); bindRows(); };
+        const addChannel = (kind) => { $("#tfChannels").insertAdjacentHTML("beforeend", teacherChannelForm({ kind }, channelIndex++)); bindRows(); const row = $("#tfChannels").lastElementChild; row.scrollIntoView({ block: "nearest" }); [...row.querySelectorAll("input")].find(input => !input.closest("[hidden]"))?.focus({ preventScroll: true }); };
         if ($("#tfAddAgency")) $("#tfAddAgency").onclick = () => addChannel("agency");
         if ($("#tfAddPersonal")) $("#tfAddPersonal").onclick = () => { if (document.querySelector('[data-channel-kind="personal"]')) return toast("已添加个人渠道"); addChannel("personal"); };
         $("#teacherForm").onsubmit = async (event) => {
           event.preventDefault();
+          if (portraitPending) return;
           if ($("#teacherForm") !== form || currentUser !== actor || (teacher ? !teacherCanManage(teacher) : !teacherCanCreate())) return toast("权限已变化，请重新打开");
           const get = (selector) => $(selector)?.value.trim() || "";
           const contactValue = (prefix, key, original) => { const input = $("#" + prefix + key); return input?.dataset.unchanged === "true" ? original || "" : input?.value.trim() || ""; };
@@ -272,7 +321,7 @@
             const prefix = row.dataset.channelPrefix, before = teacher?.channels.find((item) => item.id === row.dataset.channelId);
             return { id: row.dataset.channelId, kind: row.dataset.channelKind, agencyName: get("#" + prefix + "Agency"), contact: get("#" + prefix + "Contact"), ...Object.fromEntries(["phone", "email", "wechat"].map((key) => [key, contactValue(prefix, key, before?.[key])])), roleFees: teacherReadRoleFees(prefix, false, before?.roleFees) };
           });
-          const draft = { version: expectedVersion, type: get("#tfType"), cooperationType: get("#tfType") === "外部" ? get("#tfCooperationType") : "", employeeCode: get("#tfEmployee"), name: get("#tfName"), phone: contactValue("tf", "phone", teacher && teacherRawContact(teacher, "phone")), email: contactValue("tf", "email", teacher?.email), wechat: contactValue("tf", "wechat", teacher?.wechat), gender: get("#tfGender"), birthDate: get("#tfBirth"), education: get("#tfEducation"), intro: get("#tfIntro"), directions: [...document.querySelectorAll("[data-teacher-direction]:checked")].map((input) => input.value), channels, teachingTypes: [...document.querySelectorAll("[data-teacher-type]:checked")].map((input) => input.value), residenceProvince: get("#tfResidenceProvince"), residenceCity: get("#tfResidenceCity"), roleFees: teacherReadRoleFees("tfInternal", true, teacher?.roleFees) };
+          const draft = { version: expectedVersion, portrait: profilePortrait, type: get("#tfType"), cooperationType: get("#tfType") === "外部" ? get("#tfCooperationType") : "", employeeCode: get("#tfEmployee"), name: get("#tfName"), phone: contactValue("tf", "phone", teacher && teacherRawContact(teacher, "phone")), email: contactValue("tf", "email", teacher?.email), wechat: contactValue("tf", "wechat", teacher?.wechat), gender: get("#tfGender"), birthDate: get("#tfBirth"), education: get("#tfEducation"), intro: get("#tfIntro"), directions: [...document.querySelectorAll("[data-teacher-direction]:checked")].map((input) => input.value), channels, teachingTypes: [...document.querySelectorAll("[data-teacher-type]:checked")].map((input) => input.value), residenceProvince: get("#tfResidenceProvince"), residenceCity: get("#tfResidenceCity"), roleFees: teacherReadRoleFees("tfInternal", true, teacher?.roleFees) };
           $("#tfSave").disabled = true;
           const materialRevision = profileMaterialRevision;
           let fileError = await teacherValidateProfileMaterials(teacher, [...profileUploads], new Set(profileRemoved));
@@ -290,7 +339,7 @@
               restoreEditor(); $("#tfError").textContent = result.error;
               const target = Number.isInteger(result.channelIndex) ? [...form.querySelectorAll("[data-teacher-channel-row]")][result.channelIndex] : result.field ? $("#" + result.field) : null;
               showProfileTab(Number.isInteger(result.channelIndex) || (!result.field && /课酬|渠道/.test(result.error)) ? "fees" : "basic");
-              if (target) { if (result.field === "tfDirectionPicker") { setDirectionOpen(true); directionToggle.focus?.(); } if (target.matches?.("details")) target.open = true; target.scrollIntoView?.({ block: "nearest" }); if (target.matches?.("input, select")) target.focus(); }
+              if (target) { if (result.field === "tfDirectionPicker") { setDirectionOpen(true); directionToggle.focus?.(); } target.scrollIntoView?.({ block: "nearest" }); if (target.matches?.("input, select")) target.focus(); }
               return;
             }
             if (result.typeRemovalConfirmation) { openTeacherTypeRemovalConfirm(result.typeRemovalConfirmation, save, restoreEditor); return; }
@@ -374,6 +423,7 @@
         if (picker?.open && !picker.contains(event.target)) picker.open = false;
       }, true);
       function bindTeacherEvents() {
+        bindTeacherPortraits();
         bindTeacherCatalogMaterials();
         bindTeacherWorkEvents();
         if ($("#teacherScheduleCreate")) $("#teacherScheduleCreate").onclick = () => openTeacherUnavailable();

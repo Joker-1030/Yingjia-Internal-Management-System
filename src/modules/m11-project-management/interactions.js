@@ -827,60 +827,6 @@
           .filter((n) => Number.isFinite(n));
         return `MAT${String((seqs.length ? Math.max(...seqs) : 0) + 1).padStart(6, "0")}`;
       }
-      // M11 §7.4 / DEC-253: only new ecosystem projects consume selected public quotations.
-      function projectUsesTeacherQuotes(project, resource = project?.resourceType) {
-        return resource === "平台师资合作" && (!project || Boolean(project.snapshot?.teacherQuote));
-      }
-      function projectTeacherQuoteChoices(project = null) {
-        const host = $("#pfTeacherQuotes");
-        const choices = Object.fromEntries((project?.snapshot?.teacherQuote?.rows || []).map(row => [row.role + ":" + row.teacherId, row.channelId || ""]));
-        if (host?.dataset.choices) Object.assign(choices, JSON.parse(host.dataset.choices));
-        document.querySelectorAll("[data-project-quote-channel]").forEach(select => { choices[select.dataset.projectQuoteChannel] = select.value; });
-        return choices;
-      }
-      function projectTeacherQuoteCalculation(assignments, choices, days) {
-        const rows = [], errors = [];
-        for (const [role, type] of Object.entries(TEACHER_ROLE_TYPES)) {
-          for (const id of new Set(assignments[role] || [])) {
-            const teacher = teacherById(id);
-            if (!teacher) { errors.push("请选择已建档老师"); continue; }
-            const name = teacherName(teacher), key = role + ":" + id;
-            const channel = teacher.type === "外部" ? teacher.channels.find(c => c.id === choices[key]) : null;
-            const price = teacher.type === "内部" ? teacher.roleFees?.[type]?.standard?.fee : channel?.roleFees?.[type]?.reference?.fee;
-            const channelName = channel ? channel.kind === "personal" ? "个人合作" : channel.agencyName : "";
-            rows.push({ teacherId: id, teacherName: name, role, teachingType: type, channelId: channel?.id || "", channelName, unitPrice: price == null ? null : Number(price) });
-            if (teacher.type === "外部" && !channel) errors.push(`${name}（${type}）：请选择合作渠道`);
-            else if (price == null || teacherFeeError(price)) errors.push(`${name}（${type}）：请先补齐对应报价`);
-          }
-        }
-        const complete = rows.length > 0 && !errors.length && Number.isFinite(days) && days >= 0.5 && days % 0.5 === 0;
-        return { rows, days, amount: complete ? round2(rows.reduce((sum, row) => sum + row.unitPrice, 0) * days) : null, errors };
-      }
-      function refreshProjectTeacherQuotes(project) {
-        const host = $("#pfTeacherQuotes"), reference = $("#pfTeacherQuoteReference");
-        if (!host || !reference) return null;
-        const canRead = project ? projectEditMode(project) === "pre-start" : currentPage === "project-create" && hasOperationPermission("projects.create") && Boolean(currentUser?.fullAccess || currentEcosystemEmployee());
-        const enabled = canRead && projectUsesTeacherQuotes(project, $("#pfResource")?.value);
-        host.hidden = !enabled; reference.hidden = !enabled;
-        if (!enabled) { host.innerHTML = ""; reference.textContent = ""; return null; }
-        const choices = projectTeacherQuoteChoices(project);
-        const quote = projectTeacherQuoteCalculation(projectFormTeacherAssignments(), choices, Number($("#pfDays").value));
-        host.dataset.choices = JSON.stringify(Object.fromEntries(quote.rows.map(row => [row.role + ":" + row.teacherId, choices[row.role + ":" + row.teacherId] || ""])));
-        host.innerHTML = `<div class="section-title">老师报价</div><div class="table-wrap"><table><thead><tr><th>授课身份</th><th>老师</th><th>合作渠道</th><th>报价（含税，元/天）</th></tr></thead><tbody>${quote.rows.map(row => {
-          const teacher = teacherById(row.teacherId), key = row.role + ":" + row.teacherId;
-          return `<tr><td>${row.teachingType}</td><td>${escapeHtml(row.teacherName)}</td><td>${teacher.type === "外部" ? `<select class="input" data-project-quote-channel="${key}" aria-label="${escapeHtml(row.teacherName)}${row.teachingType}合作渠道"><option value="">请选择合作渠道</option>${teacher.channels.map(channel=>`<option value="${escapeHtml(channel.id)}" ${choices[key] === channel.id ? "selected" : ""}>${escapeHtml(channel.kind === "personal" ? "个人合作" : channel.agencyName)}</option>`).join("")}</select>` : "—"}</td><td>${row.unitPrice == null ? "待补齐" : formatProjectMoney(row.unitPrice)}</td></tr>`;
-        }).join("") || '<tr><td colspan="4">请先选择授课老师</td></tr>'}</tbody></table></div><div class="field-error">${quote.errors.map(escapeHtml).join("；")}</div>`;
-        host.querySelectorAll("[data-project-quote-channel]").forEach(select => select.onchange = refreshProjectFormAmounts);
-        reference.textContent = `老师报价参考金额（含税，万元）：${quote.amount == null ? "待补齐老师、渠道、报价及确认天数" : formatProjectAmount(quote.amount)}`;
-        const amount = $("#pfAmount");
-        if (amount.dataset.quoteEdited !== "true") amount.value = quote.amount == null ? "" : wanMoneyInput(quote.amount);
-        return quote;
-      }
-      function openProjectQuoteConfirm(quote, amount, onConfirm) {
-        const actor = currentUser, form = $("#projectForm");
-        openModal(`<div class="modal-head project-modal-head"><div class="modal-title">确认使用不同的项目金额</div><button class="icon-btn close" data-close aria-label="返回修改">×</button></div><div class="modal-body project-modal-body"><div>老师报价参考金额（含税，万元）：${formatProjectAmount(quote.amount)}</div><div>项目金额（含税，万元）：${formatProjectAmount(amount)}</div><div>差额（万元）：${formatProjectAmount(round2(amount - quote.amount))}</div></div><div class="modal-foot project-modal-foot"><button class="btn" type="button" data-close>返回修改</button><button class="btn btn-primary" type="button" id="confirmProjectQuoteSave">确认保存</button></div>`);
-        $("#confirmProjectQuoteSave").onclick = () => { closeOverlay(); if (currentUser !== actor || $("#projectForm") !== form) return toast("页面或账号已变化，请重新保存"); onConfirm(); };
-      }
       function selectedTeacherIds(containerId) { return [...new Set([...document.querySelectorAll(`#${containerId} input[data-instructor]:checked`)].map((input) => input.value))]; }
       function selectedInstructorNames(containerId) { return selectedTeacherIds(containerId).map(projectTeacherTokenName); }
       function projectFormTeacherAssignments(stage = false) {
@@ -891,6 +837,7 @@
         return ["lecturers", "assistantLecturers", "teachingAssistants"].some((role) => JSON.stringify(assignments[role] || []) !== JSON.stringify(projectSelectedTokens(project, role, project[role])));
       }
       function projectFormCourseId(project = null) {
+        if (($("#pfResource")?.value || project?.resourceType) !== "采购包课程") return "";
         const packageId = $("#pfPackage")?.value || project?.packageId;
         const intro = $("#pfDirection")?.value || project?.directionIntro;
         return projectPackages.find(p => p.id === packageId)?.directions.find(c => c.intro === intro)?.directionId || "";
@@ -974,7 +921,6 @@
               `<span class="instructor-selected-item"><span>${escapeHtml(projectTeacherTokenName(name))}</span><button class="instructor-selected-remove" type="button" data-instructor-remove="${escapeHtml(name)}" title="移除${escapeHtml(projectTeacherTokenName(name))}" aria-label="移除${escapeHtml(projectTeacherTokenName(name))}">×</button></span>`,
           )
           .join("");
-        if ($("#pfTeacherQuotes") && $("#pfResource")?.value === "平台师资合作") refreshProjectFormAmounts();
       }
       function bindInstructorSelects(form) {
         form.querySelectorAll("[data-instructor-picker]").forEach(picker=>{
@@ -1026,20 +972,32 @@
           confirmedInput.value = calculatedDays;
         return calculatedDays;
       }
-      function openProjectDaysConfirm(calculatedDays, confirmedDays, onConfirm) {
+      function projectSaveDifferences(opportunityId, amount, calculatedDays, confirmedDays) {
+        const deal = opportunities.find(item => item.id === opportunityId);
+        const dealAmount = deal?.expectedContractAmount;
+        const hasDealAmount = Number.isFinite(dealAmount) && dealAmount >= 0;
+        return {
+          amount, dealAmount, calculatedDays, confirmedDays,
+          amountDiffers: hasDealAmount && round2(amount) !== round2(dealAmount),
+          daysDiffer: confirmedDays !== calculatedDays,
+          key: JSON.stringify([opportunityId, hasDealAmount ? round2(dealAmount) : null, round2(amount), calculatedDays, confirmedDays]),
+        };
+      }
+      function openProjectSaveConfirm(differences, onConfirm) {
+        const { amount, dealAmount, calculatedDays, confirmedDays, amountDiffers, daysDiffer } = differences;
         openModal(
-          '<div class="modal-head project-modal-head"><div class="modal-title">确认使用不同的项目天数</div><button class="icon-btn close" data-close title="返回修改">×</button></div>' +
+          '<div class="modal-head project-modal-head"><div class="modal-title">确认项目差异</div><button class="icon-btn close" data-close title="返回修改">×</button></div>' +
             '<div class="modal-body project-modal-body">' +
-            `<div>系统计算天数：${calculatedDays}天；</div>` +
-            `<div>项目确认天数：${confirmedDays}天；</div>` +
+            (amountDiffers ? `<div class="section-title">金额不一致</div><div>商机成交金额（含税，万元）：${formatWanMoney(dealAmount)}</div><div>项目金额（含税，万元）：${formatWanMoney(amount)}</div>` : '') +
+            (daysDiffer ? `<div class="section-title">天数不一致</div><div>系统计算天数：${calculatedDays}天</div><div>项目确认天数：${confirmedDays}天</div>` : '') +
             '</div><div class="modal-foot project-modal-foot">' +
             '<button class="btn" type="button" data-close>返回修改</button>' +
             '<button class="btn btn-primary" type="button" id="confirmProjectDaysSave">确认保存</button>' +
-            "</div>",
+            '</div>',
         );
-        $("#confirmProjectDaysSave").onclick = () => {
+        $('#confirmProjectDaysSave').onclick = () => {
           closeOverlay();
-          onConfirm();
+          onConfirm(differences.key);
         };
       }
       function projectFormCompanyId() {
@@ -1098,7 +1056,7 @@
         cooperationSelect.innerHTML = '<option value="">请选择合作形式</option>' + cooperations.map(item => `<option value="${item}">${item}</option>`).join("");
         cooperationSelect.value = cooperation;
         cooperationSelect.disabled = !resource;
-        if (!["采购包课程", "平台师资合作"].includes(resource) || (oldResource && oldResource !== resource)) {
+        if (resource !== "采购包课程" || (oldResource && oldResource !== resource)) {
           $("#pfPackage").value = "";
           $("#pfDirection").innerHTML = '<option value="">请选择课程</option>';
           $("#pfDirection").value = "";
@@ -1126,9 +1084,9 @@
         const resourceType = $("#pfResource").value;
         const cooperation = $("#pfCooperation").value;
         const packageId =
-          ["采购包课程", "平台师资合作"].includes(resourceType) ? $("#pfPackage").value : "";
+          resourceType === "采购包课程" ? $("#pfPackage").value : "";
         const directionIntro =
-          ["采购包课程", "平台师资合作"].includes(resourceType) ? $("#pfDirection").value : "";
+          resourceType === "采购包课程" ? $("#pfDirection").value : "";
         const companyId = ["师资合作", "走账合作"].includes(cooperation)
           ? projectFormCompanyId()
           : "";
@@ -1136,8 +1094,8 @@
           resourceType !== project.resourceType ||
           (resourceType === "框架服务" ? $("#pfFramework")?.value : "") !== (project.frameworkId || "") ||
           cooperation !== project.cooperation ||
-          packageId !== (project.packageId || "") ||
-          directionIntro !== (project.directionIntro || "") ||
+          packageId !== (resourceType === "采购包课程" ? project.packageId || "" : "") ||
+          directionIntro !== (resourceType === "采购包课程" ? project.directionIntro || "" : "") ||
           companyId !== (project.companyId || "")
         );
       }
@@ -1181,8 +1139,7 @@
             unitPrice = company.cooperationPay;
           }
         }
-        refreshProjectTeacherQuotes(editingProject);
-        if (type === "培训项目" && resourceType !== "框架服务" && !projectUsesTeacherQuotes(editingProject, resourceType)) {
+        if (type === "培训项目" && resourceType !== "框架服务") {
           $("#pfUnitPrice").value =
             unitPrice != null ? formatProjectMoney(unitPrice) : "—";
           $("#pfAmount").value = unitPrice != null && days ? wanMoneyInput(round2(unitPrice * days)) : "";
@@ -1210,7 +1167,7 @@
         if (!amountInput || !settlementInput) return;
         const days = Number($("#pfDays")?.value);
         let amount = Number(project.amount);
-        if (project.type === "培训项目" && project.resourceType !== "框架服务" && !project.snapshot?.teacherQuote) {
+        if (project.type === "培训项目" && project.resourceType !== "框架服务") {
           amount =
             Number.isFinite(days) && days > 0 && project.snapshot?.unitPrice != null
               ? round2(project.snapshot.unitPrice * days)
@@ -1251,9 +1208,9 @@
         const resourceType = $("#pfResource").value;
         const cooperation = $("#pfCooperation").value;
         const showPersonnel = type === "培训项目";
-        const showPackage = showPersonnel && ["采购包课程", "平台师资合作"].includes(resourceType);
+        const showPackage = showPersonnel && resourceType === "采购包课程";
         const showCompany = ["师资合作", "走账合作"].includes(cooperation);
-        const showUnitPrice = type === "培训项目" && resourceType !== "框架服务" && !projectUsesTeacherQuotes(currentPage === "project-edit" ? projectById(selectedProjectId) : null, resourceType);
+        const showUnitPrice = type === "培训项目" && resourceType !== "框架服务";
         $("#pfAmount").disabled = showUnitPrice;
         $("#pfAmount").type = showUnitPrice ? "text" : "number";
         if (!showUnitPrice) { $("#pfAmount").min = "0.000001"; $("#pfAmount").step = "0.000001"; }
@@ -1264,7 +1221,7 @@
         if (personnelSection)
           personnelSection.style.display = showPersonnel ? "" : "none";
         if (daysHelp) {
-          daysHelp.textContent = projectUsesTeacherQuotes(currentPage === "project-edit" ? projectById(selectedProjectId) : null, resourceType) ? "确认天数用于计算老师报价参考，项目金额可修改" : type
+          daysHelp.textContent = type
             ? showUnitPrice
               ? "项目费用按此天数计算"
               : "仅用于记录项目周期，不参与项目金额计算"
@@ -1283,7 +1240,7 @@
         setProjectFieldVisible("pfUnitPrice", showUnitPrice);
         refreshProjectFormulaText(
           "#pfAmountFormula",
-          projectUsesTeacherQuotes(currentPage === "project-edit" ? projectById(selectedProjectId) : null, resourceType) ? "按老师报价提供参考，项目金额可修改" : projectAmountFormulaText(type, resourceType),
+          projectAmountFormulaText(type, resourceType),
         );
         refreshProjectFormulaText(
           "#pfSettlementFormula",
@@ -1403,7 +1360,7 @@
           );
         commitProjectHistoryEvent(event);
       }
-      function handleStageProjectEditSubmit(project, mode, daysConfirmed = false) {
+      function handleStageProjectEditSubmit(project, mode, confirmedDifferences = null) {
         if (!project || projectEditMode(project) !== mode) return;
         clearProjectFormErrors();
         const isTraining = project.type === "培训项目";
@@ -1472,7 +1429,7 @@
               errors.pfDays =
                 "项目确认天数最小为0.5天，且必须为0.5天的整数倍";
           }
-          if (isTraining && project.resourceType !== "框架服务" && !project.snapshot?.teacherQuote && project.snapshot?.unitPrice != null) {
+          if (isTraining && project.resourceType !== "框架服务" && project.snapshot?.unitPrice != null) {
             amount = round2(project.snapshot.unitPrice * days);
             const feeRate =
               project.cooperation === "走账合作"
@@ -1523,14 +1480,9 @@
           return;
         }
 
-        if (
-          mode === "in-progress" &&
-          !daysConfirmed &&
-          days !== calculatedDays
-        ) {
-          openProjectDaysConfirm(calculatedDays, days, () =>
-            handleStageProjectEditSubmit(project, mode, true),
-          );
+        const differences = projectSaveDifferences(project.opportunityId || "", amount, calculatedDays, days);
+        if (mode === "in-progress" && (differences.amountDiffers || differences.daysDiffer) && confirmedDifferences !== differences.key) {
+          openProjectSaveConfirm(differences, key => handleStageProjectEditSubmit(project, mode, key));
           return;
         }
 
@@ -1631,7 +1583,7 @@
         renderPage();
         toast("保存成功");
       }
-      function handleProjectFormSubmit(editing, daysConfirmed = false, quoteConfirmedKey = "") {
+      function handleProjectFormSubmit(editing, confirmedDifferences = null) {
         if (!editing && !hasOperationPermission("projects.create")) return;
         const project = editing ? projectById(selectedProjectId) : null;
         if (editing) {
@@ -1672,7 +1624,6 @@
           type === "培训项目" ? selectedInstructorNames("pfHelpers") : [];
 
         const opportunityId = editing ? project.opportunityId || "" : $("#pfOpportunity")?.value || "";
-        const usesTeacherQuote = projectUsesTeacherQuotes(project, resourceType);
         const errors = {};
         if (!editing) {
           if (!opportunityId) errors.pfOpportunity = "请选择所属商机";
@@ -1710,10 +1661,10 @@
             errors.pfCustomer = "该客户未匹配到唯一有效项目负责人，无法创建项目";
         }
 
-        const effPackageId = ["采购包课程", "平台师资合作"].includes(resourceType) ? packageId : "";
+        const effPackageId = resourceType === "采购包课程" ? packageId : "";
         const effDirectionIntro =
-          ["采购包课程", "平台师资合作"].includes(resourceType) ? directionIntro : "";
-        const selectedCourseId = type === "培训项目" && resourceType !== "框架服务" ? projectFormCourseId() : "";
+          resourceType === "采购包课程" ? directionIntro : "";
+        const selectedCourseId = type === "培训项目" && resourceType === "采购包课程" ? projectFormCourseId() : "";
         const frameworkId = resourceType === "框架服务" ? $("#pfFramework")?.value || "" : "";
         const effCompanyId = ["师资合作", "走账合作"].includes(cooperation)
           ? companyId
@@ -1735,12 +1686,12 @@
           (resourceType !== project.resourceType ||
             frameworkId !== (project.frameworkId || "") ||
             cooperation !== project.cooperation ||
-            effPackageId !== (project.packageId || "") ||
-            effDirectionIntro !== (project.directionIntro || "") ||
+            effPackageId !== (resourceType === "采购包课程" ? project.packageId || "" : "") ||
+            effDirectionIntro !== (resourceType === "采购包课程" ? project.directionIntro || "" : "") ||
             effCompanyId !== (project.companyId || ""));
         const preserveExistingSnapshot = editing && !resourceChanged;
 
-        if (["采购包课程", "平台师资合作"].includes(resourceType)) {
+        if (resourceType === "采购包课程") {
           if (!effPackageId) errors.pfPackage = "请选择采购包";
           else {
             const pkg = projectPackages.find((item) => item.id === effPackageId);
@@ -1774,16 +1725,13 @@
             errors.pfDays =
               "项目确认天数最小为0.5天，且必须为0.5天的整数倍";
         }
-        if ((type === "AI软件项目" || resourceType === "框架服务" || usesTeacherQuote) && (!Number.isFinite(amount) || amount <= 0))
+        if ((type === "AI软件项目" || resourceType === "框架服务") && (!Number.isFinite(amount) || amount <= 0))
           errors.pfAmount = "请填写大于 0 且最多6位小数的项目金额（含税，万元）";
         if (type === "培训项目" && !lecturers.length)
           errors.pfLecturers = "培训项目至少需要选择一名主讲师";
 
         const teacherAssignments = type === "培训项目" ? projectFormTeacherAssignments() : {};
-        const teacherQuote = usesTeacherQuote ? projectTeacherQuoteCalculation(teacherAssignments, projectTeacherQuoteChoices(project), Number(daysValue)) : null;
-        if (teacherQuote?.errors.length) errors.pfConflicts = teacherQuote.errors.join("；");
-        if (usesTeacherQuote && teacherQuote.amount == null && !teacherQuote.errors.length) errors.pfConflicts = "请补齐老师报价及项目确认天数";
-        if (type === "培训项目" && resourceType !== "框架服务" && !projectPackages.find(pkg=>pkg.id===effPackageId)?.directions.some(course=>course.directionId===selectedCourseId)) errors.pfDirection = "请选择有效采购包课程";
+        if (type === "培训项目" && resourceType === "采购包课程" && !projectPackages.find(pkg=>pkg.id===effPackageId)?.directions.some(course=>course.directionId===selectedCourseId)) errors.pfDirection = "请选择有效采购包课程";
         const conflictPersonnel = {
           teacherAssignments,
           lecturers,
@@ -1869,8 +1817,7 @@
           };
         }
 
-        if (usesTeacherQuote) { snapshot.teacherQuote = teacherQuote; snapshot.unitPrice = null; unitPrice = null; }
-        if (type === "培训项目" && resourceType !== "框架服务" && !usesTeacherQuote && unitPrice == null) {
+        if (type === "培训项目" && resourceType !== "框架服务" && unitPrice == null) {
           showProjectFormError(
             "pfResource",
             "当前项目类型、资源类型与合作形式不匹配，请重新选择",
@@ -1880,7 +1827,7 @@
         const days = Number(daysValue);
         const calculatedDays = naturalDayCount(startTime, endTime);
         const projectAmount =
-          type === "培训项目" && resourceType !== "框架服务" && !usesTeacherQuote ? round2(unitPrice * days) : round2(amount);
+          type === "培训项目" && resourceType !== "框架服务" ? round2(unitPrice * days) : round2(amount);
         const feeRate =
           cooperation === "走账合作"
             ? preserveExistingSnapshot && project.snapshot?.managementFeeRate != null
@@ -1916,18 +1863,12 @@
           assistantLecturers: assistants,
           teachingAssistants: helpers,
         };
-        const daysConfirmationKey = JSON.stringify({ calculatedDays, days });
-        if (days !== calculatedDays && (usesTeacherQuote ? daysConfirmed !== daysConfirmationKey : !daysConfirmed)) {
-          openProjectDaysConfirm(calculatedDays, days, () =>
-            handleProjectFormSubmit(editing, usesTeacherQuote ? daysConfirmationKey : true, quoteConfirmedKey),
-          );
+        const differences = projectSaveDifferences(opportunityId, projectAmount, calculatedDays, days);
+        if ((differences.amountDiffers || differences.daysDiffer) && confirmedDifferences !== differences.key) {
+          openProjectSaveConfirm(differences, key => handleProjectFormSubmit(editing, key));
           return;
         }
-        const quoteKey = usesTeacherQuote ? JSON.stringify({ actor: currentUser.username, customerId, opportunityId, quote: teacherQuote, amount: projectAmount }) : "";
-        if (usesTeacherQuote && projectAmount !== teacherQuote.amount && quoteKey !== quoteConfirmedKey) {
-          openProjectQuoteConfirm(teacherQuote, projectAmount, () => handleProjectFormSubmit(editing, daysConfirmed, quoteKey));
-          return;
-        }
+
         if (editing) {
           writePreStartEditHistory(project, payload);
           Object.assign(project, payload);
@@ -2774,14 +2715,14 @@
         if (cooperationSelect)
           cooperationSelect.onchange = refreshProjectFormDynamics;
         const amountInput = $("#pfAmount");
-        if (amountInput) amountInput.oninput = () => { if (projectUsesTeacherQuotes(editing ? projectById(selectedProjectId) : null, $("#pfResource")?.value)) amountInput.dataset.quoteEdited = "true"; refreshProjectFormAmounts(); };
+        if (amountInput) amountInput.oninput = refreshProjectFormAmounts;
         ["#pfDirection", "#pfCompany"].forEach((selector) => {
           const el = $(selector);
           if (el) el.onchange = () => { refreshProjectFormAmounts(); refreshProjectTeacherCandidates(); };
         });
         const confirmedDays = $("#pfDays");
         if (confirmedDays)
-          confirmedDays.oninput = confirmedDays.onchange = () => {
+          confirmedDays.oninput = () => {
             confirmedDays.dataset.userEdited = "true";
             refreshProjectFormAmounts();
           };

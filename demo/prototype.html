@@ -5890,6 +5890,8 @@
 .teacher-fee-table th, .teacher-fee-table td { padding: 8px; }
 .teacher-fee-table input { min-width: 100px; }
 .teacher-fee-table select { min-width: 86px; }
+.teacher-quote-detail { grid-column: 1 / -1; min-width: 0; }
+.teacher-fee-table th:first-child { width: 72px; white-space: nowrap; }
 .instructor-picker .multi-select-option label .list-sub { display: block; margin-top: 3px; font-size: 12px; }
 
 .teacher-type-projects { min-width: 0; table-layout: fixed; }
@@ -7578,15 +7580,15 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
       const TEACHER_EDUCATIONS = ["高中及以下", "中专", "大专", "本科", "硕士", "博士"];
       const teacherDirections = [{"id": "TD01", "name": "战略类", "status": "启用"}, {"id": "TD02", "name": "管理类", "status": "启用"}, {"id": "TD03", "name": "技术类", "status": "启用"}, {"id": "TD04", "name": "应用类", "status": "启用"}, {"id": "TD05", "name": "通用类", "status": "启用"}, {"id": "TD06", "name": "其他", "status": "启用"}, {"id": "TD07", "name": "党建类", "status": "启用"}];
       const teachers = [
-        {"id":"T001","cooperationType":"独家","name":"王讲师","type":"外部","directions":["TD01"],"intro":"专注管理沟通与AI应用，擅长企业案例教学。","gender":"男","birthDate":"1982-05-16","education":"硕士","phone":"13800001001","email":"wang@teacher.example","wechat":"wang_teacher","status":"启用","channels":[{"id":"CH01","kind":"agency","agencyName":"华新教育","contact":"周老师","phone":"13800002001","wechat":"huaxin_zhou","email":"zhou@agency.example","roleFees":{"主讲":{"reference":{"fee":4500}},"辅训":{"reference":{"fee":1200}},"助教":{"reference":{"fee":null}}}},{"id":"CH02","kind":"agency","agencyName":"博知培训","contact":"陈老师","phone":"13800002002","wechat":"","email":"","roleFees":{"主讲":{"reference":{"fee":4200}},"辅训":{"reference":{"fee":1200}},"助教":{"reference":{"fee":null}}}},{"id":"CH03","kind":"personal","roleFees":{"主讲":{"reference":{"fee":3800}},"辅训":{"reference":{"fee":1200}},"助教":{"reference":{"fee":null}}}}],"resumes":[{"id":"CV001","name":"王讲师简历.pdf","type":"application/pdf","size":612,"addedBy":"韩雪"}],"unavailable":[{"id":"U001","reason":"教学研讨与课程备课","start":"2026-11-28","end":"2026-11-29","createdBy":"YJ023"}],"version":1,"teachingTypes":["主讲","辅训"],"residenceProvince":"山东","residenceCity":"济南","materials":[{"id":"AG-T001","category":"合作协议","name":"王讲师合作协议.pdf","type":"application/pdf","size":612,"sample":true,"addedBy":"韩雪"},{"id":"DOC-T001-身份证明","category":"身份证明","name":"王讲师身份证明.pdf","type":"application/pdf","size":612,"sample":true,"addedBy":"韩雪"},{"id":"DOC-T001-学历证明","category":"学历证明","name":"王讲师学历证明.pdf","type":"application/pdf","size":612,"sample":true,"addedBy":"韩雪"},{"id":"DOC-T001-资格证书","category":"资格证书","name":"王讲师资格证书.pdf","type":"application/pdf","size":612,"sample":true,"addedBy":"韩雪"}]},
-        {"id":"T002","cooperationType":"非独家","name":"张讲师","type":"外部","directions":["TD02"],"intro":"讲授领导力、管理沟通与数据分析。","gender":"女","birthDate":"1986-11-03","education":"硕士","phone":"13800001002","email":"zhang@teacher.example","wechat":"zhang_teaching","status":"启用","channels":[{"id":"CH04","kind":"personal","roleFees":{"主讲":{"reference":{"fee":3600}},"辅训":{"reference":{"fee":1200}},"助教":{"reference":{"fee":null}}}}],"resumes":[],"unavailable":[],"version":1,"teachingTypes":["主讲","辅训"],"residenceProvince":"浙江","residenceCity":"杭州","materials":[{"id":"AG-T002","category":"合作协议","name":"张讲师合作协议.pdf","type":"application/pdf","size":612,"sample":true,"addedBy":"韩雪"}]},
-        {"id":"T003","cooperationType":"独家","name":"赵讲师","type":"外部","directions":["TD03"],"intro":"服务礼仪及管理沟通实务。","gender":"女","birthDate":"1988-03-21","education":"本科","phone":"13800001003","email":"","wechat":"zhao_class","status":"启用","channels":[{"id":"CH05","kind":"agency","agencyName":"知行学苑","contact":"李老师","phone":"","wechat":"lixueyuan","email":"","roleFees":{"主讲":{"reference":{"fee":null}},"辅训":{"reference":{"fee":3200}},"助教":{"reference":{"fee":null}}}}],"resumes":[],"unavailable":[],"version":1,"teachingTypes":["辅训"],"residenceProvince":"山东","residenceCity":"青岛","materials":[{"id":"AG-T003","category":"合作协议","name":"赵讲师合作协议.pdf","type":"application/pdf","size":612,"sample":true,"addedBy":"韩雪"}]},
-        {"id":"T004","cooperationType":"非独家","name":"李讲师","type":"外部","directions":["TD04"],"intro":"AI工具在日常工作中的应用。","gender":"男","birthDate":"1990-07-18","education":"本科","phone":"13800001004","email":"","wechat":"","status":"启用","channels":[{"id":"CH06","kind":"personal","roleFees":{"主讲":{"reference":{"fee":null}},"辅训":{"reference":{"fee":null}},"助教":{"reference":{"fee":null}}}}],"resumes":[],"unavailable":[],"version":1,"teachingTypes":["主讲"],"residenceProvince":"江苏","residenceCity":"南京","materials":[{"id":"AG-T004","category":"合作协议","name":"李讲师合作协议.pdf","type":"application/pdf","size":612,"sample":true,"addedBy":"韩雪"}]},
-        {"id":"T005","cooperationType":"非独家","name":"孙讲师","type":"外部","directions":["TD05"],"intro":"领导力研讨与教练辅导。","gender":"男","birthDate":"1979-01-09","education":"博士","phone":"13800001005","email":"","wechat":"","status":"停用","channels":[{"id":"CH07","kind":"personal","roleFees":{"主讲":{"reference":{"fee":5000}},"辅训":{"reference":{"fee":null}},"助教":{"reference":{"fee":null}}}}],"resumes":[],"unavailable":[],"version":1,"teachingTypes":["主讲"],"residenceProvince":"河北","residenceCity":"石家庄","materials":[]},
-        {"id":"T006","cooperationType":"独家","name":"李助教","type":"外部","directions":["TD06"],"intro":"企业文化课程及课堂辅助。","gender":"女","birthDate":"1995-09-08","education":"本科","phone":"13800001006","email":"","wechat":"","status":"启用","channels":[{"id":"CH08","kind":"personal","roleFees":{"主讲":{"reference":{"fee":null}},"辅训":{"reference":{"fee":null}},"助教":{"reference":{"fee":800}}}}],"resumes":[],"unavailable":[],"version":1,"teachingTypes":["助教"],"residenceProvince":"山东","residenceCity":"济南","materials":[{"id":"AG-T006","category":"合作协议","name":"李助教合作协议.pdf","type":"application/pdf","size":612,"sample":true,"addedBy":"韩雪"}]},
-        {"id":"T007","cooperationType":"非独家","name":"王助教","type":"外部","directions":["TD07"],"intro":"服务礼仪课程及课堂辅助。","gender":"男","birthDate":"1994-02-19","education":"本科","phone":"13800001007","email":"","wechat":"","status":"启用","channels":[{"id":"CH09","kind":"agency","agencyName":"知行学苑","contact":"李老师","phone":"13800002003","wechat":"","email":"","roleFees":{"主讲":{"reference":{"fee":null}},"辅训":{"reference":{"fee":900}},"助教":{"reference":{"fee":600}}}}],"resumes":[],"unavailable":[],"version":1,"teachingTypes":["辅训","助教"],"residenceProvince":"浙江","residenceCity":"杭州","materials":[{"id":"AG-T007","category":"合作协议","name":"王助教合作协议.pdf","type":"application/pdf","size":612,"sample":true,"addedBy":"韩雪"}]},
-        {"id":"T008","cooperationType":"","name":"刘助教","type":"外部","directions":["TD01"],"intro":"数据分析实践辅导。","gender":"","birthDate":"","education":"本科","phone":"13800001008","email":"","wechat":"","status":"停用","channels":[{"id":"CH10","kind":"personal","roleFees":{"主讲":{"reference":{"fee":null}},"辅训":{"reference":{"fee":null}},"助教":{"reference":{"fee":600}}}}],"resumes":[],"unavailable":[],"version":1,"teachingTypes":["辅训","助教"],"residenceProvince":"江苏","residenceCity":"南京","materials":[]},
-        {"id":"T009","employeeCode":"YJ021","name":"张伟","type":"内部","directions":["TD03","TD04"],"intro":"企业数字化与AI应用课程，结合实践开展教学。","gender":"男","birthDate":"1987-06-12","education":"硕士","phone":"","email":"zhangwei@teacher.example","wechat":"zhangwei_teaching","status":"启用","channels":[],"resumes":[],"unavailable":[{"id":"U002","reason":"个人事务安排","start":"2026-11-18","end":"2026-11-19","createdBy":"YJ021"}],"version":1,"teachingTypes":["主讲","辅训","助教"],"residenceProvince":"山东","residenceCity":"济南","roleFees":{"主讲":{"standard":{"fee":3000},"settlement":{"fee":1500}},"辅训":{"standard":{"fee":1800},"settlement":{"fee":900}},"助教":{"standard":{"fee":800},"settlement":{"fee":400}}},"materials":[]},
+        {"id":"T001","cooperationType":"独家","name":"王讲师","type":"外部","directions":["TD01"],"intro":"专注管理沟通与AI应用，擅长企业案例教学。","gender":"男","birthDate":"1982-05-16","education":"硕士","phone":"13800001001","email":"wang@teacher.example","wechat":"wang_teacher","status":"启用","channels":[{"id":"CH01","kind":"agency","agencyName":"华新教育","contact":"周老师","phone":"13800002001","wechat":"huaxin_zhou","email":"zhou@agency.example","roleFees":{"主讲":{"reference":{"fee":4500,"taxRate":6,"untaxedFee":4245.28}},"辅训":{"reference":{"fee":1200,"taxRate":6,"untaxedFee":1132.08}},"助教":{"reference":{"fee":null,"untaxedFee":null,"taxRate":null}}}},{"id":"CH02","kind":"agency","agencyName":"博知培训","contact":"陈老师","phone":"13800002002","wechat":"","email":"","roleFees":{"主讲":{"reference":{"fee":4200,"taxRate":6,"untaxedFee":3962.26}},"辅训":{"reference":{"fee":1200,"taxRate":6,"untaxedFee":1132.08}},"助教":{"reference":{"fee":null,"untaxedFee":null,"taxRate":null}}}},{"id":"CH03","kind":"personal","roleFees":{"主讲":{"reference":{"fee":3800,"taxRate":6,"untaxedFee":3584.91}},"辅训":{"reference":{"fee":1200,"taxRate":6,"untaxedFee":1132.08}},"助教":{"reference":{"fee":null,"untaxedFee":null,"taxRate":null}}}}],"resumes":[{"id":"CV001","name":"王讲师简历.pdf","type":"application/pdf","size":612,"addedBy":"韩雪"}],"unavailable":[{"id":"U001","reason":"教学研讨与课程备课","start":"2026-11-28","end":"2026-11-29","createdBy":"YJ023"}],"version":1,"teachingTypes":["主讲","辅训"],"residenceProvince":"山东","residenceCity":"济南","materials":[{"id":"AG-T001","category":"合作协议","name":"王讲师合作协议.pdf","type":"application/pdf","size":612,"sample":true,"addedBy":"韩雪"},{"id":"DOC-T001-身份证明","category":"身份证明","name":"王讲师身份证明.pdf","type":"application/pdf","size":612,"sample":true,"addedBy":"韩雪"},{"id":"DOC-T001-学历证明","category":"学历证明","name":"王讲师学历证明.pdf","type":"application/pdf","size":612,"sample":true,"addedBy":"韩雪"},{"id":"DOC-T001-资格证书","category":"资格证书","name":"王讲师资格证书.pdf","type":"application/pdf","size":612,"sample":true,"addedBy":"韩雪"}]},
+        {"id":"T002","cooperationType":"非独家","name":"张讲师","type":"外部","directions":["TD02"],"intro":"讲授领导力、管理沟通与数据分析。","gender":"女","birthDate":"1986-11-03","education":"硕士","phone":"13800001002","email":"zhang@teacher.example","wechat":"zhang_teaching","status":"启用","channels":[{"id":"CH04","kind":"personal","roleFees":{"主讲":{"reference":{"fee":3600,"taxRate":6,"untaxedFee":3396.23}},"辅训":{"reference":{"fee":1200,"taxRate":6,"untaxedFee":1132.08}},"助教":{"reference":{"fee":null,"untaxedFee":null,"taxRate":null}}}}],"resumes":[],"unavailable":[],"version":1,"teachingTypes":["主讲","辅训"],"residenceProvince":"浙江","residenceCity":"杭州","materials":[{"id":"AG-T002","category":"合作协议","name":"张讲师合作协议.pdf","type":"application/pdf","size":612,"sample":true,"addedBy":"韩雪"}]},
+        {"id":"T003","cooperationType":"独家","name":"赵讲师","type":"外部","directions":["TD03"],"intro":"服务礼仪及管理沟通实务。","gender":"女","birthDate":"1988-03-21","education":"本科","phone":"13800001003","email":"","wechat":"zhao_class","status":"启用","channels":[{"id":"CH05","kind":"agency","agencyName":"知行学苑","contact":"李老师","phone":"","wechat":"lixueyuan","email":"","roleFees":{"主讲":{"reference":{"fee":null,"untaxedFee":null,"taxRate":null}},"辅训":{"reference":{"fee":3200,"taxRate":6,"untaxedFee":3018.87}},"助教":{"reference":{"fee":null,"untaxedFee":null,"taxRate":null}}}}],"resumes":[],"unavailable":[],"version":1,"teachingTypes":["辅训"],"residenceProvince":"山东","residenceCity":"青岛","materials":[{"id":"AG-T003","category":"合作协议","name":"赵讲师合作协议.pdf","type":"application/pdf","size":612,"sample":true,"addedBy":"韩雪"}]},
+        {"id":"T004","cooperationType":"非独家","name":"李讲师","type":"外部","directions":["TD04"],"intro":"AI工具在日常工作中的应用。","gender":"男","birthDate":"1990-07-18","education":"本科","phone":"13800001004","email":"","wechat":"","status":"启用","channels":[{"id":"CH06","kind":"personal","roleFees":{"主讲":{"reference":{"fee":2600,"taxRate":6,"untaxedFee":2452.83}},"辅训":{"reference":{"fee":null,"untaxedFee":null,"taxRate":null}},"助教":{"reference":{"fee":null,"untaxedFee":null,"taxRate":null}}}}],"resumes":[],"unavailable":[],"version":1,"teachingTypes":["主讲"],"residenceProvince":"江苏","residenceCity":"南京","materials":[{"id":"AG-T004","category":"合作协议","name":"李讲师合作协议.pdf","type":"application/pdf","size":612,"sample":true,"addedBy":"韩雪"}]},
+        {"id":"T005","cooperationType":"非独家","name":"孙讲师","type":"外部","directions":["TD05"],"intro":"领导力研讨与教练辅导。","gender":"男","birthDate":"1979-01-09","education":"博士","phone":"13800001005","email":"","wechat":"","status":"停用","channels":[{"id":"CH07","kind":"personal","roleFees":{"主讲":{"reference":{"fee":5000,"taxRate":6,"untaxedFee":4716.98}},"辅训":{"reference":{"fee":null,"untaxedFee":null,"taxRate":null}},"助教":{"reference":{"fee":null,"untaxedFee":null,"taxRate":null}}}}],"resumes":[],"unavailable":[],"version":1,"teachingTypes":["主讲"],"residenceProvince":"河北","residenceCity":"石家庄","materials":[]},
+        {"id":"T006","cooperationType":"独家","name":"李助教","type":"外部","directions":["TD06"],"intro":"企业文化课程及课堂辅助。","gender":"女","birthDate":"1995-09-08","education":"本科","phone":"13800001006","email":"","wechat":"","status":"启用","channels":[{"id":"CH08","kind":"personal","roleFees":{"主讲":{"reference":{"fee":null,"untaxedFee":null,"taxRate":null}},"辅训":{"reference":{"fee":null,"untaxedFee":null,"taxRate":null}},"助教":{"reference":{"fee":800,"taxRate":6,"untaxedFee":754.72}}}}],"resumes":[],"unavailable":[],"version":1,"teachingTypes":["助教"],"residenceProvince":"山东","residenceCity":"济南","materials":[{"id":"AG-T006","category":"合作协议","name":"李助教合作协议.pdf","type":"application/pdf","size":612,"sample":true,"addedBy":"韩雪"}]},
+        {"id":"T007","cooperationType":"非独家","name":"王助教","type":"外部","directions":["TD07"],"intro":"服务礼仪课程及课堂辅助。","gender":"男","birthDate":"1994-02-19","education":"本科","phone":"13800001007","email":"","wechat":"","status":"启用","channels":[{"id":"CH09","kind":"agency","agencyName":"知行学苑","contact":"李老师","phone":"13800002003","wechat":"","email":"","roleFees":{"主讲":{"reference":{"fee":null,"untaxedFee":null,"taxRate":null}},"辅训":{"reference":{"fee":900,"taxRate":6,"untaxedFee":849.06}},"助教":{"reference":{"fee":600,"taxRate":6,"untaxedFee":566.04}}}}],"resumes":[],"unavailable":[],"version":1,"teachingTypes":["辅训","助教"],"residenceProvince":"浙江","residenceCity":"杭州","materials":[{"id":"AG-T007","category":"合作协议","name":"王助教合作协议.pdf","type":"application/pdf","size":612,"sample":true,"addedBy":"韩雪"}]},
+        {"id":"T008","cooperationType":"","name":"刘助教","type":"外部","directions":["TD01"],"intro":"数据分析实践辅导。","gender":"","birthDate":"","education":"本科","phone":"13800001008","email":"","wechat":"","status":"停用","channels":[{"id":"CH10","kind":"personal","roleFees":{"主讲":{"reference":{"fee":null,"untaxedFee":null,"taxRate":null}},"辅训":{"reference":{"fee":0,"taxRate":0,"untaxedFee":0.0}},"助教":{"reference":{"fee":600,"taxRate":0,"untaxedFee":600.0}}}}],"resumes":[],"unavailable":[],"version":1,"teachingTypes":["辅训","助教"],"residenceProvince":"江苏","residenceCity":"南京","materials":[]},
+        {"id":"T009","employeeCode":"YJ021","name":"张伟","type":"内部","directions":["TD03","TD04"],"intro":"企业数字化与AI应用课程，结合实践开展教学。","gender":"男","birthDate":"1987-06-12","education":"硕士","phone":"","email":"zhangwei@teacher.example","wechat":"zhangwei_teaching","status":"启用","channels":[],"resumes":[],"unavailable":[{"id":"U002","reason":"个人事务安排","start":"2026-11-18","end":"2026-11-19","createdBy":"YJ021"}],"version":1,"teachingTypes":["主讲","辅训","助教"],"residenceProvince":"山东","residenceCity":"济南","roleFees":{"主讲":{"standard":{"fee":3000,"taxRate":6,"untaxedFee":2830.19},"settlement":{"fee":1500}},"辅训":{"standard":{"fee":1800,"taxRate":6,"untaxedFee":1698.11},"settlement":{"fee":900}},"助教":{"standard":{"fee":800,"taxRate":6,"untaxedFee":754.72},"settlement":{"fee":400}}},"materials":[]},
       ];
       const teacherResumeFiles = new Map();
       // Demo 示例采购包数据（M11 项目管理）。
@@ -14287,10 +14289,10 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
             ["开始日期", framework?.validFrom || "—"],
             ["到期日期", framework?.validTo || "—"],
           ] : []),
-          ...(project.packageId
+          ...(project.resourceType === "采购包课程" && project.packageId
             ? [["采购包", `${packageName}（${project.packageId}）`]]
             : []),
-          ...(project.directionIntro
+          ...(project.resourceType === "采购包课程" && project.directionIntro
             ? [["课程", project.directionIntro]]
             : []),
           ...(project.companyId
@@ -14311,7 +14313,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
           ...(project.snapshot?.managementFeeRate != null
             ? [["管理费比例", formatConfigPercent(project.snapshot.managementFeeRate)]]
             : []),
-          ...(project.resourceType !== "框架服务" && !project.snapshot?.teacherQuote ? [[
+          ...(project.resourceType !== "框架服务" ? [[
             "项目单价（含税，元/天）",
             project.type === "培训项目"
               ? formatProjectMoney(project.unitPrice)
@@ -14320,7 +14322,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
           [
             "项目金额（含税，万元）",
             formatProjectAmount(project.amount),
-            project.snapshot?.teacherQuote ? "已确认项目金额，开始后不随天数重算" : projectAmountFormulaText(project.type, project.resourceType),
+            projectAmountFormulaText(project.type, project.resourceType),
           ],
           [
             "结账金额（含税，万元）",
@@ -14982,7 +14984,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
       function projectFormHtml(project) {
         const editing = Boolean(project);
         const type = project?.type || "";
-        const daysHelpText = project?.snapshot?.teacherQuote ? "确认天数用于计算老师报价参考，项目金额可修改" :
+        const daysHelpText =
           type === "培训项目" && project?.resourceType !== "框架服务"
             ? "项目费用按此天数计算"
             : type === "AI软件项目" || project?.resourceType === "框架服务"
@@ -15069,9 +15071,9 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
               null
             : null;
         const isTraining = type === "培训项目";
-        const amountField = isTraining && resourceType !== "框架服务" && !projectUsesTeacherQuotes(project, resourceType)
+        const amountField = isTraining && resourceType !== "框架服务"
           ? `<input class="input" id="pfAmount" value="${project ? wanMoneyInput(project.amount) : ""}" disabled>`
-          : `<input class="input" id="pfAmount" type="number" min="0.000001" step="0.000001" data-quote-edited="${project?.snapshot?.teacherQuote ? "true" : "false"}" value="${project ? wanMoneyInput(project.amount) : ""}">`;
+          : `<input class="input" id="pfAmount" type="number" min="0.000001" step="0.000001" value="${project ? wanMoneyInput(project.amount) : ""}">`;
         const personnelHtml =
           `<div class="form-group full"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>主讲师</label>${instructorSelectHtml("pfLecturers", "主讲师", project?.lecturers || [], project)}<div class="field-error" id="err-pfLecturers"></div></div>` +
           `<div class="form-group full"><label class="form-label">辅训老师</label>${instructorSelectHtml("pfAssistants", "辅训老师", project?.assistantLecturers || [], project)}</div>` +
@@ -15162,9 +15164,9 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
           projectFormFieldHtml(
             "pfAmount",
             "项目金额（含税，万元）",
-            amountField + '<div class="list-sub" id="pfTeacherQuoteReference" aria-live="polite" hidden></div>' + (!project ? '<div class="list-sub" id="pfOpportunityAmountReference" aria-live="polite" hidden></div>' : ""),
-            !isTraining || resourceType === "框架服务" || projectUsesTeacherQuotes(project, resourceType),
-            projectUsesTeacherQuotes(project, resourceType) ? "按老师报价提供参考，项目金额可修改" : projectAmountFormulaText(type, resourceType),
+            amountField + (!project ? '<div class="list-sub" id="pfOpportunityAmountReference" aria-live="polite" hidden></div>' : ""),
+            !isTraining || resourceType === "框架服务",
+            projectAmountFormulaText(type, resourceType),
             "pfAmountFormula",
           ) +
           projectFormFieldHtml(
@@ -15177,7 +15179,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
           ) +
           `</div>` +
           `<div id="pfPersonnelSection" ${isTraining ? "" : 'style="display:none"'}>` +
-          `<div class="section-title">项目人员</div>${personnelHtml}<div id="pfTeacherQuotes" hidden></div>` +
+          `<div class="section-title">项目人员</div>${personnelHtml}` +
           `</div>` +
           `<div class="field-error" id="err-pfConflicts"></div>`
         );
@@ -15228,14 +15230,14 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
               projectFormFieldHtml(
                 "pfDays",
                 "项目确认天数",
-                `<input class="input" id="pfDays" type="number" step="0.5" min="0.5" value="${project.days}" data-user-edited="${confirmationDaysEdited}"><div class="list-sub" id="pfDaysHelp">${project.snapshot?.teacherQuote ? "项目金额已确认，调整天数不重新计算金额" : isTraining && project.resourceType !== "框架服务" ? "项目费用按此天数计算" : "仅用于记录项目周期，不参与项目金额计算"}</div>`,
+                `<input class="input" id="pfDays" type="number" step="0.5" min="0.5" value="${project.days}" data-user-edited="${confirmationDaysEdited}"><div class="list-sub" id="pfDaysHelp">${isTraining && project.resourceType !== "框架服务" ? "项目费用按此天数计算" : "仅用于记录项目周期，不参与项目金额计算"}</div>`,
               ) +
               projectFormFieldHtml(
                 "pfAmount",
                 "项目金额（含税，万元）",
                 `<input class="input" id="pfAmount" value="${formatProjectAmount(project.amount)}" disabled>`,
                 false,
-                project.snapshot?.teacherQuote ? "已确认项目金额，开始后不随天数重算" : projectAmountFormulaText(project.type, project.resourceType),
+                projectAmountFormulaText(project.type, project.resourceType),
                 "pfAmountFormula",
               ) +
               projectFormFieldHtml(
@@ -15534,8 +15536,14 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
       function teacherValidResidence(province, city) { return Boolean(province && city && Object.hasOwn(administrativeDivisions, province) && Object.hasOwn(administrativeDivisions[province], city)); }
       function teacherResidence(teacher) { return [teacher.residenceProvince, teacher.residenceCity].filter(Boolean).join(" · "); }
       function teacherFeeKinds(internal) { return internal ? [["standard", "对外标准报价"], ["settlement", "内部结算课酬"]] : [["reference", "参考报价"]]; }
-      function teacherRoleFeesHtml(fees, internal, teachingTypes) {
-        return TEACHER_TEACHING_TYPES.filter((type) => teachingTypes.includes(type)).map((type) => teacherFeeKinds(internal).map(([key, label]) => teacherFeeHtml(fees?.[type]?.[key]?.fee, `${type} · ${label}`, key !== "settlement")).join("")).join("");
+      function teacherRoleFeesHtml(fees, internal, teachingTypes, standardOnly = false) {
+        const kind = internal ? "standard" : "reference", settlement = internal && !standardOnly;
+        const explanation = internal ? "对外标准报价用于师资对外合作和项目报价参考。" + (settlement ? "内部结算课酬仅作公司内部结算参考，不参与对外报价。" : "") : "参考报价用于当前合作渠道的选师及项目报价参考。";
+        const price = value => value == null ? "—" : Number(value).toFixed(2);
+        return `<div class="teacher-quote-detail"><div class="list-sub">${explanation}</div><div class="table-wrap"><table class="teacher-fee-table"><thead><tr><th>授课类型</th><th>不含税价（元/天）</th><th>税率（%）</th><th>含税价（元/天）</th>${settlement ? '<th>内部结算课酬<br>（元/天）</th>' : ""}</tr></thead><tbody>${TEACHER_TEACHING_TYPES.filter(type => teachingTypes.includes(type)).map(type => {
+          const quote = fees?.[type]?.[kind];
+          return `<tr><th>${type}</th><td>${price(quote?.untaxedFee)}</td><td>${price(quote?.taxRate)}</td><td>${price(quote?.fee)}</td>${settlement ? `<td>${price(fees?.[type]?.settlement?.fee)}</td>` : ""}</tr>`;
+        }).join("")}</tbody></table></div></div>`;
       }
       function teacherPublicProfile(teacher) {
         return { name: teacherName(teacher), type: teacher.type, teachingTypes: teacher.teachingTypes.join("、"), residence: teacherResidence(teacher), intro: teacher.intro, gender: teacher.gender, birthDate: teacher.birthDate, age: teacherAge(teacher.birthDate), education: teacher.education, directions: teacher.directions.map(teacherDirectionName).join("、"), phone: maskTeacherContact(teacherRawContact(teacher, "phone"), "phone"), email: maskTeacherContact(teacher.email, "email"), wechat: maskTeacherContact(teacher.wechat, "wechat") };
@@ -15717,7 +15725,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
       function teacherCanManageDirections() { return teacherIsAdmin() || teacherIsFacultySupervisor() || (teacherHasExecutiveScope() && hasOperationPermission('teachers.manage')); }
       function teacherHasMarketSchedule() { return ['PM','区域总监'].some(role => currentRoleTemplateNames().includes(role)) && hasPermission('teacher-schedule') && hasOperationPermission('teachers.schedule.read'); }
       function teacherCanStandardFee(teacher) { return teacher?.type === '内部' && teacherHasMarketSchedule() && teacherCanFee(teacher); }
-      function teacherStandardFeesHtml(teacher) { return teacherCanStandardFee(teacher) ? `<div class="section-title">对外标准报价</div><div class="detail-grid">${teacher.teachingTypes.map(type => teacherFeeHtml(teacher.roleFees?.[type]?.standard?.fee, type)).join('')}</div>` : ''; }
+      function teacherStandardFeesHtml(teacher) { return teacherCanStandardFee(teacher) ? `<div class="section-title">对外标准报价</div>${teacherRoleFeesHtml(teacher.roleFees, true, teacher.teachingTypes, true)}` : ''; }
       function openTeacherDirections() {
         if (!teacherCanManageDirections()) return toast('无权维护教学方向');
         openModal(`<div class="modal-head"><div class="modal-title">教学方向管理</div><button class="icon-btn close" data-close aria-label="关闭">×</button></div><div class="modal-body"><div class="toolbar"><label class="form-group"><span class="form-label">新方向名称</span><input class="input" id="newTeacherDirection"></label><button class="btn btn-primary" id="addTeacherDirection">新增方向</button></div><div class="table-wrap"><table><thead><tr><th>教学方向</th><th>状态</th><th>操作</th></tr></thead><tbody>${teacherDirections.map(d=>`<tr><td>${escapeHtml(d.name)}</td><td>${d.status}</td><td><button class="btn btn-sm" data-direction-rename="${d.id}">改名</button> <button class="btn btn-sm" data-direction-toggle="${d.id}">${d.status==='启用'?'停用':'启用'}</button></td></tr>`).join('')}</tbody></table></div><div class="field-error" id="directionError"></div></div><div class="modal-foot"><button class="btn" data-close>关闭</button></div>`);
@@ -24725,60 +24733,6 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
           .filter((n) => Number.isFinite(n));
         return `MAT${String((seqs.length ? Math.max(...seqs) : 0) + 1).padStart(6, "0")}`;
       }
-      // M11 §7.4 / DEC-253: only new ecosystem projects consume selected public quotations.
-      function projectUsesTeacherQuotes(project, resource = project?.resourceType) {
-        return resource === "平台师资合作" && (!project || Boolean(project.snapshot?.teacherQuote));
-      }
-      function projectTeacherQuoteChoices(project = null) {
-        const host = $("#pfTeacherQuotes");
-        const choices = Object.fromEntries((project?.snapshot?.teacherQuote?.rows || []).map(row => [row.role + ":" + row.teacherId, row.channelId || ""]));
-        if (host?.dataset.choices) Object.assign(choices, JSON.parse(host.dataset.choices));
-        document.querySelectorAll("[data-project-quote-channel]").forEach(select => { choices[select.dataset.projectQuoteChannel] = select.value; });
-        return choices;
-      }
-      function projectTeacherQuoteCalculation(assignments, choices, days) {
-        const rows = [], errors = [];
-        for (const [role, type] of Object.entries(TEACHER_ROLE_TYPES)) {
-          for (const id of new Set(assignments[role] || [])) {
-            const teacher = teacherById(id);
-            if (!teacher) { errors.push("请选择已建档老师"); continue; }
-            const name = teacherName(teacher), key = role + ":" + id;
-            const channel = teacher.type === "外部" ? teacher.channels.find(c => c.id === choices[key]) : null;
-            const price = teacher.type === "内部" ? teacher.roleFees?.[type]?.standard?.fee : channel?.roleFees?.[type]?.reference?.fee;
-            const channelName = channel ? channel.kind === "personal" ? "个人合作" : channel.agencyName : "";
-            rows.push({ teacherId: id, teacherName: name, role, teachingType: type, channelId: channel?.id || "", channelName, unitPrice: price == null ? null : Number(price) });
-            if (teacher.type === "外部" && !channel) errors.push(`${name}（${type}）：请选择合作渠道`);
-            else if (price == null || teacherFeeError(price)) errors.push(`${name}（${type}）：请先补齐对应报价`);
-          }
-        }
-        const complete = rows.length > 0 && !errors.length && Number.isFinite(days) && days >= 0.5 && days % 0.5 === 0;
-        return { rows, days, amount: complete ? round2(rows.reduce((sum, row) => sum + row.unitPrice, 0) * days) : null, errors };
-      }
-      function refreshProjectTeacherQuotes(project) {
-        const host = $("#pfTeacherQuotes"), reference = $("#pfTeacherQuoteReference");
-        if (!host || !reference) return null;
-        const canRead = project ? projectEditMode(project) === "pre-start" : currentPage === "project-create" && hasOperationPermission("projects.create") && Boolean(currentUser?.fullAccess || currentEcosystemEmployee());
-        const enabled = canRead && projectUsesTeacherQuotes(project, $("#pfResource")?.value);
-        host.hidden = !enabled; reference.hidden = !enabled;
-        if (!enabled) { host.innerHTML = ""; reference.textContent = ""; return null; }
-        const choices = projectTeacherQuoteChoices(project);
-        const quote = projectTeacherQuoteCalculation(projectFormTeacherAssignments(), choices, Number($("#pfDays").value));
-        host.dataset.choices = JSON.stringify(Object.fromEntries(quote.rows.map(row => [row.role + ":" + row.teacherId, choices[row.role + ":" + row.teacherId] || ""])));
-        host.innerHTML = `<div class="section-title">老师报价</div><div class="table-wrap"><table><thead><tr><th>授课身份</th><th>老师</th><th>合作渠道</th><th>报价（含税，元/天）</th></tr></thead><tbody>${quote.rows.map(row => {
-          const teacher = teacherById(row.teacherId), key = row.role + ":" + row.teacherId;
-          return `<tr><td>${row.teachingType}</td><td>${escapeHtml(row.teacherName)}</td><td>${teacher.type === "外部" ? `<select class="input" data-project-quote-channel="${key}" aria-label="${escapeHtml(row.teacherName)}${row.teachingType}合作渠道"><option value="">请选择合作渠道</option>${teacher.channels.map(channel=>`<option value="${escapeHtml(channel.id)}" ${choices[key] === channel.id ? "selected" : ""}>${escapeHtml(channel.kind === "personal" ? "个人合作" : channel.agencyName)}</option>`).join("")}</select>` : "—"}</td><td>${row.unitPrice == null ? "待补齐" : formatProjectMoney(row.unitPrice)}</td></tr>`;
-        }).join("") || '<tr><td colspan="4">请先选择授课老师</td></tr>'}</tbody></table></div><div class="field-error">${quote.errors.map(escapeHtml).join("；")}</div>`;
-        host.querySelectorAll("[data-project-quote-channel]").forEach(select => select.onchange = refreshProjectFormAmounts);
-        reference.textContent = `老师报价参考金额（含税，万元）：${quote.amount == null ? "待补齐老师、渠道、报价及确认天数" : formatProjectAmount(quote.amount)}`;
-        const amount = $("#pfAmount");
-        if (amount.dataset.quoteEdited !== "true") amount.value = quote.amount == null ? "" : wanMoneyInput(quote.amount);
-        return quote;
-      }
-      function openProjectQuoteConfirm(quote, amount, onConfirm) {
-        const actor = currentUser, form = $("#projectForm");
-        openModal(`<div class="modal-head project-modal-head"><div class="modal-title">确认使用不同的项目金额</div><button class="icon-btn close" data-close aria-label="返回修改">×</button></div><div class="modal-body project-modal-body"><div>老师报价参考金额（含税，万元）：${formatProjectAmount(quote.amount)}</div><div>项目金额（含税，万元）：${formatProjectAmount(amount)}</div><div>差额（万元）：${formatProjectAmount(round2(amount - quote.amount))}</div></div><div class="modal-foot project-modal-foot"><button class="btn" type="button" data-close>返回修改</button><button class="btn btn-primary" type="button" id="confirmProjectQuoteSave">确认保存</button></div>`);
-        $("#confirmProjectQuoteSave").onclick = () => { closeOverlay(); if (currentUser !== actor || $("#projectForm") !== form) return toast("页面或账号已变化，请重新保存"); onConfirm(); };
-      }
       function selectedTeacherIds(containerId) { return [...new Set([...document.querySelectorAll(`#${containerId} input[data-instructor]:checked`)].map((input) => input.value))]; }
       function selectedInstructorNames(containerId) { return selectedTeacherIds(containerId).map(projectTeacherTokenName); }
       function projectFormTeacherAssignments(stage = false) {
@@ -24789,6 +24743,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
         return ["lecturers", "assistantLecturers", "teachingAssistants"].some((role) => JSON.stringify(assignments[role] || []) !== JSON.stringify(projectSelectedTokens(project, role, project[role])));
       }
       function projectFormCourseId(project = null) {
+        if (($("#pfResource")?.value || project?.resourceType) !== "采购包课程") return "";
         const packageId = $("#pfPackage")?.value || project?.packageId;
         const intro = $("#pfDirection")?.value || project?.directionIntro;
         return projectPackages.find(p => p.id === packageId)?.directions.find(c => c.intro === intro)?.directionId || "";
@@ -24872,7 +24827,6 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
               `<span class="instructor-selected-item"><span>${escapeHtml(projectTeacherTokenName(name))}</span><button class="instructor-selected-remove" type="button" data-instructor-remove="${escapeHtml(name)}" title="移除${escapeHtml(projectTeacherTokenName(name))}" aria-label="移除${escapeHtml(projectTeacherTokenName(name))}">×</button></span>`,
           )
           .join("");
-        if ($("#pfTeacherQuotes") && $("#pfResource")?.value === "平台师资合作") refreshProjectFormAmounts();
       }
       function bindInstructorSelects(form) {
         form.querySelectorAll("[data-instructor-picker]").forEach(picker=>{
@@ -24924,20 +24878,32 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
           confirmedInput.value = calculatedDays;
         return calculatedDays;
       }
-      function openProjectDaysConfirm(calculatedDays, confirmedDays, onConfirm) {
+      function projectSaveDifferences(opportunityId, amount, calculatedDays, confirmedDays) {
+        const deal = opportunities.find(item => item.id === opportunityId);
+        const dealAmount = deal?.expectedContractAmount;
+        const hasDealAmount = Number.isFinite(dealAmount) && dealAmount >= 0;
+        return {
+          amount, dealAmount, calculatedDays, confirmedDays,
+          amountDiffers: hasDealAmount && round2(amount) !== round2(dealAmount),
+          daysDiffer: confirmedDays !== calculatedDays,
+          key: JSON.stringify([opportunityId, hasDealAmount ? round2(dealAmount) : null, round2(amount), calculatedDays, confirmedDays]),
+        };
+      }
+      function openProjectSaveConfirm(differences, onConfirm) {
+        const { amount, dealAmount, calculatedDays, confirmedDays, amountDiffers, daysDiffer } = differences;
         openModal(
-          '<div class="modal-head project-modal-head"><div class="modal-title">确认使用不同的项目天数</div><button class="icon-btn close" data-close title="返回修改">×</button></div>' +
+          '<div class="modal-head project-modal-head"><div class="modal-title">确认项目差异</div><button class="icon-btn close" data-close title="返回修改">×</button></div>' +
             '<div class="modal-body project-modal-body">' +
-            `<div>系统计算天数：${calculatedDays}天；</div>` +
-            `<div>项目确认天数：${confirmedDays}天；</div>` +
+            (amountDiffers ? `<div class="section-title">金额不一致</div><div>商机成交金额（含税，万元）：${formatWanMoney(dealAmount)}</div><div>项目金额（含税，万元）：${formatWanMoney(amount)}</div>` : '') +
+            (daysDiffer ? `<div class="section-title">天数不一致</div><div>系统计算天数：${calculatedDays}天</div><div>项目确认天数：${confirmedDays}天</div>` : '') +
             '</div><div class="modal-foot project-modal-foot">' +
             '<button class="btn" type="button" data-close>返回修改</button>' +
             '<button class="btn btn-primary" type="button" id="confirmProjectDaysSave">确认保存</button>' +
-            "</div>",
+            '</div>',
         );
-        $("#confirmProjectDaysSave").onclick = () => {
+        $('#confirmProjectDaysSave').onclick = () => {
           closeOverlay();
-          onConfirm();
+          onConfirm(differences.key);
         };
       }
       function projectFormCompanyId() {
@@ -24996,7 +24962,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
         cooperationSelect.innerHTML = '<option value="">请选择合作形式</option>' + cooperations.map(item => `<option value="${item}">${item}</option>`).join("");
         cooperationSelect.value = cooperation;
         cooperationSelect.disabled = !resource;
-        if (!["采购包课程", "平台师资合作"].includes(resource) || (oldResource && oldResource !== resource)) {
+        if (resource !== "采购包课程" || (oldResource && oldResource !== resource)) {
           $("#pfPackage").value = "";
           $("#pfDirection").innerHTML = '<option value="">请选择课程</option>';
           $("#pfDirection").value = "";
@@ -25024,9 +24990,9 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
         const resourceType = $("#pfResource").value;
         const cooperation = $("#pfCooperation").value;
         const packageId =
-          ["采购包课程", "平台师资合作"].includes(resourceType) ? $("#pfPackage").value : "";
+          resourceType === "采购包课程" ? $("#pfPackage").value : "";
         const directionIntro =
-          ["采购包课程", "平台师资合作"].includes(resourceType) ? $("#pfDirection").value : "";
+          resourceType === "采购包课程" ? $("#pfDirection").value : "";
         const companyId = ["师资合作", "走账合作"].includes(cooperation)
           ? projectFormCompanyId()
           : "";
@@ -25034,8 +25000,8 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
           resourceType !== project.resourceType ||
           (resourceType === "框架服务" ? $("#pfFramework")?.value : "") !== (project.frameworkId || "") ||
           cooperation !== project.cooperation ||
-          packageId !== (project.packageId || "") ||
-          directionIntro !== (project.directionIntro || "") ||
+          packageId !== (resourceType === "采购包课程" ? project.packageId || "" : "") ||
+          directionIntro !== (resourceType === "采购包课程" ? project.directionIntro || "" : "") ||
           companyId !== (project.companyId || "")
         );
       }
@@ -25079,8 +25045,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
             unitPrice = company.cooperationPay;
           }
         }
-        refreshProjectTeacherQuotes(editingProject);
-        if (type === "培训项目" && resourceType !== "框架服务" && !projectUsesTeacherQuotes(editingProject, resourceType)) {
+        if (type === "培训项目" && resourceType !== "框架服务") {
           $("#pfUnitPrice").value =
             unitPrice != null ? formatProjectMoney(unitPrice) : "—";
           $("#pfAmount").value = unitPrice != null && days ? wanMoneyInput(round2(unitPrice * days)) : "";
@@ -25108,7 +25073,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
         if (!amountInput || !settlementInput) return;
         const days = Number($("#pfDays")?.value);
         let amount = Number(project.amount);
-        if (project.type === "培训项目" && project.resourceType !== "框架服务" && !project.snapshot?.teacherQuote) {
+        if (project.type === "培训项目" && project.resourceType !== "框架服务") {
           amount =
             Number.isFinite(days) && days > 0 && project.snapshot?.unitPrice != null
               ? round2(project.snapshot.unitPrice * days)
@@ -25149,9 +25114,9 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
         const resourceType = $("#pfResource").value;
         const cooperation = $("#pfCooperation").value;
         const showPersonnel = type === "培训项目";
-        const showPackage = showPersonnel && ["采购包课程", "平台师资合作"].includes(resourceType);
+        const showPackage = showPersonnel && resourceType === "采购包课程";
         const showCompany = ["师资合作", "走账合作"].includes(cooperation);
-        const showUnitPrice = type === "培训项目" && resourceType !== "框架服务" && !projectUsesTeacherQuotes(currentPage === "project-edit" ? projectById(selectedProjectId) : null, resourceType);
+        const showUnitPrice = type === "培训项目" && resourceType !== "框架服务";
         $("#pfAmount").disabled = showUnitPrice;
         $("#pfAmount").type = showUnitPrice ? "text" : "number";
         if (!showUnitPrice) { $("#pfAmount").min = "0.000001"; $("#pfAmount").step = "0.000001"; }
@@ -25162,7 +25127,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
         if (personnelSection)
           personnelSection.style.display = showPersonnel ? "" : "none";
         if (daysHelp) {
-          daysHelp.textContent = projectUsesTeacherQuotes(currentPage === "project-edit" ? projectById(selectedProjectId) : null, resourceType) ? "确认天数用于计算老师报价参考，项目金额可修改" : type
+          daysHelp.textContent = type
             ? showUnitPrice
               ? "项目费用按此天数计算"
               : "仅用于记录项目周期，不参与项目金额计算"
@@ -25181,7 +25146,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
         setProjectFieldVisible("pfUnitPrice", showUnitPrice);
         refreshProjectFormulaText(
           "#pfAmountFormula",
-          projectUsesTeacherQuotes(currentPage === "project-edit" ? projectById(selectedProjectId) : null, resourceType) ? "按老师报价提供参考，项目金额可修改" : projectAmountFormulaText(type, resourceType),
+          projectAmountFormulaText(type, resourceType),
         );
         refreshProjectFormulaText(
           "#pfSettlementFormula",
@@ -25301,7 +25266,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
           );
         commitProjectHistoryEvent(event);
       }
-      function handleStageProjectEditSubmit(project, mode, daysConfirmed = false) {
+      function handleStageProjectEditSubmit(project, mode, confirmedDifferences = null) {
         if (!project || projectEditMode(project) !== mode) return;
         clearProjectFormErrors();
         const isTraining = project.type === "培训项目";
@@ -25370,7 +25335,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
               errors.pfDays =
                 "项目确认天数最小为0.5天，且必须为0.5天的整数倍";
           }
-          if (isTraining && project.resourceType !== "框架服务" && !project.snapshot?.teacherQuote && project.snapshot?.unitPrice != null) {
+          if (isTraining && project.resourceType !== "框架服务" && project.snapshot?.unitPrice != null) {
             amount = round2(project.snapshot.unitPrice * days);
             const feeRate =
               project.cooperation === "走账合作"
@@ -25421,14 +25386,9 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
           return;
         }
 
-        if (
-          mode === "in-progress" &&
-          !daysConfirmed &&
-          days !== calculatedDays
-        ) {
-          openProjectDaysConfirm(calculatedDays, days, () =>
-            handleStageProjectEditSubmit(project, mode, true),
-          );
+        const differences = projectSaveDifferences(project.opportunityId || "", amount, calculatedDays, days);
+        if (mode === "in-progress" && (differences.amountDiffers || differences.daysDiffer) && confirmedDifferences !== differences.key) {
+          openProjectSaveConfirm(differences, key => handleStageProjectEditSubmit(project, mode, key));
           return;
         }
 
@@ -25529,7 +25489,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
         renderPage();
         toast("保存成功");
       }
-      function handleProjectFormSubmit(editing, daysConfirmed = false, quoteConfirmedKey = "") {
+      function handleProjectFormSubmit(editing, confirmedDifferences = null) {
         if (!editing && !hasOperationPermission("projects.create")) return;
         const project = editing ? projectById(selectedProjectId) : null;
         if (editing) {
@@ -25570,7 +25530,6 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
           type === "培训项目" ? selectedInstructorNames("pfHelpers") : [];
 
         const opportunityId = editing ? project.opportunityId || "" : $("#pfOpportunity")?.value || "";
-        const usesTeacherQuote = projectUsesTeacherQuotes(project, resourceType);
         const errors = {};
         if (!editing) {
           if (!opportunityId) errors.pfOpportunity = "请选择所属商机";
@@ -25608,10 +25567,10 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
             errors.pfCustomer = "该客户未匹配到唯一有效项目负责人，无法创建项目";
         }
 
-        const effPackageId = ["采购包课程", "平台师资合作"].includes(resourceType) ? packageId : "";
+        const effPackageId = resourceType === "采购包课程" ? packageId : "";
         const effDirectionIntro =
-          ["采购包课程", "平台师资合作"].includes(resourceType) ? directionIntro : "";
-        const selectedCourseId = type === "培训项目" && resourceType !== "框架服务" ? projectFormCourseId() : "";
+          resourceType === "采购包课程" ? directionIntro : "";
+        const selectedCourseId = type === "培训项目" && resourceType === "采购包课程" ? projectFormCourseId() : "";
         const frameworkId = resourceType === "框架服务" ? $("#pfFramework")?.value || "" : "";
         const effCompanyId = ["师资合作", "走账合作"].includes(cooperation)
           ? companyId
@@ -25633,12 +25592,12 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
           (resourceType !== project.resourceType ||
             frameworkId !== (project.frameworkId || "") ||
             cooperation !== project.cooperation ||
-            effPackageId !== (project.packageId || "") ||
-            effDirectionIntro !== (project.directionIntro || "") ||
+            effPackageId !== (resourceType === "采购包课程" ? project.packageId || "" : "") ||
+            effDirectionIntro !== (resourceType === "采购包课程" ? project.directionIntro || "" : "") ||
             effCompanyId !== (project.companyId || ""));
         const preserveExistingSnapshot = editing && !resourceChanged;
 
-        if (["采购包课程", "平台师资合作"].includes(resourceType)) {
+        if (resourceType === "采购包课程") {
           if (!effPackageId) errors.pfPackage = "请选择采购包";
           else {
             const pkg = projectPackages.find((item) => item.id === effPackageId);
@@ -25672,16 +25631,13 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
             errors.pfDays =
               "项目确认天数最小为0.5天，且必须为0.5天的整数倍";
         }
-        if ((type === "AI软件项目" || resourceType === "框架服务" || usesTeacherQuote) && (!Number.isFinite(amount) || amount <= 0))
+        if ((type === "AI软件项目" || resourceType === "框架服务") && (!Number.isFinite(amount) || amount <= 0))
           errors.pfAmount = "请填写大于 0 且最多6位小数的项目金额（含税，万元）";
         if (type === "培训项目" && !lecturers.length)
           errors.pfLecturers = "培训项目至少需要选择一名主讲师";
 
         const teacherAssignments = type === "培训项目" ? projectFormTeacherAssignments() : {};
-        const teacherQuote = usesTeacherQuote ? projectTeacherQuoteCalculation(teacherAssignments, projectTeacherQuoteChoices(project), Number(daysValue)) : null;
-        if (teacherQuote?.errors.length) errors.pfConflicts = teacherQuote.errors.join("；");
-        if (usesTeacherQuote && teacherQuote.amount == null && !teacherQuote.errors.length) errors.pfConflicts = "请补齐老师报价及项目确认天数";
-        if (type === "培训项目" && resourceType !== "框架服务" && !projectPackages.find(pkg=>pkg.id===effPackageId)?.directions.some(course=>course.directionId===selectedCourseId)) errors.pfDirection = "请选择有效采购包课程";
+        if (type === "培训项目" && resourceType === "采购包课程" && !projectPackages.find(pkg=>pkg.id===effPackageId)?.directions.some(course=>course.directionId===selectedCourseId)) errors.pfDirection = "请选择有效采购包课程";
         const conflictPersonnel = {
           teacherAssignments,
           lecturers,
@@ -25767,8 +25723,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
           };
         }
 
-        if (usesTeacherQuote) { snapshot.teacherQuote = teacherQuote; snapshot.unitPrice = null; unitPrice = null; }
-        if (type === "培训项目" && resourceType !== "框架服务" && !usesTeacherQuote && unitPrice == null) {
+        if (type === "培训项目" && resourceType !== "框架服务" && unitPrice == null) {
           showProjectFormError(
             "pfResource",
             "当前项目类型、资源类型与合作形式不匹配，请重新选择",
@@ -25778,7 +25733,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
         const days = Number(daysValue);
         const calculatedDays = naturalDayCount(startTime, endTime);
         const projectAmount =
-          type === "培训项目" && resourceType !== "框架服务" && !usesTeacherQuote ? round2(unitPrice * days) : round2(amount);
+          type === "培训项目" && resourceType !== "框架服务" ? round2(unitPrice * days) : round2(amount);
         const feeRate =
           cooperation === "走账合作"
             ? preserveExistingSnapshot && project.snapshot?.managementFeeRate != null
@@ -25814,18 +25769,12 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
           assistantLecturers: assistants,
           teachingAssistants: helpers,
         };
-        const daysConfirmationKey = JSON.stringify({ calculatedDays, days });
-        if (days !== calculatedDays && (usesTeacherQuote ? daysConfirmed !== daysConfirmationKey : !daysConfirmed)) {
-          openProjectDaysConfirm(calculatedDays, days, () =>
-            handleProjectFormSubmit(editing, usesTeacherQuote ? daysConfirmationKey : true, quoteConfirmedKey),
-          );
+        const differences = projectSaveDifferences(opportunityId, projectAmount, calculatedDays, days);
+        if ((differences.amountDiffers || differences.daysDiffer) && confirmedDifferences !== differences.key) {
+          openProjectSaveConfirm(differences, key => handleProjectFormSubmit(editing, key));
           return;
         }
-        const quoteKey = usesTeacherQuote ? JSON.stringify({ actor: currentUser.username, customerId, opportunityId, quote: teacherQuote, amount: projectAmount }) : "";
-        if (usesTeacherQuote && projectAmount !== teacherQuote.amount && quoteKey !== quoteConfirmedKey) {
-          openProjectQuoteConfirm(teacherQuote, projectAmount, () => handleProjectFormSubmit(editing, daysConfirmed, quoteKey));
-          return;
-        }
+
         if (editing) {
           writePreStartEditHistory(project, payload);
           Object.assign(project, payload);
@@ -26672,14 +26621,14 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
         if (cooperationSelect)
           cooperationSelect.onchange = refreshProjectFormDynamics;
         const amountInput = $("#pfAmount");
-        if (amountInput) amountInput.oninput = () => { if (projectUsesTeacherQuotes(editing ? projectById(selectedProjectId) : null, $("#pfResource")?.value)) amountInput.dataset.quoteEdited = "true"; refreshProjectFormAmounts(); };
+        if (amountInput) amountInput.oninput = refreshProjectFormAmounts;
         ["#pfDirection", "#pfCompany"].forEach((selector) => {
           const el = $(selector);
           if (el) el.onchange = () => { refreshProjectFormAmounts(); refreshProjectTeacherCandidates(); };
         });
         const confirmedDays = $("#pfDays");
         if (confirmedDays)
-          confirmedDays.oninput = confirmedDays.onchange = () => {
+          confirmedDays.oninput = () => {
             confirmedDays.dataset.userEdited = "true";
             refreshProjectFormAmounts();
           };
@@ -26811,20 +26760,43 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
         if (fee == null) return "";
         return !["number", "string"].includes(typeof fee) || !Number.isFinite(Number(fee)) || Number(fee) < 0 || !/^(\d{1,6})(\.\d{1,2})?$/.test(String(fee)) ? "课酬须为非负金额、最多6位整数、最多两位小数" : "";
       }
-      function teacherNormalizeRoleFees(input, internal) {
+      function teacherQuoteError(value, required, basis = "") {
+        const empty = value => value == null || value === "";
+        const fields = [["untaxedFee", "不含税价", "UntaxedFee"], ["taxRate", "税率", "TaxRate"], ["fee", "含税价", "Fee"]];
+        for (const [key, label, quoteField] of fields) {
+          const raw = value?.[key];
+          if (empty(raw)) { if (required) return { error: `请填写${label}`, quoteField }; continue; }
+          const valid = key === "taxRate"
+            ? ["number", "string"].includes(typeof raw) && /^\d{1,3}(\.\d{1,2})?$/.test(String(raw)) && Number(raw) >= 0 && Number(raw) <= 100
+            : !teacherFeeError(raw);
+          if (!valid) return { error: key === "taxRate" ? "税率须为0%～100%、最多两位小数" : `${label}须为非负金额、最多6位整数、最多两位小数`, quoteField };
+        }
+        if (fields.some(([key]) => empty(value?.[key]))) return null;
+        const untaxed = Number(value.untaxedFee), taxed = Number(value.fee), rate = Number(value.taxRate);
+        const forward = round2(untaxed * (1 + rate / 100)) === taxed, reverse = round2(taxed / (1 + rate / 100)) === untaxed;
+        const consistent = basis === "taxed" ? reverse : basis === "untaxed" ? forward : forward || reverse;
+        return consistent ? null : { error: "不含税价、税率与含税价不一致，请调整后保存", quoteField: "Fee" };
+      }
+      function teacherNormalizeRoleFees(input, internal, teachingTypes = []) {
         if (input != null && (typeof input !== "object" || Array.isArray(input))) return { error: "课酬格式不正确" };
         const fees = {};
         for (const type of TEACHER_TEACHING_TYPES) {
           const row = input?.[type];
           if (row != null && (typeof row !== "object" || Array.isArray(row))) return { error: "课酬格式不正确" };
           fees[type] = {};
-          for (const [key] of teacherFeeKinds(internal)) {
+          for (const [key, label] of teacherFeeKinds(internal)) {
             const value = row?.[key];
             if (value != null && (typeof value !== "object" || Array.isArray(value))) return { error: "课酬格式不正确" };
             const amount = value?.fee == null || value.fee === "" ? null : value.fee;
-            const error = teacherFeeError(amount);
-            if (error) return { error: `${type}：${error}` };
-            fees[type][key] = { fee: amount == null ? null : Number(amount) };
+            if (key === "settlement") {
+              const error = teacherFeeError(amount);
+              if (error) return { error: `${type} · ${label}：${error}`, feeType: type, feeKind: key, quoteField: "Fee" };
+              fees[type][key] = { fee: amount == null ? null : Number(amount) };
+            } else {
+              const error = teacherQuoteError(value, teachingTypes.includes(type), value?._basis);
+              if (error) return { ...error, error: `${type} · ${label}：${error.error}`, feeType: type, feeKind: key };
+              fees[type][key] = Object.fromEntries(["untaxedFee", "taxRate", "fee"].map(field => [field, value?.[field] == null || value[field] === "" ? null : Number(value[field])]));
+            }
           }
         }
         return { fees };
@@ -26913,7 +26885,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
             if (channel.kind === "agency" && !channel.agencyName) return { error: "请填写机构名称", channelIndex };
             if (channel.phone && !/^[+\d\s()-]{5,30}$/.test(channel.phone)) return { error: "机构联系电话格式不正确", channelIndex };
             if (channel.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(channel.email)) return { error: "机构联系人邮箱格式不正确", channelIndex };
-            const normalized = teacherNormalizeRoleFees(channel.roleFees, false); if (normalized.error) return { error: normalized.error, channelIndex };
+            const normalized = teacherNormalizeRoleFees(channel.roleFees, false, draft.teachingTypes); if (normalized.error) return { ...normalized, channelIndex };
             channel.roleFees = normalized.fees;
             if (!teacherIsFacultySupervisor() && !hasFieldPermission("teacher_fee_view")) {
               const before = existing?.channels.find((item) => item.id === channel.id);
@@ -26931,7 +26903,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
         }
         let roleFees;
         if (type === "内部") {
-          const normalized = teacherNormalizeRoleFees(draft.roleFees, true); if (normalized.error) return { error: normalized.error };
+          const normalized = teacherNormalizeRoleFees(draft.roleFees, true, draft.teachingTypes); if (normalized.error) return normalized;
           roleFees = normalized.fees;
           if (!teacherIsFacultySupervisor() && !hasFieldPermission("teacher_fee_view") && JSON.stringify(roleFees) !== JSON.stringify(teacherNormalizeRoleFees(existing?.roleFees, true).fees)) return { error: "无权修改课酬" };
         }
@@ -27001,8 +26973,42 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
         return `<div class="form-group full"><span class="form-label">教学方向 *</span><div class="multi-select teacher-direction-picker" id="tfDirectionPicker"><button type="button" class="multi-select-trigger" id="tfDirectionToggle" aria-expanded="false" aria-controls="tfDirectionPanel"><span id="tfDirectionLabel">请选择教学方向（可多选）</span><span>⌄</span></button><div class="multi-select-menu teacher-direction-panel hidden" id="tfDirectionPanel"><input class="input" id="tfDirectionSearch" type="search" placeholder="搜索教学方向" aria-label="搜索教学方向"><div class="teacher-direction-options">${teacherCourseOptions().map((direction) => `<label class="choice-item" data-teacher-direction-option><input type="checkbox" data-teacher-direction value="${direction.id}" ${teacher?.directions.includes(direction.id) ? "checked" : ""}><span>${escapeHtml(teacherDirectionName(direction.id))}</span></label>`).join("")}<div class="empty" id="tfDirectionEmpty" hidden>无匹配教学方向</div></div></div></div><div class="teacher-direction-selected" id="tfDirectionSelected" aria-live="polite"></div></div>`;
       }
       function teacherRoleFeeForm(prefix, fees, internal) {
-        const kinds = teacherFeeKinds(internal);
-        return `<div class="form-group full"><span class="form-label">报价与课酬（元/天，选填）</span><div class="list-sub">对外标准报价及渠道参考报价统一为含税价。</div><div class="table-wrap"><table class="teacher-fee-table" data-teacher-fee-table><thead><tr><th>授课类型</th>${kinds.map(([key, label]) => `<th>${label}（${key === "settlement" ? "" : "含税，"}元/天）</th>`).join("")}</tr></thead><tbody>${TEACHER_TEACHING_TYPES.map((type, index) => `<tr data-teacher-fee-type="${type}" hidden><th>${type}</th>${kinds.map(([key, label]) => { const value = fees?.[type]?.[key]; const id = prefix + index + key; return `<td><input class="input" id="${id}Fee" type="number" min="0" step="0.01" placeholder="选填" aria-label="${type}${label}（${key === "settlement" ? "" : "含税，"}元/天）" value="${escapeHtml(value?.fee ?? "")}"></td>`; }).join("")}</tr>`).join("")}</tbody></table></div></div>`;
+        const kind = internal ? "standard" : "reference", label = internal ? "对外标准报价" : "渠道参考报价";
+        const note = internal ? "对外标准报价用于师资对外合作和项目报价参考；内部结算课酬为公司内部结算参考，选填，不参与对外报价。" : "参考报价用于当前合作渠道的选师及项目报价参考。";
+        return `<div class="form-group full"><span class="form-label">${label}</span><div class="list-sub">${note}</div><div class="list-sub">不含税价、税率、含税价均必填，填写任意两项计算第三项；价格单位元/天，税率填6表示6%，双0价格须手填税率。</div><div class="table-wrap"><table class="teacher-fee-table" data-teacher-fee-table><thead><tr><th>授课类型</th><th>不含税价（元/天） *</th><th>税率（%） *</th><th>含税价（元/天） *</th>${internal ? '<th>内部结算课酬<br>（元/天，选填）</th>' : ""}</tr></thead><tbody>${TEACHER_TEACHING_TYPES.map((type, index) => {
+          const value = fees?.[type]?.[kind], id = prefix + index + kind;
+          return `<tr data-teacher-fee-type="${type}" data-quote-prefix="${id}" data-quote-validation-basis="${value && !teacherQuoteError(value, true, "taxed") && teacherQuoteError(value, true, "untaxed") ? "taxed" : "untaxed"}" hidden><th>${type}</th>${[["untaxedFee","UntaxedFee","不含税价"],["taxRate","TaxRate","税率"],["fee","Fee","含税价"]].map(([field,suffix,title]) => `<td><input class="input" id="${id}${suffix}" type="number" min="0" max="${field === "taxRate" ? 100 : 999999.99}" step="0.01" required data-teacher-quote-field="${field}" aria-label="${type}${label}${title}（${field === "taxRate" ? "%" : "元/天"}）" placeholder="必填" value="${escapeHtml(value?.[field] ?? "")}"></td>`).join("")}${internal ? `<td><input class="input" id="${prefix}${index}settlementFee" type="number" min="0" max="999999.99" step="0.01" aria-label="${type}内部结算课酬（元/天）" placeholder="选填" value="${escapeHtml(fees?.[type]?.settlement?.fee ?? "")}"></td>` : ""}</tr>`;
+        }).join("")}</tbody></table></div></div>`;
+      }
+      function teacherQuoteInputNumber(input, field) {
+        if (!input || input.value.trim() === "") return null;
+        const raw = input.value.trim();
+        if (field === "taxRate" ? !/^\d{1,3}(\.\d{1,2})?$/.test(raw) || Number(raw) > 100 : teacherFeeError(raw)) return null;
+        return Number(raw);
+      }
+      function teacherRecalculateQuote(row, source) {
+        const input = field => row.querySelector(`[data-teacher-quote-field="${field}"]`);
+        const value = field => teacherQuoteInputNumber(input(field), field);
+        if (source !== "taxRate") row.dataset.quoteBasis = source === "fee" ? "taxed" : "untaxed";
+        if (value(source) == null) return;
+        const untaxed = value("untaxedFee"), taxed = value("fee"), rate = value("taxRate");
+        if (rate == null) {
+          if (input("taxRate").value.trim() !== "") return;
+          if (source !== "taxRate" && untaxed != null && untaxed > 0 && taxed != null) {
+            const derived = round2((taxed / untaxed - 1) * 100);
+            if (derived >= 0 && derived <= 100) { input("taxRate").value = derived.toFixed(2); row.dataset.quoteValidationBasis = "untaxed"; }
+          }
+          return;
+        }
+        const basis = row.dataset.quoteBasis || "untaxed";
+        row.dataset.quoteValidationBasis = basis;
+        const result = basis === "taxed" ? taxed == null ? null : round2(taxed / (1 + rate / 100)) : untaxed == null ? null : round2(untaxed * (1 + rate / 100));
+        if (result != null && result >= 0 && result <= 999999.99) input(basis === "taxed" ? "untaxedFee" : "fee").value = result.toFixed(2);
+      }
+      function teacherBindQuoteInputs(form) {
+        form.querySelectorAll("[data-teacher-quote-field]").forEach(input => {
+          input.oninput = () => teacherRecalculateQuote(input.closest("[data-teacher-fee-type]"), input.dataset.teacherQuoteField);
+        });
       }
       function teacherSyncFeeTypes(form) {
         const selected = new Set([...form.querySelectorAll("[data-teacher-type]:checked")].map((input) => input.value));
@@ -27014,7 +27020,9 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
       function teacherReadRoleFees(prefix, internal, before) {
         return Object.fromEntries(TEACHER_TEACHING_TYPES.map((type, index) => [type, Object.fromEntries(teacherFeeKinds(internal).map(([key]) => {
           const id = prefix + index + key, fee = $("#" + id + "Fee");
-          return [key, fee ? { fee: fee.value.trim() } : before?.[type]?.[key] || { fee: null }];
+          return [key, !fee ? before?.[type]?.[key] || { fee: null } : key === "settlement" ? { fee: fee.value.trim() } : {
+            untaxedFee: $("#" + id + "UntaxedFee").value.trim(), taxRate: $("#" + id + "TaxRate").value.trim(), fee: fee.value.trim(), _basis: fee.closest("[data-teacher-fee-type]").dataset.quoteValidationBasis || fee.closest("[data-teacher-fee-type]").dataset.quoteBasis || "untaxed"
+          }];
         }))]));
       }
       function teacherContactInput(label, key, value, prefix = "tf") {
@@ -27111,6 +27119,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
           });
           document.querySelectorAll("[data-teacher-contact]").forEach((input) => input.oninput = () => input.dataset.unchanged = "false");
           teacherSyncFeeTypes(form);
+          teacherBindQuoteInputs(form);
         }; bindRows();
         const addChannel = (kind) => { $("#tfChannels").insertAdjacentHTML("beforeend", teacherChannelForm({ kind }, channelIndex++)); bindRows(); const row = $("#tfChannels").lastElementChild; row.scrollIntoView({ block: "nearest" }); [...row.querySelectorAll("input")].find(input => !input.closest("[hidden]"))?.focus({ preventScroll: true }); };
         if ($("#tfAddAgency")) $("#tfAddAgency").onclick = () => addChannel("agency");
@@ -27141,8 +27150,10 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
             const result = teacherSaveProfile(id, draft, confirmationKey);
             if (result.error) {
               restoreEditor(); $("#tfError").textContent = result.error;
-              const target = Number.isInteger(result.channelIndex) ? [...form.querySelectorAll("[data-teacher-channel-row]")][result.channelIndex] : result.field ? $("#" + result.field) : null;
-              showProfileTab(Number.isInteger(result.channelIndex) || (!result.field && /课酬|渠道/.test(result.error)) ? "fees" : "basic");
+              const channel = Number.isInteger(result.channelIndex) ? [...form.querySelectorAll("[data-teacher-channel-row]")][result.channelIndex] : null;
+              const feeId = result.feeType ? (channel?.dataset.channelPrefix || "tfInternal") + TEACHER_TEACHING_TYPES.indexOf(result.feeType) + result.feeKind + result.quoteField : "";
+              const target = feeId ? $("#" + feeId) : channel || (result.field ? $("#" + result.field) : null);
+              showProfileTab(Number.isInteger(result.channelIndex) || result.feeType || (!result.field && /课酬|渠道|报价|税率/.test(result.error)) ? "fees" : "basic");
               if (target) { if (result.field === "tfDirectionPicker") { setDirectionOpen(true); directionToggle.focus?.(); } target.scrollIntoView?.({ block: "nearest" }); if (target.matches?.("input, select")) target.focus(); }
               return;
             }

@@ -1335,10 +1335,10 @@
             ["开始日期", framework?.validFrom || "—"],
             ["到期日期", framework?.validTo || "—"],
           ] : []),
-          ...(project.packageId
+          ...(project.resourceType === "采购包课程" && project.packageId
             ? [["采购包", `${packageName}（${project.packageId}）`]]
             : []),
-          ...(project.directionIntro
+          ...(project.resourceType === "采购包课程" && project.directionIntro
             ? [["课程", project.directionIntro]]
             : []),
           ...(project.companyId
@@ -1359,7 +1359,7 @@
           ...(project.snapshot?.managementFeeRate != null
             ? [["管理费比例", formatConfigPercent(project.snapshot.managementFeeRate)]]
             : []),
-          ...(project.resourceType !== "框架服务" && !project.snapshot?.teacherQuote ? [[
+          ...(project.resourceType !== "框架服务" ? [[
             "项目单价（含税，元/天）",
             project.type === "培训项目"
               ? formatProjectMoney(project.unitPrice)
@@ -1368,7 +1368,7 @@
           [
             "项目金额（含税，万元）",
             formatProjectAmount(project.amount),
-            project.snapshot?.teacherQuote ? "已确认项目金额，开始后不随天数重算" : projectAmountFormulaText(project.type, project.resourceType),
+            projectAmountFormulaText(project.type, project.resourceType),
           ],
           [
             "结账金额（含税，万元）",
@@ -2030,7 +2030,7 @@
       function projectFormHtml(project) {
         const editing = Boolean(project);
         const type = project?.type || "";
-        const daysHelpText = project?.snapshot?.teacherQuote ? "确认天数用于计算老师报价参考，项目金额可修改" :
+        const daysHelpText =
           type === "培训项目" && project?.resourceType !== "框架服务"
             ? "项目费用按此天数计算"
             : type === "AI软件项目" || project?.resourceType === "框架服务"
@@ -2117,9 +2117,9 @@
               null
             : null;
         const isTraining = type === "培训项目";
-        const amountField = isTraining && resourceType !== "框架服务" && !projectUsesTeacherQuotes(project, resourceType)
+        const amountField = isTraining && resourceType !== "框架服务"
           ? `<input class="input" id="pfAmount" value="${project ? wanMoneyInput(project.amount) : ""}" disabled>`
-          : `<input class="input" id="pfAmount" type="number" min="0.000001" step="0.000001" data-quote-edited="${project?.snapshot?.teacherQuote ? "true" : "false"}" value="${project ? wanMoneyInput(project.amount) : ""}">`;
+          : `<input class="input" id="pfAmount" type="number" min="0.000001" step="0.000001" value="${project ? wanMoneyInput(project.amount) : ""}">`;
         const personnelHtml =
           `<div class="form-group full"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>主讲师</label>${instructorSelectHtml("pfLecturers", "主讲师", project?.lecturers || [], project)}<div class="field-error" id="err-pfLecturers"></div></div>` +
           `<div class="form-group full"><label class="form-label">辅训老师</label>${instructorSelectHtml("pfAssistants", "辅训老师", project?.assistantLecturers || [], project)}</div>` +
@@ -2210,9 +2210,9 @@
           projectFormFieldHtml(
             "pfAmount",
             "项目金额（含税，万元）",
-            amountField + '<div class="list-sub" id="pfTeacherQuoteReference" aria-live="polite" hidden></div>' + (!project ? '<div class="list-sub" id="pfOpportunityAmountReference" aria-live="polite" hidden></div>' : ""),
-            !isTraining || resourceType === "框架服务" || projectUsesTeacherQuotes(project, resourceType),
-            projectUsesTeacherQuotes(project, resourceType) ? "按老师报价提供参考，项目金额可修改" : projectAmountFormulaText(type, resourceType),
+            amountField + (!project ? '<div class="list-sub" id="pfOpportunityAmountReference" aria-live="polite" hidden></div>' : ""),
+            !isTraining || resourceType === "框架服务",
+            projectAmountFormulaText(type, resourceType),
             "pfAmountFormula",
           ) +
           projectFormFieldHtml(
@@ -2225,7 +2225,7 @@
           ) +
           `</div>` +
           `<div id="pfPersonnelSection" ${isTraining ? "" : 'style="display:none"'}>` +
-          `<div class="section-title">项目人员</div>${personnelHtml}<div id="pfTeacherQuotes" hidden></div>` +
+          `<div class="section-title">项目人员</div>${personnelHtml}` +
           `</div>` +
           `<div class="field-error" id="err-pfConflicts"></div>`
         );
@@ -2276,14 +2276,14 @@
               projectFormFieldHtml(
                 "pfDays",
                 "项目确认天数",
-                `<input class="input" id="pfDays" type="number" step="0.5" min="0.5" value="${project.days}" data-user-edited="${confirmationDaysEdited}"><div class="list-sub" id="pfDaysHelp">${project.snapshot?.teacherQuote ? "项目金额已确认，调整天数不重新计算金额" : isTraining && project.resourceType !== "框架服务" ? "项目费用按此天数计算" : "仅用于记录项目周期，不参与项目金额计算"}</div>`,
+                `<input class="input" id="pfDays" type="number" step="0.5" min="0.5" value="${project.days}" data-user-edited="${confirmationDaysEdited}"><div class="list-sub" id="pfDaysHelp">${isTraining && project.resourceType !== "框架服务" ? "项目费用按此天数计算" : "仅用于记录项目周期，不参与项目金额计算"}</div>`,
               ) +
               projectFormFieldHtml(
                 "pfAmount",
                 "项目金额（含税，万元）",
                 `<input class="input" id="pfAmount" value="${formatProjectAmount(project.amount)}" disabled>`,
                 false,
-                project.snapshot?.teacherQuote ? "已确认项目金额，开始后不随天数重算" : projectAmountFormulaText(project.type, project.resourceType),
+                projectAmountFormulaText(project.type, project.resourceType),
                 "pfAmountFormula",
               ) +
               projectFormFieldHtml(

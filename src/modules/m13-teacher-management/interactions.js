@@ -7,20 +7,43 @@
         if (fee == null) return "";
         return !["number", "string"].includes(typeof fee) || !Number.isFinite(Number(fee)) || Number(fee) < 0 || !/^(\d{1,6})(\.\d{1,2})?$/.test(String(fee)) ? "课酬须为非负金额、最多6位整数、最多两位小数" : "";
       }
-      function teacherNormalizeRoleFees(input, internal) {
+      function teacherQuoteError(value, required, basis = "") {
+        const empty = value => value == null || value === "";
+        const fields = [["untaxedFee", "不含税价", "UntaxedFee"], ["taxRate", "税率", "TaxRate"], ["fee", "含税价", "Fee"]];
+        for (const [key, label, quoteField] of fields) {
+          const raw = value?.[key];
+          if (empty(raw)) { if (required) return { error: `请填写${label}`, quoteField }; continue; }
+          const valid = key === "taxRate"
+            ? ["number", "string"].includes(typeof raw) && /^\d{1,3}(\.\d{1,2})?$/.test(String(raw)) && Number(raw) >= 0 && Number(raw) <= 100
+            : !teacherFeeError(raw);
+          if (!valid) return { error: key === "taxRate" ? "税率须为0%～100%、最多两位小数" : `${label}须为非负金额、最多6位整数、最多两位小数`, quoteField };
+        }
+        if (fields.some(([key]) => empty(value?.[key]))) return null;
+        const untaxed = Number(value.untaxedFee), taxed = Number(value.fee), rate = Number(value.taxRate);
+        const forward = round2(untaxed * (1 + rate / 100)) === taxed, reverse = round2(taxed / (1 + rate / 100)) === untaxed;
+        const consistent = basis === "taxed" ? reverse : basis === "untaxed" ? forward : forward || reverse;
+        return consistent ? null : { error: "不含税价、税率与含税价不一致，请调整后保存", quoteField: "Fee" };
+      }
+      function teacherNormalizeRoleFees(input, internal, teachingTypes = []) {
         if (input != null && (typeof input !== "object" || Array.isArray(input))) return { error: "课酬格式不正确" };
         const fees = {};
         for (const type of TEACHER_TEACHING_TYPES) {
           const row = input?.[type];
           if (row != null && (typeof row !== "object" || Array.isArray(row))) return { error: "课酬格式不正确" };
           fees[type] = {};
-          for (const [key] of teacherFeeKinds(internal)) {
+          for (const [key, label] of teacherFeeKinds(internal)) {
             const value = row?.[key];
             if (value != null && (typeof value !== "object" || Array.isArray(value))) return { error: "课酬格式不正确" };
             const amount = value?.fee == null || value.fee === "" ? null : value.fee;
-            const error = teacherFeeError(amount);
-            if (error) return { error: `${type}：${error}` };
-            fees[type][key] = { fee: amount == null ? null : Number(amount) };
+            if (key === "settlement") {
+              const error = teacherFeeError(amount);
+              if (error) return { error: `${type} · ${label}：${error}`, feeType: type, feeKind: key, quoteField: "Fee" };
+              fees[type][key] = { fee: amount == null ? null : Number(amount) };
+            } else {
+              const error = teacherQuoteError(value, teachingTypes.includes(type), value?._basis);
+              if (error) return { ...error, error: `${type} · ${label}：${error.error}`, feeType: type, feeKind: key };
+              fees[type][key] = Object.fromEntries(["untaxedFee", "taxRate", "fee"].map(field => [field, value?.[field] == null || value[field] === "" ? null : Number(value[field])]));
+            }
           }
         }
         return { fees };
@@ -109,7 +132,7 @@
             if (channel.kind === "agency" && !channel.agencyName) return { error: "请填写机构名称", channelIndex };
             if (channel.phone && !/^[+\d\s()-]{5,30}$/.test(channel.phone)) return { error: "机构联系电话格式不正确", channelIndex };
             if (channel.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(channel.email)) return { error: "机构联系人邮箱格式不正确", channelIndex };
-            const normalized = teacherNormalizeRoleFees(channel.roleFees, false); if (normalized.error) return { error: normalized.error, channelIndex };
+            const normalized = teacherNormalizeRoleFees(channel.roleFees, false, draft.teachingTypes); if (normalized.error) return { ...normalized, channelIndex };
             channel.roleFees = normalized.fees;
             if (!teacherIsFacultySupervisor() && !hasFieldPermission("teacher_fee_view")) {
               const before = existing?.channels.find((item) => item.id === channel.id);
@@ -127,7 +150,7 @@
         }
         let roleFees;
         if (type === "内部") {
-          const normalized = teacherNormalizeRoleFees(draft.roleFees, true); if (normalized.error) return { error: normalized.error };
+          const normalized = teacherNormalizeRoleFees(draft.roleFees, true, draft.teachingTypes); if (normalized.error) return normalized;
           roleFees = normalized.fees;
           if (!teacherIsFacultySupervisor() && !hasFieldPermission("teacher_fee_view") && JSON.stringify(roleFees) !== JSON.stringify(teacherNormalizeRoleFees(existing?.roleFees, true).fees)) return { error: "无权修改课酬" };
         }
@@ -197,8 +220,42 @@
         return `<div class="form-group full"><span class="form-label">教学方向 *</span><div class="multi-select teacher-direction-picker" id="tfDirectionPicker"><button type="button" class="multi-select-trigger" id="tfDirectionToggle" aria-expanded="false" aria-controls="tfDirectionPanel"><span id="tfDirectionLabel">请选择教学方向（可多选）</span><span>⌄</span></button><div class="multi-select-menu teacher-direction-panel hidden" id="tfDirectionPanel"><input class="input" id="tfDirectionSearch" type="search" placeholder="搜索教学方向" aria-label="搜索教学方向"><div class="teacher-direction-options">${teacherCourseOptions().map((direction) => `<label class="choice-item" data-teacher-direction-option><input type="checkbox" data-teacher-direction value="${direction.id}" ${teacher?.directions.includes(direction.id) ? "checked" : ""}><span>${escapeHtml(teacherDirectionName(direction.id))}</span></label>`).join("")}<div class="empty" id="tfDirectionEmpty" hidden>无匹配教学方向</div></div></div></div><div class="teacher-direction-selected" id="tfDirectionSelected" aria-live="polite"></div></div>`;
       }
       function teacherRoleFeeForm(prefix, fees, internal) {
-        const kinds = teacherFeeKinds(internal);
-        return `<div class="form-group full"><span class="form-label">报价与课酬（元/天，选填）</span><div class="list-sub">对外标准报价及渠道参考报价统一为含税价。</div><div class="table-wrap"><table class="teacher-fee-table" data-teacher-fee-table><thead><tr><th>授课类型</th>${kinds.map(([key, label]) => `<th>${label}（${key === "settlement" ? "" : "含税，"}元/天）</th>`).join("")}</tr></thead><tbody>${TEACHER_TEACHING_TYPES.map((type, index) => `<tr data-teacher-fee-type="${type}" hidden><th>${type}</th>${kinds.map(([key, label]) => { const value = fees?.[type]?.[key]; const id = prefix + index + key; return `<td><input class="input" id="${id}Fee" type="number" min="0" step="0.01" placeholder="选填" aria-label="${type}${label}（${key === "settlement" ? "" : "含税，"}元/天）" value="${escapeHtml(value?.fee ?? "")}"></td>`; }).join("")}</tr>`).join("")}</tbody></table></div></div>`;
+        const kind = internal ? "standard" : "reference", label = internal ? "对外标准报价" : "渠道参考报价";
+        const note = internal ? "对外标准报价用于师资对外合作和项目报价参考；内部结算课酬为公司内部结算参考，选填，不参与对外报价。" : "参考报价用于当前合作渠道的选师及项目报价参考。";
+        return `<div class="form-group full"><span class="form-label">${label}</span><div class="list-sub">${note}</div><div class="list-sub">不含税价、税率、含税价均必填，填写任意两项计算第三项；价格单位元/天，税率填6表示6%，双0价格须手填税率。</div><div class="table-wrap"><table class="teacher-fee-table" data-teacher-fee-table><thead><tr><th>授课类型</th><th>不含税价（元/天） *</th><th>税率（%） *</th><th>含税价（元/天） *</th>${internal ? '<th>内部结算课酬<br>（元/天，选填）</th>' : ""}</tr></thead><tbody>${TEACHER_TEACHING_TYPES.map((type, index) => {
+          const value = fees?.[type]?.[kind], id = prefix + index + kind;
+          return `<tr data-teacher-fee-type="${type}" data-quote-prefix="${id}" data-quote-validation-basis="${value && !teacherQuoteError(value, true, "taxed") && teacherQuoteError(value, true, "untaxed") ? "taxed" : "untaxed"}" hidden><th>${type}</th>${[["untaxedFee","UntaxedFee","不含税价"],["taxRate","TaxRate","税率"],["fee","Fee","含税价"]].map(([field,suffix,title]) => `<td><input class="input" id="${id}${suffix}" type="number" min="0" max="${field === "taxRate" ? 100 : 999999.99}" step="0.01" required data-teacher-quote-field="${field}" aria-label="${type}${label}${title}（${field === "taxRate" ? "%" : "元/天"}）" placeholder="必填" value="${escapeHtml(value?.[field] ?? "")}"></td>`).join("")}${internal ? `<td><input class="input" id="${prefix}${index}settlementFee" type="number" min="0" max="999999.99" step="0.01" aria-label="${type}内部结算课酬（元/天）" placeholder="选填" value="${escapeHtml(fees?.[type]?.settlement?.fee ?? "")}"></td>` : ""}</tr>`;
+        }).join("")}</tbody></table></div></div>`;
+      }
+      function teacherQuoteInputNumber(input, field) {
+        if (!input || input.value.trim() === "") return null;
+        const raw = input.value.trim();
+        if (field === "taxRate" ? !/^\d{1,3}(\.\d{1,2})?$/.test(raw) || Number(raw) > 100 : teacherFeeError(raw)) return null;
+        return Number(raw);
+      }
+      function teacherRecalculateQuote(row, source) {
+        const input = field => row.querySelector(`[data-teacher-quote-field="${field}"]`);
+        const value = field => teacherQuoteInputNumber(input(field), field);
+        if (source !== "taxRate") row.dataset.quoteBasis = source === "fee" ? "taxed" : "untaxed";
+        if (value(source) == null) return;
+        const untaxed = value("untaxedFee"), taxed = value("fee"), rate = value("taxRate");
+        if (rate == null) {
+          if (input("taxRate").value.trim() !== "") return;
+          if (source !== "taxRate" && untaxed != null && untaxed > 0 && taxed != null) {
+            const derived = round2((taxed / untaxed - 1) * 100);
+            if (derived >= 0 && derived <= 100) { input("taxRate").value = derived.toFixed(2); row.dataset.quoteValidationBasis = "untaxed"; }
+          }
+          return;
+        }
+        const basis = row.dataset.quoteBasis || "untaxed";
+        row.dataset.quoteValidationBasis = basis;
+        const result = basis === "taxed" ? taxed == null ? null : round2(taxed / (1 + rate / 100)) : untaxed == null ? null : round2(untaxed * (1 + rate / 100));
+        if (result != null && result >= 0 && result <= 999999.99) input(basis === "taxed" ? "untaxedFee" : "fee").value = result.toFixed(2);
+      }
+      function teacherBindQuoteInputs(form) {
+        form.querySelectorAll("[data-teacher-quote-field]").forEach(input => {
+          input.oninput = () => teacherRecalculateQuote(input.closest("[data-teacher-fee-type]"), input.dataset.teacherQuoteField);
+        });
       }
       function teacherSyncFeeTypes(form) {
         const selected = new Set([...form.querySelectorAll("[data-teacher-type]:checked")].map((input) => input.value));
@@ -210,7 +267,9 @@
       function teacherReadRoleFees(prefix, internal, before) {
         return Object.fromEntries(TEACHER_TEACHING_TYPES.map((type, index) => [type, Object.fromEntries(teacherFeeKinds(internal).map(([key]) => {
           const id = prefix + index + key, fee = $("#" + id + "Fee");
-          return [key, fee ? { fee: fee.value.trim() } : before?.[type]?.[key] || { fee: null }];
+          return [key, !fee ? before?.[type]?.[key] || { fee: null } : key === "settlement" ? { fee: fee.value.trim() } : {
+            untaxedFee: $("#" + id + "UntaxedFee").value.trim(), taxRate: $("#" + id + "TaxRate").value.trim(), fee: fee.value.trim(), _basis: fee.closest("[data-teacher-fee-type]").dataset.quoteValidationBasis || fee.closest("[data-teacher-fee-type]").dataset.quoteBasis || "untaxed"
+          }];
         }))]));
       }
       function teacherContactInput(label, key, value, prefix = "tf") {
@@ -307,6 +366,7 @@
           });
           document.querySelectorAll("[data-teacher-contact]").forEach((input) => input.oninput = () => input.dataset.unchanged = "false");
           teacherSyncFeeTypes(form);
+          teacherBindQuoteInputs(form);
         }; bindRows();
         const addChannel = (kind) => { $("#tfChannels").insertAdjacentHTML("beforeend", teacherChannelForm({ kind }, channelIndex++)); bindRows(); const row = $("#tfChannels").lastElementChild; row.scrollIntoView({ block: "nearest" }); [...row.querySelectorAll("input")].find(input => !input.closest("[hidden]"))?.focus({ preventScroll: true }); };
         if ($("#tfAddAgency")) $("#tfAddAgency").onclick = () => addChannel("agency");
@@ -337,8 +397,10 @@
             const result = teacherSaveProfile(id, draft, confirmationKey);
             if (result.error) {
               restoreEditor(); $("#tfError").textContent = result.error;
-              const target = Number.isInteger(result.channelIndex) ? [...form.querySelectorAll("[data-teacher-channel-row]")][result.channelIndex] : result.field ? $("#" + result.field) : null;
-              showProfileTab(Number.isInteger(result.channelIndex) || (!result.field && /课酬|渠道/.test(result.error)) ? "fees" : "basic");
+              const channel = Number.isInteger(result.channelIndex) ? [...form.querySelectorAll("[data-teacher-channel-row]")][result.channelIndex] : null;
+              const feeId = result.feeType ? (channel?.dataset.channelPrefix || "tfInternal") + TEACHER_TEACHING_TYPES.indexOf(result.feeType) + result.feeKind + result.quoteField : "";
+              const target = feeId ? $("#" + feeId) : channel || (result.field ? $("#" + result.field) : null);
+              showProfileTab(Number.isInteger(result.channelIndex) || result.feeType || (!result.field && /课酬|渠道|报价|税率/.test(result.error)) ? "fees" : "basic");
               if (target) { if (result.field === "tfDirectionPicker") { setDirectionOpen(true); directionToggle.focus?.(); } target.scrollIntoView?.({ block: "nearest" }); if (target.matches?.("input, select")) target.focus(); }
               return;
             }

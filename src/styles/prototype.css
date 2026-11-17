@@ -5882,6 +5882,8 @@
 .teacher-fee-table th, .teacher-fee-table td { padding: 8px; }
 .teacher-fee-table input { min-width: 100px; }
 .teacher-fee-table select { min-width: 86px; }
+.teacher-quote-detail { grid-column: 1 / -1; min-width: 0; }
+.teacher-fee-table th:first-child { width: 72px; white-space: nowrap; }
 .instructor-picker .multi-select-option label .list-sub { display: block; margin-top: 3px; font-size: 12px; }
 
 .teacher-type-projects { min-width: 0; table-layout: fixed; }

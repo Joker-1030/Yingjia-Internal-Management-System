@@ -103,8 +103,14 @@
       function teacherValidResidence(province, city) { return Boolean(province && city && Object.hasOwn(administrativeDivisions, province) && Object.hasOwn(administrativeDivisions[province], city)); }
       function teacherResidence(teacher) { return [teacher.residenceProvince, teacher.residenceCity].filter(Boolean).join(" · "); }
       function teacherFeeKinds(internal) { return internal ? [["standard", "对外标准报价"], ["settlement", "内部结算课酬"]] : [["reference", "参考报价"]]; }
-      function teacherRoleFeesHtml(fees, internal, teachingTypes) {
-        return TEACHER_TEACHING_TYPES.filter((type) => teachingTypes.includes(type)).map((type) => teacherFeeKinds(internal).map(([key, label]) => teacherFeeHtml(fees?.[type]?.[key]?.fee, `${type} · ${label}`, key !== "settlement")).join("")).join("");
+      function teacherRoleFeesHtml(fees, internal, teachingTypes, standardOnly = false) {
+        const kind = internal ? "standard" : "reference", settlement = internal && !standardOnly;
+        const explanation = internal ? "对外标准报价用于师资对外合作和项目报价参考。" + (settlement ? "内部结算课酬仅作公司内部结算参考，不参与对外报价。" : "") : "参考报价用于当前合作渠道的选师及项目报价参考。";
+        const price = value => value == null ? "—" : Number(value).toFixed(2);
+        return `<div class="teacher-quote-detail"><div class="list-sub">${explanation}</div><div class="table-wrap"><table class="teacher-fee-table"><thead><tr><th>授课类型</th><th>不含税价（元/天）</th><th>税率（%）</th><th>含税价（元/天）</th>${settlement ? '<th>内部结算课酬<br>（元/天）</th>' : ""}</tr></thead><tbody>${TEACHER_TEACHING_TYPES.filter(type => teachingTypes.includes(type)).map(type => {
+          const quote = fees?.[type]?.[kind];
+          return `<tr><th>${type}</th><td>${price(quote?.untaxedFee)}</td><td>${price(quote?.taxRate)}</td><td>${price(quote?.fee)}</td>${settlement ? `<td>${price(fees?.[type]?.settlement?.fee)}</td>` : ""}</tr>`;
+        }).join("")}</tbody></table></div></div>`;
       }
       function teacherPublicProfile(teacher) {
         return { name: teacherName(teacher), type: teacher.type, teachingTypes: teacher.teachingTypes.join("、"), residence: teacherResidence(teacher), intro: teacher.intro, gender: teacher.gender, birthDate: teacher.birthDate, age: teacherAge(teacher.birthDate), education: teacher.education, directions: teacher.directions.map(teacherDirectionName).join("、"), phone: maskTeacherContact(teacherRawContact(teacher, "phone"), "phone"), email: maskTeacherContact(teacher.email, "email"), wechat: maskTeacherContact(teacher.wechat, "wechat") };

@@ -1,11 +1,11 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-11-17T03:22:15.494Z",
+  "generatedAt": "2026-11-17T06:46:36.160Z",
   "generator": "scripts/build-prototype.mjs",
   "buildCommand": "node scripts/build-prototype.mjs",
   "sourceRoot": "src",
   "entry": "src/prototype.html",
-  "sourceDigest": "fa8867a9e8a117bab4b850beb17cc21e1766820f5440aa2cef6a729244504356",
+  "sourceDigest": "1d91452b767ce50512e26a56cc30ae7ca686e580ba8bb577169a5547f107edf9",
   "sourceFiles": [
     {
       "path": "src/app.js",
@@ -149,8 +149,8 @@
     },
     {
       "path": "src/data/teachers.js",
-      "sha256": "4bf20f35c7db46942289711c3d45c0f7f656b18b2dea1a96626d289c102fba6d",
-      "bytes": 9023
+      "sha256": "484a0d1b8ad0459e36e33d2b324bad26cae5f12d403838a8f7c815dd0c2e5547",
+      "bytes": 10099
     },
     {
       "path": "src/modules/_app-shell/account.js",
@@ -389,8 +389,8 @@
     },
     {
       "path": "src/modules/m11-project-management/interactions.js",
-      "sha256": "fe94f44bce6dab055edc1325c7f711d1219888cbeb563de7e665e77cadec77d7",
-      "bytes": 153146
+      "sha256": "9f2fd23dc156a970fd6031e48bb47e2093e3bb369b5fe688f56606ebc3021ae0",
+      "bytes": 146103
     },
     {
       "path": "src/modules/m11-project-management/module.json",
@@ -399,8 +399,8 @@
     },
     {
       "path": "src/modules/m11-project-management/page.js",
-      "sha256": "4c37474588e5fe9c3db604b1c7fbfd5933ad35dfbce9ddef239cfff19e896833",
-      "bytes": 136573
+      "sha256": "e06b294a8c12de4c2af459664619c41b35480f78b8c96eec87c42ba9c1ba444b",
+      "bytes": 135842
     },
     {
       "path": "src/modules/m12-sales-opportunity/interactions.js",
@@ -424,13 +424,13 @@
     },
     {
       "path": "src/modules/m13-teacher-management/catalog-materials.js",
-      "sha256": "b834a67ac045c437fa43e88761f3b0d5f05818556a5c1573c3ec219f9b2b0256",
-      "bytes": 24933
+      "sha256": "14c961fe113e2952a9791ceac8f0a56633aa968c772d89196bdd3a85df178528",
+      "bytes": 24869
     },
     {
       "path": "src/modules/m13-teacher-management/interactions.js",
-      "sha256": "32f5f24de7ba1642b7db08e239cd6aced085ca95541afe9e83c2ddad90c36717",
-      "bytes": 62954
+      "sha256": "61d593651fc8c8287d333b3dd2c3e37ab708240061e185e699535467ea85805e",
+      "bytes": 68683
     },
     {
       "path": "src/modules/m13-teacher-management/module.json",
@@ -439,8 +439,8 @@
     },
     {
       "path": "src/modules/m13-teacher-management/page.js",
-      "sha256": "f66e1112094ff94ef3beeb4485a3bfa4b357e33f94073dc145e29cae1fb25434",
-      "bytes": 36811
+      "sha256": "2322edc4b4e62dc671c33cbf841684db582ccb31a2a45c54c1ae671a0462ecba",
+      "bytes": 37792
     },
     {
       "path": "src/modules/m13-teacher-management/work.js",
@@ -454,8 +454,8 @@
     },
     {
       "path": "src/styles/prototype.css",
-      "sha256": "d836045aa90739f6d0611c3d86166d7fa6768ccabda6f8a2e15bcd2f07135210",
-      "bytes": 219575
+      "sha256": "7f050eeb747ac77da974d57625799476b2b5834976408b7c3f14cca120b288ce",
+      "bytes": 219708
     }
   ],
   "artifactInputs": [
@@ -537,8 +537,8 @@
   ],
   "artifact": {
     "path": "demo/prototype.html",
-    "sha256": "8222135a0cf0ea4157c5a0b6fccef3de7426454b9807ee628610f49c412a8421",
-    "bytes": 3370677
+    "sha256": "25910ab29ff69caf406c980a4653c44554670455fdc4df551809d03c6ca519d1",
+    "bytes": 3370758
   },
   "legacyBridge": false,
   "architecture": "lightweight-modular",

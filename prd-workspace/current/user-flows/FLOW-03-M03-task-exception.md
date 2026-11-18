@@ -24,3 +24,7 @@ flowchart TD
     R -- 否 --> S[阻止提交]
     R -- 是 --> T[用户确认后直接形成正式记录<br/>认定按期并保留曾经逾期]
 ```
+
+## PM任务禁止主管代办（2026-11-18，DEC-257）
+
+总监查看主管中心PM任务 → 只读，无完成/补录/补完成/延期/暂停/取消入口；直接调用同样拒绝。总监从客户经营/维系管理录本人记录或从商机跟进同步 → 不匹配或关联完成PM任务 → 保存实际总监本人记录，PM任务状态/截止及续期不变；伪造关联或失权整次拒绝。总监本人任务和独立有效admin原资格保持。Owner `prd-workspace/current/modules/M03-maintenance.md` → §2.1“总监记录与PM任务边界（DEC-257）”；验收 `prd-workspace/current/acceptance/M03.md` → AC-M03-DIRECTOR-PM-20261118。

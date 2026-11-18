@@ -184,4 +184,8 @@ flowchart TD
 
 ### 新增跟进同步维系（2026-11-16）
 
-沿M12 §11.1：统一维系字段 → 普通类型默认同步 → 每关键人唯一可完成本人常规任务默认勾选、可取消 → 补录按任务补齐原因/证明 → 提交复核 → 跟进/全部记录/所选任务完成续期同次成功。关闭或失败均不部分写入；平台类型无同步，M03原入口仍独立。来源 `prd-workspace/current/modules/M12-sales-opportunity.md` → §11.1及 `prd-workspace/current/acceptance/M12.md` → AC-M12-FOLLOWUP-MAINTENANCE-20261116。
+沿M12 §11.1：统一维系字段 → 普通类型默认同步 → 每关键人唯一可完成本人常规任务默认勾选、可取消 → 补录按任务补齐原因/证明 → 提交复核 → 跟进/全部记录/所选当前任务完成同次成功 → 常规下一期于北京时间完成提交日次日按M03 §6.2创建，截止从该次日加完成时职级周期计算，不在跟进保存时创建；次日生成失败只重试，不回滚已成功业务。关闭或失败均不部分写入；平台类型无同步，M03原入口仍独立。来源 `prd-workspace/current/modules/M12-sales-opportunity.md` → §11.1及 `prd-workspace/current/acceptance/M12.md` → AC-M12-FOLLOWUP-MAINTENANCE-20261116。
+
+## 总监操作主管中心PM客户商机（2026-11-18，DEC-257）
+
+校验当前主管关系及客户唯一中心/PM责任 → 总监创建/编辑/推进/纠错/跟进普通商机或执行原PM负责人侧支撑动作 → 沿原阶段/字段/附件/确认规则保存，负责人仍PM、操作者记总监。跟进同步按关键人建总监本人记录，不展示或关联完成PM任务；伪造参数、跨中心或失权整次拒绝。支撑受理人的接收/提交、独立领导只读视角、生态业务及仅admin恢复失效商机边界保持。Owner `prd-workspace/current/modules/M12-sales-opportunity.md` → §4.1“总监操作主管中心PM客户商机（DEC-257）”、§11.1；验收 `prd-workspace/current/acceptance/M12.md` → AC-M12-DIRECTOR-PM-20261118。

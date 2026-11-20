@@ -138,6 +138,9 @@
       function projectCustomerFacts(project) {
         return project?.customerSnapshot || null;
       }
+      function isProjectDeleted(project) {
+        return Boolean(project?.deletedAt);
+      }
       function customerStableCode(customer) {
         if (!customer) return "—";
         return customer.companyCode || String(customer.id);
@@ -166,7 +169,7 @@
         return projectCurrentOwner(project) === currentUser?.name;
       }
       function ecosystemEmployeeProjectCandidates(employeeCode) {
-        return projects.filter((project) => isEcosystemProject(project) &&
+        return projects.filter((project) => !isProjectDeleted(project) && isEcosystemProject(project) &&
           PROJECT_RESPONSIBILITY_TRANSFER_STAGES.has(project.stage) && ecosystemProjectOwnerCode(project) === employeeCode);
       }
       function ecosystemReceiverCandidates(employeeCode) {
@@ -259,7 +262,7 @@
           currentRoleTemplateNames().includes("财务") && hasPermission("projects") && hasOperationPermission("projects.view"));
       }
       function projectIsVisibleToCurrentUser(project) {
-        if (!currentUser || currentUser.disabled || !project || !hasPermission("projects") || !hasOperationPermission("projects.view")) return false;
+        if (!currentUser || currentUser.disabled || !project || isProjectDeleted(project) || !hasPermission("projects") || !hasOperationPermission("projects.view")) return false;
         const facts = projectCustomerFacts(project);
         if (!facts) return false;
         if (financeCanReadAllProjects() || currentUser.fullAccess || ["president", "vp"].includes(currentUser.role))
@@ -288,6 +291,9 @@
       }
       function canEditProject(project) {
         return Boolean(projectEditMode(project));
+      }
+      function canDeleteProject(project) {
+        return Boolean(project && !isProjectDeleted(project) && currentUser?.fullAccess && hasOperationPermission("projects.delete"));
       }
       function projectChangeHistory(project) {
         return Array.isArray(project?.changeHistory) ? project.changeHistory : [];
@@ -470,7 +476,7 @@
             : [],
         );
         return projects.filter((project) => {
-          if (isEcosystemProject(project) || !PROJECT_RESPONSIBILITY_TRANSFER_STAGES.has(project.stage))
+          if (isProjectDeleted(project) || isEcosystemProject(project) || !PROJECT_RESPONSIBILITY_TRANSFER_STAGES.has(project.stage))
             return false;
           const facts = projectCustomerFacts(project);
           if (!facts) return false;
@@ -723,7 +729,7 @@
         }
       }
       function normalizeAllProjectLifecycles() {
-        projects.forEach((project) => normalizeProjectLifecycle(project));
+        projects.filter((project) => !isProjectDeleted(project)).forEach((project) => normalizeProjectLifecycle(project));
       }
       function projectActionTodoLabels(project) {
         if (!project || ["已完成", "已取消", "已中止"].includes(project.stage))
@@ -963,7 +969,7 @@
         );
       }
       function projectOperableByCurrentUser(project) {
-        if (!project || !projectIsVisibleToCurrentUser(project) || !hasOperationPermission("projects.edit")) return false;
+        if (!project || isProjectDeleted(project) || !projectIsVisibleToCurrentUser(project) || !hasOperationPermission("projects.edit")) return false;
         if (currentUser.fullAccess || projectOwnedByCurrentUser(project)) return true;
         if (currentUser.role !== "director" || isEcosystemProject(project) || !companyInCurrentManagedRegion(projectCustomerFacts(project))) return false;
         const actor = employees.find(employee => employee.code === currentUser.employeeCode);
@@ -1157,7 +1163,7 @@
           `<td>${project.days}</td><td>${formatProjectAmount(project.amount)}</td><td>${formatProjectAmount(projectListSettlementAmount(project))}</td>` +
           `<td>${projectStageTag(project.stage)}</td>` +
           `<td>${projectTodoTags(project.todos)}</td>` +
-          `<td><button class="link" type="button" data-project-open="${projectId}">详情</button></td></tr>`
+          `<td><button class="link" type="button" data-project-open="${projectId}">详情</button>${canDeleteProject(project) ? ` <button class="link danger-link" type="button" data-project-delete="${projectId}">删除</button>` : ""}</td></tr>`
         );
       }
       function renderProjects() {
@@ -1313,7 +1319,7 @@
         const items = [
           ["项目编号", project.id],
           ["项目类型", project.type],
-          ["所属商机编号", project.opportunityId || "—"],
+          ["所属商机编号", project.opportunityId ? `${project.opportunityId}${(() => { const opportunity = opportunities.find(item => item.id === project.opportunityId); return opportunity?.deletedAt ? "（已删除关联）" : ""; })()}` : "—"],
           ...(project.type === "AI软件项目" ? [["实际交付时间", project.actualDeliveryTime || "—"]] : []),
           ["客户编号", facts?.customerCode || "—"],
           ["客户公司", facts?.name || "—"],
@@ -1681,6 +1687,9 @@
           canSupplementProjectMaterial(project)
             ? `<button class="btn" data-project-supplement>补充资料</button>`
             : "",
+          canDeleteProject(project)
+            ? `<button class="btn btn-danger" data-project-delete="${escapeHtml(project.id)}">删除项目</button>`
+            : "",
           '<button class="btn" id="backToProjects">返回项目列表</button>',
         ].join(" ");
         return (
@@ -2006,9 +2015,9 @@
         if (!platform && currentUser.role === "pm" && resolveProjectOwner(customer) !== currentUser.name) return [];
         const types = platform ? [SALES_ECOSYSTEM_TYPE] : ["培训商机", "AI 项目商机"];
         const customerCode = platform ? customer.id : `CU-${String(customer.id).padStart(4, "0")}`;
-        return opportunities.filter(item => item.stage === "中选" && types.includes(item.type) &&
+        return opportunities.filter(item => !item.deletedAt && item.stage === "中选" && types.includes(item.type) &&
           item.customerCode === customerCode && (!platform || salesEcosystemOwnerCode(item) === employee.code) &&
-          !projects.some(project => project.opportunityId === item.id));
+          !projects.some(project => !isProjectDeleted(project) && project.opportunityId === item.id));
       }
       function projectOpportunityCandidates(type, customerId, resourceType, ecosystemOwnerCode = "") {
         if (!type || !customerId || !resourceType || !projectAvailableResourceTypes(type).includes(resourceType)) return [];
@@ -2412,7 +2421,7 @@
         return Boolean(customer && ((roles.includes("区域总监") && companyInCurrentManagedRegion(customer)) || (roles.includes("PM") && companyIsVisible(customer))));
       }
       function projectFrameworkProjects(frameworkId) {
-        return projects.filter(project => project.resourceType === "框架服务" && project.frameworkId === frameworkId);
+        return projects.filter(project => !isProjectDeleted(project) && project.resourceType === "框架服务" && project.frameworkId === frameworkId);
       }
       function projectFrameworkUsage(frameworkId, excludeId = "") {
         let frozen = 0, delivered = 0;

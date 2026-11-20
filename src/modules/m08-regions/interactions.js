@@ -12,7 +12,7 @@
 
       function cityResponsibilityOpportunities(owners) {
         return opportunities.filter((opportunity) => {
-          if (opportunity.stage === "落选" || isEcosystemOpportunity(opportunity)) return false;
+          if (isOpportunityDeleted(opportunity) || opportunity.stage === "落选" || isEcosystemOpportunity(opportunity)) return false;
           const customer = salesOpportunityCustomer(opportunity);
           return customer && customer.level !== "省公司" && owners.some(
             (owner) => customerUsesCityOwner(customer, owner),
@@ -47,8 +47,8 @@
           people: contacts.filter(person => contactIsActive(person) && names.has(person.company)),
           tasks: openTasks.filter(task => task.type !== "关键人覆盖 KPI"),
           coverageKpis: openTasks.filter(task => task.type === "关键人覆盖 KPI"),
-          projects: projects.filter(project => !isEcosystemProject(project) && ids.has(String(project.customerId)) && PROJECT_RESPONSIBILITY_TRANSFER_STAGES.has(project.stage)),
-          opportunities: opportunities.filter(opportunity => !isEcosystemOpportunity(opportunity) && opportunity.stage !== "落选" && ids.has(String(salesOpportunityCustomer(opportunity)?.id))),
+          projects: projects.filter(project => !isProjectDeleted(project) && !isEcosystemProject(project) && ids.has(String(project.customerId)) && PROJECT_RESPONSIBILITY_TRANSFER_STAGES.has(project.stage)),
+          opportunities: opportunities.filter(opportunity => !isOpportunityDeleted(opportunity) && !isEcosystemOpportunity(opportunity) && opportunity.stage !== "落选" && ids.has(String(salesOpportunityCustomer(opportunity)?.id))),
         };
       }
       function cityHandoverItems(cityIds) {
@@ -695,8 +695,8 @@
         if (openTasks.some(task => names.has(task.company) ||
           (task.type === "关键人覆盖 KPI" && coverageTaskCompanies(task).some(customer => ids.has(String(customer.id)))))) reasons.push("未完成待办");
         if (campaigns.some(campaign => campaign.category === "关键人覆盖 KPI" && campaign.endDate >= DEMO_TODAY && coverageCampaignCompanies(campaign).some(customer => ids.has(String(customer.id))))) reasons.push("适用覆盖 KPI");
-        if (projects.some(project => !isEcosystemProject(project) && ids.has(String(project.customerId)) && PROJECT_RESPONSIBILITY_TRANSFER_STAGES.has(project.stage))) reasons.push("需交接项目");
-        if (opportunities.some(opportunity => !isEcosystemOpportunity(opportunity) && opportunity.stage !== "落选" && ids.has(String(salesOpportunityCustomer(opportunity)?.id)))) reasons.push("需交接商机");
+        if (projects.some(project => !isProjectDeleted(project) && !isEcosystemProject(project) && ids.has(String(project.customerId)) && PROJECT_RESPONSIBILITY_TRANSFER_STAGES.has(project.stage))) reasons.push("需交接项目");
+        if (opportunities.some(opportunity => !isOpportunityDeleted(opportunity) && !isEcosystemOpportunity(opportunity) && opportunity.stage !== "落选" && ids.has(String(salesOpportunityCustomer(opportunity)?.id)))) reasons.push("需交接商机");
         if (owners.some(owner => pendingCityHandover(owner.id))) reasons.push("未结束地市交接");
         return { ok: !reasons.length, error: reasons.length ? `仍有${reasons.join("、")}，请先完成交接` : "" };
       }
@@ -775,7 +775,7 @@
             if (allCenters && (!center || regionConfigurationStatus(center) !== "已配置")) throw new Error(`${customer.name} 的接收中心配置异常`);
             const directUnlink = emptyUnlink && emptyUnlinkCustomerIds.includes(customer.id);
             if (!responsibilityReceiverIsValid(customer, center, nextOwner) && !directUnlink) throw new Error(`${customer.name} 无有效接收人`);
-            const relatedProjects = projects.filter(project => !isEcosystemProject(project) && String(project.customerId) === String(customer.id) && PROJECT_RESPONSIBILITY_TRANSFER_STAGES.has(project.stage));
+            const relatedProjects = projects.filter(project => !isProjectDeleted(project) && !isEcosystemProject(project) && String(project.customerId) === String(customer.id) && PROJECT_RESPONSIBILITY_TRANSFER_STAGES.has(project.stage));
             relatedProjects.forEach(project => {
               if (project.responsibilityHistory != null && !Array.isArray(project.responsibilityHistory)) throw new Error(`项目 ${project.id} 责任历史异常`);
               const previousOwner = projectOwners.get(project.id);
@@ -783,7 +783,7 @@
               project.responsibilityHistory ||= [];
               if (project.responsibilityHistory.length === projectHistoryCounts.get(project.id)) project.responsibilityHistory.push({ type: "customer_responsibility_transfer", fromOwner: previousOwner, toOwner: nextOwner, area: projectArea(project), effectiveAt, operator: currentUser.name, referenceId, referenceType: reason, reason });
             });
-            opportunities.filter(opportunity => !isEcosystemOpportunity(opportunity) && opportunity.stage !== "落选" && salesOpportunityCustomer(opportunity)?.id === customer.id).forEach(opportunity => {
+            opportunities.filter(opportunity => !isOpportunityDeleted(opportunity) && !isEcosystemOpportunity(opportunity) && opportunity.stage !== "落选" && salesOpportunityCustomer(opportunity)?.id === customer.id).forEach(opportunity => {
               salesCapturePerformance(opportunity);
               const previousOwner = opportunity.owner;
               opportunity.owner = nextOwner;

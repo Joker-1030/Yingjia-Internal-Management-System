@@ -69,7 +69,7 @@
       function teacherDate(value) { return String(value || "").slice(0, 10); }
       function teacherDatesOverlap(start, end, otherStart, otherEnd) { return Boolean(start && end && otherStart && otherEnd && start <= otherEnd && otherStart <= end); }
       function teacherProjectBookings(teacherId, excludeProjectId = "") {
-        return projects.filter((project) => project.id !== excludeProjectId && project.type === "培训项目" && !["已取消", "已中止"].includes(project.stage) && teacherProjectIds(project).includes(teacherId));
+        return projects.filter((project) => !isProjectDeleted(project) && project.id !== excludeProjectId && project.type === "培训项目" && !["已取消", "已中止"].includes(project.stage) && teacherProjectIds(project).includes(teacherId));
       }
       function teacherConflicts(teacherId, start, end, excludeProjectId = "") {
         const from = teacherDate(start), to = teacherDate(end);

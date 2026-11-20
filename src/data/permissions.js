@@ -277,6 +277,7 @@
         ["projects.view", "projects", "查看项目列表与详情"],
         ["projects.create", "projects", "创建项目"],
         ["projects.edit", "projects", "按项目阶段编辑项目"],
+        ["projects.delete", "projects", "删除项目（仅 admin）"],
         ["packages.view", "packages", "查看采购包"],
         ["packages.manage", "packages", "维护采购包（新增/编辑/停用/恢复）"],
         ["platform-companies.view", "platform-companies", "查看平台公司"],
@@ -285,6 +286,7 @@
         ["opportunities.view", "opportunities", "查看商机列表与详情"],
         ["opportunities.create", "opportunities", "创建商机"],
         ["opportunities.progress", "opportunities", "推进本人负责商机并新增跟进"],
+        ["opportunities.delete", "opportunities", "删除商机（仅 admin）"],
         ["opportunities.support", "sales-supports", "处理本人方案支撑请求"],
         ["sales-targets.manage", "sales-targets", "维护有权层级成交金额目标"],
       ];

@@ -28,7 +28,7 @@
         return (o?.supports||[]).filter(s=>salesSupportValid(s)&&scope.codes.has(s.assigneeCode)&&(!employee||s.assigneeCode===employee));
       }
       function salesCanViewSupportOutcome(o) { return Boolean(opportunities.includes(o)&&salesSupportReferences(o).length); }
-      function salesOutcomeProjects(o) { return projects.filter(p=>p.opportunityId===o.id); }
+      function salesOutcomeProjects(o) { return projects.filter(p=>!isProjectDeleted(p) && p.opportunityId===o.id); }
       function salesOutcomeRows(employee='') {
         return opportunities.map(o=>({o,supports:salesSupportReferences(o,employee),projects:salesOutcomeProjects(o)})).filter(x=>x.supports.length);
       }

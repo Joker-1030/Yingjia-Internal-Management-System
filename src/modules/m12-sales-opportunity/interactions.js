@@ -596,6 +596,43 @@
         };
       }
 
+      function submitSalesDelete(itemId) {
+        const item = opportunities.find(row => row.id === itemId);
+        if (!item || !salesCanDelete(item) || isOpportunityDeleted(item)) {
+          closeOverlay();
+          return toast("当前商机已不存在或无权删除");
+        }
+        const now = salesNow();
+        item.deletedAt = now;
+        item.deletedBy = currentUser.name;
+        item.deletedStage = item.stage;
+        item.deletedAmount = item.stage === "中选" ? item.expectedContractAmount : item.estimateAmount;
+        item.editHistories ||= [];
+        item.editHistories.push({
+          time: now,
+          field: "删除状态",
+          before: "正常记录",
+          after: "已删除",
+          operator: currentUser.name,
+        });
+        item.updatedAt = now;
+        closeOverlay();
+        selectedOpportunityId = null;
+        opportunityDetailContext = "sales";
+        salesNavigate("opportunities");
+        toast("商机已删除，历史记录已保留");
+      }
+
+      function openSalesDeleteModal(itemId = selectedOpportunityId) {
+        const item = opportunities.find(row => row.id === itemId);
+        if (!item || !salesCanDelete(item) || isOpportunityDeleted(item)) return;
+        openModal(`<div class="modal-head"><div class="modal-title">删除商机</div><button class="icon-btn close" data-close aria-label="关闭">×</button></div><form id="salesDeleteForm"><div class="modal-body"><p class="role-note danger-note">确认删除“${escapeHtml(item.name)}”（${escapeHtml(item.id)}）？删除后商机从正常列表、当前统计和立项候选中排除，原阶段历史、业绩快照、操作审计及项目关联保留。</p></div><div class="modal-foot"><button class="btn" type="button" data-close>取消</button><button class="btn btn-danger" type="submit">确认删除</button></div></form>`);
+        document.querySelector("#salesDeleteForm").onsubmit = event => {
+          event.preventDefault();
+          submitSalesDelete(itemId);
+        };
+      }
+
       function salesNextStages(item) {
         const index = SALES_FORWARD_STAGES.indexOf(item.stage);
         if (index < 0 || item.stage === "中选") return [];
@@ -1823,6 +1860,9 @@
             opportunityDetailTab = "overview";
             salesNavigate("opportunity-detail");
           };
+        });
+        document.querySelectorAll("[data-opportunity-delete]").forEach((button) => {
+          button.onclick = () => openSalesDeleteModal(button.dataset.opportunityDelete);
         });
         document.querySelectorAll("[data-opportunity-tab]").forEach((button) => {
           button.onclick = () => {

@@ -337,6 +337,7 @@
         color: var(--red);
         border-color: var(--color-error-border);
       }
+      .danger-link { color: #b42318; }
       .btn-danger:hover,
       .btn-danger:active {
         background: var(--color-error-soft);
@@ -13104,6 +13105,9 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
       function projectCustomerFacts(project) {
         return project?.customerSnapshot || null;
       }
+      function isProjectDeleted(project) {
+        return Boolean(project?.deletedAt);
+      }
       function customerStableCode(customer) {
         if (!customer) return "—";
         return customer.companyCode || String(customer.id);
@@ -13132,7 +13136,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
         return projectCurrentOwner(project) === currentUser?.name;
       }
       function ecosystemEmployeeProjectCandidates(employeeCode) {
-        return projects.filter((project) => isEcosystemProject(project) &&
+        return projects.filter((project) => !isProjectDeleted(project) && isEcosystemProject(project) &&
           PROJECT_RESPONSIBILITY_TRANSFER_STAGES.has(project.stage) && ecosystemProjectOwnerCode(project) === employeeCode);
       }
       function ecosystemReceiverCandidates(employeeCode) {
@@ -13225,7 +13229,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
           currentRoleTemplateNames().includes("财务") && hasPermission("projects") && hasOperationPermission("projects.view"));
       }
       function projectIsVisibleToCurrentUser(project) {
-        if (!currentUser || currentUser.disabled || !project || !hasPermission("projects") || !hasOperationPermission("projects.view")) return false;
+        if (!currentUser || currentUser.disabled || !project || isProjectDeleted(project) || !hasPermission("projects") || !hasOperationPermission("projects.view")) return false;
         const facts = projectCustomerFacts(project);
         if (!facts) return false;
         if (financeCanReadAllProjects() || currentUser.fullAccess || ["president", "vp"].includes(currentUser.role))
@@ -13254,6 +13258,9 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
       }
       function canEditProject(project) {
         return Boolean(projectEditMode(project));
+      }
+      function canDeleteProject(project) {
+        return Boolean(project && !isProjectDeleted(project) && currentUser?.fullAccess && hasOperationPermission("projects.delete"));
       }
       function projectChangeHistory(project) {
         return Array.isArray(project?.changeHistory) ? project.changeHistory : [];
@@ -13436,7 +13443,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
             : [],
         );
         return projects.filter((project) => {
-          if (isEcosystemProject(project) || !PROJECT_RESPONSIBILITY_TRANSFER_STAGES.has(project.stage))
+          if (isProjectDeleted(project) || isEcosystemProject(project) || !PROJECT_RESPONSIBILITY_TRANSFER_STAGES.has(project.stage))
             return false;
           const facts = projectCustomerFacts(project);
           if (!facts) return false;
@@ -13689,7 +13696,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
         }
       }
       function normalizeAllProjectLifecycles() {
-        projects.forEach((project) => normalizeProjectLifecycle(project));
+        projects.filter((project) => !isProjectDeleted(project)).forEach((project) => normalizeProjectLifecycle(project));
       }
       function projectActionTodoLabels(project) {
         if (!project || ["已完成", "已取消", "已中止"].includes(project.stage))
@@ -13929,7 +13936,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
         );
       }
       function projectOperableByCurrentUser(project) {
-        if (!project || !projectIsVisibleToCurrentUser(project) || !hasOperationPermission("projects.edit")) return false;
+        if (!project || isProjectDeleted(project) || !projectIsVisibleToCurrentUser(project) || !hasOperationPermission("projects.edit")) return false;
         if (currentUser.fullAccess || projectOwnedByCurrentUser(project)) return true;
         if (currentUser.role !== "director" || isEcosystemProject(project) || !companyInCurrentManagedRegion(projectCustomerFacts(project))) return false;
         const actor = employees.find(employee => employee.code === currentUser.employeeCode);
@@ -14123,7 +14130,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
           `<td>${project.days}</td><td>${formatProjectAmount(project.amount)}</td><td>${formatProjectAmount(projectListSettlementAmount(project))}</td>` +
           `<td>${projectStageTag(project.stage)}</td>` +
           `<td>${projectTodoTags(project.todos)}</td>` +
-          `<td><button class="link" type="button" data-project-open="${projectId}">详情</button></td></tr>`
+          `<td><button class="link" type="button" data-project-open="${projectId}">详情</button>${canDeleteProject(project) ? ` <button class="link danger-link" type="button" data-project-delete="${projectId}">删除</button>` : ""}</td></tr>`
         );
       }
       function renderProjects() {
@@ -14279,7 +14286,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
         const items = [
           ["项目编号", project.id],
           ["项目类型", project.type],
-          ["所属商机编号", project.opportunityId || "—"],
+          ["所属商机编号", project.opportunityId ? `${project.opportunityId}${(() => { const opportunity = opportunities.find(item => item.id === project.opportunityId); return opportunity?.deletedAt ? "（已删除关联）" : ""; })()}` : "—"],
           ...(project.type === "AI软件项目" ? [["实际交付时间", project.actualDeliveryTime || "—"]] : []),
           ["客户编号", facts?.customerCode || "—"],
           ["客户公司", facts?.name || "—"],
@@ -14647,6 +14654,9 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
           canSupplementProjectMaterial(project)
             ? `<button class="btn" data-project-supplement>补充资料</button>`
             : "",
+          canDeleteProject(project)
+            ? `<button class="btn btn-danger" data-project-delete="${escapeHtml(project.id)}">删除项目</button>`
+            : "",
           '<button class="btn" id="backToProjects">返回项目列表</button>',
         ].join(" ");
         return (
@@ -14972,9 +14982,9 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
         if (!platform && currentUser.role === "pm" && resolveProjectOwner(customer) !== currentUser.name) return [];
         const types = platform ? [SALES_ECOSYSTEM_TYPE] : ["培训商机", "AI 项目商机"];
         const customerCode = platform ? customer.id : `CU-${String(customer.id).padStart(4, "0")}`;
-        return opportunities.filter(item => item.stage === "中选" && types.includes(item.type) &&
+        return opportunities.filter(item => !item.deletedAt && item.stage === "中选" && types.includes(item.type) &&
           item.customerCode === customerCode && (!platform || salesEcosystemOwnerCode(item) === employee.code) &&
-          !projects.some(project => project.opportunityId === item.id));
+          !projects.some(project => !isProjectDeleted(project) && project.opportunityId === item.id));
       }
       function projectOpportunityCandidates(type, customerId, resourceType, ecosystemOwnerCode = "") {
         if (!type || !customerId || !resourceType || !projectAvailableResourceTypes(type).includes(resourceType)) return [];
@@ -15378,7 +15388,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
         return Boolean(customer && ((roles.includes("区域总监") && companyInCurrentManagedRegion(customer)) || (roles.includes("PM") && companyIsVisible(customer))));
       }
       function projectFrameworkProjects(frameworkId) {
-        return projects.filter(project => project.resourceType === "框架服务" && project.frameworkId === frameworkId);
+        return projects.filter(project => !isProjectDeleted(project) && project.resourceType === "框架服务" && project.frameworkId === frameworkId);
       }
       function projectFrameworkUsage(frameworkId, excludeId = "") {
         let frozen = 0, delivered = 0;
@@ -15514,7 +15524,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
       function teacherDate(value) { return String(value || "").slice(0, 10); }
       function teacherDatesOverlap(start, end, otherStart, otherEnd) { return Boolean(start && end && otherStart && otherEnd && start <= otherEnd && otherStart <= end); }
       function teacherProjectBookings(teacherId, excludeProjectId = "") {
-        return projects.filter((project) => project.id !== excludeProjectId && project.type === "培训项目" && !["已取消", "已中止"].includes(project.stage) && teacherProjectIds(project).includes(teacherId));
+        return projects.filter((project) => !isProjectDeleted(project) && project.id !== excludeProjectId && project.type === "培训项目" && !["已取消", "已中止"].includes(project.stage) && teacherProjectIds(project).includes(teacherId));
       }
       function teacherConflicts(teacherId, start, end, excludeProjectId = "") {
         const from = teacherDate(start), to = teacherDate(end);
@@ -15868,20 +15878,20 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
           (teacherWorkRoleAllowed('老师')&&Boolean(teacherWorkSelf()))||teacherWorkRoleAllowed('教学管理人员'));
       }
       function teacherWorkCanView(project,t) {
-        if(!teacherWorkAccess()||!project||!t||!teacherProjectIds(project).includes(t.id))return false;
+        if(!teacherWorkAccess()||!project||isProjectDeleted(project)||!t||!teacherProjectIds(project).includes(t.id))return false;
         if(teacherWorkGlobalScope()||teacherIsFacultySupervisor()||(teacherWorkRoleAllowed('老师')&&teacherIsSelf(t)))return true;
         const scopes=teachingManagementAssignments[teacherEmployee()?.code]||[];
         return teacherWorkRoleAllowed('教学管理人员')&&teacherCanView(t)&&
           (t.type==='内部'?scopes.includes('internal'):t.channels.some(channel=>scopes.includes(channel.kind)));
       }
       function teacherEnsureRecapTasks() {
-        for(const p of projects){const stage=computeProjectStageAndTodos(p).stage;if(!['已交付','已完成'].includes(stage))continue;const deliveredAt=p.deliveredAt||(p.type==='培训项目'?p.endTime:'');if(!deliveredAt||deliveredAt.slice(0,10)<TEACHER_RECAP_EFFECTIVE_DATE)continue;
+        for(const p of projects){if(isProjectDeleted(p))continue;const stage=computeProjectStageAndTodos(p).stage;if(!['已交付','已完成'].includes(stage))continue;const deliveredAt=p.deliveredAt||(p.type==='培训项目'?p.endTime:'');if(!deliveredAt||deliveredAt.slice(0,10)<TEACHER_RECAP_EFFECTIVE_DATE)continue;
           for(const id of teacherProjectIds(p)){if(teacherById(id)?.type!=='内部'||teacherRecaps.some(x=>x.projectId===p.id&&x.teacherId===id))continue;teacherRecaps.push({id:`FP-${p.id}-${id}`,projectId:p.id,teacherId:id,status:'待填写',content:'',suggestion:'',files:[],history:[],generated:true,version:1,createdAt:deliveredAt});}}
       }
       function teacherRecapRows() {
         if(!teacherWorkAccess())return [];
         teacherEnsureRecapTasks();const self=teacherWorkSelf(),result=teacherRecaps.filter(x=>teacherWorkCanView(projectById(x.projectId),teacherById(x.teacherId)));
-        if(self&&teacherWorkRoleAllowed('老师'))for(const p of projects.filter(p=>['已交付','已完成'].includes(computeProjectStageAndTodos(p).stage)&&teacherProjectIds(p).includes(self.id))){if(!result.some(x=>x.projectId===p.id&&x.teacherId===self.id))result.push({id:'',projectId:p.id,teacherId:self.id,status:'可补写',history:[],files:[],version:0});}
+        if(self&&teacherWorkRoleAllowed('老师'))for(const p of projects.filter(p=>!isProjectDeleted(p)&&['已交付','已完成'].includes(computeProjectStageAndTodos(p).stage)&&teacherProjectIds(p).includes(self.id))){if(!result.some(x=>x.projectId===p.id&&x.teacherId===self.id))result.push({id:'',projectId:p.id,teacherId:self.id,status:'可补写',history:[],files:[],version:0});}
         return result;
       }
       let teacherWorkFilterState = { actor: null, recaps: {}, recommendations: {} };
@@ -15971,7 +15981,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
         if (!teacherCanViewRecommendation(x)) return toast('无权查看该推荐');
         const o = opportunities.find(item => item.id === x.opportunityId), p = projectById(x.projectId);
         const version = x.version, actor = currentUser, handle = teacherCanHandleRecommendation(x);
-        openModal(`<div class="modal-head"><div class="modal-title">老师推荐详情</div><button class="icon-btn close" data-close aria-label="关闭">×</button></div><div class="modal-body"><div class="detail-grid">${teacherInfoHtml('来源项目',p?.name)}${teacherInfoHtml('推荐老师',teacherName(teacherById(x.teacherId)))}${teacherInfoHtml('客户公司',teacherRecommendationCustomer(x)?.name)}${teacherInfoHtml('类型',x.type)}${teacherInfoHtml('状态',x.status)}${teacherInfoHtml('当前接收人',teacherRecommendationOwner(x).owner?.name)}${teacherInfoHtml('需求描述',x.description)}${teacherInfoHtml('创建时间',x.createdAt)}${x.reason?teacherInfoHtml('关闭原因',x.reason):''}${o?teacherInfoHtml('创建的商机',`${o.id} · ${o.name}`)+teacherInfoHtml('商机阶段',salesStageLabel(o.stage))+teacherInfoHtml('中选金额（含税，万元）',o.stage==='中选'?salesMoney(o.expectedContractAmount):'—'):''}</div>${o?`<div class="section-title">关联项目执行情况</div>${projects.filter(p=>p.opportunityId===o.id).map(p=>`<div class="teacher-channel-card">${escapeHtml(p.name)} · ${computeProjectStageAndTodos(p).stage}${projectIsVisibleToCurrentUser(p)?` <button class="btn btn-sm" data-project-open="${p.id}">项目详情</button>`:''}</div>`).join('')||'<p class="list-sub">尚未立项</p>'}`:''}<div class="field-error" id="recommendDetailError"></div></div>${handle?`<div class="modal-foot"><button class="btn" id="recommendClose">关闭推荐</button><button class="btn btn-primary" id="recommendConvert">创建商机</button></div>`:''}`);
+        openModal(`<div class="modal-head"><div class="modal-title">老师推荐详情</div><button class="icon-btn close" data-close aria-label="关闭">×</button></div><div class="modal-body"><div class="detail-grid">${teacherInfoHtml('来源项目',p?.name ? `${p.name}${p.deletedAt ? '（已删除关联）' : ''}` : '—')}${teacherInfoHtml('推荐老师',teacherName(teacherById(x.teacherId)))}${teacherInfoHtml('客户公司',teacherRecommendationCustomer(x)?.name)}${teacherInfoHtml('类型',x.type)}${teacherInfoHtml('状态',x.status)}${teacherInfoHtml('当前接收人',teacherRecommendationOwner(x).owner?.name)}${teacherInfoHtml('需求描述',x.description)}${teacherInfoHtml('创建时间',x.createdAt)}${x.reason?teacherInfoHtml('关闭原因',x.reason):''}${o?teacherInfoHtml('创建的商机',`${o.id} · ${o.name}`)+teacherInfoHtml('商机阶段',salesStageLabel(o.stage))+teacherInfoHtml('中选金额（含税，万元）',o.stage==='中选'?salesMoney(o.expectedContractAmount):'—'):''}</div>${o?`<div class="section-title">关联项目执行情况</div>${projects.filter(p=>p.opportunityId===o.id).map(p=>`<div class="teacher-channel-card">${escapeHtml(p.name)}${p.deletedAt ? '（已删除关联）' : ''} · ${computeProjectStageAndTodos(p).stage}${!p.deletedAt && projectIsVisibleToCurrentUser(p)?` <button class="btn btn-sm" data-project-open="${p.id}">项目详情</button>`:''}</div>`).join('')||'<p class="list-sub">尚未立项</p>'}`:''}<div class="field-error" id="recommendDetailError"></div></div>${handle?`<div class="modal-foot"><button class="btn" id="recommendClose">关闭推荐</button><button class="btn btn-primary" id="recommendConvert">创建商机</button></div>`:''}`);
         $('#modalLayer .modal').classList.add('teacher-profile-modal');
         bindProjectEvents();
         const check = () => currentUser === actor && teacherCanHandleRecommendation(x) && version === x.version;
@@ -16033,6 +16043,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
       const SALES_ECOSYSTEM_TYPE = "平台师资合作商机";
       const SALES_TYPES = ["培训商机", "AI 项目商机", SALES_ECOSYSTEM_TYPE];
       function isEcosystemOpportunity(item) { return item?.type === SALES_ECOSYSTEM_TYPE; }
+      function isOpportunityDeleted(item) { return Boolean(item?.deletedAt); }
       function salesEcosystemOwnerCode(item) {
         return item.ownerCode || employees.find(employee => employee.name === item.owner)?.code || "";
       }
@@ -16058,7 +16069,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
         return salesOwnerMatch(salesOpportunityCustomer(item), item.type, salesEcosystemOwnerCode(item));
       }
       function ecosystemEmployeeOpportunityCandidates(code) {
-        return opportunities.filter(item => isEcosystemOpportunity(item) && item.stage !== "落选" && salesEcosystemOwnerCode(item) === code);
+        return opportunities.filter(item => !isOpportunityDeleted(item) && isEcosystemOpportunity(item) && item.stage !== "落选" && salesEcosystemOwnerCode(item) === code);
       }
       const SALES_PRIORITIES = ["高", "中", "低"];
       const SALES_RISKS = [
@@ -16083,6 +16094,9 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
 
       function salesCanCreate() {
         return salesSupportActorActive() && hasPermission("opportunities") && hasOperationPermission("opportunities.create");
+      }
+      function salesCanDelete(item) {
+        return Boolean(item && !isOpportunityDeleted(item) && currentUser?.fullAccess && hasOperationPermission("opportunities.delete"));
       }
 
       function salesCanProgress(opportunity) {
@@ -16225,14 +16239,14 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
           salesIsRole("总裁") ||
           salesIsRole("市场副总")
         )
-          return opportunities;
+          return opportunities.filter(item => !isOpportunityDeleted(item));
         if (salesIsRole("区域总监") || salesIsRole("PM") || salesIsRole("生态合作员"))
           return opportunities.filter(
-            (item) => isEcosystemOpportunity(item) ?
+            (item) => !isOpportunityDeleted(item) && (isEcosystemOpportunity(item) ?
               Boolean(currentEcosystemEmployee()?.code === salesEcosystemOwnerCode(item)) :
               (salesIsRole("区域总监") &&
                 salesManagedRegions().some(region => region.id === regionForCompany(salesOpportunityCustomer(item))?.id)) ||
-              (salesIsRole("PM") && item.owner === currentUser.name && companyIsVisible(salesOpportunityCustomer(item))),
+              (salesIsRole("PM") && item.owner === currentUser.name && companyIsVisible(salesOpportunityCustomer(item)))),
           );
         return [];
       }
@@ -17214,7 +17228,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
           .sort((left, right) => Number(salesOpportunityIsUnread(right)) - Number(salesOpportunityIsUnread(left)) || right.updatedAt.localeCompare(left.updatedAt) || right.id.localeCompare(left.id))
           .map(
             (item) =>
-              `<tr data-page-row><td>${item.id}</td><td>${salesOpportunityIsUnread(item) ? '<span class="opportunity-unread-dot" title="有更新未读" aria-label="有更新未读"></span>' : ""}${item.name}</td><td>${item.type}</td><td>${(item.teacherSources || []).length ? "老师推荐" : "自主创建"}</td><td>${salesStageTag(item.stage)}</td><td>${item.customer}</td><td>${salesMoney(item.estimateAmount)}</td><td>${salesPriorityTag(item.priority)}</td><td>${salesStageDays(item)} 天</td><td>${escapeHtml(salesOpportunityOwnerName(item))}</td><td>${item.createdDate}</td><td>${item.updatedAt}</td><td>${item.createdBy}</td><td><button class="link" type="button" data-opportunity-open="${item.id}">详情</button></td></tr>`,
+              `<tr data-page-row><td>${item.id}</td><td>${salesOpportunityIsUnread(item) ? '<span class="opportunity-unread-dot" title="有更新未读" aria-label="有更新未读"></span>' : ""}${item.name}</td><td>${item.type}</td><td>${(item.teacherSources || []).length ? "老师推荐" : "自主创建"}</td><td>${salesStageTag(item.stage)}</td><td>${item.customer}</td><td>${salesMoney(item.estimateAmount)}</td><td>${salesPriorityTag(item.priority)}</td><td>${salesStageDays(item)} 天</td><td>${escapeHtml(salesOpportunityOwnerName(item))}</td><td>${item.createdDate}</td><td>${item.updatedAt}</td><td>${item.createdBy}</td><td><button class="link" type="button" data-opportunity-open="${item.id}">详情</button>${salesCanDelete(item) ? ` <button class="link danger-link" type="button" data-opportunity-delete="${escapeHtml(item.id)}">删除</button>` : ""}</td></tr>`,
           )
           .join("");
         const emptyRow = '<tr data-empty-row><td colspan="14"><div class="empty">暂无数据</div></td></tr>';
@@ -17274,7 +17288,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
           item.stage === "中选" ? salesField("成交金额（含税，万元）", salesMoney(item.expectedContractAmount)) : "",
           isEcosystemOpportunity(item) ? "" : salesField("商机关键人", item.keyPeople.join("、") || "—", "full"),
           salesField("商机需求描述", item.requirement, "full"),
-          (item.teacherSources || []).length ? salesField("老师推荐来源", item.teacherSources.map(s => escapeHtml(teacherName(teacherById(s.teacherId))) + " · " + escapeHtml(projectById(s.projectId)?.name || s.projectId) + " · " + s.recommendationId).join("<br>"), "full") : "",
+          (item.teacherSources || []).length ? salesField("老师推荐来源", item.teacherSources.map(s => { const sourceProject = projectById(s.projectId); const projectLabel = sourceProject?.deletedAt ? `${s.projectId}（已删除关联）` : (sourceProject?.name || s.projectId); return escapeHtml(teacherName(teacherById(s.teacherId))) + " · " + escapeHtml(projectLabel) + " · " + s.recommendationId; }).join("<br>"), "full") : "",
           supportContext ? "" : salesField("创建信息", `${item.createdDate} · ${item.createdBy}`),
           supportContext ? "" : salesField("最近更新时间", item.updatedAt),
         ];
@@ -17353,7 +17367,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
           pageHead(
             item.name,
             "查看商机信息、跟进记录与方案支撑。",
-            `<button class="btn" id="backToOpportunities">返回列表</button>${canOperate ? '<button class="btn" data-sales-edit>编辑</button><button class="btn" type="button" data-sales-followup-add>新增跟进</button>' : ""}${salesCanCorrect(item) ? '<button class="btn btn-primary" data-sales-stage-open>推进阶段</button>' : ""}`,
+            `<button class="btn" id="backToOpportunities">返回列表</button>${canOperate ? '<button class="btn" data-sales-edit>编辑</button><button class="btn" type="button" data-sales-followup-add>新增跟进</button>' : ""}${salesCanCorrect(item) ? '<button class="btn btn-primary" data-sales-stage-open>推进阶段</button>' : ""}${salesCanDelete(item) ? `<button class="btn btn-danger" type="button" data-opportunity-delete="${escapeHtml(item.id)}">删除商机</button>` : ""}`,
           ) +
           `<section class="panel sales-detail-panel"><div class="sales-detail-identity"><div><span class="list-sub">当前阶段</span><div class="sales-detail-stage">${salesStageTag(item.stage)}</div></div><div><span class="list-sub">负责人</span><strong>${escapeHtml(salesOpportunityOwnerName(item))}</strong></div><div><span class="list-sub">下次跟进日期</span><strong>${item.nextFollowDate || "—"}</strong></div></div><div class="tabs detail-tabs">${tabs
             .map(
@@ -17473,7 +17487,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
         return (o?.supports||[]).filter(s=>salesSupportValid(s)&&scope.codes.has(s.assigneeCode)&&(!employee||s.assigneeCode===employee));
       }
       function salesCanViewSupportOutcome(o) { return Boolean(opportunities.includes(o)&&salesSupportReferences(o).length); }
-      function salesOutcomeProjects(o) { return projects.filter(p=>p.opportunityId===o.id); }
+      function salesOutcomeProjects(o) { return projects.filter(p=>!isProjectDeleted(p) && p.opportunityId===o.id); }
       function salesOutcomeRows(employee='') {
         return opportunities.map(o=>({o,supports:salesSupportReferences(o,employee),projects:salesOutcomeProjects(o)})).filter(x=>x.supports.length);
       }
@@ -21098,7 +21112,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
 
       function cityResponsibilityOpportunities(owners) {
         return opportunities.filter((opportunity) => {
-          if (opportunity.stage === "落选" || isEcosystemOpportunity(opportunity)) return false;
+          if (isOpportunityDeleted(opportunity) || opportunity.stage === "落选" || isEcosystemOpportunity(opportunity)) return false;
           const customer = salesOpportunityCustomer(opportunity);
           return customer && customer.level !== "省公司" && owners.some(
             (owner) => customerUsesCityOwner(customer, owner),
@@ -21133,8 +21147,8 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
           people: contacts.filter(person => contactIsActive(person) && names.has(person.company)),
           tasks: openTasks.filter(task => task.type !== "关键人覆盖 KPI"),
           coverageKpis: openTasks.filter(task => task.type === "关键人覆盖 KPI"),
-          projects: projects.filter(project => !isEcosystemProject(project) && ids.has(String(project.customerId)) && PROJECT_RESPONSIBILITY_TRANSFER_STAGES.has(project.stage)),
-          opportunities: opportunities.filter(opportunity => !isEcosystemOpportunity(opportunity) && opportunity.stage !== "落选" && ids.has(String(salesOpportunityCustomer(opportunity)?.id))),
+          projects: projects.filter(project => !isProjectDeleted(project) && !isEcosystemProject(project) && ids.has(String(project.customerId)) && PROJECT_RESPONSIBILITY_TRANSFER_STAGES.has(project.stage)),
+          opportunities: opportunities.filter(opportunity => !isOpportunityDeleted(opportunity) && !isEcosystemOpportunity(opportunity) && opportunity.stage !== "落选" && ids.has(String(salesOpportunityCustomer(opportunity)?.id))),
         };
       }
       function cityHandoverItems(cityIds) {
@@ -21781,8 +21795,8 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
         if (openTasks.some(task => names.has(task.company) ||
           (task.type === "关键人覆盖 KPI" && coverageTaskCompanies(task).some(customer => ids.has(String(customer.id)))))) reasons.push("未完成待办");
         if (campaigns.some(campaign => campaign.category === "关键人覆盖 KPI" && campaign.endDate >= DEMO_TODAY && coverageCampaignCompanies(campaign).some(customer => ids.has(String(customer.id))))) reasons.push("适用覆盖 KPI");
-        if (projects.some(project => !isEcosystemProject(project) && ids.has(String(project.customerId)) && PROJECT_RESPONSIBILITY_TRANSFER_STAGES.has(project.stage))) reasons.push("需交接项目");
-        if (opportunities.some(opportunity => !isEcosystemOpportunity(opportunity) && opportunity.stage !== "落选" && ids.has(String(salesOpportunityCustomer(opportunity)?.id)))) reasons.push("需交接商机");
+        if (projects.some(project => !isProjectDeleted(project) && !isEcosystemProject(project) && ids.has(String(project.customerId)) && PROJECT_RESPONSIBILITY_TRANSFER_STAGES.has(project.stage))) reasons.push("需交接项目");
+        if (opportunities.some(opportunity => !isOpportunityDeleted(opportunity) && !isEcosystemOpportunity(opportunity) && opportunity.stage !== "落选" && ids.has(String(salesOpportunityCustomer(opportunity)?.id)))) reasons.push("需交接商机");
         if (owners.some(owner => pendingCityHandover(owner.id))) reasons.push("未结束地市交接");
         return { ok: !reasons.length, error: reasons.length ? `仍有${reasons.join("、")}，请先完成交接` : "" };
       }
@@ -21861,7 +21875,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
             if (allCenters && (!center || regionConfigurationStatus(center) !== "已配置")) throw new Error(`${customer.name} 的接收中心配置异常`);
             const directUnlink = emptyUnlink && emptyUnlinkCustomerIds.includes(customer.id);
             if (!responsibilityReceiverIsValid(customer, center, nextOwner) && !directUnlink) throw new Error(`${customer.name} 无有效接收人`);
-            const relatedProjects = projects.filter(project => !isEcosystemProject(project) && String(project.customerId) === String(customer.id) && PROJECT_RESPONSIBILITY_TRANSFER_STAGES.has(project.stage));
+            const relatedProjects = projects.filter(project => !isProjectDeleted(project) && !isEcosystemProject(project) && String(project.customerId) === String(customer.id) && PROJECT_RESPONSIBILITY_TRANSFER_STAGES.has(project.stage));
             relatedProjects.forEach(project => {
               if (project.responsibilityHistory != null && !Array.isArray(project.responsibilityHistory)) throw new Error(`项目 ${project.id} 责任历史异常`);
               const previousOwner = projectOwners.get(project.id);
@@ -21869,7 +21883,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
               project.responsibilityHistory ||= [];
               if (project.responsibilityHistory.length === projectHistoryCounts.get(project.id)) project.responsibilityHistory.push({ type: "customer_responsibility_transfer", fromOwner: previousOwner, toOwner: nextOwner, area: projectArea(project), effectiveAt, operator: currentUser.name, referenceId, referenceType: reason, reason });
             });
-            opportunities.filter(opportunity => !isEcosystemOpportunity(opportunity) && opportunity.stage !== "落选" && salesOpportunityCustomer(opportunity)?.id === customer.id).forEach(opportunity => {
+            opportunities.filter(opportunity => !isOpportunityDeleted(opportunity) && !isEcosystemOpportunity(opportunity) && opportunity.stage !== "落选" && salesOpportunityCustomer(opportunity)?.id === customer.id).forEach(opportunity => {
               salesCapturePerformance(opportunity);
               const previousOwner = opportunity.owner;
               opportunity.owner = nextOwner;
@@ -23977,6 +23991,9 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
         document.querySelectorAll("[data-project-terminate-open]").forEach((button) => {
           button.onclick = () => openProjectTerminationModal();
         });
+        document.querySelectorAll("[data-project-delete]").forEach((button) => {
+          button.onclick = () => openProjectDeleteModal(button.dataset.projectDelete);
+        });
         document.querySelectorAll("[data-project-supplement]").forEach((button) => {
           button.onclick = () => {
             projectDetailTab = "materials";
@@ -25302,6 +25319,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
           name &&
           projects.some(
             (item) =>
+              !isProjectDeleted(item) &&
               item.name === name &&
               item.stage !== "已取消" &&
               item.id !== project.id,
@@ -25557,7 +25575,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
         if (!endTime) errors.pfEnd = "请填写结束时间";
         if (startTime && endTime && startTime > endTime)
           errors.pfEnd = "项目开始时间不得晚于项目结束时间";
-        if (name && projects.some((item) => item.name === name && item.stage !== "已取消" && item.id !== project?.id))
+        if (name && projects.some((item) => !isProjectDeleted(item) && item.name === name && item.stage !== "已取消" && item.id !== project?.id))
           errors.pfName = "项目名称已存在，请修改后重试";
 
         let owner = "";
@@ -26352,6 +26370,37 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
         closeOverlay();
         renderPage();
       }
+      function submitProjectDelete(projectId) {
+        const project = projectById(projectId);
+        if (!project || !canDeleteProject(project) || isProjectDeleted(project)) {
+          closeOverlay();
+          return toast("当前项目已不存在或无权删除");
+        }
+        const now = projectNow();
+        project.deletedAt = now;
+        project.deletedBy = currentUser.name;
+        project.deletedStage = project.stage;
+        project.deletedAmount = project.amount;
+        const historyEvent = createProjectHistoryEvent(project, "删除项目", { time: now });
+        appendProjectHistoryFact(historyEvent, "删除状态", "正常记录", "已删除");
+        appendProjectHistoryFact(historyEvent, "原项目阶段", project.stage, project.stage);
+        commitProjectHistoryEvent(historyEvent);
+        closeOverlay();
+        currentPage = "projects";
+        selectedProjectId = "";
+        window.history.replaceState(null, "", "#projects");
+        renderPage();
+        toast("项目已删除，历史记录已保留");
+      }
+      function openProjectDeleteModal(projectId = selectedProjectId) {
+        const project = projectById(projectId);
+        if (!project || !canDeleteProject(project) || isProjectDeleted(project)) return;
+        openModal(`<div class="modal-head project-modal-head"><div class="modal-title">删除项目</div><button class="icon-btn close" data-close aria-label="关闭">×</button></div><form id="projectDeleteForm" class="project-config-form" novalidate><div class="modal-body project-modal-body"><p class="role-note danger-note">确认删除“${escapeHtml(project.name)}”（${escapeHtml(project.id)}）？删除后项目从正常列表、当前统计、立项候选和框架额度中排除，原编号、阶段、资料、历史及商机关联保留。</p></div><div class="modal-foot project-modal-foot"><button class="btn" type="button" data-close>取消</button><button class="btn btn-danger" type="submit">确认删除</button></div></form>`);
+        document.querySelector("#projectDeleteForm").onsubmit = (event) => {
+          event.preventDefault();
+          submitProjectDelete(projectId);
+        };
+      }
       function submitProjectCancel() {
         const project = projectById(selectedProjectId);
         if (!project) {
@@ -26817,7 +26866,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
         const removedTypes = teacher.teachingTypes.filter((type) => !draft.teachingTypes.includes(type));
         const removedDirections = teacher.directions.filter(id=>!draft.directions.includes(id));
         if (!removedTypes.length && !removedDirections.length) return null;
-        const linked = projects.filter((project) => project.type === "培训项目" && teacherProjectIds(project).includes(teacher.id)).map((project) => ({ id: project.id, name: project.name, stage: computeProjectStageAndTodos(project).stage, owner: projectCurrentOwner(project), ecosystem: isEcosystemProject(project) }));
+        const linked = projects.filter((project) => !isProjectDeleted(project) && project.type === "培训项目" && teacherProjectIds(project).includes(teacher.id)).map((project) => ({ id: project.id, name: project.name, stage: computeProjectStageAndTodos(project).stage, owner: projectCurrentOwner(project), ecosystem: isEcosystemProject(project) }));
         return { removedTypes, removedDirections, projects: linked, key: JSON.stringify({ teacherId: teacher.id, version: teacher.version, removedTypes, removedDirections, projects: linked }) };
       }
       function teacherTypeRemovalConfirmHtml(impact) {
@@ -27915,6 +27964,43 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
           closeOverlay();
           renderPage();
           toast("商机信息已更新");
+        };
+      }
+
+      function submitSalesDelete(itemId) {
+        const item = opportunities.find(row => row.id === itemId);
+        if (!item || !salesCanDelete(item) || isOpportunityDeleted(item)) {
+          closeOverlay();
+          return toast("当前商机已不存在或无权删除");
+        }
+        const now = salesNow();
+        item.deletedAt = now;
+        item.deletedBy = currentUser.name;
+        item.deletedStage = item.stage;
+        item.deletedAmount = item.stage === "中选" ? item.expectedContractAmount : item.estimateAmount;
+        item.editHistories ||= [];
+        item.editHistories.push({
+          time: now,
+          field: "删除状态",
+          before: "正常记录",
+          after: "已删除",
+          operator: currentUser.name,
+        });
+        item.updatedAt = now;
+        closeOverlay();
+        selectedOpportunityId = null;
+        opportunityDetailContext = "sales";
+        salesNavigate("opportunities");
+        toast("商机已删除，历史记录已保留");
+      }
+
+      function openSalesDeleteModal(itemId = selectedOpportunityId) {
+        const item = opportunities.find(row => row.id === itemId);
+        if (!item || !salesCanDelete(item) || isOpportunityDeleted(item)) return;
+        openModal(`<div class="modal-head"><div class="modal-title">删除商机</div><button class="icon-btn close" data-close aria-label="关闭">×</button></div><form id="salesDeleteForm"><div class="modal-body"><p class="role-note danger-note">确认删除“${escapeHtml(item.name)}”（${escapeHtml(item.id)}）？删除后商机从正常列表、当前统计和立项候选中排除，原阶段历史、业绩快照、操作审计及项目关联保留。</p></div><div class="modal-foot"><button class="btn" type="button" data-close>取消</button><button class="btn btn-danger" type="submit">确认删除</button></div></form>`);
+        document.querySelector("#salesDeleteForm").onsubmit = event => {
+          event.preventDefault();
+          submitSalesDelete(itemId);
         };
       }
 
@@ -29145,6 +29231,9 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
             opportunityDetailTab = "overview";
             salesNavigate("opportunity-detail");
           };
+        });
+        document.querySelectorAll("[data-opportunity-delete]").forEach((button) => {
+          button.onclick = () => openSalesDeleteModal(button.dataset.opportunityDelete);
         });
         document.querySelectorAll("[data-opportunity-tab]").forEach((button) => {
           button.onclick = () => {
@@ -32170,6 +32259,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
         ["projects.view", "projects", "查看项目列表与详情"],
         ["projects.create", "projects", "创建项目"],
         ["projects.edit", "projects", "按项目阶段编辑项目"],
+        ["projects.delete", "projects", "删除项目（仅 admin）"],
         ["packages.view", "packages", "查看采购包"],
         ["packages.manage", "packages", "维护采购包（新增/编辑/停用/恢复）"],
         ["platform-companies.view", "platform-companies", "查看平台公司"],
@@ -32178,6 +32268,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
         ["opportunities.view", "opportunities", "查看商机列表与详情"],
         ["opportunities.create", "opportunities", "创建商机"],
         ["opportunities.progress", "opportunities", "推进本人负责商机并新增跟进"],
+        ["opportunities.delete", "opportunities", "删除商机（仅 admin）"],
         ["opportunities.support", "sales-supports", "处理本人方案支撑请求"],
         ["sales-targets.manage", "sales-targets", "维护有权层级成交金额目标"],
       ];
@@ -33033,7 +33124,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
                   if(!targetPlan.ok)throw new Error(targetPlan.error);
                   applySalesTargetHandoff(targetPlan,"区域中心主管变更",effectiveAt);
                 }
-                opportunities.filter(item=>!isEcosystemOpportunity(item) && item.stage!=="落选" && item.owner===oldSupervisorName && salesOpportunityCustomer(item)?.level==="省公司" && !centerResponsibilityRuleForCustomer(salesOpportunityCustomer(item)) && regionForCompany(salesOpportunityCustomer(item))?.id===linkedRegion.id).forEach(item=> {
+                opportunities.filter(item=>!isOpportunityDeleted(item) && !isEcosystemOpportunity(item) && item.stage!=="落选" && item.owner===oldSupervisorName && salesOpportunityCustomer(item)?.level==="省公司" && !centerResponsibilityRuleForCustomer(salesOpportunityCustomer(item)) && regionForCompany(salesOpportunityCustomer(item))?.id===linkedRegion.id).forEach(item=> {
                   salesCapturePerformance(item);item.owner=newSupervisorName;item.updatedAt=effectiveAt;item.reassignments ||= [];
                   item.reassignments.push({before:oldSupervisorName,after:newSupervisorName,reason:"区域中心主管变更",operator:currentUser.name,time:effectiveAt});
                 });
@@ -33175,7 +33266,7 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
       function employeeDeactivationGroupProjects(group) {
         if (group.kind === "assignment_pm") {
           const ids = new Set(employeeDeactivationGroupCompanies(group).map(company => String(company.id)));
-          return projects.filter(project => !isEcosystemProject(project) &&
+          return projects.filter(project => !isProjectDeleted(project) && !isEcosystemProject(project) &&
             PROJECT_RESPONSIBILITY_TRANSFER_STAGES.has(project.stage) && ids.has(String(project.customerId)));
         }
         if (!group.region) return [];
@@ -33187,12 +33278,13 @@ var qr={},Kr={};var $r,Qr=function(){function t(t,e,n){var i=this;this._sleepAft
       function employeeDeactivationGroupOpportunities(group) {
         if (group.kind === "assignment_pm") {
           const ids = new Set(employeeDeactivationGroupCompanies(group).map(company => String(company.id)));
-          return opportunities.filter(opportunity => !isEcosystemOpportunity(opportunity) && opportunity.stage !== "落选" &&
+          return opportunities.filter(opportunity => !isOpportunityDeleted(opportunity) && !isEcosystemOpportunity(opportunity) && opportunity.stage !== "落选" &&
             ids.has(String(salesOpportunityCustomer(opportunity)?.id)));
         }
         if (group.kind === "city_pm")
           return cityResponsibilityOpportunities([group.owner]);
-        return opportunities.filter((opportunity) => {
+          return opportunities.filter((opportunity) => {
+            if (isOpportunityDeleted(opportunity)) return false;
           const company = salesOpportunityCustomer(opportunity);
           return !isEcosystemOpportunity(opportunity) && opportunity.stage !== "落选" && company?.level === "省公司" && !centerResponsibilityRuleForCustomer(company) &&
             group.region && regionForCompany(company)?.id === group.region.id;

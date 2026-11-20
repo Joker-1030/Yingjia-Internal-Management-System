@@ -12,20 +12,20 @@
           (teacherWorkRoleAllowed('老师')&&Boolean(teacherWorkSelf()))||teacherWorkRoleAllowed('教学管理人员'));
       }
       function teacherWorkCanView(project,t) {
-        if(!teacherWorkAccess()||!project||!t||!teacherProjectIds(project).includes(t.id))return false;
+        if(!teacherWorkAccess()||!project||isProjectDeleted(project)||!t||!teacherProjectIds(project).includes(t.id))return false;
         if(teacherWorkGlobalScope()||teacherIsFacultySupervisor()||(teacherWorkRoleAllowed('老师')&&teacherIsSelf(t)))return true;
         const scopes=teachingManagementAssignments[teacherEmployee()?.code]||[];
         return teacherWorkRoleAllowed('教学管理人员')&&teacherCanView(t)&&
           (t.type==='内部'?scopes.includes('internal'):t.channels.some(channel=>scopes.includes(channel.kind)));
       }
       function teacherEnsureRecapTasks() {
-        for(const p of projects){const stage=computeProjectStageAndTodos(p).stage;if(!['已交付','已完成'].includes(stage))continue;const deliveredAt=p.deliveredAt||(p.type==='培训项目'?p.endTime:'');if(!deliveredAt||deliveredAt.slice(0,10)<TEACHER_RECAP_EFFECTIVE_DATE)continue;
+        for(const p of projects){if(isProjectDeleted(p))continue;const stage=computeProjectStageAndTodos(p).stage;if(!['已交付','已完成'].includes(stage))continue;const deliveredAt=p.deliveredAt||(p.type==='培训项目'?p.endTime:'');if(!deliveredAt||deliveredAt.slice(0,10)<TEACHER_RECAP_EFFECTIVE_DATE)continue;
           for(const id of teacherProjectIds(p)){if(teacherById(id)?.type!=='内部'||teacherRecaps.some(x=>x.projectId===p.id&&x.teacherId===id))continue;teacherRecaps.push({id:`FP-${p.id}-${id}`,projectId:p.id,teacherId:id,status:'待填写',content:'',suggestion:'',files:[],history:[],generated:true,version:1,createdAt:deliveredAt});}}
       }
       function teacherRecapRows() {
         if(!teacherWorkAccess())return [];
         teacherEnsureRecapTasks();const self=teacherWorkSelf(),result=teacherRecaps.filter(x=>teacherWorkCanView(projectById(x.projectId),teacherById(x.teacherId)));
-        if(self&&teacherWorkRoleAllowed('老师'))for(const p of projects.filter(p=>['已交付','已完成'].includes(computeProjectStageAndTodos(p).stage)&&teacherProjectIds(p).includes(self.id))){if(!result.some(x=>x.projectId===p.id&&x.teacherId===self.id))result.push({id:'',projectId:p.id,teacherId:self.id,status:'可补写',history:[],files:[],version:0});}
+        if(self&&teacherWorkRoleAllowed('老师'))for(const p of projects.filter(p=>!isProjectDeleted(p)&&['已交付','已完成'].includes(computeProjectStageAndTodos(p).stage)&&teacherProjectIds(p).includes(self.id))){if(!result.some(x=>x.projectId===p.id&&x.teacherId===self.id))result.push({id:'',projectId:p.id,teacherId:self.id,status:'可补写',history:[],files:[],version:0});}
         return result;
       }
       let teacherWorkFilterState = { actor: null, recaps: {}, recommendations: {} };
@@ -115,7 +115,7 @@
         if (!teacherCanViewRecommendation(x)) return toast('无权查看该推荐');
         const o = opportunities.find(item => item.id === x.opportunityId), p = projectById(x.projectId);
         const version = x.version, actor = currentUser, handle = teacherCanHandleRecommendation(x);
-        openModal(`<div class="modal-head"><div class="modal-title">老师推荐详情</div><button class="icon-btn close" data-close aria-label="关闭">×</button></div><div class="modal-body"><div class="detail-grid">${teacherInfoHtml('来源项目',p?.name)}${teacherInfoHtml('推荐老师',teacherName(teacherById(x.teacherId)))}${teacherInfoHtml('客户公司',teacherRecommendationCustomer(x)?.name)}${teacherInfoHtml('类型',x.type)}${teacherInfoHtml('状态',x.status)}${teacherInfoHtml('当前接收人',teacherRecommendationOwner(x).owner?.name)}${teacherInfoHtml('需求描述',x.description)}${teacherInfoHtml('创建时间',x.createdAt)}${x.reason?teacherInfoHtml('关闭原因',x.reason):''}${o?teacherInfoHtml('创建的商机',`${o.id} · ${o.name}`)+teacherInfoHtml('商机阶段',salesStageLabel(o.stage))+teacherInfoHtml('中选金额（含税，万元）',o.stage==='中选'?salesMoney(o.expectedContractAmount):'—'):''}</div>${o?`<div class="section-title">关联项目执行情况</div>${projects.filter(p=>p.opportunityId===o.id).map(p=>`<div class="teacher-channel-card">${escapeHtml(p.name)} · ${computeProjectStageAndTodos(p).stage}${projectIsVisibleToCurrentUser(p)?` <button class="btn btn-sm" data-project-open="${p.id}">项目详情</button>`:''}</div>`).join('')||'<p class="list-sub">尚未立项</p>'}`:''}<div class="field-error" id="recommendDetailError"></div></div>${handle?`<div class="modal-foot"><button class="btn" id="recommendClose">关闭推荐</button><button class="btn btn-primary" id="recommendConvert">创建商机</button></div>`:''}`);
+        openModal(`<div class="modal-head"><div class="modal-title">老师推荐详情</div><button class="icon-btn close" data-close aria-label="关闭">×</button></div><div class="modal-body"><div class="detail-grid">${teacherInfoHtml('来源项目',p?.name ? `${p.name}${p.deletedAt ? '（已删除关联）' : ''}` : '—')}${teacherInfoHtml('推荐老师',teacherName(teacherById(x.teacherId)))}${teacherInfoHtml('客户公司',teacherRecommendationCustomer(x)?.name)}${teacherInfoHtml('类型',x.type)}${teacherInfoHtml('状态',x.status)}${teacherInfoHtml('当前接收人',teacherRecommendationOwner(x).owner?.name)}${teacherInfoHtml('需求描述',x.description)}${teacherInfoHtml('创建时间',x.createdAt)}${x.reason?teacherInfoHtml('关闭原因',x.reason):''}${o?teacherInfoHtml('创建的商机',`${o.id} · ${o.name}`)+teacherInfoHtml('商机阶段',salesStageLabel(o.stage))+teacherInfoHtml('中选金额（含税，万元）',o.stage==='中选'?salesMoney(o.expectedContractAmount):'—'):''}</div>${o?`<div class="section-title">关联项目执行情况</div>${projects.filter(p=>p.opportunityId===o.id).map(p=>`<div class="teacher-channel-card">${escapeHtml(p.name)}${p.deletedAt ? '（已删除关联）' : ''} · ${computeProjectStageAndTodos(p).stage}${!p.deletedAt && projectIsVisibleToCurrentUser(p)?` <button class="btn btn-sm" data-project-open="${p.id}">项目详情</button>`:''}</div>`).join('')||'<p class="list-sub">尚未立项</p>'}`:''}<div class="field-error" id="recommendDetailError"></div></div>${handle?`<div class="modal-foot"><button class="btn" id="recommendClose">关闭推荐</button><button class="btn btn-primary" id="recommendConvert">创建商机</button></div>`:''}`);
         $('#modalLayer .modal').classList.add('teacher-profile-modal');
         bindProjectEvents();
         const check = () => currentUser === actor && teacherCanHandleRecommendation(x) && version === x.version;

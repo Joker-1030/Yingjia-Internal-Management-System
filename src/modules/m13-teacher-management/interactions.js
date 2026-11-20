@@ -52,7 +52,7 @@
         const removedTypes = teacher.teachingTypes.filter((type) => !draft.teachingTypes.includes(type));
         const removedDirections = teacher.directions.filter(id=>!draft.directions.includes(id));
         if (!removedTypes.length && !removedDirections.length) return null;
-        const linked = projects.filter((project) => project.type === "培训项目" && teacherProjectIds(project).includes(teacher.id)).map((project) => ({ id: project.id, name: project.name, stage: computeProjectStageAndTodos(project).stage, owner: projectCurrentOwner(project), ecosystem: isEcosystemProject(project) }));
+        const linked = projects.filter((project) => !isProjectDeleted(project) && project.type === "培训项目" && teacherProjectIds(project).includes(teacher.id)).map((project) => ({ id: project.id, name: project.name, stage: computeProjectStageAndTodos(project).stage, owner: projectCurrentOwner(project), ecosystem: isEcosystemProject(project) }));
         return { removedTypes, removedDirections, projects: linked, key: JSON.stringify({ teacherId: teacher.id, version: teacher.version, removedTypes, removedDirections, projects: linked }) };
       }
       function teacherTypeRemovalConfirmHtml(impact) {

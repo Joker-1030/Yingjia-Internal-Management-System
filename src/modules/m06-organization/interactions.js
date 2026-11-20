@@ -434,7 +434,7 @@
                   if(!targetPlan.ok)throw new Error(targetPlan.error);
                   applySalesTargetHandoff(targetPlan,"区域中心主管变更",effectiveAt);
                 }
-                opportunities.filter(item=>!isEcosystemOpportunity(item) && item.stage!=="落选" && item.owner===oldSupervisorName && salesOpportunityCustomer(item)?.level==="省公司" && !centerResponsibilityRuleForCustomer(salesOpportunityCustomer(item)) && regionForCompany(salesOpportunityCustomer(item))?.id===linkedRegion.id).forEach(item=> {
+                opportunities.filter(item=>!isOpportunityDeleted(item) && !isEcosystemOpportunity(item) && item.stage!=="落选" && item.owner===oldSupervisorName && salesOpportunityCustomer(item)?.level==="省公司" && !centerResponsibilityRuleForCustomer(salesOpportunityCustomer(item)) && regionForCompany(salesOpportunityCustomer(item))?.id===linkedRegion.id).forEach(item=> {
                   salesCapturePerformance(item);item.owner=newSupervisorName;item.updatedAt=effectiveAt;item.reassignments ||= [];
                   item.reassignments.push({before:oldSupervisorName,after:newSupervisorName,reason:"区域中心主管变更",operator:currentUser.name,time:effectiveAt});
                 });
@@ -576,7 +576,7 @@
       function employeeDeactivationGroupProjects(group) {
         if (group.kind === "assignment_pm") {
           const ids = new Set(employeeDeactivationGroupCompanies(group).map(company => String(company.id)));
-          return projects.filter(project => !isEcosystemProject(project) &&
+          return projects.filter(project => !isProjectDeleted(project) && !isEcosystemProject(project) &&
             PROJECT_RESPONSIBILITY_TRANSFER_STAGES.has(project.stage) && ids.has(String(project.customerId)));
         }
         if (!group.region) return [];
@@ -588,12 +588,13 @@
       function employeeDeactivationGroupOpportunities(group) {
         if (group.kind === "assignment_pm") {
           const ids = new Set(employeeDeactivationGroupCompanies(group).map(company => String(company.id)));
-          return opportunities.filter(opportunity => !isEcosystemOpportunity(opportunity) && opportunity.stage !== "落选" &&
+          return opportunities.filter(opportunity => !isOpportunityDeleted(opportunity) && !isEcosystemOpportunity(opportunity) && opportunity.stage !== "落选" &&
             ids.has(String(salesOpportunityCustomer(opportunity)?.id)));
         }
         if (group.kind === "city_pm")
           return cityResponsibilityOpportunities([group.owner]);
-        return opportunities.filter((opportunity) => {
+          return opportunities.filter((opportunity) => {
+            if (isOpportunityDeleted(opportunity)) return false;
           const company = salesOpportunityCustomer(opportunity);
           return !isEcosystemOpportunity(opportunity) && opportunity.stage !== "落选" && company?.level === "省公司" && !centerResponsibilityRuleForCustomer(company) &&
             group.region && regionForCompany(company)?.id === group.region.id;

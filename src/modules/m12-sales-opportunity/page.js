@@ -3,6 +3,7 @@
       const SALES_ECOSYSTEM_TYPE = "平台师资合作商机";
       const SALES_TYPES = ["培训商机", "AI 项目商机", SALES_ECOSYSTEM_TYPE];
       function isEcosystemOpportunity(item) { return item?.type === SALES_ECOSYSTEM_TYPE; }
+      function isOpportunityDeleted(item) { return Boolean(item?.deletedAt); }
       function salesEcosystemOwnerCode(item) {
         return item.ownerCode || employees.find(employee => employee.name === item.owner)?.code || "";
       }
@@ -28,7 +29,7 @@
         return salesOwnerMatch(salesOpportunityCustomer(item), item.type, salesEcosystemOwnerCode(item));
       }
       function ecosystemEmployeeOpportunityCandidates(code) {
-        return opportunities.filter(item => isEcosystemOpportunity(item) && item.stage !== "落选" && salesEcosystemOwnerCode(item) === code);
+        return opportunities.filter(item => !isOpportunityDeleted(item) && isEcosystemOpportunity(item) && item.stage !== "落选" && salesEcosystemOwnerCode(item) === code);
       }
       const SALES_PRIORITIES = ["高", "中", "低"];
       const SALES_RISKS = [
@@ -53,6 +54,9 @@
 
       function salesCanCreate() {
         return salesSupportActorActive() && hasPermission("opportunities") && hasOperationPermission("opportunities.create");
+      }
+      function salesCanDelete(item) {
+        return Boolean(item && !isOpportunityDeleted(item) && currentUser?.fullAccess && hasOperationPermission("opportunities.delete"));
       }
 
       function salesCanProgress(opportunity) {
@@ -195,14 +199,14 @@
           salesIsRole("总裁") ||
           salesIsRole("市场副总")
         )
-          return opportunities;
+          return opportunities.filter(item => !isOpportunityDeleted(item));
         if (salesIsRole("区域总监") || salesIsRole("PM") || salesIsRole("生态合作员"))
           return opportunities.filter(
-            (item) => isEcosystemOpportunity(item) ?
+            (item) => !isOpportunityDeleted(item) && (isEcosystemOpportunity(item) ?
               Boolean(currentEcosystemEmployee()?.code === salesEcosystemOwnerCode(item)) :
               (salesIsRole("区域总监") &&
                 salesManagedRegions().some(region => region.id === regionForCompany(salesOpportunityCustomer(item))?.id)) ||
-              (salesIsRole("PM") && item.owner === currentUser.name && companyIsVisible(salesOpportunityCustomer(item))),
+              (salesIsRole("PM") && item.owner === currentUser.name && companyIsVisible(salesOpportunityCustomer(item)))),
           );
         return [];
       }
@@ -1184,7 +1188,7 @@
           .sort((left, right) => Number(salesOpportunityIsUnread(right)) - Number(salesOpportunityIsUnread(left)) || right.updatedAt.localeCompare(left.updatedAt) || right.id.localeCompare(left.id))
           .map(
             (item) =>
-              `<tr data-page-row><td>${item.id}</td><td>${salesOpportunityIsUnread(item) ? '<span class="opportunity-unread-dot" title="有更新未读" aria-label="有更新未读"></span>' : ""}${item.name}</td><td>${item.type}</td><td>${(item.teacherSources || []).length ? "老师推荐" : "自主创建"}</td><td>${salesStageTag(item.stage)}</td><td>${item.customer}</td><td>${salesMoney(item.estimateAmount)}</td><td>${salesPriorityTag(item.priority)}</td><td>${salesStageDays(item)} 天</td><td>${escapeHtml(salesOpportunityOwnerName(item))}</td><td>${item.createdDate}</td><td>${item.updatedAt}</td><td>${item.createdBy}</td><td><button class="link" type="button" data-opportunity-open="${item.id}">详情</button></td></tr>`,
+              `<tr data-page-row><td>${item.id}</td><td>${salesOpportunityIsUnread(item) ? '<span class="opportunity-unread-dot" title="有更新未读" aria-label="有更新未读"></span>' : ""}${item.name}</td><td>${item.type}</td><td>${(item.teacherSources || []).length ? "老师推荐" : "自主创建"}</td><td>${salesStageTag(item.stage)}</td><td>${item.customer}</td><td>${salesMoney(item.estimateAmount)}</td><td>${salesPriorityTag(item.priority)}</td><td>${salesStageDays(item)} 天</td><td>${escapeHtml(salesOpportunityOwnerName(item))}</td><td>${item.createdDate}</td><td>${item.updatedAt}</td><td>${item.createdBy}</td><td><button class="link" type="button" data-opportunity-open="${item.id}">详情</button>${salesCanDelete(item) ? ` <button class="link danger-link" type="button" data-opportunity-delete="${escapeHtml(item.id)}">删除</button>` : ""}</td></tr>`,
           )
           .join("");
         const emptyRow = '<tr data-empty-row><td colspan="14"><div class="empty">暂无数据</div></td></tr>';
@@ -1244,7 +1248,7 @@
           item.stage === "中选" ? salesField("成交金额（含税，万元）", salesMoney(item.expectedContractAmount)) : "",
           isEcosystemOpportunity(item) ? "" : salesField("商机关键人", item.keyPeople.join("、") || "—", "full"),
           salesField("商机需求描述", item.requirement, "full"),
-          (item.teacherSources || []).length ? salesField("老师推荐来源", item.teacherSources.map(s => escapeHtml(teacherName(teacherById(s.teacherId))) + " · " + escapeHtml(projectById(s.projectId)?.name || s.projectId) + " · " + s.recommendationId).join("<br>"), "full") : "",
+          (item.teacherSources || []).length ? salesField("老师推荐来源", item.teacherSources.map(s => { const sourceProject = projectById(s.projectId); const projectLabel = sourceProject?.deletedAt ? `${s.projectId}（已删除关联）` : (sourceProject?.name || s.projectId); return escapeHtml(teacherName(teacherById(s.teacherId))) + " · " + escapeHtml(projectLabel) + " · " + s.recommendationId; }).join("<br>"), "full") : "",
           supportContext ? "" : salesField("创建信息", `${item.createdDate} · ${item.createdBy}`),
           supportContext ? "" : salesField("最近更新时间", item.updatedAt),
         ];
@@ -1323,7 +1327,7 @@
           pageHead(
             item.name,
             "查看商机信息、跟进记录与方案支撑。",
-            `<button class="btn" id="backToOpportunities">返回列表</button>${canOperate ? '<button class="btn" data-sales-edit>编辑</button><button class="btn" type="button" data-sales-followup-add>新增跟进</button>' : ""}${salesCanCorrect(item) ? '<button class="btn btn-primary" data-sales-stage-open>推进阶段</button>' : ""}`,
+            `<button class="btn" id="backToOpportunities">返回列表</button>${canOperate ? '<button class="btn" data-sales-edit>编辑</button><button class="btn" type="button" data-sales-followup-add>新增跟进</button>' : ""}${salesCanCorrect(item) ? '<button class="btn btn-primary" data-sales-stage-open>推进阶段</button>' : ""}${salesCanDelete(item) ? `<button class="btn btn-danger" type="button" data-opportunity-delete="${escapeHtml(item.id)}">删除商机</button>` : ""}`,
           ) +
           `<section class="panel sales-detail-panel"><div class="sales-detail-identity"><div><span class="list-sub">当前阶段</span><div class="sales-detail-stage">${salesStageTag(item.stage)}</div></div><div><span class="list-sub">负责人</span><strong>${escapeHtml(salesOpportunityOwnerName(item))}</strong></div><div><span class="list-sub">下次跟进日期</span><strong>${item.nextFollowDate || "—"}</strong></div></div><div class="tabs detail-tabs">${tabs
             .map(

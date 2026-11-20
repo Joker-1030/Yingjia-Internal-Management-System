@@ -329,6 +329,7 @@
         color: var(--red);
         border-color: var(--color-error-border);
       }
+      .danger-link { color: #b42318; }
       .btn-danger:hover,
       .btn-danger:active {
         background: var(--color-error-soft);

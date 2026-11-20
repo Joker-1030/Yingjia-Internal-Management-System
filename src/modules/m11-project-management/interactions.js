@@ -59,6 +59,9 @@
         document.querySelectorAll("[data-project-terminate-open]").forEach((button) => {
           button.onclick = () => openProjectTerminationModal();
         });
+        document.querySelectorAll("[data-project-delete]").forEach((button) => {
+          button.onclick = () => openProjectDeleteModal(button.dataset.projectDelete);
+        });
         document.querySelectorAll("[data-project-supplement]").forEach((button) => {
           button.onclick = () => {
             projectDetailTab = "materials";
@@ -1384,6 +1387,7 @@
           name &&
           projects.some(
             (item) =>
+              !isProjectDeleted(item) &&
               item.name === name &&
               item.stage !== "已取消" &&
               item.id !== project.id,
@@ -1639,7 +1643,7 @@
         if (!endTime) errors.pfEnd = "请填写结束时间";
         if (startTime && endTime && startTime > endTime)
           errors.pfEnd = "项目开始时间不得晚于项目结束时间";
-        if (name && projects.some((item) => item.name === name && item.stage !== "已取消" && item.id !== project?.id))
+        if (name && projects.some((item) => !isProjectDeleted(item) && item.name === name && item.stage !== "已取消" && item.id !== project?.id))
           errors.pfName = "项目名称已存在，请修改后重试";
 
         let owner = "";
@@ -2433,6 +2437,37 @@
         commitProjectHistoryEvent(historyEvent);
         closeOverlay();
         renderPage();
+      }
+      function submitProjectDelete(projectId) {
+        const project = projectById(projectId);
+        if (!project || !canDeleteProject(project) || isProjectDeleted(project)) {
+          closeOverlay();
+          return toast("当前项目已不存在或无权删除");
+        }
+        const now = projectNow();
+        project.deletedAt = now;
+        project.deletedBy = currentUser.name;
+        project.deletedStage = project.stage;
+        project.deletedAmount = project.amount;
+        const historyEvent = createProjectHistoryEvent(project, "删除项目", { time: now });
+        appendProjectHistoryFact(historyEvent, "删除状态", "正常记录", "已删除");
+        appendProjectHistoryFact(historyEvent, "原项目阶段", project.stage, project.stage);
+        commitProjectHistoryEvent(historyEvent);
+        closeOverlay();
+        currentPage = "projects";
+        selectedProjectId = "";
+        window.history.replaceState(null, "", "#projects");
+        renderPage();
+        toast("项目已删除，历史记录已保留");
+      }
+      function openProjectDeleteModal(projectId = selectedProjectId) {
+        const project = projectById(projectId);
+        if (!project || !canDeleteProject(project) || isProjectDeleted(project)) return;
+        openModal(`<div class="modal-head project-modal-head"><div class="modal-title">删除项目</div><button class="icon-btn close" data-close aria-label="关闭">×</button></div><form id="projectDeleteForm" class="project-config-form" novalidate><div class="modal-body project-modal-body"><p class="role-note danger-note">确认删除“${escapeHtml(project.name)}”（${escapeHtml(project.id)}）？删除后项目从正常列表、当前统计、立项候选和框架额度中排除，原编号、阶段、资料、历史及商机关联保留。</p></div><div class="modal-foot project-modal-foot"><button class="btn" type="button" data-close>取消</button><button class="btn btn-danger" type="submit">确认删除</button></div></form>`);
+        document.querySelector("#projectDeleteForm").onsubmit = (event) => {
+          event.preventDefault();
+          submitProjectDelete(projectId);
+        };
       }
       function submitProjectCancel() {
         const project = projectById(selectedProjectId);

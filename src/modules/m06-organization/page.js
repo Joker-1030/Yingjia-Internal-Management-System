@@ -235,6 +235,24 @@
           `<div class="drawer-head"><div><div class="modal-title">直接生效审计</div><div class="panel-sub">${item.id}</div></div><button class="icon-btn close" data-close>×</button></div><div class="drawer-body"><div class="detail-hero"><div class="avatar">审</div><div><div class="detail-name">${item.object}</div><div class="detail-sub">${item.type} · ${item.status}</div></div></div><div class="detail-grid"><div class="detail-item"><label>生效方式</label><div>HR/admin 直接生效</div></div><div class="detail-item"><label>操作人</label><div>${item.operator}</div></div><div class="detail-item"><label>操作时间</label><div>${item.date}</div></div><div class="detail-item"><label>实际生效时间</label><div>${item.actualEffectiveAt || item.date}</div></div><div class="detail-item full"><label>变更及影响</label><div>${item.detail}</div></div></div></div><div class="drawer-foot"><button class="btn" data-close>关闭</button></div>`,
         );
       }
+      function renderEmployeeWecomBindings() {
+        const canManage = Boolean(currentUser?.fullAccess || currentRoleTemplateNames().includes("HR/人事"));
+        const keyword = employeeBindingKeyword.trim().toLocaleLowerCase();
+        const rows = employees
+          .filter((employee) => employee.status === "在职" || currentUser?.fullAccess)
+          .map((employee) => {
+            const binding = wecomBindings.find((item) => item.employeeCode === employee.code);
+            const wecom = binding ? wecomEmployees.find((item) => item.id === binding.wecomId) : null;
+            const status = binding ? "已绑定" : "未绑定";
+            return { employee, binding, wecom, status };
+          })
+          .filter(({ employee, binding, wecom, status }) =>
+            (!employeeBindingStatusFilter || status === employeeBindingStatusFilter) &&
+            (!keyword || `${employee.name}${employee.code}${employeeDepartmentNames(employee).join("")}${wecom?.name || ""}`.toLocaleLowerCase().includes(keyword)),
+          );
+        const tableRows = rows.map(({ employee, binding, wecom, status }) => `<tr data-page-row><td><div class="person"><div class="avatar">${employee.name[0]}</div><strong>${escapeHtml(employee.name)}</strong></div></td><td><span class="tag">${employee.code}</span></td><td>${employeeDepartmentNames(employee).join("、") || "—"}</td><td>${wecom ? `${escapeHtml(wecom.name)} · ${escapeHtml(wecom.department)}` : '<span class="list-sub">未绑定</span>'}</td><td>${binding ? `<span class="tag green">已绑定</span>` : '<span class="tag yellow">未绑定</span>'}</td><td>${binding ? `${binding.boundAt}<br><span class="list-sub">操作人：${escapeHtml(binding.operator)}</span>` : "—"}</td><td>${canManage ? (binding ? `<button class="link" data-action="wecom-binding-edit" data-id="${employee.code}">修改</button> · <button class="link danger-link" data-action="wecom-binding-remove" data-id="${employee.code}">解绑</button>` : `<button class="link" data-action="wecom-binding-edit" data-id="${employee.code}">绑定</button>`) : "只读"}</td></tr>`).join("");
+        return `<section class="panel" style="margin-top:var(--space-4)"><div class="panel-head"><div><div class="panel-title">企业微信绑定</div></div></div><div class="toolbar filter-toolbar"><label class="filter-field"><span class="filter-label">关键词</span><input class="input" id="employeeBindingKeyword" value="${escapeHtml(employeeBindingKeyword)}" placeholder="姓名、工号或企业微信姓名"></label><label class="filter-field"><span class="filter-label">绑定状态</span><select class="input" id="employeeBindingStatus"><option value="">全部</option><option value="已绑定" ${employeeBindingStatusFilter === "已绑定" ? "selected" : ""}>已绑定</option><option value="未绑定" ${employeeBindingStatusFilter === "未绑定" ? "selected" : ""}>未绑定</option></select></label><div class="filter-actions"><button class="btn btn-primary" type="button" id="applyEmployeeBindingFilters">筛选</button><button class="btn" type="button" id="resetEmployeeBindingFilters">重置</button></div></div><div class="table-wrap"><table data-paged-table="m06-wecom-bindings" style="min-width:1120px"><thead><tr><th>系统员工</th><th>工号</th><th>系统部门</th><th>企业微信员工 / 部门</th><th>绑定状态</th><th>绑定时间 / 操作人</th><th>操作</th></tr></thead><tbody>${tableRows || '<tr data-empty-row><td colspan="7"><div class="empty">暂无符合条件的绑定记录</div></td></tr>'}</tbody></table></div>${tablePagination("m06-wecom-bindings")}</section>`;
+      }
       function renderEmployees() {
         syncOrganizationRegions();
         const visibleEmployees = currentUser.fullAccess || currentUser.role === "hr"
@@ -248,11 +266,14 @@
         });
         const canViewDirectory = canEmployeeAction("employees.view");
         const canViewChanges = canEmployeeAction("employees.view_changes");
+        const canViewWecomBinding = Boolean(currentUser?.fullAccess || currentRoleTemplateNames().includes("HR/人事"));
         if (employeeView === "directory" && !canViewDirectory)
           employeeView = canViewChanges ? "changes" : "directory";
         if (employeeView === "changes" && !canViewChanges)
-          employeeView = canViewDirectory ? "directory" : "changes";
-        const tabs = `<section class="panel"><div class="tabs">${canViewDirectory ? `<button class="tab ${employeeView === "directory" ? "active" : ""}" data-employee-view="directory">组织与员工详情</button>` : ""}${canViewChanges ? `<button class="tab ${employeeView === "changes" ? "active" : ""}" data-employee-view="changes">人员/组织变动记录</button>` : ""}</div></section>`;
+          employeeView = canViewDirectory ? "directory" : canViewWecomBinding ? "wecom-binding" : "changes";
+        if (employeeView === "wecom-binding" && !canViewWecomBinding)
+          employeeView = canViewDirectory ? "directory" : canViewChanges ? "changes" : "wecom-binding";
+        const tabs = `<section class="panel"><div class="tabs">${canViewDirectory ? `<button class="tab ${employeeView === "directory" ? "active" : ""}" data-employee-view="directory">组织与员工详情</button>` : ""}${canViewWecomBinding ? `<button class="tab ${employeeView === "wecom-binding" ? "active" : ""}" data-employee-view="wecom-binding">企业微信绑定</button>` : ""}${canViewChanges ? `<button class="tab ${employeeView === "changes" ? "active" : ""}" data-employee-view="changes">人员/组织变动记录</button>` : ""}</div></section>`;
         const selectedDepartment = organizationDepartments.find(
           (department) => department.id === selectedOrganizationDepartmentId,
         );
@@ -304,6 +325,8 @@
             ? '<section class="panel" style="margin-top:var(--space-4)"><div class="empty">当前角色没有组织明细或变动记录操作权限</div></section>'
             : employeeView === "directory"
               ? directory
-              : changePanel)
+              : employeeView === "wecom-binding"
+                ? renderEmployeeWecomBindings()
+                : changePanel)
         );
       }

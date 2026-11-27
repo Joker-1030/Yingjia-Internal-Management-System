@@ -1,3 +1,28 @@
+      // 企业微信身份仅用于跨系统审批绑定；不覆盖平台组织、账号或角色事实。
+      const wecomEmployees = [
+        { id: "wx-001", name: "刘总", department: "总经办", status: "在职" },
+        { id: "wx-002", name: "王静", department: "市场运营部", status: "在职" },
+        { id: "wx-003", name: "赵磊", department: "山东区域运营中心", status: "在职" },
+        { id: "wx-004", name: "陈经理", department: "山东区域运营中心", status: "在职" },
+        { id: "wx-005", name: "秦勇", department: "咨询产品部", status: "在职" },
+        { id: "wx-006", name: "李娜", department: "综合运营部", status: "在职" },
+        { id: "wx-007", name: "系统管理员", department: "总经办", status: "在职" },
+        { id: "wx-008", name: "周琳", department: "财务部", status: "在职" },
+        { id: "wx-009", name: "张伟", department: "能源事业部", status: "在职" },
+        { id: "wx-010", name: "韩雪", department: "师资管理部", status: "在职" },
+      ];
+      const wecomBindings = [
+        { employeeCode: "YJ001", wecomId: "wx-001", boundAt: "2026-11-18 09:10", operator: "李娜" },
+        { employeeCode: "YJ002", wecomId: "wx-002", boundAt: "2026-11-18 09:12", operator: "李娜" },
+        { employeeCode: "YJ003", wecomId: "wx-003", boundAt: "2026-11-18 09:15", operator: "李娜" },
+        { employeeCode: "YJ004", wecomId: "wx-004", boundAt: "2026-11-18 09:18", operator: "李娜" },
+        { employeeCode: "YJ007", wecomId: "wx-007", boundAt: "2026-11-18 09:20", operator: "系统管理员" },
+        { employeeCode: "YJ018", wecomId: "wx-006", boundAt: "2026-11-18 09:22", operator: "李娜" },
+        { employeeCode: "YJ019", wecomId: "wx-008", boundAt: "2026-11-18 09:25", operator: "李娜" },
+        { employeeCode: "YJ021", wecomId: "wx-009", boundAt: "2026-11-18 09:27", operator: "李娜" },
+        { employeeCode: "YJ023", wecomId: "wx-010", boundAt: "2026-11-18 09:29", operator: "李娜" },
+      ];
+
       const employees = [
         { code: "YJ036", name: "王晨（历史PM）", dept: "山东区域运营中心", departments: ["山东区域运营中心"], roles: ["PM"], manualRoles: ["PM"], automaticRoleSources: {}, role: "PM", job: "项目经理", status: "停用", accountStatus: "停用", phone: "13900000036", email: "historical-pm@yingjia.example", hireDate: "2024-01-01", createdAt: "2024-01-01 09:00", updatedAt: "2026-11-11 08:00", lastLogin: "2026-11-10 10:00" },
         {"code": "YJ001","name": "刘总","dept": "总经办","job": "总裁","role": "总裁","scope": "公司全局","status": "在职","phone": "13900000001","email": "liuzong@yingjia.example","hireDate": "2021-03-01","accountStatus": "启用","lastLogin": "2026-11-02 09:00","passwordResetAt": "2026-10-24 09:00","createdAt": "2021-03-01 09:00","updatedAt": "2026-11-01 09:00","roles": ["总裁"],"manualRoles": ["总裁"],"departments": ["总经办"],"automaticRoleSources": {}},

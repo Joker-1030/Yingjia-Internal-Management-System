@@ -4,7 +4,7 @@
 - [M01 工作台](./M01-dashboard.md)
 - [M02 客户经营](./M02-customer.md)
 - [M03 维系管理](./M03-maintenance.md)
-- [M04 审批中心（未评审 / 未研发 / 延期）](./M04-approval.md)
+- [M04 审批中心（企业微信专项部分定义 / 未评审 / 未研发 / 延期）](./M04-approval.md)
 - [M05 停用记录（REMOVED / 编号保留 / 无独立能力）](./M05-archive.md)
 - [P01 消息中心与待办](./P01-messages.md)
 - [M06 组织与员工](./M06-organization.md)

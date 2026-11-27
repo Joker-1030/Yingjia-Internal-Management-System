@@ -5,6 +5,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>英嘉科技内部管理系统 Current Prototype</title>
     <link rel="icon" href="data:," />
+    <script>
+      // 直接双击源码模板时跳转到可运行的构建产物，避免显示未注入 CSS/JS 的模板内容。
+      if (
+        window.location.protocol === "file:" &&
+        /\/src\/prototype\.html$/.test(window.location.pathname)
+      ) {
+        window.location.replace("../demo/prototype.html");
+      }
+    </script>
     <style>
 /* @include "styles/prototype.css" */
     </style>
@@ -20,6 +29,11 @@
               <p>账号登录</p>
             </div>
           </div>
+          <div class="login-methods" role="tablist" aria-label="登录方式">
+            <button class="login-method active" type="button" role="tab" aria-selected="true" data-login-method="password">账号密码登录</button>
+            <button class="login-method" type="button" role="tab" aria-selected="false" data-login-method="wecom">企业微信扫码登录</button>
+          </div>
+          <div id="passwordLoginPanel">
           <div class="form-group">
             <label class="form-label"><span class="required-marker" aria-hidden="true">*</span>手机号</label
             ><input
@@ -68,6 +82,15 @@
           </button>
           <div class="demo-accounts-title">演示账号 · 点击快速填充</div>
           <div class="account-grid" id="accountGrid"></div>
+          </div>
+          <div id="wecomLoginPanel" class="hidden" aria-live="polite">
+            <div class="wecom-login-panel">
+              <div class="wecom-qr" id="wecomQr" role="img" aria-label="企业微信登录二维码"></div>
+              <div class="wecom-scan-status" id="wecomScanStatus">等待扫码</div>
+              <button class="btn" id="refreshWecomQr" type="button">刷新二维码</button>
+              <button class="btn btn-primary login-btn" id="simulateWecomScan" type="button">模拟扫码登录</button>
+            </div>
+          </div>
         </form>
       </div>
     </section>

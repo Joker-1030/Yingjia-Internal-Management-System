@@ -73,7 +73,7 @@
           taskCanPause(t) ? "<option>暂停维系至某日</option>" : ""
         }`;
         openModal(
-          `<div class="modal-head"><div class="modal-title">任务变更</div><button class="icon-btn close" data-close>×</button></div><form id="taskChangeForm"><div class="modal-body"><div class="role-note">${t.title}${t.type === "专项维系" ? "<br>专项执行项统一以专项结束日为截止日，不支持单独延期。" : ""}</div><div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>变更类型</label><select class="input" id="changeType">${changeOptions}</select></div><div class="form-group" id="changeDateGroup"><label class="form-label" id="changeDateLabel"><span class="required-marker" aria-hidden="true">*</span>新截止日期</label><input class="input" id="changeDate" type="date" value="${addDays(DEMO_TODAY, 1)}" min="${addDays(DEMO_TODAY, 1)}" required><div class="list-sub" id="changeDateHint"></div></div><div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>变更原因</label><textarea class="input" id="changeReason" minlength="5" maxlength="500" required placeholder="请填写 5-500 字"></textarea></div></div><div class="modal-foot"><button class="btn" type="button" data-close>取消</button><button class="btn btn-primary" type="submit">确认并生效</button></div></form>`,
+          `<div class="modal-head"><div class="modal-title">任务变更</div><button class="icon-btn close" data-close>×</button></div><form id="taskChangeForm"><div class="modal-body"><div class="role-note">${t.title}${t.type === "专项维系" ? "<br>专项执行项统一以专项结束日为截止日，不支持单独延期。" : ""}</div><div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>变更类型</label><select class="input" id="changeType">${changeOptions}</select></div><div class="form-group" id="changeDateGroup"><label class="form-label" id="changeDateLabel"><span class="required-marker" aria-hidden="true">*</span>新截止日期</label><input class="input" id="changeDate" type="date" value="${addDays(DEMO_TODAY, 1)}" min="${addDays(DEMO_TODAY, 1)}" required><div class="list-sub" id="changeDateHint"></div></div><div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>变更原因</label><textarea class="input" id="changeReason" minlength="5" maxlength="500" required placeholder="请填写 5-500 字"></textarea></div></div><div class="modal-foot"><button class="btn" type="button" data-close>取消</button><button class="btn btn-primary" type="submit">提交审批</button></div></form>`,
         );
         const refreshChangeFields = () => {
           const changeType = $("#changeType").value;
@@ -117,31 +117,32 @@
           const reason = $("#changeReason").value.trim();
           if (reason.length < 5 || reason.length > 500)
             return toast("变更原因须为 5-500 字");
-          if (changeType === "取消") {
-            t.status = "cancelled";
-            t.closeReason = reason;
-            t.closedAt = DEMO_TODAY;
-          } else if (changeType === "延期") {
-            t.originalDue = t.originalDue || t.due;
-            t.due = changeDate;
-            t.status = changeDate < DEMO_TODAY ? "overdue" : "pending";
-          } else {
-            if (!taskCanPause(t))
-              return toast("任务状态已变化，不再满足暂停条件");
-            t.originalDue = t.originalDue || t.due;
-            t.status = "paused";
-            t.resumeDate = changeDate;
-            t.pausedAt = recordCreatedAt();
-            t.pauseReason = reason;
-            t.pausedBy = currentUser.name;
-            t.everOverdue = false;
-            delete t.firstOverdueAt;
-            delete t.lateDays;
-          }
-          t.updatedAt = recordCreatedAt();
-          closeOverlay();
-          renderPage();
-          toast(`任务${typeLabel}已生效`);
+          const targetObject = `维系任务 · ${t.title}`;
+          const templateKey = changeType === "取消"
+            ? "maintenance-cancel"
+            : changeType === "延期"
+              ? "maintenance-postpone"
+              : "maintenance-pause";
+          submitBusinessApproval({
+            templateKey,
+            title: `${typeLabel}维系任务 · ${t.title}`,
+            formData: {
+              taskId: String(t.id),
+              ...(changeType === "延期" ? { due: changeDate } : {}),
+              ...(changeType === "暂停维系至某日" ? { resumeDate: changeDate } : {}),
+              reason,
+            },
+            reason,
+            targetObject,
+            targetKind: "task",
+            targetId: t.id,
+            extra: {
+              taskChangeType: typeLabel,
+              taskChangeDate: changeDate,
+              previousTaskStatus: t.status,
+              previousTaskDue: t.due,
+            },
+          });
         };
       }
 

@@ -130,6 +130,7 @@
       }
 
       function renderPmCityManagement() {
+        applyDueCityHandoverApprovals();
         if (!isPmCityManagementUser())
           return forbiddenPage(
             "地市管理",
@@ -182,7 +183,7 @@
                 : "yellow";
           const rows = ownCities.map((city) => {
             const pending = pendingCityHandover(city.id);
-            const actions = city.canHandover && city.id && !pending && hasOperationPermission("regions.handover")
+            const actions = pending ? escapeHtml(cityHandoverProgress(pending)) : city.canHandover && city.id && hasOperationPermission("regions.handover")
                 ? `<button class="link" type="button" data-action="handover-city" data-id="${city.id}">发起交接</button>`
                 : "—";
             return `<tr><td>${city.province}</td><td><strong>${city.city}</strong></td><td>${city.effective || "—"}</td><td>${city.customers}</td><td>${city.contacts}</td><td><span class="tag green">已分配</span></td><td>${actions}</td></tr>`;
@@ -224,7 +225,7 @@
               : pmName && !pending
                 ? `${canSelfHandover ? `<button class="link" type="button" data-action="handover-city" data-id="${city.id}">发起交接</button> · ` : ""}${canAssignCities ? `<button class="link" type="button" data-action="direct-adjust-city" data-id="${city.id}">直接调整</button> · ` : ""}<button class="link" type="button" data-action="city-impact" data-id="${city.id}">交接事项</button>`
                 : pending
-                  ? "—"
+                  ? escapeHtml(cityHandoverProgress(pending))
                   : canAssignCities
                     ? `<button class="link" type="button" data-city-quick-assign="${city.city}">分配</button>`
                     : "—";
@@ -288,6 +289,7 @@
       }
 
       function renderRegions() {
+        applyDueCityHandoverApprovals();
         if (isPmCityManagementUser() && !currentRoleTemplateNames().includes("区域总监"))
           return forbiddenPage(
             "区域中心与地市配置",
@@ -341,13 +343,13 @@
         const viewSwitch = `<div class="assignment-view-switch" role="group" aria-label="地市分配查看视角"><button class="tab ${regionAssignmentView === "city" ? "active" : ""}" type="button" data-region-assignment-view="city">按地市</button>${currentUser.role === "pm" ? "" : `<button class="tab ${regionAssignmentView === "pm" ? "active" : ""}" type="button" data-region-assignment-view="pm">按 PM</button>`}</div>`;
         const pmView = `<div class="panel-head" style="padding:var(--space-3) 0"><div><div class="panel-sub">${region.name}组织下 ${pms.length} 名在职 PM</div></div><div class="spacer"></div>${viewSwitch}</div><div class="toolbar" style="padding-left:0;padding-right:0"><input class="input" id="regionPmKeyword" maxlength="100" placeholder="PM 姓名 / 工号">${filterActions('<button class="btn btn-primary" type="button" id="queryRegionPms">筛选</button><button class="btn" type="button" id="resetRegionPms">重置</button>')}</div><div class="table-wrap"><table data-paged-table="m08-pms" style="min-width:980px"><thead><tr><th>PM 姓名</th><th>工号</th><th>负责城市数</th><th>城市标签</th><th>待生效交接数</th><th>操作</th></tr></thead><tbody id="regionPmBody">${pms.map((employee) => {
           const owned = regionCities.filter((city) => city.pm === employee.name);
-          const pendingCount = cityResponsibilityChanges.filter(
+          const pendingCount = [...cityResponsibilityChanges, ...approvals].filter(
             (handover) =>
-              handover.type === "地市交接" &&
+              (handover.type === "地市交接" || handover.templateKey === "city-handover") &&
               handover.originalPm === employee.name &&
-              handover.status === "pending_effective",
+              ["pending_effective", "approved_pending_effective"].includes(handover.status),
           ).length;
-          return `<tr data-page-row data-region-pm-row data-keyword="${employee.name}${employee.code}"><td><div class="person"><div class="avatar">${employee.name[0]}</div><strong>${employee.name}</strong></div></td><td>${employee.code}</td><td>${owned.length}</td><td>${owned.map((city) => `<span class="tag ${pendingCityHandover(city.id) ? "yellow" : "blue"}" title="${city.province}">${city.city}${pendingCityHandover(city.id) ? " · 待生效" : ""}</span>`).join(" ") || '<span class="tag">尚未分配</span>'}</td><td>${pendingCount ? `<span class="tag yellow">${pendingCount}</span>` : "0"}</td><td>${canAssignCities ? `<button class="link" type="button" data-pm-city-assign="${employee.name}" ${unassignedCount ? "" : "disabled"}>分配</button>` : "—"}</td></tr>`;
+          return `<tr data-page-row data-region-pm-row data-keyword="${employee.name}${employee.code}"><td><div class="person"><div class="avatar">${employee.name[0]}</div><strong>${employee.name}</strong></div></td><td>${employee.code}</td><td>${owned.length}</td><td>${owned.map((city) => `<span class="tag ${pendingCityHandover(city.id) ? "yellow" : "blue"}" title="${city.province}">${city.city}${pendingCityHandover(city.id) ? ` · ${cityHandoverProgress(pendingCityHandover(city.id))}` : ""}</span>`).join(" ") || '<span class="tag">尚未分配</span>'}</td><td>${pendingCount ? `<span class="tag yellow">${pendingCount}</span>` : "0"}</td><td>${canAssignCities ? `<button class="link" type="button" data-pm-city-assign="${employee.name}" ${unassignedCount ? "" : "disabled"}>分配</button>` : "—"}</td></tr>`;
         }).join("") || '<tr data-empty-row><td colspan="6"><div class="empty">该区域组织下暂无在职 PM</div></td></tr>'}<tr data-filter-empty style="display:none"><td colspan="6"><div class="empty">未找到符合条件的 PM，请调整条件或重置筛选</div></td></tr></tbody></table></div>${tablePagination("m08-pms")}`;
         return (
           pageHead(

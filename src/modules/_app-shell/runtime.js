@@ -282,7 +282,10 @@
       };
       const roleCanSeeBusiness = () => hasDataObject("客户单位");
       const canAccessPage = (page) => {
-        if (["approvals", "archive", "sales-dashboard"].includes(page)) return false;
+        // 审批中心是当前正在演示的新需求；已登录用户均可进入，列表内容仍按
+        // 申请人、当前审批人、抄送人和 admin 的数据范围过滤。
+        if (page === "approvals") return Boolean(currentUser);
+        if (["archive", "sales-dashboard"].includes(page)) return false;
         if (page === "employee-usage") return employeeUsageAccess();
         if (page === "teacher-work") return teacherWorkAccess();
         if (page === "teacher-recommendations") return hasPermission("teacher-recommendations") && Boolean(teacherWorkSelf());
@@ -559,36 +562,16 @@
         });
       }
       function approvalVisibleToCurrentUser(approval) {
-        if (
-          !currentUser ||
-          !hasOperationPermission("approvals.view") ||
-          (currentUser.role === "admin" && !currentUser.fullAccess)
-        )
-          return false;
+        if (!currentUser) return false;
         if (currentUser.fullAccess) return true;
-        if (["president", "vp"].includes(currentUser.role))
-          return (
-            approval.applicant === currentUser.name ||
-            approvalCurrentAssignees(approval).includes(currentUser.name) ||
-            approvalCcUsers(approval).includes(currentUser.name) ||
-            approvalHandledBy(approval).includes(currentUser.name)
-          );
-        if (currentUser.role === "director")
-          return (
-            regionsMatch(approval.region, currentUser.region) ||
-            approval.applicant === currentUser.name ||
-            approvalCurrentAssignees(approval).includes(currentUser.name) ||
-            approvalCcUsers(approval).includes(currentUser.name) ||
-            approvalHandledBy(approval).includes(currentUser.name)
-          );
         return (
           approval.applicant === currentUser.name ||
-          approval.targetPm === currentUser.name ||
           approvalCurrentAssignees(approval).includes(currentUser.name) ||
           approvalCcUsers(approval).includes(currentUser.name) ||
           approvalHandledBy(approval).includes(currentUser.name)
         );
       }
+
       function visibleApprovalsForCurrentUser() {
         normalizeApprovalRouting();
         return approvals.filter(approvalVisibleToCurrentUser);
@@ -1231,53 +1214,54 @@
         return currentRoleTemplate()?.permissions.find(canAccessPage) || "employees";
       }
 
-
-
-      function normalizedPageHash() {
-        const page = window.location.hash.slice(1) || "dashboard";
-        return page === "customers" ? "operations" : page;
+      let wecomQrSeed = 1;
+      function wecomQrSvg(seed = 1) {
+        const size = 29;
+        const matrix = Array.from({ length: size }, () => Array(size).fill(false));
+        const reserved = new Set();
+        const mark = (x, y, value = true) => {
+          if (x < 0 || y < 0 || x >= size || y >= size) return;
+          matrix[y][x] = value;
+          reserved.add(`${x},${y}`);
+        };
+        const finder = (originX, originY) => {
+          for (let y = -1; y <= 7; y += 1) {
+            for (let x = -1; x <= 7; x += 1) {
+              const inside = x >= 0 && x <= 6 && y >= 0 && y <= 6;
+              const dark = inside && (x === 0 || x === 6 || y === 0 || y === 6 || (x >= 2 && x <= 4 && y >= 2 && y <= 4));
+              mark(originX + x, originY + y, dark);
+            }
+          }
+        };
+        finder(0, 0);
+        finder(size - 7, 0);
+        finder(0, size - 7);
+        for (let y = 0; y < size; y += 1) {
+          for (let x = 0; x < size; x += 1) {
+            if (reserved.has(`${x},${y}`)) continue;
+            if (((x * 17 + y * 31 + seed * 13 + x * y) % 11) < 5) matrix[y][x] = true;
+          }
+        }
+        const cells = matrix.flatMap((row, y) => row.map((dark, x) => dark ? `<rect x="${x}" y="${y}" width="1" height="1"/>` : "")).join("");
+        return `<svg viewBox="0 0 ${size} ${size}" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect width="${size}" height="${size}" fill="#fff"/><g fill="#17202b">${cells}</g></svg>`;
       }
-
-      $("#passwordToggle").addEventListener("click", () => {
-        const passwordInput = $("#password");
-        const reveal = passwordInput.type === "password";
-        passwordInput.type = reveal ? "text" : "password";
-        $("#passwordToggle").textContent = reveal ? "⊘" : "◉";
-        $("#passwordToggle").title = reveal ? "隐藏密码" : "显示密码";
-        $("#passwordToggle").setAttribute(
-          "aria-label",
-          reveal ? "隐藏密码" : "显示密码",
-        );
-      });
-
-      $("#loginForm").addEventListener("submit", (e) => {
-        e.preventDefault();
-        const mobile = $("#mobile").value.trim();
-        const submittedCaptcha = $("#captchaInput").value.trim().toUpperCase();
-        const passwordInput = $("#password");
-        passwordInput.type = "password";
-        $("#passwordToggle").textContent = "◉";
-        $("#passwordToggle").title = "显示密码";
-        $("#passwordToggle").setAttribute("aria-label", "显示密码");
-        if (submittedCaptcha !== captchaCode) {
-          refreshCaptcha();
-          return toast("图片验证码错误，请重试");
-        }
-        const account = accounts.find((a) => a.phone === mobile);
-        refreshCaptcha();
-        if (account?.disabled)
-          return toast("账号不可用，请联系系统管理员");
-        const failureState = activeLoginFailureState(account);
-        if (failureState?.lockedUntil) {
-          passwordInput.value = "";
-          return toast("当前无法登录，请稍后重试");
-        }
-        const passwordMatched = account?.password === passwordInput.value;
-        if (!account || !passwordMatched) {
-          if (account) recordPasswordFailure(account);
-          passwordInput.value = "";
-          return toast("手机号或密码错误");
-        }
+      function resetWecomQr() {
+        wecomQrSeed += 1;
+        if ($("#wecomQr")) $("#wecomQr").innerHTML = wecomQrSvg(wecomQrSeed);
+        if ($("#wecomScanStatus")) $("#wecomScanStatus").textContent = "等待扫码";
+      }
+      function setLoginMethod(method) {
+        const wecom = method === "wecom";
+        document.querySelectorAll("[data-login-method]").forEach((button) => {
+          const active = button.dataset.loginMethod === method;
+          button.classList.toggle("active", active);
+          button.setAttribute("aria-selected", String(active));
+        });
+        $("#passwordLoginPanel")?.classList.toggle("hidden", wecom);
+        $("#wecomLoginPanel")?.classList.toggle("hidden", !wecom);
+        if (wecom && $("#wecomQr") && !$("#wecomQr").innerHTML) resetWecomQr();
+      }
+      function completeLogin(account, loginMethod = "账号密码登录") {
         loginFailureState.delete(account.phone);
         currentUser = account;
         employeeUsageRecordVisit();
@@ -1289,9 +1273,7 @@
         supportProjectsState = { actor: null, selected: false, employee: "" };
         const personalTeacherLanding = defaultLandingPage() === "teacher-schedule";
         if (personalTeacherLanding) teacherScheduleState = { actor: account, month: DEMO_TODAY.slice(0, 7), view: "calendar", selected: null };
-        const loginEmployee = employees.find(
-          (employee) => employee.name === account.name,
-        );
+        const loginEmployee = employees.find((employee) => employee.name === account.name);
         if (loginEmployee) loginEmployee.lastLogin = recordCreatedAt();
         const requestedExplicitly = Boolean(window.location.hash.slice(1));
         const requestedPage = normalizedPageHash();
@@ -1322,68 +1304,22 @@
         salesTargetHistoryState = null;
         salesTrendMode = "count";
         appliedOpportunityFilters = {
-          code: "",
-          name: "",
-          type: "",
-          source: "",
-          stage: "",
-          customer: "",
-          region: "",
-          owner: "",
-          priority: "",
-          expectedFrom: "",
-          expectedTo: "",
-          createdFrom: "",
-          createdTo: "",
-          overdue: "",
+          code: "", name: "", type: "", source: "", stage: "", customer: "", region: "", owner: "", priority: "", expectedFrom: "", expectedTo: "", createdFrom: "", createdTo: "", overdue: "",
         };
         selectedCustomerOrgNode = "";
         selectedCustomerOrgInternalNode = "";
         customerOrgCompanyTab = "organization";
-        Object.assign(customerOrgNavFilters, {
-          industryName: "",
-          groupNumber: "",
-          groupName: "",
-          companyName: "",
-          industryCode: "",
-          creditCode: "",
-          industry: "",
-          group: "",
-        });
+        Object.assign(customerOrgNavFilters, { industryName: "", groupNumber: "", groupName: "", companyName: "", industryCode: "", creditCode: "", industry: "", group: "" });
         customerOrgNavFilters.levels.clear();
         customerOrgNavFilters.statuses.clear();
-        Object.assign(customerOrgInternalFilters, {
-          departmentName: "",
-          departmentCode: "",
-          positionName: "",
-          positionCode: "",
-        });
+        Object.assign(customerOrgInternalFilters, { departmentName: "", departmentCode: "", positionName: "", positionCode: "" });
         customerOrgInternalFilters.statuses.clear();
         customerOrgLoadLimits.clear();
         customerAreaFilter.provinces.clear();
         customerAreaFilter.cities.clear();
         customerAreaFilter.districts.clear();
         appliedCustomerFilter = {
-          group: "",
-          groupNumber: "",
-          groupName: "",
-          companyName: "",
-          personCode: "",
-          personName: "",
-          personWechat: "",
-          industries: new Set(),
-          levels: new Set(),
-          personPhone: "",
-          pms: new Set(),
-          coverage: "",
-          departments: new Set(),
-          positions: new Set(),
-          customPosition: "",
-          departmentCoverage: "",
-          positionCoverage: "",
-          provinces: new Set(),
-          cities: new Set(),
-          districts: new Set(),
+          group: "", groupNumber: "", groupName: "", companyName: "", personCode: "", personName: "", personWechat: "", industries: new Set(), levels: new Set(), personPhone: "", pms: new Set(), coverage: "", departments: new Set(), positions: new Set(), customPosition: "", departmentCoverage: "", positionCoverage: "", provinces: new Set(), cities: new Set(), districts: new Set(),
         };
         $("#loginView").classList.add("hidden");
         $("#appView").classList.remove("hidden");
@@ -1393,7 +1329,77 @@
         renderNav();
         renderPage();
         refreshNoticeIndicator();
-        toast(`已进入${account.roleName}视图`);
+        toast(`已通过${loginMethod}进入${account.roleName}视图`);
+      }
+
+
+
+      function normalizedPageHash() {
+        const page = window.location.hash.slice(1) || "dashboard";
+        return page === "customers" ? "operations" : page;
+      }
+
+      $("#passwordToggle").addEventListener("click", () => {
+        const passwordInput = $("#password");
+        const reveal = passwordInput.type === "password";
+        passwordInput.type = reveal ? "text" : "password";
+        $("#passwordToggle").textContent = reveal ? "⊘" : "◉";
+        $("#passwordToggle").title = reveal ? "隐藏密码" : "显示密码";
+        $("#passwordToggle").setAttribute(
+          "aria-label",
+          reveal ? "隐藏密码" : "显示密码",
+        );
+      });
+      document.querySelectorAll("[data-login-method]").forEach((button) => {
+        button.addEventListener("click", () => setLoginMethod(button.dataset.loginMethod));
+      });
+      $("#refreshWecomQr").addEventListener("click", resetWecomQr);
+      $("#simulateWecomScan").addEventListener("click", () => {
+        const binding = wecomBindings.find((item) => item.wecomId === "wx-001");
+        const wecomEmployee = binding ? wecomEmployees.find((item) => item.id === binding.wecomId) : null;
+        const employee = binding ? employees.find((item) => item.code === binding.employeeCode) : null;
+        const account = employee ? accounts.find((item) => item.employeeCode === employee.code || item.name === employee.name) : null;
+        if (!binding || !wecomEmployee || !employee || employee.status !== "在职" || employee.accountStatus !== "启用" || !account) {
+          if ($("#wecomScanStatus")) $("#wecomScanStatus").textContent = "无法登录";
+          return toast("企业微信身份未绑定或账号不可用");
+        }
+        if (activeLoginFailureState(account)?.lockedUntil) {
+          if ($("#wecomScanStatus")) $("#wecomScanStatus").textContent = "无法登录";
+          return toast("当前无法登录，请稍后重试");
+        }
+        if ($("#wecomScanStatus")) $("#wecomScanStatus").textContent = "扫码成功，正在登录";
+        completeLogin(account, "企业微信扫码");
+      });
+
+      $("#loginForm").addEventListener("submit", (e) => {
+        e.preventDefault();
+        const mobile = $("#mobile").value.trim();
+        const submittedCaptcha = $("#captchaInput").value.trim().toUpperCase();
+        const passwordInput = $("#password");
+        passwordInput.type = "password";
+        $("#passwordToggle").textContent = "◉";
+        $("#passwordToggle").title = "显示密码";
+        $("#passwordToggle").setAttribute("aria-label", "显示密码");
+        if (submittedCaptcha !== captchaCode) {
+          refreshCaptcha();
+          return toast("图片验证码错误，请重试");
+        }
+        const account = accounts.find((a) => a.phone === mobile);
+        refreshCaptcha();
+        if (account?.disabled)
+          return toast("账号不可用，请联系系统管理员");
+        const failureState = activeLoginFailureState(account);
+        if (failureState?.lockedUntil) {
+          passwordInput.value = "";
+          return toast("当前无法登录，请稍后重试");
+        }
+        const passwordMatched = account?.password === passwordInput.value;
+        if (!account || !passwordMatched) {
+          if (account) recordPasswordFailure(account);
+          passwordInput.value = "";
+          return toast("手机号或密码错误");
+        }
+        completeLogin(account);
       });
       function performLogout() {
         currentUser = null;
@@ -1411,6 +1417,8 @@
         closeOverlay();
         $("#appView").classList.add("hidden");
         $("#loginView").classList.remove("hidden");
+        setLoginMethod("password");
+        resetWecomQr();
         refreshCaptcha();
       }
       function confirmLogout() {

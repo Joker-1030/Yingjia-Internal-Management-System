@@ -161,24 +161,14 @@
                 openCompleteTask(Number(button.dataset.complete))),
           );
         document
-          .querySelectorAll("[data-approve]")
-          .forEach(
-            (button) =>
-              (button.onclick = () =>
-                openApprovalDecision(Number(button.dataset.approve), true)),
-          );
-        document
-          .querySelectorAll("[data-reject]")
-          .forEach(
-            (button) =>
-              (button.onclick = () =>
-                openApprovalDecision(Number(button.dataset.reject), false)),
-          );
-        document
           .querySelectorAll("[data-action]")
           .forEach(
             (button) =>
               (button.onclick = () => {
+                if (button.dataset.action === "approval-detail")
+                  return openApprovalDetail(Number(button.dataset.id));
+                if (button.dataset.action === "approval-create")
+                  return openApprovalCreate();
                 return genericAction(
                   button.dataset.action,
                   button.dataset.id,
@@ -186,6 +176,17 @@
                 );
               }),
           );
+        document.querySelectorAll('[data-action="approval-detail"]').forEach(
+          (button) =>
+            (button.onclick = () => {
+              try {
+                return openApprovalDetail(Number(button.dataset.id));
+              } catch (error) {
+                console.error(error);
+                return toast(`审批详情加载失败：${error.message || error}`);
+              }
+            }),
+        );
         document.querySelectorAll("[data-task-view]").forEach(
           (button) =>
             (button.onclick = () => {
@@ -205,10 +206,32 @@
           (button) =>
             (button.onclick = () => {
               employeeView = button.dataset.employeeView;
+              if (employeeView === "wecom-binding") {
+                employeeBindingKeyword = "";
+                employeeBindingStatusFilter = "";
+              }
               selectedOrganizationDepartmentId = null;
               renderPage();
             }),
         );
+        document.querySelectorAll('[data-action="wecom-binding-edit"]').forEach(
+          (button) => (button.onclick = () => openWecomBindingForm(button.dataset.id)),
+        );
+        document.querySelectorAll('[data-action="wecom-binding-remove"]').forEach(
+          (button) => (button.onclick = () => removeWecomBinding(button.dataset.id)),
+        );
+        const applyEmployeeBindingFilters = $("#applyEmployeeBindingFilters");
+        if (applyEmployeeBindingFilters) applyEmployeeBindingFilters.onclick = () => {
+          employeeBindingKeyword = $("#employeeBindingKeyword")?.value || "";
+          employeeBindingStatusFilter = $("#employeeBindingStatus")?.value || "";
+          renderPage();
+        };
+        const resetEmployeeBindingFilters = $("#resetEmployeeBindingFilters");
+        if (resetEmployeeBindingFilters) resetEmployeeBindingFilters.onclick = () => {
+          employeeBindingKeyword = "";
+          employeeBindingStatusFilter = "";
+          renderPage();
+        };
         document.querySelectorAll("[data-change-audit]").forEach(
           (button) =>
             (button.onclick = () =>
@@ -1725,21 +1748,5 @@
           .forEach(
             (b) =>
               (b.onclick = () => openCompleteTask(Number(b.dataset.complete))),
-          );
-        document
-          .querySelectorAll(
-            "#overlay [data-approve], #modalLayer [data-approve]",
-          )
-          .forEach(
-            (b) =>
-              (b.onclick = () =>
-                openApprovalDecision(Number(b.dataset.approve), true)),
-          );
-        document
-          .querySelectorAll("#overlay [data-reject], #modalLayer [data-reject]")
-          .forEach(
-            (b) =>
-              (b.onclick = () =>
-                openApprovalDecision(Number(b.dataset.reject), false)),
           );
       }

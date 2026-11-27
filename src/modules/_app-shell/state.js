@@ -32,6 +32,10 @@
           ],
         },
         {
+          title: "审批中心",
+          items: [{ id: "approvals", icon: "▣", label: "审批中心" }],
+        },
+        {
           title: "系统管理",
           items: [
             { id: "employees", icon: "♧", label: "组织与员工" },
@@ -54,6 +58,8 @@
       let taskView = "summary";
       let approvalView = "pending";
       let employeeView = "directory";
+      let employeeBindingStatusFilter = "";
+      let employeeBindingKeyword = "";
       let dashboardTaskFilter = null;
       let dashboardEmployeeStatusFilter = "在职";
       let dashboardComparisonPeriod = "month";

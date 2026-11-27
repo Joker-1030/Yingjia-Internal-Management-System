@@ -4,6 +4,7 @@
   "name": "组织与员工",
   "pages": [
     "employees",
+    "employee-wecom-binding",
     "employee-detail",
     "employee-form",
     "organization-change"

@@ -1,3 +1,33 @@
+      let pendingAmountConfirmationFiles = [];
+      function amountConfirmationCheckoutAmount(project, finalProjectAmount) {
+        if (!Number.isFinite(Number(finalProjectAmount))) return NaN;
+        const feeRate = Number(project?.snapshot?.managementFeeRate);
+        if (project?.cooperation === "走账合作" && Number.isFinite(feeRate)) {
+          return round2(Number(finalProjectAmount) * (1 - feeRate / 100));
+        }
+        return Number(finalProjectAmount);
+      }
+      function amountConfirmationFileKind(file) {
+        const name = String(file?.name || "").toLowerCase();
+        if (/\.(jpg|jpeg|png|gif|webp)$/.test(name)) return "image";
+        if (/\.(mp4|mov|webm)$/.test(name)) return "video";
+        return "document";
+      }
+      function amountConfirmationAttachmentsHtml() {
+        if (!pendingAmountConfirmationFiles.length) return '<span class="panel-sub">未选择附件</span>';
+        return pendingAmountConfirmationFiles.map((file) => `<span class="tag">${escapeHtml(file.name)}</span>`).join(" ");
+      }
+      function refreshAmountConfirmationDifferenceFields(project) {
+        const host = $("#projectAmountConfirmationDifferenceFields");
+        const amountInput = $("#projectFinalProjectAmount");
+        if (!host || !amountInput) return;
+        const finalProjectAmount = parseWanMoney(amountInput.value.trim() || "");
+        const finalSettlementAmount = amountConfirmationCheckoutAmount(project, finalProjectAmount);
+        const reference = projectAmountConfirmationReference(project);
+        const differs = Number.isFinite(finalProjectAmount) && Number.isFinite(finalSettlementAmount) &&
+          (round2(finalProjectAmount) !== round2(reference.projectAmount) || round2(finalSettlementAmount) !== round2(reference.settlementAmount));
+        host.classList.toggle("hidden", !differs);
+      }
       function bindProjectEvents() {
         document.querySelectorAll("[data-project-open]").forEach((button) => {
           button.onclick = () => {
@@ -52,6 +82,11 @@
           .querySelectorAll("[data-project-confirm-delivery]")
           .forEach((button) => {
             button.onclick = () => openProjectDeliveryModal();
+          });
+        document
+          .querySelectorAll("[data-project-amount-confirm]")
+          .forEach((button) => {
+            button.onclick = () => openProjectAmountConfirmationModal();
           });
         document.querySelectorAll("[data-project-cancel-open]").forEach((button) => {
           button.onclick = () => openProjectCancelModal();
@@ -2398,6 +2433,112 @@
         commitProjectHistoryEvent(historyEvent);
         renderPage();
       }
+      function openProjectAmountConfirmationModal() {
+        const project = projectById(selectedProjectId);
+        if (!project) return;
+        normalizeProjectLifecycle(project);
+        if (!canAccessPage("project-detail") || !projectIsVisibleToCurrentUser(project) || !canConfirmProjectAmount(project)) return;
+        pendingAmountConfirmationFiles = [];
+        const reference = projectAmountConfirmationReference(project);
+        openModal(
+          `<div class="modal-head"><div class="modal-title">确认项目金额</div><button class="icon-btn close" data-close>×</button></div>` +
+            `<form id="projectAmountConfirmationForm" class="project-config-form" novalidate><div class="modal-body">` +
+            `<div class="amount-confirm-reference"><div class="section-title">立项金额参考</div><div>项目金额（含税，万元）：${formatProjectAmount(reference.projectAmount)}</div><div>结账金额（含税，万元）：${formatProjectAmount(reference.settlementAmount)}</div>${project.stage === "已中止" && project.terminationInvolvesSettlement ? `<div>中止应结算金额（含税，万元）：${formatProjectAmount(project.terminationSettlementAmount)}</div>` : ""}</div>` +
+            `<div class="form-group"><label class="form-label" for="projectFinalProjectAmount"><span class="required-marker">*</span>最终确认项目金额（含税，万元）</label><input class="input" id="projectFinalProjectAmount" type="number" min="0" step="0.000001" value="${wanMoneyInput(project.amount)}"><div class="field-error" id="err-finalProjectAmount"></div></div>` +
+            `<div class="form-group"><label class="form-label" for="projectFinalSettlementAmount"><span class="required-marker">*</span>最终确认结账金额（含税，万元）</label><input class="input" id="projectFinalSettlementAmount" type="text" value="${formatProjectAmount(amountConfirmationCheckoutAmount(project, project.amount))}" readonly><div class="list-sub">${escapeHtml(projectSettlementFormulaText(project.cooperation))}</div><div class="field-error" id="err-finalSettlementAmount"></div></div>` +
+            `<div id="projectAmountConfirmationDifferenceFields" class="hidden">` +
+            `<div class="form-group"><label class="form-label" for="projectAmountConfirmationReason">金额不一致说明</label><textarea class="input" id="projectAmountConfirmationReason" rows="3" placeholder="项目金额或结账金额与立项金额不一致时必填"></textarea><div class="field-error" id="err-amountConfirmationReason"></div></div>` +
+            `<div class="form-group"><label class="form-label" for="projectAmountConfirmationAttachment">金额确认附件（选填）</label><input class="input" id="projectAmountConfirmationAttachment" type="file" multiple accept=".jpg,.jpeg,.png,.gif,.webp,.mp4,.mov,.webm,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx"><div class="list-sub" id="projectAmountConfirmationFiles">未选择附件</div></div>` +
+            `</div>` +
+            `</div><div class="modal-foot"><button class="btn" type="button" data-close>取消</button><button class="btn btn-primary" type="submit">确认金额</button></div></form>`,
+        );
+        const amountInput = $("#projectFinalProjectAmount");
+        const settlementInput = $("#projectFinalSettlementAmount");
+        const refreshCheckout = () => {
+          const amount = parseWanMoney(amountInput?.value?.trim() || "");
+          if (settlementInput) settlementInput.value = Number.isFinite(amount) ? formatProjectAmount(amountConfirmationCheckoutAmount(project, amount)) : "—";
+          refreshAmountConfirmationDifferenceFields(project);
+        };
+        amountInput?.addEventListener("input", refreshCheckout);
+        refreshAmountConfirmationDifferenceFields(project);
+        $("#projectAmountConfirmationAttachment")?.addEventListener("change", (event) => {
+          pendingAmountConfirmationFiles = [...(event.target.files || [])];
+          const host = $("#projectAmountConfirmationFiles");
+          if (host) host.innerHTML = amountConfirmationAttachmentsHtml();
+        });
+        $("#projectAmountConfirmationForm").onsubmit = (event) => {
+          event.preventDefault();
+          submitProjectAmountConfirmation();
+        };
+      }
+      function submitProjectAmountConfirmation() {
+        const project = projectById(selectedProjectId);
+        if (!project) {
+          closeOverlay();
+          return;
+        }
+        normalizeProjectLifecycle(project);
+        if (!canConfirmProjectAmount(project)) {
+          closeOverlay();
+          renderPage();
+          return;
+        }
+        const raw = $("#projectFinalProjectAmount")?.value?.trim() || "";
+        const finalProjectAmount = parseWanMoney(raw);
+        const finalSettlementAmount = amountConfirmationCheckoutAmount(project, finalProjectAmount);
+        const reference = projectAmountConfirmationReference(project);
+        const reason = $("#projectAmountConfirmationReason")?.value?.trim() || "";
+        const error = $("#err-finalProjectAmount");
+        if (raw === "" || !Number.isFinite(finalProjectAmount) || finalProjectAmount < 0) {
+          if (error) error.textContent = "请填写不小于0且最多6位小数的最终确认项目金额";
+          return;
+        }
+        const amountDiffers = round2(finalProjectAmount) !== round2(reference.projectAmount);
+        const settlementDiffers = round2(finalSettlementAmount) !== round2(reference.settlementAmount);
+        if ((amountDiffers || settlementDiffers) && !reason) {
+          const reasonError = $("#err-amountConfirmationReason");
+          if (reasonError) reasonError.textContent = "金额与立项金额不一致时，必须填写说明原因";
+          return;
+        }
+        const operationTime = projectNow();
+        const historyEvent = createProjectHistoryEvent(project, "确认项目金额", {
+          time: operationTime,
+        });
+        appendProjectHistoryChange(
+          historyEvent,
+          "最终确认项目金额（含税，万元）",
+          "待确认",
+          formatProjectAmount(finalProjectAmount),
+          "时间与金额",
+        );
+        appendProjectHistoryChange(
+          historyEvent,
+          "最终确认结账金额（含税，万元）",
+          "待确认",
+          formatProjectAmount(finalSettlementAmount),
+          "时间与金额",
+        );
+        if (reason) appendProjectHistoryChange(historyEvent, "金额不一致说明", "—", reason, "时间与金额");
+        project.finalProjectAmount = finalProjectAmount;
+        project.finalSettlementAmount = finalSettlementAmount;
+        project.finalReceivableAmount = finalSettlementAmount;
+        project.amountConfirmationReason = reason;
+        project.amountConfirmationAttachments = pendingAmountConfirmationFiles.map((file) => ({
+          id: `AMT-${project.id}-${Date.now()}-${file.name}`,
+          name: file.name,
+          size: file.size,
+          kind: amountConfirmationFileKind(file),
+          addedBy: currentUser.name,
+          addedAt: operationTime,
+        }));
+        project.amountConfirmedBy = currentUser.name;
+        project.amountConfirmedAt = operationTime;
+        normalizeProjectLifecycle(project, historyEvent, operationTime);
+        commitProjectHistoryEvent(historyEvent);
+        closeOverlay();
+        renderPage();
+        toast("金额已确认，已生成待回款待办");
+      }
       function openProjectDeliveryModal() {
         const project = projectById(selectedProjectId);
         if (!project) return;
@@ -2581,44 +2722,26 @@
         }
         if (invalid) return;
 
-        const oldStage = project.stage;
-        const terminatedOwner = projectCurrentOwner(project);
-        const operationTime = projectNow();
-        project.terminationInvolvesSettlement = involvesSettlement;
-        if (involvesSettlement) project.terminationSettlementAmount = amount;
-        else delete project.terminationSettlementAmount;
-        project.terminationReason = reason;
-        project.terminatedOwner = terminatedOwner;
-        project.terminatedBy = currentUser.name;
-        project.terminatedAt = operationTime;
-        project.stage = "已中止";
-        project.todos = involvesSettlement ? ["待回款"] : [];
-        const historyEvent = createProjectHistoryEvent(project, "中止项目", {
+        submitBusinessApproval({
+          templateKey: "project-terminate",
+          title: `中止项目 · ${project.name}`,
+          formData: {
+            projectId: project.id,
+            settlement: involvesSettlement ? "是" : "否",
+            ...(involvesSettlement ? { settlementAmount: amountRaw } : {}),
+            reason,
+          },
           reason,
-          time: operationTime,
+          targetObject: `项目 · ${project.name}`,
+          targetKind: "project",
+          targetId: project.id,
+          extra: {
+            terminationInvolvesSettlement: involvesSettlement,
+            terminationSettlementAmount: involvesSettlement ? amount : null,
+            previousProjectStage: project.stage,
+            projectOwner: projectCurrentOwner(project),
+          },
         });
-        appendProjectHistoryChange(
-          historyEvent,
-          "项目状态",
-          oldStage,
-          "已中止",
-          "状态变更",
-        );
-        appendProjectHistoryFact(
-          historyEvent,
-          "是否涉及金额结算",
-          involvesSettlement ? "是" : "否",
-        );
-        if (involvesSettlement)
-          appendProjectHistoryFact(
-            historyEvent,
-            "应结算金额（含税，万元）",
-            formatProjectAmount(amount),
-          );
-        appendProjectHistoryFact(historyEvent, "触发摘要", "有权人确认中止");
-        commitProjectHistoryEvent(historyEvent);
-        closeOverlay();
-        renderPage();
       }
       function openProjectTerminationModal() {
         const project = projectById(selectedProjectId);
@@ -2631,7 +2754,7 @@
             '<div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>是否涉及金额结算</label><div class="choice-grid"><label class="check-row"><input type="radio" name="projectTerminationSettlement" value="yes"><span>是</span></label><label class="check-row"><input type="radio" name="projectTerminationSettlement" value="no"><span>否</span></label></div><div class="field-error" id="err-terminationSettlement"></div></div>' +
             '<div class="form-group" id="projectTerminationAmountGroup" style="display:none"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>应结算金额（含税，万元）</label><input class="input" id="projectTerminationAmount" type="number" min="0.000001" step="0.000001" value=""><div class="field-error" id="err-terminationAmount"></div></div>' +
             '<div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>中止原因</label><textarea class="input" id="projectTerminationReason" rows="3" maxlength="500"></textarea><div class="field-error" id="err-terminationReason"></div></div>' +
-            '</div><div class="modal-foot project-modal-foot"><button class="btn" type="button" data-close>取消</button><button class="btn btn-primary" type="submit">确认中止</button></div></form>',
+            '</div><div class="modal-foot project-modal-foot"><button class="btn" type="button" data-close>取消</button><button class="btn btn-primary" type="submit">提交审批</button></div></form>',
         );
         const updateSettlementFields = () => {
           const choice = document.querySelector(

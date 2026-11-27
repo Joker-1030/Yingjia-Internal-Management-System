@@ -13,7 +13,7 @@
       }
 
       function approvalHasReception(approval) {
-        if (approval.type === "地市交接") return false;
+        if (approval.type === "地市交接" || approval.templateKey === "city-handover") return false;
         return Boolean(
           approval.targetPm ||
           approval.acceptedBy ||
@@ -66,6 +66,7 @@
                 "approved_pending_effective",
                 "rejected",
                 "processing_failed",
+                "withdrawn",
               ].includes(
                 approval.status,
               )),
@@ -87,6 +88,5 @@
       }
 
       function approvalFlow(a) {
-        const icons = { done: "✓", current: "•", upcoming: "", rejected: "×", invalid: "!" };
-        return `<div class="approval-flow">${approvalProgressSteps(a).map((step, index) => `${index ? '<i class="flow-line"></i>' : ""}<span class="flow-step ${step.state}"><span class="flow-dot">${icons[step.state]}</span>${step.title}</span>`).join("")}</div>`;
+        return `<span class="tag ${approvalStatusTone(a.status)}">${approvalStatusName(a.status)}</span>`;
       }

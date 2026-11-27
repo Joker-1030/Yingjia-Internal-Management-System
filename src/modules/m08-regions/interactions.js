@@ -29,14 +29,20 @@
         ).map(Number);
 
       const pendingCityHandover = (cityId) =>
-        cityResponsibilityChanges.find(
+        [...cityResponsibilityChanges, ...approvals].find(
           (handover) =>
-            handover.type === "地市交接" &&
-            ["pending_effective", "processing_failed"].includes(
+            (handover.type === "地市交接" || handover.templateKey === "city-handover") &&
+            ["pending", "paused_invalid_handler", "approved_pending_effective", "pending_effective", "processing_failed"].includes(
               handover.status,
             ) &&
             cityIdsForHandover(handover).includes(Number(cityId)),
         );
+
+      function cityHandoverProgress(handover) {
+        return ({ pending: "审批中", paused_invalid_handler: "处理人失效",
+          approved_pending_effective: "已通过待生效", pending_effective: "待生效",
+          processing_failed: "业务处理失败" })[handover?.status] || "";
+      }
 
       function responsibilityHandoverItems(companies) {
         const ids = new Set(companies.map(customer => String(customer.id)));
@@ -58,7 +64,7 @@
       function cityHandoverImpact(cityIds) {
         return Object.fromEntries(Object.entries(cityHandoverItems(cityIds)).map(([key, list]) => [key, list.length]));
       }
-      function renderResponsibilityHandoverItems(items) {
+      function renderResponsibilityHandoverItems(items, summaryOnly = false) {
         const sections = [
           ["customers", "客户公司", item => [item.name, item.level, customerOwnerName(item)]],
           ["people", "关键人", item => [item.name, item.company]],
@@ -67,6 +73,8 @@
           ["projects", "普通项目（全部六阶段）", item => [item.name || item.title || item.id, item.stage, `负责 PM：${projectCurrentOwner(item) || "未分配"}`]],
           ["opportunities", "未落选普通商机", item => [item.name || item.title || item.id, item.stage, item.owner]],
         ];
+        if (summaryOnly)
+          return `<div class="region-handover-items">${sections.map(([key, label]) => `<section class="region-handover-section"><h3>${label}<strong>${items[key].length}</strong></h3></section>`).join("")}</div>`;
         return `<div class="region-handover-items">${sections.map(([key, label, describe]) => `<section class="region-handover-section"><h3>${label}<strong>${items[key].length}</strong></h3><div class="region-handover-list" tabindex="0" role="region" aria-label="${label}明细">${items[key].map(item => `<div class="region-handover-row">${describe(item).filter(Boolean).map(text => `<span>${escapeHtml(text)}</span>`).join("")}</div>`).join("") || '<div class="empty">无交接事项</div>'}</div></section>`).join("")}</div>`;
       }
 
@@ -506,46 +514,47 @@
           reason,
           impactSnapshot,
         } = payload;
-        const handover = {
-          id: Date.now(),
-          code: nextBusinessCode("RC"),
-          source: "manual",
-          type: "地市交接",
+        if (!isPmCityManagementUser() || !hasOperationPermission("regions.handover") ||
+            !owners.length || owners.length > 50 ||
+            owners.some((owner) => owner.pm !== currentUser.name || centerForCityOwner(owner)?.id !== region?.id))
+          return toast("只能提交本人在同一中心负责的1-50个地市");
+        if (owners.some((owner) => pendingCityHandover(owner.id)))
+          return toast("所选地市已有未结束交接，不能重复提交");
+        if (!regionPmEmployees(region).some((employee) => employee.name === targetPm && employee.name !== currentUser.name))
+          return toast("目标PM已失效，请重新选择");
+        if (!plannedEffectiveDate || plannedEffectiveDate < DEMO_TODAY || plannedEffectiveDate > addDays(DEMO_TODAY, 90) || reason.length < 5 || reason.length > 500)
+          return toast("请检查计划生效日期和交接原因");
+        submitBusinessApproval({
+          templateKey: "city-handover",
           title: `${owners.map((owner) => owner.city).join("、")}由${owners[0].pm}转交${targetPm}`,
-          operator: currentUser.name,
-          region: regionScopeName(region),
-          regionDirector: region.director,
-          status: plannedEffectiveDate > DEMO_TODAY ? "pending_effective" : "effective",
-          createdAt: recordCreatedAt(),
-          updatedAt: recordCreatedAt(),
+          formData: {
+            cityIds: owners.map((owner) => owner.id).join(","),
+            targetPm,
+            plannedEffectiveDate,
+            reason,
+          },
           reason,
-          originalPm: owners[0].pm,
-          targetPm,
-          targetCityIds: owners.map((owner) => owner.id),
-          targetCitySnapshots: owners.map((owner) => ({
-            id: owner.id,
-            province: owner.province,
-            city: owner.city,
-            originalPm: owner.pm,
-          })),
-          plannedEffectiveDate,
-          impactSnapshot,
-        };
-        if (plannedEffectiveDate <= DEMO_TODAY)
-          applyCityResponsibilityTransfer(handover);
-        cityResponsibilityChanges.unshift(handover);
-        closeAllOverlays();
-        renderPage();
-        toast(
-          handover.status === "pending_effective"
-            ? `已确认交接，将于 ${plannedEffectiveDate} 自动生效`
-            : handover.status === "effective"
-              ? "地市责任交接已生效"
-              : "交接业务处理失败，原责任保持不变",
-        );
+          targetObject: `地市责任 · ${owners.map((owner) => owner.city).join("、")}`,
+          extra: {
+            sourceRegionId: region.id,
+            originalPm: owners[0].pm,
+            targetPm,
+            targetCityIds: owners.map((owner) => owner.id),
+            targetCitySnapshots: owners.map((owner) => ({
+              id: owner.id,
+              province: owner.province,
+              city: owner.city,
+              originalPm: owner.pm,
+            })),
+            plannedEffectiveDate,
+            impactSnapshot,
+            region: regionScopeName(region),
+            regionDirector: region.director,
+          },
+        });
       }
 
-      function openCityHandover(id) {
+      function openCityHandover(id, draft = null) {
         if (!isPmCityManagementUser())
           return toast("地市交接仅当前负责 PM 本人可发起；区域总监和管理员请使用直接调整");
         const city = cityOwners.find((x) => x.id === id);
@@ -570,15 +579,23 @@
         );
         if (!pms.length) return toast("该区域暂无其他在职 PM 可接收交接");
         openModal(
-          `<div class="modal-head"><div class="modal-title">发起地市责任交接</div><button class="icon-btn close" data-close>×</button></div><form id="cityHandover"><div class="modal-body"><div class="role-note">原 PM：${c.pm}<br>每次可交接 1-50 个本人负责地市；计划生效日前仍由原 PM 负责。</div><div class="form-grid"><div class="form-group full"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>交接地市</label><div class="choice-grid" id="handoverCityChoices">${sameOwnerCities.map((owner) => { const pending = pendingCityHandover(owner.id); return `<label class="choice-item ${pending ? "is-disabled" : ""}"><input class="assignment-check" type="checkbox" value="${owner.id}" ${owner.id === c.id ? "checked" : ""} ${pending ? "disabled" : ""}><span>${owner.province} · ${owner.city}${pending ? ` · 待生效（${pending.code}）` : ""}</span></label>`; }).join("")}</div></div><div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>目标 PM</label><select class="input" id="targetCityPm">${pms.map((employee) => `<option value="${employee.name}">${employee.name} · ${employee.code}</option>`).join("")}</select></div><div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>计划生效日期</label><input class="input" id="cityHandoverDate" type="date" min="${DEMO_TODAY}" max="${addDays(DEMO_TODAY, 90)}" value="${DEMO_TODAY}" required></div><div class="form-group full"><label class="form-label">影响摘要</label><div id="cityHandoverImpact"></div></div><div class="form-group full"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>交接原因 <span class="panel-sub">5-500 字</span></label><textarea class="input" id="cityReason" minlength="5" maxlength="500" required placeholder="说明交接原因"></textarea></div></div></div><div class="modal-foot"><button class="btn" type="button" data-close>取消</button><button class="btn btn-primary" type="submit">下一步：确认交接</button></div></form>`,
+          `<div class="modal-head"><div class="modal-title">发起地市责任交接</div><button class="icon-btn close" data-close>×</button></div><form id="cityHandover"><div class="modal-body"><div class="role-note">原 PM：${c.pm}<br>每次可交接 1-50 个本人负责地市；审批中及计划生效前仍由原 PM 负责。</div><div class="form-grid"><div class="form-group full"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>交接地市</label><div class="choice-grid" id="handoverCityChoices">${sameOwnerCities.map((owner) => { const pending = pendingCityHandover(owner.id); return `<label class="choice-item ${pending ? "is-disabled" : ""}"><input class="assignment-check" type="checkbox" value="${owner.id}" ${owner.id === c.id ? "checked" : ""} ${pending ? "disabled" : ""}><span>${owner.province} · ${owner.city}${pending ? ` · 未结束交接（${pending.code}）` : ""}</span></label>`; }).join("")}</div></div><div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>目标 PM</label><select class="input" id="targetCityPm">${pms.map((employee) => `<option value="${employee.name}">${employee.name} · ${employee.code}</option>`).join("")}</select></div><div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>计划生效日期</label><input class="input" id="cityHandoverDate" type="date" min="${DEMO_TODAY}" max="${addDays(DEMO_TODAY, 90)}" value="${DEMO_TODAY}" required></div><div class="form-group full"><label class="form-label">影响摘要</label><div id="cityHandoverImpact"></div></div><div class="form-group full"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>交接原因 <span class="panel-sub">5-500 字</span></label><textarea class="input" id="cityReason" minlength="5" maxlength="500" required placeholder="说明交接原因"></textarea></div></div></div><div class="modal-foot"><button class="btn" type="button" data-close>取消</button><button class="btn btn-primary" type="submit">下一步：确认申请</button></div></form>`,
         );
+        if (draft) {
+          document.querySelectorAll("#handoverCityChoices input").forEach((input) => {
+            input.checked = !input.disabled && draft.cityIds.includes(Number(input.value));
+          });
+          if (pms.some((employee) => employee.name === draft.targetPm)) $("#targetCityPm").value = draft.targetPm;
+          $("#cityHandoverDate").value = draft.plannedEffectiveDate;
+          $("#cityReason").value = draft.reason;
+        }
         const selectedOwnerIds = () =>
           [...document.querySelectorAll("#handoverCityChoices input:checked")].map(
             (input) => Number(input.value),
           );
         const refreshImpact = () => {
           const selected = selectedOwnerIds();
-          $("#cityHandoverImpact").innerHTML = renderResponsibilityHandoverItems(cityHandoverItems(selected));
+          $("#cityHandoverImpact").innerHTML = renderResponsibilityHandoverItems(cityHandoverItems(selected), true);
         };
         $("#handoverCityChoices").onchange = (changeEvent) => {
           const selected = selectedOwnerIds();
@@ -616,8 +633,9 @@
             impactSnapshot: cityHandoverImpact(cityIds),
           };
           openModal(
-            `<div class="modal-head"><div class="modal-title">确认地市责任交接</div><button class="icon-btn close" data-close>×</button></div><div class="modal-body"><div class="role-note danger-note"><strong>请核对交接范围</strong><br>地市：${owners.map((owner) => owner.city).join("、")}<br>${c.pm} → ${targetPm}<br>计划生效：${plannedEffectiveDate}<br>${plannedEffectiveDate === DEMO_TODAY ? "确认后立即生效。" : "确认后进入待生效，计划日前原 PM 继续负责。"}</div>${renderResponsibilityHandoverItems(cityHandoverItems(cityIds))}</div><div class="modal-foot"><button class="btn" type="button" data-close>取消</button><button class="btn btn-primary" type="button" id="confirmCityHandover">确认交接</button></div>`,
+            `<div class="modal-head"><div class="modal-title">确认地市责任交接</div><button class="icon-btn close" data-close>×</button></div><div class="modal-body"><div class="role-note danger-note"><strong>请核对交接范围</strong><br>地市：${owners.map((owner) => owner.city).join("、")}<br>${c.pm} → ${targetPm}<br>计划生效：${plannedEffectiveDate}<br>提交后进入企业微信审批，审批通过后按计划日期生效。</div>${renderResponsibilityHandoverItems(cityHandoverItems(cityIds), true)}</div><div class="modal-foot"><button class="btn" type="button" id="backCityHandover">返回修改</button><button class="btn btn-primary" type="button" id="confirmCityHandover">提交审批</button></div>`,
           );
+          $("#backCityHandover").onclick = () => openCityHandover(id, { cityIds, targetPm, plannedEffectiveDate, reason });
           $("#confirmCityHandover").onclick = () => commitCityHandover(payload);
         };
       }

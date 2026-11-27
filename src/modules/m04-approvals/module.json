@@ -9,8 +9,8 @@
   "pageStates": [
     "待处理/已处理/我发起/抄送视图",
     "审批节点",
-    "协作操作",
-    "处理反馈"
+    "平台发起",
+    "企微处理结果同步"
   ],
   "dataReferences": [
     "data/approvals.js",

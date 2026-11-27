@@ -1,9 +1,10 @@
       const PROJECT_STAGES = ["已立项", "进行中", "已交付", "已完成", "已取消", "已中止"];
-      const PROJECT_TODO_LABELS = ["资料待上传", "待评价", "待回款"];
+      const PROJECT_TODO_LABELS = ["资料待上传", "待评价", "金额确认", "待回款"];
       const PROJECT_ACTION_TODO_LABELS = [
         "确认 AI 项目交付",
         "资料待上传",
         "待评价",
+        "金额确认",
       ];
       const PROJECT_TYPES = ["培训项目", "AI软件项目"];
       const PROJECT_LIST_FILTER_DEFAULTS = {
@@ -663,20 +664,63 @@
           const todos = [];
           if (!projectMaterialsComplete(project)) todos.push("资料待上传");
           if (!projectSatisfactionComplete(project)) todos.push("待评价");
-          todos.push("待回款");
           return todos;
         }
-        if (stage === "已完成") return ["待回款"];
+        if (stage === "已完成")
+          return projectAmountConfirmationRequired(project, stage)
+            ? ["金额确认"]
+            : ["待回款"];
         return [];
+      }
+      function projectAmountConfirmationReference(project) {
+        if (!project) return { projectAmount: null, settlementAmount: null };
+        return {
+          projectAmount: project.amount,
+          settlementAmount:
+            project.stage === "已中止" && project.terminationInvolvesSettlement
+              ? project.terminationSettlementAmount
+              : project.settlementAmount,
+        };
+      }
+      function projectFinalProjectAmount(project) {
+        return project?.finalProjectAmount ?? project?.finalReceivableAmount ?? null;
+      }
+      function projectFinalSettlementAmount(project) {
+        return project?.finalSettlementAmount ?? project?.finalReceivableAmount ?? null;
+      }
+      function projectAmountConfirmationComplete(project) {
+        const projectAmount = projectFinalProjectAmount(project);
+        const settlementAmount = projectFinalSettlementAmount(project);
+        return projectAmount !== null && projectAmount !== undefined &&
+          settlementAmount !== null && settlementAmount !== undefined &&
+          Number.isFinite(Number(projectAmount)) && Number.isFinite(Number(settlementAmount));
+      }
+      function projectAmountConfirmationRequired(project, stage = project?.stage) {
+        if (!project) return false;
+        if (stage === "已完成")
+          return !projectAmountConfirmationComplete(project);
+        if (stage === "已中止" && project.terminationInvolvesSettlement)
+          return !projectAmountConfirmationComplete(project);
+        return false;
       }
       function computeProjectStageAndTodos(project) {
         if (project.stage === "已取消") return { stage: "已取消", todos: [] };
         if (project.stage === "已中止")
           return {
             stage: "已中止",
-            todos: project.terminationInvolvesSettlement ? ["待回款"] : [],
+            todos: project.terminationInvolvesSettlement
+              ? projectAmountConfirmationRequired(project)
+                ? ["金额确认"]
+                : ["待回款"]
+              : [],
           };
-        if (project.stage === "已完成") return { stage: "已完成", todos: ["待回款"] };
+        if (project.stage === "已完成")
+          return {
+            stage: "已完成",
+            todos: projectAmountConfirmationRequired(project)
+              ? ["金额确认"]
+              : ["待回款"],
+          };
         let stage;
         if (project.startTime > DEMO_NOW) {
           stage = "已立项";
@@ -705,6 +749,10 @@
         effectiveTime = "",
       ) {
         if (!project) return;
+        if (project.finalReceivableAmount != null) {
+          if (project.finalProjectAmount == null) project.finalProjectAmount = project.finalReceivableAmount;
+          if (project.finalSettlementAmount == null) project.finalSettlementAmount = project.finalReceivableAmount;
+        }
         const target = computeProjectStageAndTodos(project);
         const stageOrder = ["已立项", "进行中", "已交付", "已完成"];
         while (target.stage !== project.stage) {
@@ -732,9 +780,9 @@
         projects.filter((project) => !isProjectDeleted(project)).forEach((project) => normalizeProjectLifecycle(project));
       }
       function projectActionTodoLabels(project) {
-        if (!project || ["已完成", "已取消", "已中止"].includes(project.stage))
-          return [];
+        if (!project || project.stage === "已取消") return [];
         const labels = [];
+        if (projectAmountConfirmationRequired(project)) labels.push("金额确认");
         if (
           project.type === "AI软件项目" &&
           project.stage === "进行中" &&
@@ -864,24 +912,28 @@
         });
       }
       function projectActionTodoItemsForCurrentUser() {
-        if (
-          !currentUser ||
-          ["president", "vp", "hr"].includes(currentUser.role) ||
-          !hasPermission("projects") ||
-          !hasOperationPermission("projects.edit")
-        )
+        const isFinance = currentUser?.role === "finance";
+        if (!currentUser || ["president", "vp", "hr"].includes(currentUser.role) || !hasPermission("projects"))
           return [];
+        if (isFinance && !financeCanReadAllProjects()) return [];
+        if (!isFinance && !hasOperationPermission("projects.edit")) return [];
         normalizeAllProjectLifecycles();
-        const visibleProjects = currentUser.fullAccess
+        const visibleProjects = isFinance
+          ? projects.filter(projectIsVisibleToCurrentUser)
+          : currentUser.fullAccess
           ? projects
           : projects.filter(
               (project) =>
                 projectIsVisibleToCurrentUser(project) &&
-                projectOwnedByCurrentUser(project),
+                (projectOwnedByCurrentUser(project) ||
+                  (currentUser.role === "director" && projectOperableByCurrentUser(project))),
             );
-        return visibleProjects.flatMap((project) =>
-          projectActionTodoLabels(project)
+        return visibleProjects.flatMap((project) => {
+          const labels = projectActionTodoLabels(project);
+          if (isFinance && (project.todos || []).includes("待回款")) labels.push("待回款");
+          return labels
             .filter((label) => {
+              if (label === "待回款") return isFinance;
               if (label === "确认 AI 项目交付")
                 return canConfirmProjectDelivery(project);
               if (label === "资料待上传")
@@ -891,17 +943,19 @@
                 );
               if (label === "待评价")
                 return canEditProjectSatisfaction(project);
+              if (label === "金额确认")
+                return canConfirmProjectAmount(project);
               return false;
             })
             .map((label) => ({
               icon: "项",
               title: label,
               detail: `${project.id} · ${project.name} · ${projectCurrentOwner(project)}`,
-              tone: label === "确认 AI 项目交付" ? "red" : "yellow",
+              tone: label === "确认 AI 项目交付" ? "red" : label === "待回款" ? "blue" : "yellow",
               projectId: project.id,
-              command: "处理",
-            })),
-        );
+              command: isFinance ? "查看" : "处理",
+            }));
+        });
       }
       function projectReminderSummaryItemsForCurrentUser() {
         if (
@@ -949,19 +1003,20 @@
                 order: 0,
               }),
             );
-        visibleProjects
-          .filter((project) => (project.todos || []).includes("待回款"))
-          .forEach((project) =>
-            items.push({
-              icon: "款",
-              title: "待回款提醒",
-              detail: `${project.id} · ${project.name} · 负责人 ${projectCurrentOwner(project)}`,
-              tone: "blue",
-              projectId: project.id,
-              command: "查看",
-              order: 2,
-            }),
-          );
+        if (currentUser.role === "finance")
+          visibleProjects
+            .filter((project) => (project.todos || []).includes("待回款"))
+            .forEach((project) =>
+              items.push({
+                icon: "款",
+                title: "待回款提醒",
+                detail: `${project.id} · ${project.name} · 负责人 ${projectCurrentOwner(project)}`,
+                tone: "blue",
+                projectId: project.id,
+                command: "查看",
+                order: 2,
+              }),
+            );
         return items.sort(
           (left, right) =>
             left.order - right.order ||
@@ -975,6 +1030,13 @@
         const actor = employees.find(employee => employee.code === currentUser.employeeCode);
         const owner = employees.find(employee => employee.name === projectCurrentOwner(project));
         return Boolean(actor?.status === "在职" && actor.accountStatus === "启用" && owner && owner.status === "在职" && owner.accountStatus === "启用" && employeeHasRole(owner, "PM"));
+      }
+      function canConfirmProjectAmount(project) {
+        return Boolean(
+          project &&
+            projectAmountConfirmationRequired(project) &&
+            projectOperableByCurrentUser(project),
+        );
       }
       function canConfirmProjectDelivery(project) {
         if (!project || project.type !== "AI软件项目") return false;
@@ -1124,6 +1186,7 @@
       function projectTodoTone(todo) {
         if (todo === "资料待上传") return "orange";
         if (todo === "待评价") return "blue";
+        if (todo === "金额确认") return "red";
         return "yellow";
       }
       function projectStageTag(stage) {
@@ -1376,6 +1439,34 @@
             formatProjectAmount(project.amount),
             projectAmountFormulaText(project.type, project.resourceType),
           ],
+          ...(["已完成", "已中止"].includes(project.stage) && (project.stage !== "已中止" || project.terminationInvolvesSettlement)
+            ? [
+                [
+                  "最终确认项目金额（含税，万元）",
+                  projectFinalProjectAmount(project) == null
+                    ? "待确认"
+                    : formatProjectAmount(projectFinalProjectAmount(project)),
+                ],
+                [
+                  "最终确认结账金额（含税，万元）",
+                  projectFinalSettlementAmount(project) == null
+                    ? "待确认"
+                    : formatProjectAmount(projectFinalSettlementAmount(project)),
+                ],
+                ...(project.amountConfirmationReason
+                  ? [["金额差异说明", project.amountConfirmationReason]]
+                  : []),
+                ...(project.amountConfirmationAttachments?.length
+                  ? [["金额确认附件", project.amountConfirmationAttachments.map((file) => file.name).join("、")]]
+                  : []),
+                ...(project.amountConfirmedBy
+                  ? [["金额确认人", project.amountConfirmedBy]]
+                  : []),
+                ...(project.amountConfirmedAt
+                  ? [["金额确认时间", project.amountConfirmedAt]]
+                  : []),
+              ]
+            : []),
           [
             "结账金额（含税，万元）",
             formatProjectAmount(project.settlementAmount),
@@ -1677,6 +1768,9 @@
             : "",
           canConfirmProjectDelivery(project)
             ? `<button class="btn btn-primary" data-project-confirm-delivery>确认 AI 软件项目交付</button>`
+            : "",
+          canConfirmProjectAmount(project)
+            ? `<button class="btn btn-primary" data-project-amount-confirm>确认项目金额</button>`
             : "",
           canCancelProject(project)
             ? `<button class="btn" data-project-cancel-open>取消项目</button>`

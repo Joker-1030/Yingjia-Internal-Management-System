@@ -256,25 +256,23 @@
 
       function openCustomerForm(id) {
         const c = customers.find((x) => x.id === id);
-        if (c && !c.group) return toast("无集团公司不支持调整组织上级");
+        const isEdit = Boolean(c);
         if (c && !hasOperationPermission("settings.edit"))
-          return toast("当前账号无权调整客户公司组织上级");
+          return toast("当前账号无权编辑客户公司");
+        if (c && customerOrgStatus("company", c) === "已停用")
+          return toast("已停用客户公司不可编辑，请先恢复");
         if (!c && !canCreateCustomerUnit())
           return toast("当前账号无新增客户单位权限");
         const levels =
           currentUser.role === "pm"
             ? ["市公司", "区县公司"]
             : ["省公司", "市公司", "区县公司"];
+        const enabledIndustries = industries.filter((item) => item.enabled);
+        const currentCompanyId = c?.companyCode || `CC${String(c?.id || "").padStart(8, "0")}`;
         openModal(
-          `<div class="modal-head"><div class="modal-title">新增客户单位</div><button class="icon-btn close" data-close>×</button></div><form id="customerForm"><div class="modal-body"><div class="form-grid"><div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>行业</label><select class="input" id="cfIndustry" required>${industries
-            .filter((x) => x.enabled)
-            .map((x) => `<option>${x.name}</option>`)
-            .join(
-              "",
-            )}</select></div><div class="form-group"><label class="form-label">集团公司</label><select class="input" id="cfGroup">${customerGroupNames.map((x) => `<option>${x}</option>`).join("")}</select></div><div class="form-group full"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>客户公司名称</label><input class="input" id="cfName" minlength="2" maxlength="100" required></div><div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>客户公司层级</label><select class="input" id="cfLevel"><option value="">请选择层级</option>${levels.map((x) => `<option>${x}</option>`).join("")}</select></div><div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>责任省份</label><select class="input" id="cfProvince" required></select></div><div class="form-group" id="cfCityGroup"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>责任城市</label><select class="input" id="cfCity" required></select></div><div class="form-group" id="cfDistrictGroup"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>责任区县</label><select class="input" id="cfDistrict" required></select></div><div class="form-group full"><label class="form-label">统一社会信用代码</label><input class="input" id="cfCredit" maxlength="18" pattern="[0-9A-HJ-NPQRTUWXY]{18}" placeholder="18 位；未填写可留空"></div></div></div><div class="modal-foot"><button class="btn" type="button" data-close>取消</button><button class="btn btn-primary" type="submit">保存客户公司</button></div></form>`,
+          `<div class="modal-head"><div class="modal-title">${isEdit ? "编辑客户公司" : "新增客户单位"}</div><button class="icon-btn close" data-close>×</button></div><form id="customerForm"><div class="modal-body"><div class="form-grid">${isEdit ? `<div class="form-group"><label class="form-label">客户公司稳定 ID</label><input class="input" value="${currentCompanyId}" disabled></div>` : ""}<div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>行业</label><select class="input" id="cfIndustry" required>${enabledIndustries.map((x) => `<option value="${escapeHtml(x.name)}">${escapeHtml(x.name)}</option>`).join("")}</select></div><div class="form-group"><label class="form-label">集团公司</label><select class="input" id="cfGroup"><option value="">无集团</option>${customerGroupNames.map((x) => `<option value="${escapeHtml(x)}">${escapeHtml(x)}</option>`).join("")}</select></div><div class="form-group full"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>客户公司名称</label><input class="input" id="cfName" minlength="2" maxlength="100" required></div><div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>客户公司层级</label><select class="input" id="cfLevel"><option value="">请选择层级</option>${levels.map((x) => `<option value="${x}">${x}</option>`).join("")}</select></div><div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>责任省份</label><select class="input" id="cfProvince" required></select></div><div class="form-group" id="cfCityGroup"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>责任城市</label><select class="input" id="cfCity" required></select></div><div class="form-group" id="cfDistrictGroup"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>责任区县</label><select class="input" id="cfDistrict" required></select></div><div class="form-group full"><label class="form-label">统一社会信用代码</label><input class="input" id="cfCredit" maxlength="18" pattern="[0-9A-HJ-NPQRTUWXY]{18}" placeholder="18 位；未填写可留空"></div></div></div><div class="modal-foot"><button class="btn" type="button" data-close>取消</button><button class="btn btn-primary" type="submit">${isEdit ? "保存" : "保存客户公司"}</button></div></form>`,
         );
-        const levelGroup = $("#cfLevel").closest(".form-group");
-        levelGroup.querySelector(".form-label").textContent =
+        $("#cfLevel").closest(".form-group").querySelector(".form-label").textContent =
           "业务责任层级 *";
         $("#cfProvince").closest(".form-group").querySelector(".form-label").textContent =
           "业务责任省份 *";
@@ -283,108 +281,104 @@
         $("#cfDistrict").closest(".form-group").querySelector(".form-label").textContent =
           "业务责任区县 *";
         $("#cfLevel").innerHTML =
-          '<option value="">请选择业务责任层级</option><option>省级</option><option>市级</option><option>区县级</option>';
+          '<option value="">请选择业务责任层级</option><option value="省公司">省公司</option><option value="市公司">市公司</option><option value="区县公司">区县公司</option>';
         $("#cfGroup").closest(".form-group").insertAdjacentHTML(
           "afterend",
           '<div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>组织上级</label><select class="input" id="cfOrganizationParent" required></select></div>',
         );
-        $("#customerForm").parentElement.querySelector(".modal-title").textContent = c
-          ? "调整客户公司组织上级"
-          : "新增客户公司";
-        $("#customerForm .btn-primary").textContent = c ? "保存" : "保存客户公司";
+
         const refreshOrganizationParents = () => {
           const group = $("#cfGroup").value;
-          $("#cfOrganizationParent").closest(".form-group").hidden = !group;
-          $("#cfOrganizationParent").required = !!group;
+          const parentGroup = $("#cfOrganizationParent").closest(".form-group");
+          parentGroup.hidden = !group;
+          $("#cfOrganizationParent").required = Boolean(group);
           $("#cfOrganizationParent").disabled = !group;
-          if (!group) { $("#cfOrganizationParent").innerHTML = '<option value="">无</option>'; return; }
+          if (!group) {
+            $("#cfOrganizationParent").innerHTML = '<option value="">无</option>';
+            $("#cfOrganizationParent").value = "";
+            return;
+          }
           const excludedIds = c
             ? new Set([c.id, ...customerOrganizationDescendantIds(c.id)])
             : new Set();
-          const candidates = customers.filter(
-            (company) =>
-              company.group === group &&
-              !company.archived &&
-              customerOrgStatus("company", company) === "正常" &&
-              !excludedIds.has(company.id),
-          );
+          const candidates = customers
+            .filter(
+              (company) =>
+                company.group === group &&
+                !company.archived &&
+                customerOrgStatus("company", company) === "正常" &&
+                !excludedIds.has(company.id),
+            )
+            .sort((a, b) => customerOrganizationPath(a).localeCompare(customerOrganizationPath(b), "zh-CN"));
           $("#cfOrganizationParent").innerHTML =
-            `<option value="group">${group}</option>` +
+            `<option value="group">${escapeHtml(group)}</option>` +
             candidates
               .map(
                 (company) =>
-                  `<option value="company:${company.id}">${customerOrganizationPath(company)}</option>`,
+                  `<option value="company:${company.id}">${escapeHtml(customerOrganizationPath(company))}</option>`,
               )
               .join("");
           if (c) {
-            const currentValue =
+            $("#cfOrganizationParent").value =
               c.organizationParentType === "company"
                 ? `company:${c.organizationParentCompanyId}`
                 : "group";
-            $("#cfOrganizationParent").value = currentValue;
           }
         };
-        // 先选行业，集团按行业过滤（DEC-152）
+
         const refreshGroupByIndustry = () => {
           const selectedIndustry = $("#cfIndustry").value;
           const eligibleGroups = customerGroupNames.filter(
-            (g) => customerGroupIndustries[g] === selectedIndustry,
+            (group) =>
+              !customerOrgArchivedGroup(group) &&
+              customerGroupIndustries[group] === selectedIndustry,
           );
+          const selectedGroup = $("#cfGroup").value;
           $("#cfGroup").innerHTML =
-            '<option value="">无集团</option>' + eligibleGroups.filter(group => !customerOrgArchivedGroup(group)).map((g) => `<option>${escapeHtml(g)}</option>`).join("");
+            '<option value="">无集团</option>' +
+            eligibleGroups
+              .map((group) => `<option value="${escapeHtml(group)}">${escapeHtml(group)}</option>`)
+              .join("");
+          if (selectedGroup && eligibleGroups.includes(selectedGroup))
+            $("#cfGroup").value = selectedGroup;
           refreshOrganizationParents();
         };
         $("#cfIndustry").onchange = refreshGroupByIndustry;
-        refreshGroupByIndustry();
-        const selectedTreeGroup = selectedCustomerOrgNode.startsWith("group:")
-          ? selectedCustomerOrgNode.slice(6)
-          : selectedCustomerOrgNode.startsWith("company:")
-            ? customers.find((item) => item.id === Number(selectedCustomerOrgNode.slice(8)))?.group
-            : "";
-        if (selectedTreeGroup && customerGroupNames.includes(selectedTreeGroup)) {
-          $("#cfIndustry").value = customerGroupIndustries[selectedTreeGroup];
-          refreshGroupByIndustry();
-          $("#cfGroup").value = selectedTreeGroup;
-          refreshOrganizationParents();
-        }
-        if (c) {
-          $("#cfIndustry").value = c.industry;
-          refreshGroupByIndustry();
-          $("#cfGroup").value = c.group;
-          $("#cfName").value = c.name;
-          $("#cfLevel").value = customerBusinessResponsibilityLevel(c);
-          $("#cfCredit").value = c.creditCode || "";
-          ["#cfIndustry", "#cfGroup", "#cfName", "#cfLevel", "#cfCredit"].forEach(
-            (selector) => {
-              $(selector).disabled = true;
-            },
-          );
-          refreshOrganizationParents();
-        }
         $("#cfGroup").onchange = refreshOrganizationParents;
+
+        if (c) {
+          $("#cfIndustry").value = c.industry || "";
+          refreshGroupByIndustry();
+          $("#cfGroup").value = c.group || "";
+          refreshOrganizationParents();
+          $("#cfName").value = c.name || "";
+          $("#cfLevel").value = c.level || "";
+          $("#cfCredit").value = c.creditCode || "";
+        } else {
+          const selectedTreeGroup = selectedCustomerOrgNode.startsWith("group:")
+            ? selectedCustomerOrgNode.slice(6)
+            : selectedCustomerOrgNode.startsWith("company:")
+              ? customers.find((item) => item.id === Number(selectedCustomerOrgNode.slice(8)))?.group
+              : "";
+          if (selectedTreeGroup && customerGroupNames.includes(selectedTreeGroup)) {
+            $("#cfIndustry").value = customerGroupIndustries[selectedTreeGroup] || "";
+            refreshGroupByIndustry();
+            $("#cfGroup").value = selectedTreeGroup;
+            refreshOrganizationParents();
+          } else {
+            refreshGroupByIndustry();
+          }
+        }
+
         const refreshAreas = () => {
           const provinces =
             currentUser.role === "pm"
-              ? [
-                  ...new Set(
-                    scopedCustomers().map(customerBusinessProvince),
-                  ),
-                ]
+              ? [...new Set(scopedCustomers().map(customerBusinessProvince))]
               : Object.keys(administrativeDivisions);
           const prevProv = $("#cfProvince").value;
-          if (!$("#cfProvince").options.length) {
-            $("#cfProvince").innerHTML =
-              '<option value="">请选择省份</option>' +
-              provinces.map((x) => `<option>${x}</option>`).join("");
-            $("#cfProvince").value = provinces.includes(prevProv)
-              ? prevProv
-              : "";
-          } else if (!provinces.includes(prevProv)) {
-            $("#cfProvince").innerHTML =
-              '<option value="">请选择省份</option>' +
-              provinces.map((x) => `<option>${x}</option>`).join("");
-            $("#cfProvince").value = "";
-          }
+          $("#cfProvince").innerHTML =
+            '<option value="">请选择省份</option>' + provinces.map((x) => `<option value="${escapeHtml(x)}">${escapeHtml(x)}</option>`).join("");
+          $("#cfProvince").value = provinces.includes(prevProv) ? prevProv : "";
           const province = $("#cfProvince").value;
           const allowedCities =
             currentUser.role === "pm"
@@ -392,202 +386,194 @@
               : Object.keys(administrativeDivisions[province] || {});
           const prevCity = $("#cfCity").value;
           $("#cfCity").innerHTML =
-            '<option value="">请选择城市</option>' +
-            allowedCities.map((x) => `<option>${x}</option>`).join("");
+            '<option value="">请选择城市</option>' + allowedCities.map((x) => `<option value="${escapeHtml(x)}">${escapeHtml(x)}</option>`).join("");
           $("#cfCity").value = allowedCities.includes(prevCity) ? prevCity : "";
-          const districts =
-            administrativeDivisions[province]?.[$("#cfCity").value] || [];
+          const districts = administrativeDivisions[province]?.[$("#cfCity").value] || [];
           const prevDistrict = $("#cfDistrict").value;
           $("#cfDistrict").innerHTML =
-            '<option value="">请选择区县</option>' +
-            districts.map((x) => `<option>${x}</option>`).join("");
-          $("#cfDistrict").value = districts.includes(prevDistrict)
-            ? prevDistrict
-            : "";
+            '<option value="">请选择区县</option>' + districts.map((x) => `<option value="${escapeHtml(x)}">${escapeHtml(x)}</option>`).join("");
+          $("#cfDistrict").value = districts.includes(prevDistrict) ? prevDistrict : "";
           const level = $("#cfLevel").value;
-          const hasLevel = Boolean(level);
-          const needsCity = ["市级", "区县级"].includes(level);
-          const needsDistrict = level === "区县级";
-          $("#cfProvince").required = hasLevel;
-          $("#cfProvince").disabled = !hasLevel;
+          const needsCity = ["市公司", "区县公司"].includes(level);
+          const needsDistrict = level === "区县公司";
+          $("#cfProvince").required = Boolean(level);
+          $("#cfProvince").disabled = !level;
           $("#cfCity").required = needsCity;
           $("#cfCity").disabled = !needsCity;
           $("#cfDistrict").required = needsDistrict;
           $("#cfDistrict").disabled = !needsDistrict;
-          if (!hasLevel) {
+          if (!level) {
             $("#cfProvince").value = "";
             $("#cfCity").value = "";
             $("#cfDistrict").value = "";
-          } else if (level === "省级") {
+          } else if (level === "省公司") {
             $("#cfCity").value = "";
             $("#cfDistrict").value = "";
-          } else if (level === "市级") {
+          } else if (level === "市公司") {
             $("#cfDistrict").value = "";
           }
         };
         $("#cfLevel").onchange = refreshAreas;
         $("#cfProvince").onchange = refreshAreas;
         $("#cfCity").onchange = refreshAreas;
-        refreshAreas();
         if (c) {
+          $("#cfLevel").value = c.level || "";
+          refreshAreas();
           $("#cfProvince").value = customerBusinessProvince(c);
           refreshAreas();
           $("#cfCity").value = customerBusinessCity(c);
           refreshAreas();
           $("#cfDistrict").value = customerBusinessDistrict(c);
-          ["#cfProvince", "#cfCity", "#cfDistrict"].forEach((selector) => {
-            $(selector).disabled = true;
-          });
+        } else {
+          refreshAreas();
         }
+
         $("#customerForm").onsubmit = (e) => {
           e.preventDefault();
-          if (c ? !hasOperationPermission("settings.edit") : !canCreateCustomerUnit()) return toast("当前账号无权保存客户公司");
-          const actor = employees.find(employee => employee.code === currentUser?.employeeCode || employee.name === currentUser?.name);
-          if (!actor || actor.status !== "在职" || actor.accountStatus === "停用" || currentUser?.disabled) return toast("账号已失效，请重新登录");
+          if (isEdit ? !hasOperationPermission("settings.edit") : !canCreateCustomerUnit())
+            return toast(isEdit ? "当前账号无权编辑客户公司" : "当前账号无权保存客户公司");
+          const actor = employees.find(
+            (employee) => employee.code === currentUser?.employeeCode || employee.name === currentUser?.name,
+          );
+          if (!actor || actor.status !== "在职" || actor.accountStatus === "停用" || currentUser?.disabled)
+            return toast("账号已失效，请重新登录");
           const selectedIndustry = $("#cfIndustry").value;
-          const submittedGroup = c ? c.group : $("#cfGroup").value;
-          if (!c && (!industries.some(item => item.enabled && item.name === selectedIndustry) ||
-            (submittedGroup && (!customerGroupNames.includes(submittedGroup) || customerOrgArchivedGroup(submittedGroup) || customerGroupIndustries[submittedGroup] !== selectedIndustry))))
-            return toast("请选择正常行业及该行业下的正常集团，或留空集团");
-          const parentValue = $("#cfOrganizationParent").value;
-          const selectedParentId = parentValue.startsWith("company:")
-            ? Number(parentValue.slice(8))
-            : null;
-          const selectedParent = selectedParentId
-            ? customers.find((company) => company.id === selectedParentId)
-            : null;
-          const selectedGroup = c ? c.group : $("#cfGroup").value;
-          if ((!selectedGroup && parentValue) || (selectedGroup &&
-            parentValue !== "group" &&
-            (!selectedParent ||
-              selectedParent.group !== selectedGroup ||
-              selectedParent.archived ||
-              (c &&
-                (selectedParent.id === c.id ||
-                  customerOrganizationDescendantIds(c.id).has(selectedParent.id))))
-          ))
-            return toast("请选择所属集团或同集团正常客户公司作为组织上级");
-          if (c) {
-            c.organizationParentType = selectedParent ? "company" : "group";
-            c.organizationParentCompanyId = selectedParent?.id || null;
-            c.updatedAt = recordCreatedAt();
-            clearCustomerOrgInternalContext();
-            selectedCustomerOrgNode = `company:${c.id}`;
-            closeOverlay();
-            renderPage();
-            return toast("修改已保存");
-          }
-          const level = $("#cfLevel").value,
-            province = $("#cfProvince").value,
-            city = $("#cfCity").value,
-            district = $("#cfDistrict").value,
-            name = $("#cfName").value.trim(),
-            creditCode = $("#cfCredit").value.trim().toUpperCase();
+          const selectedGroup = $("#cfGroup").value;
+          if (!enabledIndustries.some((item) => item.name === selectedIndustry))
+            return toast("请选择正常行业");
+          if (
+            selectedGroup &&
+            (!customerGroupNames.includes(selectedGroup) ||
+              customerOrgArchivedGroup(selectedGroup) ||
+              customerGroupIndustries[selectedGroup] !== selectedIndustry)
+          )
+            return toast("请选择该行业下的正常集团，或留空集团");
+          const level = $("#cfLevel").value;
+          const province = $("#cfProvince").value;
+          const city = $("#cfCity").value;
+          const district = $("#cfDistrict").value;
+          const name = $("#cfName").value.trim();
+          const creditCode = $("#cfCredit").value.trim().toUpperCase();
           if (!level) return toast("请选择业务责任层级");
-          if (name.length < 2 || name.length > 100)
-            return toast("单位名称需填写 2-100 字");
+          if (name.length < 2 || name.length > 100) return toast("单位名称需填写 2-100 字");
           if (creditCode && !/^[0-9A-HJ-NPQRTUWXY]{18}$/.test(creditCode))
             return toast("统一社会信用代码需为 18 位标准格式");
           if (
             creditCode &&
-            (customers.some((item) => item.creditCode === creditCode) ||
-              Object.values(customerGroupCreditCodes).includes(creditCode))
+            customers.some((item) => item.id !== c?.id && item.creditCode === creditCode) ||
+            creditCode &&
+            Object.values(customerGroupCreditCodes).includes(creditCode)
           )
             return toast("统一社会信用代码已存在，请联系管理员核对");
-          const provinces = Object.keys(administrativeDivisions),
-            cities = Object.keys(administrativeDivisions[province] || {}),
-            districts = administrativeDivisions[province]?.[city] || [];
+          const provinces = Object.keys(administrativeDivisions);
+          const cities = Object.keys(administrativeDivisions[province] || {});
+          const districts = administrativeDivisions[province]?.[city] || [];
           if (!provinces.includes(province)) return toast("请选择标准省份");
           if (
-            level !== "省级" &&
+            level !== "省公司" &&
             (!cities.includes(city) ||
-              (currentUser.role === "pm" &&
-                !assignedCitiesForCurrentUser().includes(city)))
+              (currentUser.role === "pm" && !assignedCitiesForCurrentUser().includes(city)))
           )
             return toast("请选择授权范围内的标准城市");
-          if (level === "区县级" && !districts.includes(district))
-            return toast("请选择标准区县");
-          const group = $("#cfGroup").value;
-          const industry = group ? customerGroupIndustries[group] : selectedIndustry;
-          const regionMatch = operatingCenterForCustomer({ province, city, group, industry });
-          if (!regionMatch || regionConfigurationStatus(regionMatch) !== "已配置")
-            return toast("该省份无法唯一解析正常区域中心，请先完成区域配置");
-          const region = regionScopeName(regionMatch);
-          const director = regionMatch.director;
-          if (!director) return toast("所属区域中心未设置区域总监，不能创建客户");
-          if (!industry) return toast("所属集团行业未配置，不能创建客户");
-          const defaultPm = level === "省级" ? "" : cityPmForNewCustomer({ province, city, group, industry });
-          if (level !== "省级" && !responsibilityReceiverIsValid({ level: "市公司" }, regionMatch, defaultPm))
-            return toast("该城市尚未配置地市负责人，不能创建客户");
-          const owner = level === "省级" ? director : defaultPm;
-          if (!responsibilityReceiverIsValid({ level: level === "省级" ? "省公司" : "市公司", group, industry, province, city }, regionMatch, owner))
-            return toast("所属中心缺少有效接收人，不能创建客户");
-          const pm = level === "省级" ? "" : defaultPm;
-          const data = {
-            group,
-            industry,
+          if (level === "区县公司" && !districts.includes(district)) return toast("请选择标准区县");
+          const parentValue = $("#cfOrganizationParent").value;
+          const selectedParentId = parentValue.startsWith("company:") ? Number(parentValue.slice(8)) : null;
+          const selectedParent = selectedParentId ? customers.find((company) => company.id === selectedParentId) : null;
+          const excludedIds = c ? new Set([c.id, ...customerOrganizationDescendantIds(c.id)]) : new Set();
+          if (
+            (selectedGroup && !["group", ...[...customers.filter((item) => item.group === selectedGroup && !excludedIds.has(item.id)).map((item) => `company:${item.id}`)]].includes(parentValue)) ||
+            (!selectedGroup && parentValue) ||
+            (selectedParent && (selectedParent.group !== selectedGroup || selectedParent.archived || excludedIds.has(selectedParent.id)))
+          )
+            return toast("请选择所属集团或同集团正常客户公司作为组织上级");
+          const candidate = {
+            ...(c || {}),
+            group: selectedGroup,
+            industry: selectedIndustry,
             name,
-            level: { 省级: "省公司", 市级: "市公司", 区县级: "区县公司" }[
-              level
-            ],
-            businessResponsibilityLevel: level,
+            level,
+            businessResponsibilityLevel: { 省公司: "省级", 市公司: "市级", 区县公司: "区县级" }[level],
             province,
             businessResponsibilityProvince: province,
-            city: level === "省级" ? "" : city,
-            businessResponsibilityCity: level === "省级" ? "" : city,
-            district: level === "区县级" ? district : "",
-            businessResponsibilityDistrict: level === "区县级" ? district : "",
-            organizationParentType: selectedParent ? "company" : group ? "group" : null,
+            city: level === "省公司" ? "" : city,
+            businessResponsibilityCity: level === "省公司" ? "" : city,
+            district: level === "区县公司" ? district : "",
+            businessResponsibilityDistrict: level === "区县公司" ? district : "",
+            organizationParentType: selectedParent ? "company" : selectedGroup ? "group" : null,
             organizationParentCompanyId: selectedParent?.id || null,
-            region,
-            owner,
-            pm,
             creditCode,
-            source: "manual",
-            createdAt: recordCreatedAt(),
           };
           const duplicate = customers.some(
             (item) =>
+              item.id !== c?.id &&
               !item.archived &&
-              item.group === data.group &&
-              (data.group || item.industry === data.industry) &&
-              item.organizationParentType === data.organizationParentType &&
-              item.organizationParentCompanyId ===
-                data.organizationParentCompanyId &&
-              item.name.toLocaleLowerCase("zh-CN") ===
-                name.toLocaleLowerCase("zh-CN"),
+              item.group === candidate.group &&
+              (candidate.group || item.industry === candidate.industry) &&
+              item.organizationParentType === candidate.organizationParentType &&
+              item.organizationParentCompanyId === candidate.organizationParentCompanyId &&
+              item.name.toLocaleLowerCase("zh-CN") === name.toLocaleLowerCase("zh-CN"),
           );
-          if (duplicate)
-            return toast("同一组织上级下已存在同名客户公司");
-          const unit = {
-            id: Date.now(),
-            ...data,
-            contacts: 0,
-            health: "健康",
+          if (duplicate) return toast("同一组织上级下已存在同名客户公司");
+          const regionMatch = operatingCenterForCustomer(candidate);
+          if (!regionMatch || regionConfigurationStatus(regionMatch) !== "已配置")
+            return toast("该责任区域无法唯一解析正常区域中心，请先完成区域配置");
+          const owner = responsibilityOwnerForCustomer(candidate, regionMatch) || "";
+          if (!owner || !responsibilityReceiverIsValid(candidate, regionMatch, owner))
+            return toast("当前责任范围缺少有效接收人，请先完成区域或地市负责人配置");
+          const region = regionScopeName(regionMatch);
+          const pm = customerPmName(candidate, owner);
+          if (isEdit) {
+            Object.assign(c, {
+              group: candidate.group,
+              industry: candidate.industry,
+              name: candidate.name,
+              level: candidate.level,
+              businessResponsibilityLevel: candidate.businessResponsibilityLevel,
+              province: candidate.province,
+              businessResponsibilityProvince: candidate.businessResponsibilityProvince,
+              city: candidate.city,
+              businessResponsibilityCity: candidate.businessResponsibilityCity,
+              district: candidate.district,
+              businessResponsibilityDistrict: candidate.businessResponsibilityDistrict,
+              organizationParentType: candidate.organizationParentType,
+              organizationParentCompanyId: candidate.organizationParentCompanyId,
+              creditCode: candidate.creditCode,
+              region,
+              owner,
+              pm,
+              updatedAt: recordCreatedAt(),
+            });
+            clearCustomerOrgInternalContext();
+            customerOrgCompanyTab = "info";
+            selectedCustomerOrgNode = `company:${c.id}`;
+            closeOverlay();
+            renderPage();
+            return toast("客户公司已更新，组织路径与责任已刷新");
+          }
+          const duplicateForCreate = customers.some(
+            (item) =>
+              !item.archived &&
+              item.group === candidate.group &&
+              (candidate.group || item.industry === candidate.industry) &&
+              item.organizationParentType === candidate.organizationParentType &&
+              item.organizationParentCompanyId === candidate.organizationParentCompanyId &&
+              item.name.toLocaleLowerCase("zh-CN") === name.toLocaleLowerCase("zh-CN"),
+          );
+          if (duplicateForCreate) return toast("同一组织上级下已存在同名客户公司");
+          const data = {
+            ...candidate,
+            region,
+            owner,
+            pm,
+            source: "manual",
+            createdAt: recordCreatedAt(),
           };
+          const unit = { id: Date.now(), ...data, contacts: 0, health: "健康" };
           customers.push(unit);
           expandedCustomerNodes.add(`group:${data.group}`);
-          if (selectedParent)
-            expandedCustomerNodes.add(`company-org:${selectedParent.id}`);
-          if (data.level === "省公司")
-            expandedCustomerNodes.add(
-              `province:${data.group}:${data.province}`,
-            );
-          if (data.city) {
-            expandedCustomerNodes.add(`city:${data.group}:${data.city}`);
-            if (
-              customers.some(
-                (x) =>
-                  !x.archived &&
-                  x.group === data.group &&
-                  x.province === data.province &&
-                  x.level === "省公司",
-              )
-            )
-              expandedCustomerNodes.add(
-                `province:${data.group}:${data.province}`,
-              );
-          }
+          if (selectedParent) expandedCustomerNodes.add(`company-org:${selectedParent.id}`);
+          if (data.level === "省公司") expandedCustomerNodes.add(`province:${data.group}:${data.province}`);
+          if (data.city) expandedCustomerNodes.add(`city:${data.group}:${data.city}`);
           selectedCustomerId = unit.id;
           selectedOperationCustomerId = unit.id;
           selectedOperationContactId = null;
@@ -998,11 +984,13 @@
         };
       }
       function canRequestObjectStop(kind, obj) {
+        const roleCanStopContact = ["pm", "director", "vp"].includes(currentUser?.role);
+        const contactInScope = kind !== "contact" || scopedContacts().some((item) => item.id === obj?.id);
         return Boolean(
-          currentUser?.fullAccess &&
+          (currentUser?.fullAccess || (kind === "contact" && roleCanStopContact && contactInScope)) &&
             obj &&
             !obj.archived &&
-            hasOperationPermission("archive.request_stop"),
+            (currentUser?.fullAccess || hasOperationPermission("customers.edit_contact")),
         );
       }
 
@@ -1119,8 +1107,9 @@
                   department.id !== obj.id,
                 )
             : [];
+        const contactRequiresApproval = kind === "contact" && !currentUser?.fullAccess;
         openModal(
-          `<div class="modal-head"><div class="modal-title">停用${kindName}</div><button class="icon-btn close" data-close>×</button></div><form id="stopForm"><div class="modal-body"><div class="detail-grid"><div class="detail-item"><label>对象</label><div>${obj.name}</div></div>${kind === "group" ? `<div class="detail-item"><label>集团编号</label><div>${customerGroupNumbers[obj.name]}</div></div>` : ""}<div class="detail-item"><label>当前状态</label><div>正常</div></div>${kind === "group" ? `<div class="detail-item"><label>正常客户单位</label><div>${affectedCustomers.length}</div></div><div class="detail-item"><label>正常客户部门</label><div>${customerDepartments.filter((item) => !item.archived && item.group === obj.name).length}</div></div>` : ""}${kind !== "contact" ? `<div class="detail-item"><label>有效关键人 / 任职</label><div>${affectedPeople.length}</div></div>` : ""}${kind !== "contact" ? `<div class="detail-item"><label>未完成任务</label><div>${unfinishedTasks.length}</div></div><div class="detail-item"><label>未完成任务处理</label><div>统一关闭</div></div>` : ""}</div>${kind === "group" && affectedCustomers.length ? `<label class="choice-item" style="margin-top:var(--space-4)"><input id="stopCascadeGroup" type="checkbox"><span>完整级联停用全部 ${affectedCustomers.length} 家客户单位及 ${affectedPeople.length} 名有效关键人</span></label>` : ""}${kind === "customer" && affectedPeople.length ? `<label class="choice-item" style="margin-top:var(--space-4)"><input id="stopCascade" type="checkbox"><span>完整级联停用该单位全部 ${affectedPeople.length} 名有效关键人</span></label>` : ""}${kind === "department" && affectedPeople.length ? `<div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>替代客户部门</label><select class="input" id="stopReplacementDepartment"><option value="">请选择同一客户公司内的正常部门</option>${replacementDepartments.map((department) => `<option value="${department.id}">${department.name}</option>`).join("")}</select><div class="list-sub">仅迁移当前任职，历史任职保留原部门名称</div></div>` : ""}<div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>停用原因</label><textarea class="input" id="stopReason" minlength="5" maxlength="500" required placeholder="请填写 5-500 字停用原因"></textarea></div><div class="role-note danger-note">${kind === "contact" ? `停用后，${unfinishedTasks.length} 条未完成任务将关闭。` : "确认后立即停用。该对象不再出现在正常列表、可选项及经营统计中，未完成任务将关闭，历史记录保留。"}</div></div><div class="modal-foot"><button class="btn" type="button" data-close>取消</button><button class="btn btn-danger" type="submit">确认停用</button></div></form>`,
+          `<div class="modal-head"><div class="modal-title">停用${kindName}</div><button class="icon-btn close" data-close>×</button></div><form id="stopForm"><div class="modal-body"><div class="detail-grid"><div class="detail-item"><label>对象</label><div>${obj.name}</div></div>${kind === "group" ? `<div class="detail-item"><label>集团编号</label><div>${customerGroupNumbers[obj.name]}</div></div>` : ""}<div class="detail-item"><label>当前状态</label><div>正常</div></div>${kind === "group" ? `<div class="detail-item"><label>正常客户单位</label><div>${affectedCustomers.length}</div></div><div class="detail-item"><label>正常客户部门</label><div>${customerDepartments.filter((item) => !item.archived && item.group === obj.name).length}</div></div>` : ""}${kind !== "contact" ? `<div class="detail-item"><label>有效关键人 / 任职</label><div>${affectedPeople.length}</div></div>` : ""}${kind !== "contact" ? `<div class="detail-item"><label>未完成任务</label><div>${unfinishedTasks.length}</div></div><div class="detail-item"><label>未完成任务处理</label><div>统一关闭</div></div>` : ""}</div>${kind === "group" && affectedCustomers.length ? `<label class="choice-item" style="margin-top:var(--space-4)"><input id="stopCascadeGroup" type="checkbox"><span>完整级联停用全部 ${affectedCustomers.length} 家客户单位及 ${affectedPeople.length} 名有效关键人</span></label>` : ""}${kind === "customer" && affectedPeople.length ? `<label class="choice-item" style="margin-top:var(--space-4)"><input id="stopCascade" type="checkbox"><span>完整级联停用该单位全部 ${affectedPeople.length} 名有效关键人</span></label>` : ""}${kind === "department" && affectedPeople.length ? `<div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>替代客户部门</label><select class="input" id="stopReplacementDepartment"><option value="">请选择同一客户公司内的正常部门</option>${replacementDepartments.map((department) => `<option value="${department.id}">${department.name}</option>`).join("")}</select><div class="list-sub">仅迁移当前任职，历史任职保留原部门名称</div></div>` : ""}<div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>停用原因</label><textarea class="input" id="stopReason" minlength="5" maxlength="500" required placeholder="请填写 5-500 字停用原因"></textarea></div><div class="role-note danger-note">${kind === "contact" && contactRequiresApproval ? `审批通过后停用，${unfinishedTasks.length} 条未完成任务将按规则关闭。` : kind === "contact" ? `确认后立即停用，${unfinishedTasks.length} 条未完成任务将按规则关闭。` : "确认后立即停用。该对象不再出现在正常列表、可选项及经营统计中，未完成任务将关闭，历史记录保留。"}</div></div><div class="modal-foot"><button class="btn" type="button" data-close>取消</button><button class="btn ${kind === "contact" && contactRequiresApproval ? "btn-primary" : "btn-danger"}" type="submit">${kind === "contact" && contactRequiresApproval ? "提交审批" : "确认停用"}</button></div></form>`,
         );
         $("#stopForm").onsubmit = (e) => {
           e.preventDefault();
@@ -1140,6 +1129,28 @@
             return toast("客户部门仍有当前任职引用，请选择同一客户公司内的替代部门");
           const actionAt = recordCreatedAt();
           const reason = $("#stopReason").value.trim();
+          if (kind === "contact" && contactRequiresApproval) {
+            if (reason.length < 5 || reason.length > 500)
+              return toast("停用原因须为 5-500 字");
+            return submitBusinessApproval({
+              templateKey: "contact-disable",
+              title: `停用关键人 · ${obj.name}`,
+              formData: { contactId: String(obj.id), reason },
+              reason,
+              targetObject: `关键人 · ${obj.name}`,
+              targetKind: "contact",
+              targetId: obj.id,
+              extra: {
+                taskHandle: "关闭未完成任务并记录原因",
+                impactSnapshot: {
+                  customers: 1,
+                  people: 1,
+                  tasks: unfinishedTasks.length,
+                  approvals: 0,
+                },
+              },
+            });
+          }
           const replacement =
             kind === "department" && affectedPeople.length
               ? replacementDepartments.find(

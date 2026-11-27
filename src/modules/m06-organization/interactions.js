@@ -20,6 +20,46 @@
         const receiver = $("#eeEcologyReceiver");
         if (receiver) { receiver.required = visible; receiver.disabled = !visible; }
       }
+
+      function canManageWecomBindings() {
+        return Boolean(currentUser?.fullAccess || currentRoleTemplateNames().includes("HR/人事"));
+      }
+
+      function openWecomBindingForm(employeeCode) {
+        if (!canManageWecomBindings()) return toast("仅 HR/人事或 admin 可维护企业微信员工绑定");
+        const employee = employees.find((item) => item.code === employeeCode);
+        if (!employee) return toast("系统员工不存在");
+        const existing = wecomBindings.find((item) => item.employeeCode === employee.code);
+        const currentWecom = existing ? wecomEmployees.find((item) => item.id === existing.wecomId) : null;
+        openModal(`<div class="modal-head"><div class="modal-title">${existing ? "修改" : "绑定"}企业微信员工</div><button class="icon-btn close" data-close>×</button></div><form id="wecomBindingForm"><div class="modal-body"><div class="detail-grid"><div class="detail-item"><label>系统员工</label><div>${escapeHtml(employee.name)} · ${employee.code}</div></div><div class="detail-item"><label>系统部门</label><div>${escapeHtml(employeeDepartmentNames(employee).join("、") || "未归属部门")}</div></div></div><div class="form-group"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>企业微信员工</label><select class="input" id="wecomBindingEmployee" required><option value="">请选择企业微信员工</option>${wecomEmployees.filter((item) => item.status === "在职" && (!wecomBindings.some((binding) => binding.wecomId === item.id && binding.employeeCode !== employee.code))).map((item) => `<option value="${item.id}" ${currentWecom?.id === item.id ? "selected" : ""}>${escapeHtml(item.name)} · ${escapeHtml(item.department)} · ${item.id}</option>`).join("")}</select></div><div class="form-group"><label class="form-label">当前绑定</label><div>${currentWecom ? `${escapeHtml(currentWecom.name)} · ${escapeHtml(currentWecom.department)} · ${existing.boundAt}` : "未绑定"}</div></div></div><div class="modal-foot"><button class="btn" type="button" data-close>取消</button><button class="btn btn-primary" type="submit">保存绑定</button></div></form>`);
+        $("#wecomBindingForm").onsubmit = (event) => {
+          event.preventDefault();
+          const wecomId = $("#wecomBindingEmployee").value;
+          if (!wecomId) return toast("请选择企业微信员工");
+          const conflict = wecomBindings.find((binding) => binding.wecomId === wecomId && binding.employeeCode !== employee.code);
+          if (conflict) return toast(`该企业微信员工已绑定系统员工 ${employees.find((item) => item.code === conflict.employeeCode)?.name || conflict.employeeCode}`);
+          const now = recordCreatedAt();
+          if (existing) Object.assign(existing, { wecomId, boundAt: now, operator: currentUser.name });
+          else wecomBindings.push({ employeeCode: employee.code, wecomId, boundAt: now, operator: currentUser.name });
+          closeOverlay();
+          renderPage();
+          toast(`已${existing ? "更新" : "完成"}企业微信员工绑定`);
+        };
+      }
+
+      function removeWecomBinding(employeeCode) {
+        if (!canManageWecomBindings()) return toast("仅 HR/人事或 admin 可维护企业微信员工绑定");
+        const employee = employees.find((item) => item.code === employeeCode);
+        const index = wecomBindings.findIndex((item) => item.employeeCode === employeeCode);
+        if (index < 0) return toast("当前员工没有有效绑定");
+        openModal(`<div class="modal-head"><div class="modal-title">确认解绑企业微信员工</div><button class="icon-btn close" data-close>×</button></div><div class="modal-body"><p>解绑 ${escapeHtml(employee?.name || employeeCode)}？</p></div><div class="modal-foot"><button class="btn" data-close>取消</button><button class="btn btn-danger" id="confirmWecomUnbind">确认解绑</button></div>`);
+        $("#confirmWecomUnbind").onclick = () => {
+          wecomBindings.splice(index, 1);
+          closeOverlay();
+          renderPage();
+          toast("企业微信绑定已解除");
+        };
+      }
       function employeeSupportHandoffFields(employee, requests) {
         return requests.map(({item,support})=>`<div class="form-group full"><label class="form-label">${escapeHtml(item.name)} · ${escapeHtml(support.id)} · ${escapeHtml(support.status)} 接替人</label><select class="input" data-employee-support-receiver="${support.id}" required><option value="">请选择商机支撑人员</option>${salesSupportCandidates().filter(candidate=>candidate.code!==employee.code).map(candidate=>`<option value="${candidate.code}">${escapeHtml(candidate.name)} · ${candidate.code}</option>`).join("")}</select></div>`).join("");
       }

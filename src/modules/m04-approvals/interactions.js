@@ -7,21 +7,32 @@
 
       function approvalNodeHtml(node) {
         const statusMeta = {
-          done: ["green", "已办"],
-          current: ["yellow", "当前"],
-          upcoming: ["", "未到"],
-          rejected: ["red", "已拒绝"],
+          done: ["green", "已完成"],
+          current: ["yellow", "正在审批"],
+          upcoming: ["", "待审批"],
+          rejected: ["red", "已驳回"],
           invalid: ["red", "处理人失效"],
         }[node.state];
-        const operatorHtml = node.operatorLabel
-          ? `<span>${node.operatorLabel}：${node.operator}</span>`
-          : `<span>应处理人：${node.expectedOperator}</span><span>实际处理人：${node.actualOperator}</span>`;
-        return `<div class="timeline-item is-${node.state}"><div class="approval-node-head"><div class="timeline-title">${node.title}</div><span class="tag ${statusMeta[0]}">${statusMeta[1]}</span></div><div class="approval-node-meta">${operatorHtml}<span>审批时间：${node.time}</span></div><div class="timeline-content">${node.opinionLabel || "审批意见"}：${node.opinion}</div></div>`;
+        const actualOperator = ["待处理", "—", "无法继续处理"].includes(node.actualOperator) ? "" : node.actualOperator;
+        const operator = node.operator || actualOperator || node.expectedOperator || "—";
+        const hasTime = node.time && !["待处理", "未到达", "资格校验时发现", "—"].includes(node.time);
+        const hasOpinion = node.opinion && !["待审批人填写", "流程已在前置环节结束", "—"].includes(node.opinion);
+        return `<div class="timeline-item is-${node.state}"><div class="approval-node-head"><div class="timeline-title">${escapeHtml(node.title)}</div><span class="tag ${statusMeta[0]}">${statusMeta[1]}</span></div><dl class="approval-node-meta"><div><dt>处理人</dt><dd>${escapeHtml(operator)}</dd></div>${hasTime ? `<div><dt>处理时间</dt><dd>${escapeHtml(node.time)}</dd></div>` : ""}${hasOpinion ? `<div><dt>${escapeHtml(node.opinionLabel || "审批意见")}</dt><dd>${escapeHtml(node.opinion)}</dd></div>` : ""}</dl></div>`;
+      }
+
+      function approvalDetailHandler(approval) {
+        const names = approvalCurrentAssignees(approval).filter((name) => name && !name.startsWith("按"));
+        if (names.length) return names.join("、");
+        if (approval.status === "pending")
+          return (approval.flowNodes || []).filter((node) => node.state === "current").map((node) => node.expectedOperator).filter(Boolean).join("、") || "—";
+        return approval.decidedBy || approval.rejectedBy || approval.withdrawnBy ||
+          [...(approval.flowNodes || [])].reverse().find((node) => node.actualOperator)?.actualOperator || "—";
       }
 
       function approvalTimelineHtml(approval) {
+        if (approval.flowNodes?.length)
+          return `<div class="timeline approval-timeline">${approval.flowNodes.map(approvalNodeHtml).join("")}</div>`;
         const progressSteps = approvalProgressSteps(approval);
-        const launchRecord = `<div class="role-note"><strong>发起记录</strong><br>${approval.date} · ${approval.applicant}<br>申请说明：${approval.reason}</div>`;
         const nodes = [];
         const hasReception = approvalHasReception(approval);
         if (hasReception) {
@@ -84,6 +95,7 @@
                 "approved_pending_effective",
                 "rejected",
                 "processing_failed",
+                "withdrawn",
               ].includes(
                 approval.status,
               )),
@@ -111,7 +123,7 @@
             : approval.decidedBy || (decisionCurrent ? "待处理" : "—"),
           time: decisionInvalid
             ? approval.invalidatedAt || "资格校验时发现"
-            : approval.decidedAt || (decisionCurrent ? "待处理" : "未到达"),
+            : approval.decidedAt || approval.rejectedAt || (decisionCurrent ? "待处理" : "未到达"),
           opinion: decisionInvalid
             ? approval.invalidReason || "处理人资格失效，流程已暂停。"
             : decisionDone
@@ -122,7 +134,310 @@
                 ? "流程已在前置环节结束"
                 : "—",
         });
-        return `${launchRecord}<div class="timeline approval-timeline">${nodes.map(approvalNodeHtml).join("")}</div>`;
+        return `<div class="timeline approval-timeline">${nodes.map(approvalNodeHtml).join("")}</div>`;
+      }
+
+      function approvalCurrentEmployee() {
+        return employees.find((employee) => employee.name === currentUser?.name);
+      }
+
+      function approvalCurrentBinding() {
+        const employee = approvalCurrentEmployee();
+        return employee ? wecomBindings.find((binding) => binding.employeeCode === employee.code) : null;
+      }
+
+      function getApprovalTemplates() {
+        const activeContacts = contacts.filter((item) => contactIsActive(item));
+        const activeTasks = tasks.filter((item) => !["done", "cancelled"].includes(item.status));
+        const activeProjects = projects.filter((item) => ["进行中", "已交付"].includes(item.stage));
+        const ownCities = typeof cityOwners !== "undefined"
+          ? cityOwners.filter((item) => item.pm === currentUser?.name && !pendingCityHandover(item.id))
+          : [];
+        const pms = employees.filter((item) => item.role === "PM" && item.status === "在职");
+        const people = employees.filter((item) => item.status === "在职" && item.role !== "系统管理员");
+        return [
+          {
+            key: "project-expense",
+            label: "项目费用申请",
+            approver: "刘庆俊",
+            ccUsers: ["陈少安"],
+            fields: [
+              { key: "projectId", label: "关联项目", type: "select", required: true, options: projects.map((item) => ({ value: item.id, label: `${item.id} · ${item.name}` })) },
+              { key: "expenseType", label: "费用类型", type: "select", required: true, options: ["差旅费", "住宿费", "交通费", "茶歇/物料", "其他"].map((value) => ({ value, label: value })) },
+              { key: "amount", label: "申请金额（元）", type: "number", required: true, min: "0", step: "0.01" },
+              { key: "reason", label: "费用说明", type: "textarea", required: true, minLength: 5, maxLength: 500 },
+            ],
+          },
+          {
+            key: "invoice",
+            label: "开票申请",
+            approver: "刘庆俊",
+            ccUsers: ["陈少安"],
+            fields: [
+              { key: "projectId", label: "关联项目", type: "select", required: true, options: projects.map((item) => ({ value: item.id, label: `${item.id} · ${item.name}` })) },
+              { key: "customerId", label: "客户公司", type: "select", required: true, options: customers.map((item) => ({ value: String(item.id), label: item.name })) },
+              { key: "amount", label: "开票金额（元）", type: "number", required: true, min: "0", step: "0.01" },
+              { key: "reason", label: "开票说明", type: "textarea", required: true, minLength: 5, maxLength: 500 },
+            ],
+          },
+          {
+            key: "payment",
+            label: "付款申请",
+            approver: "刘庆俊",
+            ccUsers: ["陈少安"],
+            fields: [
+              { key: "projectId", label: "关联项目", type: "select", required: true, options: projects.map((item) => ({ value: item.id, label: `${item.id} · ${item.name}` })) },
+              { key: "payee", label: "收款方", type: "text", required: true, maxLength: 100 },
+              { key: "amount", label: "付款金额（元）", type: "number", required: true, min: "0", step: "0.01" },
+              { key: "reason", label: "付款说明", type: "textarea", required: true, minLength: 5, maxLength: 500 },
+            ],
+          },
+          {
+            key: "contact-disable",
+            label: "停用关键人",
+            approver: "刘庆俊",
+            fields: [
+              { key: "contactId", label: "关键人", type: "select", required: true, options: activeContacts.map((item) => ({ value: item.id, label: `${item.name} · ${item.company}` })) },
+              { key: "reason", label: "停用原因", type: "textarea", required: true, minLength: 5, maxLength: 500 },
+            ],
+          },
+          {
+            key: "maintenance-postpone",
+            label: "维系任务延期",
+            approver: "刘庆俊",
+            fields: [
+              { key: "taskId", label: "维系任务", type: "select", required: true, options: activeTasks.map((item) => ({ value: item.id, label: `${item.executionCode || `#${item.id}`} · ${item.title}` })) },
+              { key: "due", label: "新截止日期", type: "date", required: true },
+              { key: "reason", label: "延期原因", type: "textarea", required: true, minLength: 5, maxLength: 500 },
+            ],
+          },
+          {
+            key: "maintenance-pause",
+            label: "维系任务暂停",
+            approver: "刘庆俊",
+            fields: [
+              { key: "taskId", label: "维系任务", type: "select", required: true, options: activeTasks.map((item) => ({ value: item.id, label: `${item.executionCode || `#${item.id}`} · ${item.title}` })) },
+              { key: "resumeDate", label: "暂停至", type: "date", required: true },
+              { key: "reason", label: "暂停原因", type: "textarea", required: true, minLength: 5, maxLength: 500 },
+            ],
+          },
+          {
+            key: "maintenance-cancel",
+            label: "维系任务取消",
+            approver: "刘庆俊",
+            fields: [
+              { key: "taskId", label: "维系任务", type: "select", required: true, options: activeTasks.map((item) => ({ value: item.id, label: `${item.executionCode || `#${item.id}`} · ${item.title}` })) },
+              { key: "reason", label: "取消原因", type: "textarea", required: true, minLength: 5, maxLength: 500 },
+            ],
+          },
+          {
+            key: "project-terminate",
+            label: "中止已开始项目",
+            approver: "刘庆俊",
+            fields: [
+              { key: "projectId", label: "项目", type: "select", required: true, options: activeProjects.map((item) => ({ value: item.id, label: `${item.id} · ${item.name}` })) },
+              { key: "settlement", label: "是否涉及金额结算", type: "select", required: true, options: ["是", "否"].map((value) => ({ value, label: value })) },
+              { key: "settlementAmount", label: "应结算金额（万元）", type: "number", min: "0", step: "0.000001" },
+              { key: "reason", label: "中止原因", type: "textarea", required: true, minLength: 5, maxLength: 500 },
+            ],
+          },
+          {
+            key: "city-handover",
+            label: "地市责任交接",
+            // Mock template response, matching the existing city-handover fixture;
+            // the platform does not derive or let applicants select approvers.
+            approver: "赵磊",
+            fields: [
+              { key: "cityIds", label: "交接地市", type: "select", multiple: true, required: true, options: ownCities.map((item) => ({ value: item.id, label: `${item.province} · ${item.city}` })) },
+              { key: "targetPm", label: "目标 PM", type: "select", required: true, options: [] },
+              { key: "plannedEffectiveDate", label: "计划生效日期", type: "date", required: true },
+              { key: "reason", label: "交接原因", type: "textarea", required: true, minLength: 5, maxLength: 500 },
+            ],
+          },
+          {
+            key: "sales-target-adjustment",
+            label: "销售指标调整",
+            approver: "按企微模板",
+            fields: [
+              { key: "adjustmentScope", label: "调整范围", type: "select", required: true, options: ["区域年度", "区域季度", "区域月度", "PM个人季度", "PM个人月度", "区域总监个人季度", "区域总监个人月度"].map((value) => ({ value, label: value })) },
+              { key: "targetEmployee", label: "调整对象", type: "select", required: true, options: people.filter((item) => ["PM", "区域总监"].includes(item.role)).map((item) => ({ value: item.name, label: `${item.name} · ${item.role}` })) },
+              { key: "reason", label: "调整原因", type: "textarea", required: true, minLength: 5, maxLength: 500 },
+            ],
+          },
+        ];
+      }
+
+      function submitBusinessApproval({ templateKey, title, formData, reason, targetObject = "", targetKind = "", targetId = null, extra = {} }) {
+        if (templateKey === "city-handover" && !extra.targetCityIds) {
+          const values = Array.isArray(formData.cityIds) ? formData.cityIds : String(formData.cityIds || "").split(",");
+          const ids = [...new Set(values.filter(Boolean).map(Number))];
+          const owners = ids.map((id) => cityOwners.find((owner) => Number(owner.id) === id));
+          if (!owners.length || owners.some((owner) => !owner)) return toast("请选择有效的交接地市");
+          return commitCityHandover({
+            region: centerForCityOwner(owners[0]), owners, targetPm: formData.targetPm,
+            plannedEffectiveDate: formData.plannedEffectiveDate, reason,
+            impactSnapshot: cityHandoverImpact(ids),
+          });
+        }
+        const employee = approvalCurrentEmployee();
+        const binding = approvalCurrentBinding();
+        if (!employee || !binding) return toast("当前员工尚未绑定企业微信，请先完成绑定");
+        const template = getApprovalTemplates().find((item) => item.key === templateKey);
+        if (!template) return toast("审批事项暂不可用");
+        const now = recordCreatedAt();
+        const id = Math.max(0, ...approvals.map((item) => Number(item.id) || 0)) + 1;
+        approvals.unshift({
+          id,
+          code: `WECOM-${now.slice(0, 10).replaceAll("-", "")}-${String(id).padStart(3, "0")}`,
+          type: template.label,
+          templateKey,
+          formData,
+          title: title || `${template.label} · ${targetObject || "待处理事项"}`,
+          applicant: employee.name,
+          date: now,
+          region: currentUser.region || employeeDepartmentNames(employee).join("、"),
+          status: "pending",
+          current: template.approver === "按企微模板" ? "按企微模板路由" : "区域总监审批",
+          currentAssignees: [template.approver],
+          expectedApprover: template.approver,
+          ccUsers: template.ccUsers || [],
+          targetObject,
+          targetKind,
+          targetId,
+          reason: reason || title || template.label,
+          updatedAt: now,
+          ...extra,
+        });
+        closeAllOverlays();
+        approvalView = "mine";
+        currentPage = "approvals";
+        window.history.replaceState(null, "", "#approvals");
+        renderNav();
+        renderPage();
+        toast("已提交企业微信审批，业务状态将在审批通过后生效");
+        return true;
+      }
+
+      function applyApprovedCityHandover(approval, businessDate = DEMO_TODAY) {
+        if (approval.effectiveAt) { approval.status = "approved"; return true; }
+        if (approval.plannedEffectiveDate > businessDate) {
+          approval.status = "approved_pending_effective";
+          return true;
+        }
+        const applied = applyCityResponsibilityTransfer(approval);
+        if (applied) approval.status = "approved";
+        return applied;
+      }
+
+      function syncWecomCityHandoverResult({ code, status, operator, time, comment = "" }) {
+        const approval = approvals.find((item) => item.code === code && item.templateKey === "city-handover");
+        if (!approval || !["approved", "rejected", "withdrawn"].includes(status)) return false;
+        if (!["pending", "paused_invalid_handler"].includes(approval.status)) return approval.status === status || (status === "approved" && ["approved_pending_effective", "processing_failed"].includes(approval.status));
+        approval.expectedApprover = approvalCurrentAssignees(approval).join("、") || approval.expectedApprover;
+        approval.status = status;
+        approval.currentAssignees = [];
+        approval.decidedBy = operator;
+        approval.operator = operator;
+        approval.decidedAt = time;
+        approval.updatedAt = time;
+        approval.decisionComment = comment;
+        if (operator) approval.handledBy = [...new Set([...(approval.handledBy || []), operator])];
+        if (status === "approved") return applyApprovedCityHandover(approval);
+        return true;
+      }
+
+      function applyDueCityHandoverApprovals(businessDate = DEMO_TODAY) {
+        approvals.filter((approval) => approval.templateKey === "city-handover" && approval.status === "approved_pending_effective" && approval.plannedEffectiveDate <= businessDate)
+          .forEach((approval) => applyApprovedCityHandover(approval, businessDate));
+      }
+
+      function openApprovalCreate() {
+        if (!currentUser) return toast("请先登录后发起审批");
+        const employee = approvalCurrentEmployee();
+        const binding = approvalCurrentBinding();
+        if (!employee || !binding) {
+          return toast("当前员工尚未绑定企业微信，请由 HR/人事或 admin 完成绑定后再发起审批");
+        }
+        const wecom = wecomEmployees.find((item) => item.id === binding.wecomId);
+        const approvalTemplates = getApprovalTemplates();
+        const templateByKey = (key) => approvalTemplates.find((template) => template.key === key) || approvalTemplates[0];
+        const renderTemplateFields = (templateKey) => {
+          const template = templateByKey(templateKey);
+          return template.fields.map((field) => {
+            const required = field.required ? '<span class="required-marker" aria-hidden="true">*</span>' : "";
+            if (field.type === "select") {
+              return `<div class="form-group"><label class="form-label">${required}${escapeHtml(field.label)}</label><select class="input" data-approval-field="${field.key}"${field.multiple ? " multiple size=4" : ""}${field.required ? " required" : ""}>${field.multiple ? "" : `<option value=\"\">请选择${escapeHtml(field.label)}</option>`}${field.options.map((option) => `<option value="${escapeHtml(String(option.value))}">${escapeHtml(option.label)}</option>`).join("")}</select></div>`;
+            }
+            if (field.type === "textarea") {
+              return `<div class="form-group full"><label class="form-label">${required}${escapeHtml(field.label)}</label><textarea class="input" data-approval-field="${field.key}"${field.required ? " required" : ""}${field.minLength ? ` minlength="${field.minLength}"` : ""}${field.maxLength ? ` maxlength="${field.maxLength}"` : ""} placeholder="填写${escapeHtml(field.label)}"></textarea></div>`;
+            }
+            return `<div class="form-group"><label class="form-label">${required}${escapeHtml(field.label)}</label><input class="input" data-approval-field="${field.key}" type="${field.type}"${field.required ? " required" : ""}${field.min !== undefined ? ` min="${field.min}"` : ""}${field.step ? ` step="${field.step}"` : ""}${field.maxLength ? ` maxlength="${field.maxLength}"` : ""} placeholder="填写${escapeHtml(field.label)}"></div>`;
+          }).join("");
+        };
+        openModal(
+          `<div class="modal-head"><div class="modal-title">发起审批</div><button class="icon-btn close" data-close>×</button></div><form id="approvalCreateForm"><div class="modal-body"><div class="detail-grid"><div class="detail-item"><label>申请人</label><div>${escapeHtml(employee.name)} · ${escapeHtml(employee.code)}</div></div><div class="detail-item"><label>企业微信</label><div>${escapeHtml(wecom?.name || binding.wecomId)} · ${escapeHtml(wecom?.department || "—")}</div></div></div><div class="form-grid"><div class="form-group full"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>审批事项</label><select class="input" id="approvalCreateType" required>${approvalTemplates.map((template) => `<option value="${template.key}">${escapeHtml(template.label)}</option>`).join("")}</select></div><div class="form-group full"><label class="form-label"><span class="required-marker" aria-hidden="true">*</span>审批标题</label><input class="input" id="approvalCreateTitle" maxlength="100" placeholder="填写审批标题" required></div></div><div id="approvalCreateFields" class="form-grid">${renderTemplateFields(approvalTemplates[0].key)}</div></div><div class="modal-foot"><button class="btn" type="button" data-close>取消</button><button class="btn btn-primary" type="submit">提交审批</button></div></form>`,
+        );
+        const refreshCityRecipients = () => {
+          const citySelect = document.querySelector('[data-approval-field="cityIds"]');
+          const pmSelect = document.querySelector('[data-approval-field="targetPm"]');
+          if (!citySelect || !pmSelect) return;
+          const first = cityOwners.find((owner) => Number(owner.id) === Number(citySelect.selectedOptions[0]?.value));
+          const region = first && centerForCityOwner(first);
+          [...citySelect.options].forEach((option) => {
+            const owner = cityOwners.find((item) => Number(item.id) === Number(option.value));
+            option.disabled = !owner || Boolean(pendingCityHandover(owner.id)) || Boolean(region && centerForCityOwner(owner)?.id !== region.id);
+            if (option.disabled) option.selected = false;
+          });
+          const previous = pmSelect.value;
+          const pms = region ? regionPmEmployees(region).filter((employee) => employee.name !== currentUser.name) : [];
+          pmSelect.innerHTML = '<option value="">请选择目标 PM</option>' + pms.map((employee) => `<option value="${escapeHtml(employee.name)}">${escapeHtml(employee.name)} · ${escapeHtml(employee.code)}</option>`).join("");
+          if (pms.some((employee) => employee.name === previous)) pmSelect.value = previous;
+          citySelect.onchange = refreshCityRecipients;
+        };
+        const refreshTemplateState = () => {
+          const isCity = $("#approvalCreateType").value === "city-handover";
+          const noCities = isCity && !templateByKey("city-handover").fields.find((field) => field.key === "cityIds").options.length;
+          $("#approvalCreateForm button[type=submit]").disabled = noCities;
+          if (noCities) $("#approvalCreateFields").innerHTML = '<div class="form-group full"><div class="empty">暂无可交接地市</div></div>';
+          else if (isCity) refreshCityRecipients();
+        };
+        $("#approvalCreateType").onchange = (event) => {
+          $("#approvalCreateFields").innerHTML = renderTemplateFields(event.target.value);
+          refreshTemplateState();
+        };
+        refreshTemplateState();
+        $("#approvalCreateForm").onsubmit = (event) => {
+          event.preventDefault();
+          const title = $("#approvalCreateTitle").value.trim();
+          const templateKey = $("#approvalCreateType").value;
+          const template = templateByKey(templateKey);
+          const formData = Object.fromEntries([...document.querySelectorAll("#approvalCreateFields [data-approval-field]")].map((field) => [field.dataset.approvalField, field.multiple ? [...field.selectedOptions].map((option) => option.value) : field.value.trim()]));
+          const missingField = template.fields.find((field) => field.required && (!formData[field.key] || (Array.isArray(formData[field.key]) && !formData[field.key].length)));
+          if (!title || missingField) return toast(`请填写${missingField ? missingField.label : "审批标题"}`);
+          const reason = formData.reason || title;
+          const targetProject = formData.projectId ? projects.find((item) => item.id === formData.projectId) : null;
+          const targetCustomer = formData.customerId ? customers.find((item) => String(item.id) === String(formData.customerId)) : null;
+          const targetContact = formData.contactId ? contacts.find((item) => String(item.id) === String(formData.contactId)) : null;
+          const targetTask = formData.taskId ? tasks.find((item) => String(item.id) === String(formData.taskId)) : null;
+          const targetObject = targetProject
+            ? `项目 · ${targetProject.name}`
+            : targetCustomer
+              ? `客户公司 · ${targetCustomer.name}`
+              : targetContact
+                ? `关键人 · ${targetContact.name}`
+                : targetTask
+                  ? `维系任务 · ${targetTask.title}`
+              : "";
+          submitBusinessApproval({
+            templateKey,
+            title,
+            formData,
+            reason,
+            targetObject,
+            targetKind: targetContact ? "contact" : targetTask ? "task" : targetProject ? "project" : "",
+            targetId: targetContact?.id || targetTask?.id || targetProject?.id || null,
+          });
+        };
       }
 
       function openApprovalDetail(id) {
@@ -168,8 +483,8 @@
         const handlerReplacementAudit = a.handlerReplacementHistory?.length
           ? `<div class="section-title">处理人替换记录</div><div class="timeline">${a.handlerReplacementHistory.map((entry) => `<div class="timeline-item is-done"><div class="timeline-title">${entry.time} · ${entry.from} → ${entry.to}</div><div class="timeline-content">操作人：${entry.operator}；原因：${entry.reason}<br>资格依据：${entry.qualification || "复用原节点资格规则"}</div></div>`).join("")}</div>`
           : "";
-        const stopImpact = a.targetKind
-          ? `<div class="section-title">停用影响摘要</div><div class="detail-grid"><div class="detail-item"><label>对象类型</label><div>${a.type.replace(/停用$/, "")}</div></div>${a.businessNumber ? `<div class="detail-item"><label>集团编号</label><div>${a.businessNumber}</div></div>` : ""}<div class="detail-item"><label>任务处理方式</label><div>${a.taskHandle}</div></div><div class="detail-item"><label>客户单位</label><div>${a.impactSnapshot?.customers || 0} 家</div></div><div class="detail-item"><label>关键人 / 任职</label><div>${a.impactSnapshot?.people || 0}</div></div><div class="detail-item"><label>未完成任务</label><div>${a.impactSnapshot?.tasks || 0}</div></div><div class="detail-item"><label>进行中审批</label><div>${a.impactSnapshot?.approvals || 0}</div></div></div><div class="role-note">审批通过前对象保持原业务状态；生效时重新校验任务、级联对象、替代部门及责任版本，失败则对象不变并进入业务处理失败。</div>`
+        const stopImpact = ["group", "customer", "department", "contact"].includes(a.targetKind) && Boolean(a.taskHandle || a.impactSnapshot)
+          ? `<div class="section-title">停用影响摘要</div><div class="detail-grid">${a.targetKind !== "contact" ? `<div class="detail-item"><label>对象类型</label><div>${a.type.replace(/停用$/, "")}</div></div>${a.businessNumber ? `<div class="detail-item"><label>集团编号</label><div>${a.businessNumber}</div></div>` : ""}<div class="detail-item"><label>客户单位</label><div>${a.impactSnapshot?.customers || 0} 家</div></div><div class="detail-item"><label>关键人 / 任职</label><div>${a.impactSnapshot?.people || 0}</div></div><div class="detail-item"><label>进行中审批</label><div>${a.impactSnapshot?.approvals || 0}</div></div>` : ""}<div class="detail-item"><label>任务处理方式</label><div>${a.taskHandle || "—"}</div></div><div class="detail-item"><label>未完成任务</label><div>${a.impactSnapshot?.tasks || 0}</div></div></div>`
           : "";
         const recoveryArchive = a.targetArchiveId
           ? archivedItems.find((item) => item.id === a.targetArchiveId) ||
@@ -180,12 +495,62 @@
           : "";
         const impact = (lateEntryImpact || stopImpact || recoveryImpact || (a.transferContactId
           ? `<div class="section-title">调岗影响</div><div class="detail-grid">${transferPerson ? `<div class="detail-item"><label>原单位</label><div>${transferPerson.company}</div></div><div class="detail-item"><label>原部门 / 关键人岗位</label><div>${transferPerson.department} / ${transferPerson.positionName}</div></div><div class="detail-item"><label>原职级</label><div>${transferPerson.level}</div></div><div class="detail-item"><label>原客户负责人</label><div>${contactOwnerName(transferPerson)}</div></div>` : ""}<div class="detail-item"><label>目标单位</label><div>${a.targetCompany}</div></div><div class="detail-item"><label>目标客户负责人</label><div>${a.targetOwner || a.targetPm || "待配置"}</div></div><div class="detail-item"><label>执行安排</label><div>${targetCompany?.level === "省公司" ? "所属区域总监直接执行五类任务" : "地市负责人 PM 直接执行"}</div></div><div class="detail-item"><label>新部门 / 关键人岗位</label><div>${a.targetDepartment} / ${a.targetPositionName || a.targetTitle}</div></div><div class="detail-item"><label>未完成常规任务</label><div>原执行项受控关闭，在目标责任下重建并保留流程关联</div></div><div class="detail-item"><label>新任职生效日</label><div>${a.effectiveDate || "审批通过日"}</div></div></div>${campaignImpact}`
-            : cityIdsForApproval(a).length
-            ? `<div class="section-title">地市交接影响</div><div class="detail-grid"><div class="detail-item"><label>交接地市</label><div>${cityIdsForApproval(a).map((cityId) => cityOwners.find((owner) => owner.id === cityId)?.city || a.targetCitySnapshots?.find((snapshot) => snapshot.id === cityId)?.city || `#${cityId}`).join("、")}</div></div><div class="detail-item"><label>负责人变化</label><div>${a.originalPm || "原 PM"} → ${a.targetPm}</div></div><div class="detail-item"><label>计划生效日期</label><div>${a.plannedEffectiveDate || "审批通过日"}</div></div><div class="detail-item"><label>实际生效时间</label><div>${a.effectiveAt || "—"}</div></div><div class="detail-item"><label>客户 / 关键人</label><div>${a.impactSnapshot?.customers || 0} 家 / ${a.impactSnapshot?.people || 0} 人</div></div><div class="detail-item"><label>任务 / 覆盖 KPI</label><div>${a.impactSnapshot?.tasks || 0} 条 / ${a.impactSnapshot?.coverageKpis || 0} 条</div></div><div class="detail-item"><label>待审批流程</label><div>${a.impactSnapshot?.approvals || 0} 条</div></div><div class="detail-item"><label>目标 PM 处理</label><div>不审批、不接收，生效成功后收到通知</div></div></div><div class="role-note">生效时一次性迁移客户负责人、关键人责任、未完成任务、覆盖 KPI 待办和责任型审批；任一写入失败则全部保持原负责人。</div>`
+            : !a.formData && cityIdsForHandover(a).length
+            ? `<div class="section-title">地市交接影响</div><div class="detail-grid"><div class="detail-item"><label>交接地市</label><div>${cityIdsForHandover(a).map((cityId) => cityOwners.find((owner) => owner.id === cityId)?.city || a.targetCitySnapshots?.find((snapshot) => snapshot.id === cityId)?.city || `#${cityId}`).join("、")}</div></div><div class="detail-item"><label>负责人变化</label><div>${a.originalPm || "原 PM"} → ${a.targetPm}</div></div><div class="detail-item"><label>计划生效日期</label><div>${a.plannedEffectiveDate || "审批通过日"}</div></div><div class="detail-item"><label>实际生效时间</label><div>${a.effectiveAt || "—"}</div></div><div class="detail-item"><label>客户 / 关键人</label><div>${a.impactSnapshot?.customers || 0} 家 / ${a.impactSnapshot?.people || 0} 人</div></div><div class="detail-item"><label>任务 / 覆盖 KPI</label><div>${a.impactSnapshot?.tasks || 0} 条 / ${a.impactSnapshot?.coverageKpis || 0} 条</div></div><div class="detail-item"><label>待审批流程</label><div>${a.impactSnapshot?.approvals || 0} 条</div></div><div class="detail-item"><label>目标 PM 处理</label><div>不审批、不接收，生效成功后收到通知</div></div></div><div class="role-note">生效时一次性迁移客户负责人、关键人责任、未完成任务、覆盖 KPI 待办和责任型审批；任一写入失败则全部保持原负责人。</div>`
             : "")) + invalidHandlerImpact + handlerReplacementAudit + businessFailure + businessFailureHistory + businessRetryHistory;
+        const approvalFieldLabels = {
+          projectId: "关联项目",
+          customerId: "客户公司",
+          expenseType: "费用类型",
+          amount: "金额（元）",
+          payee: "收款方",
+          contactId: "关键人",
+          taskId: "维系任务",
+          due: "新截止日期",
+          resumeDate: "暂停至",
+          settlement: "是否涉及金额结算",
+          settlementAmount: "应结算金额（万元）",
+          cityIds: "交接地市",
+          targetPm: "目标 PM",
+          plannedEffectiveDate: "计划生效日期",
+          adjustmentScope: "调整范围",
+          targetEmployee: "调整对象",
+          period: "目标周期",
+          changeCount: "调整项数",
+          reason: "申请原因",
+        };
+        const approvalFormDataHtml = a.formData && Object.keys(a.formData).length
+          ? `<div class="section-title">申请内容</div><div class="detail-grid">${Object.entries(a.formData).map(([key, value]) => {
+              let displayValue = value || "—";
+              if (key === "projectId") {
+                const project = projects.find((item) => item.id === value);
+                displayValue = project ? `${project.id} · ${project.name}` : displayValue;
+              }
+              if (key === "customerId") {
+                const customer = customers.find((item) => String(item.id) === String(value));
+                displayValue = customer?.name || displayValue;
+              }
+              if (key === "contactId") {
+                const contact = contacts.find((item) => String(item.id) === String(value));
+                displayValue = contact ? `${contact.name} · ${contact.company}` : displayValue;
+              }
+              if (key === "taskId") {
+                const task = tasks.find((item) => String(item.id) === String(value));
+                displayValue = task ? `${task.executionCode || `#${task.id}`} · ${task.title}` : displayValue;
+              }
+              if (key === "cityIds") {
+                const ids = Array.isArray(value) ? value : String(value).split(",");
+                displayValue = ids.map((cityId) => cityOwners.find((item) => String(item.id) === String(cityId))?.city || cityId).join("、");
+              }
+              return `<div class="detail-item"><label>${escapeHtml(approvalFieldLabels[key] || key)}</label><div>${escapeHtml(String(displayValue))}</div></div>`;
+            }).join("")}</div>`
+          : "";
         const approvalTimeline = approvalTimelineHtml(a);
+        const approvalReasonHtml = a.formData?.reason
+          ? ""
+          : `<div class="section-title">申请原因</div><p style="font-size:var(--font-size-body);line-height:var(--line-height-body)">${escapeHtml(a.reason || "—")}</p>`;
         openDrawer(
-          `<div class="drawer-head"><div class="modal-title">审批详情</div><button class="icon-btn close" data-close>×</button></div><div class="drawer-body"><div class="detail-hero"><div class="avatar">审</div><div><div class="detail-name">${a.title}</div><div class="detail-sub">${a.type} · ${approvalStatusName(a.status)}</div></div></div><div class="detail-grid"><div class="detail-item"><label>发起人</label><div>${a.applicant}</div></div><div class="detail-item"><label>发起时间</label><div>${a.date}</div></div><div class="detail-item"><label>${["pending", "paused_invalid_handler"].includes(a.status) ? "当前节点" : "完成节点"}</label><div>${approvalDisplayNode(a)}</div></div><div class="detail-item"><label>当前处理人</label><div>${a.status === "paused_invalid_handler" ? `<span class="tag red">${approvalCurrentAssignees(a).join("、") || "原处理人"} · 已失效</span>` : approvalCurrentAssignees(a).join("、") || "流程已结束"}</div></div><div class="detail-item"><label>抄送人</label><div>${approvalCcUsers(a).join("、") || "无"}</div></div><div class="detail-item"><label>抄送时点</label><div>发起即抄送，结束后通知结果</div></div><div class="detail-item"><label>数据范围</label><div>${a.region}</div></div><div class="detail-item"><label>完成时间</label><div>${a.decidedAt || a.rejectedAt || "—"}</div></div></div>${impact}<div class="section-title">申请原因</div><p style="font-size:var(--font-size-body);line-height:var(--line-height-body)">${a.reason}</p><div class="section-title">流程节点</div>${approvalTimeline}<div class="section-title">抄送记录</div><div class="role-note">${a.date} 发起时已抄送 ${approvalCcUsers(a).join("、") || "无"}；抄送仅授予本流程脱敏快照查看权限，不授予审批权。${["pending", "paused_invalid_handler"].includes(a.status) ? "<br>流程结束后将向全部抄送人推送结果。" : `<br>${a.decidedAt || a.rejectedAt || a.date} 已推送流程结果。`}</div></div><div class="drawer-foot"><button class="btn" data-close>关闭</button>${canRetryBusiness ? `<button class="btn btn-primary" data-action="retry-approval-business" data-id="${a.id}">受控重试</button>` : ""}${canReplaceInvalidHandler ? `<button class="btn btn-primary" data-action="replace-invalid-handler" data-id="${a.id}">替换处理人</button>` : ""}${canTargetAct ? `<button class="btn btn-danger" data-action="reject-transfer" data-id="${a.id}">拒绝接收</button><button class="btn btn-primary" data-action="accept-transfer" data-id="${a.id}">确认接收</button>` : ""}${canDecisionAct ? `<button class="btn btn-danger" data-reject="${a.id}">驳回</button><button class="btn btn-primary" data-approve="${a.id}">通过</button>` : ""}</div>`,
+          `<div class="drawer-head"><div class="modal-title">审批详情</div><button class="icon-btn close" data-close>×</button></div><div class="drawer-body"><div class="detail-hero"><div class="avatar">审</div><div><div class="detail-name">${a.title}</div></div></div><div class="detail-grid"><div class="detail-item"><label>发起人</label><div>${a.applicant}</div></div><div class="detail-item"><label>发起时间</label><div>${a.date}</div></div><div class="detail-item"><label>流程进度</label><div>${approvalFlow(a)}</div></div><div class="detail-item"><label>当前处理人</label><div>${a.status === "paused_invalid_handler" ? `<span class="tag red">${approvalCurrentAssignees(a).join("、") || "原处理人"} · 已失效</span>` : approvalDetailHandler(a)}</div></div><div class="detail-item"><label>抄送人</label><div>${approvalCcUsers(a).join("、") || "无"}</div></div>${a.decidedAt || a.rejectedAt ? `<div class="detail-item"><label>完成时间</label><div>${a.decidedAt || a.rejectedAt}</div></div>` : ""}</div>${impact}${approvalFormDataHtml}${approvalReasonHtml}<div class="section-title">流程节点</div>${approvalTimeline}</div><div class="drawer-foot"><button class="btn" data-close>关闭</button></div>`,
         );
         const approvalDetailGrid = document.querySelector(
           "#overlay .detail-grid",
@@ -599,7 +964,7 @@
           }
           return;
         }
-        if (a.type === "地市交接" && cityIdsForApproval(a).length) {
+        if ((a.type === "地市交接" || a.templateKey === "city-handover") && cityIdsForHandover(a).length) {
           if (!pass) {
             rollbackApprovalBusinessState(a);
             toast("地市交接已驳回，原负责人和全部业务责任保持不变");
@@ -612,6 +977,7 @@
             return;
           }
           const applied = applyCityResponsibilityTransfer(a);
+          if (applied) a.status = "approved";
           toast(
             applied
               ? "地市责任交接已生效，目标 PM 已收到交接结果和待办数量"

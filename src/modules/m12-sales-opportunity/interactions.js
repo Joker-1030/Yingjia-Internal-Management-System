@@ -1651,6 +1651,32 @@
           if (error) return toast(error);
           if (adjustment && !window.confirm(staged ? "确认保存本层调整？本轮全部完成前，统计继续使用原目标。" : `确认分配 ${changes.length} 项成交金额目标并立即生效？`)) return;
           if (!valid()) return toast("目标或权限已变化，请重新打开分配");
+          const adjustmentTarget = level === "coordinate-month"
+            ? `${plan.regionName} · ${plan.personName || plan.personCode || "个人目标"}`
+            : `${plan.title} · ${plan.period}`;
+          return submitBusinessApproval({
+            templateKey: "sales-target-adjustment",
+            title: `销售指标调整 · ${adjustmentTarget}`,
+            formData: {
+              adjustmentScope: plan.title,
+              targetEmployee: plan.personName || plan.personCode || name,
+              period: plan.period,
+              changeCount: String(changes.length),
+              reason,
+            },
+            reason,
+            targetObject: `销售指标 · ${adjustmentTarget}`,
+            extra: {
+              adjustmentLevel: level,
+              adjustmentChanges: changes.map((change) => ({
+                period: change.period,
+                before: change.value ?? "未分配",
+                after: change.after,
+                employeeCode: change.employeeCode,
+              })),
+              batch: changes.length > 1,
+            },
+          });
           if (staged) {
             let round = pending;
             if (starting) {
